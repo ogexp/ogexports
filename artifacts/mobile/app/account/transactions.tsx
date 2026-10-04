@@ -8,8 +8,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
 type ActivityTab = 'Wallet' | 'Investments';
-type TransactionFilter = 'All' | 'Deposits' | 'Withdrawals' | 'Investments' | 'Returns' | 'Fees';
-const transactionFilters: TransactionFilter[] = ['All', 'Deposits', 'Withdrawals', 'Investments', 'Returns', 'Fees'];
+type TransactionFilter = 'All' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
+const transactionFilters: TransactionFilter[] = ['All', 'Deposits', 'Investments', 'Withdrawals', 'Distributions'];
 
 function DetailLine({ label, value }: { label: string; value: string }) {
   const colors = useColors();
@@ -44,8 +44,7 @@ export default function Transactions() {
     if (filter === 'Deposits') return /deposit|top.?up|funding/.test(type);
     if (filter === 'Withdrawals') return /withdraw|payout/.test(type);
     if (filter === 'Investments') return /invest|purchase|participation/.test(type);
-    if (filter === 'Returns') return /return|profit|distribution|dividend/.test(type);
-    return /fee|charge/.test(type);
+    return /distribution|profit|dividend|bonus/.test(type);
   });
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
