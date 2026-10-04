@@ -64,6 +64,10 @@ it('returns zeroed empty dashboard for investor with no records', function () {
         ->assertOk()
         ->assertJsonPath('data.summary.total_investment', 0)
         ->assertJsonPath('data.summary.active_investment', 0)
+        ->assertJsonPath('data.summary.total_portfolio_value', 0)
+        ->assertJsonPath('data.summary.distributed_returns', 0)
+        ->assertJsonPath('data.summary.pending_distribution', 0)
+        ->assertJsonPath('data.summary.display_currency', 'PKR')
         ->assertJsonPath('data.summary.available_balance', 0)
         ->assertJsonPath('data.summary.total_profit_earned', 0)
         ->assertJsonPath('data.summary.monthly_profit', 0)
@@ -638,4 +642,145 @@ it('uses stored amount_usd for pending withdrawal usd totals on pkr investors', 
         ->assertJsonPath('data.summary.pending_withdrawals_amount', 83550)
         ->assertJsonPath('data.summary.pending_withdrawals_count', 2)
         ->assertJsonPath('data.summary.pending_withdrawals_amount_usd', 300);
+});
+
+it('returns authoritative PKR portfolio and distribution totals without counting forecasts as pending', function () {
+    $wallet = Wallet::query()->create([
+        'user_id' => $this->investorA->id,
+        'currency' => 'PKR',
+        'available_balance' => 1000,
+        'pending_balance' => 250,
+    ]);
+    $project = InvestmentProject::query()->create([
+        'title' => 'Portfolio totals project',
+        'type' => 'container',
+        'status' => 'active',
+        'target_amount' => 100000,
+        'raised_amount' => 1000,
+        'investors_count' => 1,
+        'expected_return_pct' => 10,
+        'min_investment' => 100,
+        'investment_period_days' => 30,
+    ]);
+    $activeInvestment = Investment::query()->create([
+        'project_id' => $project->id,
+        'investor_id' => $this->investorA->id,
+        'amount' => 100,
+        'amount_pkr' => 27850,
+        'status' => 'active',
+        'invested_at' => now()->subDays(5),
+    ]);
+    $completedInvestment = Investment::query()->create([
+        'project_id' => $project->id,
+        'investor_id' => $this->investorA->id,
+        'amount' => 500,
+        'amount_pkr' => 139250,
+        'status' => 'completed',
+        'invested_at' => now()->subDays(40),
+    ]);
+    InvestmentProfitDistribution::query()->create([
+        'investment_id' => $completedInvestment->id,
+        'project_id' => $project->id,
+        'investor_id' => $this->investorA->id,
+        'project_type' => 'container',
+        'invested_amount' => 500,
+        'invested_amount_pkr' => 139250,
+        'profit_amount' => 20,
+        'profit_amount_pkr' => 5570,
+        'total_return' => 520,
+        'roi_pct' => 4,
+        'distributed_at' => now()->subDay(),
+    ]);
+
+    WalletTransaction::query()->create([
+        'wallet_id' => $wallet->id,
+        'type' => 'distribution',
+        'amount' => 120,
+        'direction' => 'credit',
+        'status' => 'pending',
+    ]);
+    WalletTransaction::query()->create([
+        'wallet_id' => $wallet->id,
+        'type' => 'investment_return',
+        'amount' => 999999,
+        'direction' => 'credit',
+        'status' => 'pending',
+    ]);
+    WalletTransaction::query()->create([
+        'wallet_id' => $wallet->id,
+        'type' => 'profit',
+        'amount' => 999,
+        'direction' => 'debit',
+        'status' => 'pending',
+    ]);
+    WalletTransaction::query()->create([
+        'wallet_id' => $wallet->id,
+        'type' => 'dividend',
+        'amount' => 888,
+        'direction' => 'credit',
+        'status' => 'completed',
+    ]);
+
+    $this->actingAs($this->investorA)
+        ->getJson('/api/investor/dashboard')
+        ->assertOk()
+        ->assertJsonPath('data.summary.total_portfolio_value', 29220)
+        ->assertJsonPath('data.summary.distributed_returns', 5570)
+        ->assertJsonPath('data.summary.pending_distribution', 120)
+        ->assertJsonPath('data.summary.display_currency', 'PKR')
+        ->assertJsonPath('data.next_distribution_available', true);
+});
+
+it('does not use a projected next payout as a pending distribution', function () {
+    $wallet = Wallet::query()->create([
+        'user_id' => $this->investorB->id,
+        'currency' => 'USD',
+        'available_balance' => 125,
+        'pending_balance' => 25,
+    ]);
+    $project = InvestmentProject::query()->create([
+        'title' => 'Forecast-only project',
+        'type' => 'container',
+        'status' => 'active',
+        'target_amount' => 100000,
+        'raised_amount' => 100,
+        'investors_count' => 1,
+        'expected_return_pct' => 10,
+        'min_investment' => 100,
+        'investment_period_days' => 30,
+    ]);
+    Investment::query()->create([
+        'project_id' => $project->id,
+        'investor_id' => $this->investorB->id,
+        'amount' => 100,
+        'status' => 'active',
+        'invested_at' => now()->subDays(5),
+    ]);
+    $completedInvestment = Investment::query()->create([
+        'project_id' => $project->id,
+        'investor_id' => $this->investorB->id,
+        'amount' => 100,
+        'status' => 'completed',
+        'invested_at' => now()->subDays(40),
+    ]);
+    InvestmentProfitDistribution::query()->create([
+        'investment_id' => $completedInvestment->id,
+        'project_id' => $project->id,
+        'investor_id' => $this->investorB->id,
+        'project_type' => 'container',
+        'invested_amount' => 100,
+        'profit_amount' => 12,
+        'total_return' => 112,
+        'roi_pct' => 12,
+        'distributed_at' => now()->subDay(),
+    ]);
+
+    $this->actingAs($this->investorB)
+        ->getJson('/api/investor/dashboard')
+        ->assertOk()
+        ->assertJsonPath('data.summary.total_portfolio_value', 250)
+        ->assertJsonPath('data.summary.distributed_returns', 12)
+        ->assertJsonPath('data.summary.pending_distribution', 0)
+        ->assertJsonPath('data.summary.display_currency', 'USD')
+        ->assertJsonPath('data.next_distribution_available', true);
 });

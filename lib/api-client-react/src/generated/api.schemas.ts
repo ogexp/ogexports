@@ -260,6 +260,38 @@ export interface InvestorProjectDetailEnvelope {
 
 export type InvestorProjectDetailResponse = InvestorProjectDetail | InvestorProjectDetailEnvelope;
 
+/**
+ * Financial summary amounts are denominated in display_currency.
+ */
+export interface InvestorDashboardSummary {
+  /** Current pending and active investment principal, available and reserved wallet balances, and explicit pending distributions; completed investments are excluded because their return is credited to the wallet. */
+  total_portfolio_value: number;
+  /** Confirmed profit amounts from investor distribution records with a distributed_at timestamp. */
+  distributed_returns: number;
+  /** Sum of pending credit ledger entries explicitly typed as profit, distribution, or dividend; forecast payouts are excluded. */
+  pending_distribution: number;
+  /** Currency used for all financial summary amounts, matching the investor wallet currency. */
+  display_currency: string;
+  [key: string]: unknown;
+ }
+
+export type InvestorDashboardDataWallet = {
+  /** Currency used for wallet balances. */
+  currency: string;
+  [key: string]: unknown;
+ };
+
+export interface InvestorDashboardData {
+  summary: InvestorDashboardSummary;
+  wallet: InvestorDashboardDataWallet;
+  [key: string]: unknown;
+ }
+
+export interface InvestorDashboardResponse {
+  data: InvestorDashboardData;
+  [key: string]: unknown;
+ }
+
 export type InvestorPushTokenRegistrationPlatform = typeof InvestorPushTokenRegistrationPlatform[keyof typeof InvestorPushTokenRegistrationPlatform];
 
 

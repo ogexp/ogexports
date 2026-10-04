@@ -287,7 +287,7 @@ paths:
       summary: Get investor dashboard summary
       security: [{ BearerAuth: [] }]
       responses:
-        "200": { description: Dashboard data, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "200": { description: Dashboard data, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorDashboardResponse" } } } }
   /investor/projects:
     get:
       operationId: getInvestorProjects
@@ -967,6 +967,46 @@ components:
       oneOf:
         - $ref: "#/components/schemas/InvestorProjectDetail"
         - $ref: "#/components/schemas/InvestorProjectDetailEnvelope"
+    InvestorDashboardSummary:
+      type: object
+      description: Financial summary amounts are denominated in display_currency.
+      additionalProperties: true
+      required: [total_portfolio_value, distributed_returns, pending_distribution, display_currency]
+      properties:
+        total_portfolio_value:
+          type: number
+          description: Current pending and active investment principal, available and reserved wallet balances, and explicit pending distributions; completed investments are excluded because their return is credited to the wallet.
+        distributed_returns:
+          type: number
+          description: Confirmed profit amounts from investor distribution records with a distributed_at timestamp.
+        pending_distribution:
+          type: number
+          description: Sum of pending credit ledger entries explicitly typed as profit, distribution, or dividend; forecast payouts are excluded.
+        display_currency:
+          type: string
+          description: Currency used for all financial summary amounts, matching the investor wallet currency.
+    InvestorDashboardData:
+      type: object
+      additionalProperties: true
+      required: [summary, wallet]
+      properties:
+        summary:
+          $ref: "#/components/schemas/InvestorDashboardSummary"
+        wallet:
+          type: object
+          additionalProperties: true
+          required: [currency]
+          properties:
+            currency:
+              type: string
+              description: Currency used for wallet balances.
+    InvestorDashboardResponse:
+      type: object
+      additionalProperties: true
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/InvestorDashboardData"
     InvestorPushTokenRegistration:
       type: object
       required: [expo_push_token, platform]

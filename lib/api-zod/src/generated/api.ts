@@ -202,7 +202,19 @@ export const ResetInvestorTransactionPasswordResponse = zod.record(zod.string(),
 /**
  * @summary Get investor dashboard summary
  */
-export const GetInvestorDashboardResponse = zod.record(zod.string(), zod.unknown())
+export const GetInvestorDashboardResponse = zod.object({
+  "data": zod.object({
+  "summary": zod.object({
+  "total_portfolio_value": zod.number().describe('Current pending and active investment principal, available and reserved wallet balances, and explicit pending distributions; completed investments are excluded because their return is credited to the wallet.'),
+  "distributed_returns": zod.number().describe('Confirmed profit amounts from investor distribution records with a distributed_at timestamp.'),
+  "pending_distribution": zod.number().describe('Sum of pending credit ledger entries explicitly typed as profit, distribution, or dividend; forecast payouts are excluded.'),
+  "display_currency": zod.string().describe('Currency used for all financial summary amounts, matching the investor wallet currency.')
+}).describe('Financial summary amounts are denominated in display_currency.'),
+  "wallet": zod.object({
+  "currency": zod.string().describe('Currency used for wallet balances.')
+})
+})
+})
 
 
 /**

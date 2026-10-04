@@ -243,6 +243,14 @@ class DashboardController extends Controller
             $activeInvestmentDisplayUsd = InvestorDepositFx::pkrToUsd($activeInvested, $displayUsdRate);
         }
 
+        $portfolioSummary = InvestorProfitTotals::portfolioSummary(
+            $investments,
+            $wallet,
+            $userId,
+            $walletCurrency,
+            $displayUsdRate,
+        );
+
         return response()->json([
             'data' => [
                 'user' => [
@@ -255,7 +263,7 @@ class DashboardController extends Controller
                 ],
                 'wallet' => [
                     'id' => $wallet->id,
-                    'currency' => $wallet->currency ?: InvestorMarket::currencyForUser($user),
+                    'currency' => $walletCurrency,
                     'available_balance' => (float) $wallet->available_balance,
                     'pending_balance' => (float) $wallet->pending_balance,
                 ],
@@ -270,6 +278,10 @@ class DashboardController extends Controller
                     'active_investment' => round($activeInvested, 2),
                     'total_investment_usd' => $totalInvestmentDisplayUsd,
                     'active_investment_usd' => $activeInvestmentDisplayUsd,
+                    'total_portfolio_value' => $portfolioSummary['total_portfolio_value'],
+                    'distributed_returns' => $portfolioSummary['distributed_returns'],
+                    'pending_distribution' => $portfolioSummary['pending_distribution'],
+                    'display_currency' => $portfolioSummary['display_currency'],
                     'active_investments_count' => $activeCount,
                     'investments_count' => $investments->count(),
                     'available_balance' => (float) $wallet->available_balance,

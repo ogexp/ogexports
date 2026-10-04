@@ -71,6 +71,64 @@ class InvestorProfitTotals
     }
 
     /**
+     * Build current portfolio values using only held investments, wallet balances,
+     * confirmed distribution rows, and explicitly pending distribution credits.
+     *
+     * @param  Collection<int, Investment>  $investments
+     * @return array{
+     *   total_portfolio_value: float,
+     *   distributed_returns: float,
+     *   pending_distribution: float,
+     *   display_currency: string
+     * }
+     */
+    public static function portfolioSummary(
+        Collection $investments,
+        Wallet $wallet,
+        int $userId,
+        string $displayCurrency,
+        ?float $displayRate = null,
+    ): array {
+        $displayCurrency = strtoupper($displayCurrency);
+        $isPkr = $displayCurrency === 'PKR';
+
+        $currentInvestmentValue = (float) $investments
+            ->whereIn('status', ['pending', 'active'])
+            ->sum(fn (Investment $investment) => self::investmentToWallet($investment, $isPkr, $displayRate));
+        $walletValue = (float) $wallet->available_balance + (float) $wallet->pending_balance;
+
+        $confirmedDistributions = InvestmentProfitDistribution::query()
+            ->where('investor_id', $userId)
+            ->whereNotNull('distributed_at')
+            ->get(['profit_amount', 'profit_amount_pkr']);
+
+        $distributedReturns = (float) $confirmedDistributions
+            ->sum(fn (InvestmentProfitDistribution $distribution) => self::distributionToWallet(
+                $distribution,
+                $isPkr,
+                $displayRate,
+            ));
+
+        // Pending return credits are explicit ledger entries. Forecasts and
+        // investment_return rows are excluded because they are not profit-only payouts.
+        $pendingDistribution = WalletTransaction::query()
+            ->where('wallet_id', $wallet->id)
+            ->where('direction', 'credit')
+            ->where('status', 'pending')
+            ->whereIn('type', ['profit', 'distribution', 'dividend'])
+            ->sum('amount');
+
+        $pendingDistribution = (float) $pendingDistribution;
+
+        return [
+            'total_portfolio_value' => round($currentInvestmentValue + $walletValue + $pendingDistribution, 2),
+            'distributed_returns' => round($distributedReturns, 2),
+            'pending_distribution' => round($pendingDistribution, 2),
+            'display_currency' => $displayCurrency,
+        ];
+    }
+
+    /**
      * Monthly profit breakdown in wallet currency.
      *
      * @return list<array{month: string, month_key: string, monthly: float, monthly_usd: float}>

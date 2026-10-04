@@ -51,13 +51,11 @@ export default function Portfolio() {
   const summary = record(dashboard.summary);
   const wallet = record(dashboard.wallet);
   const series = record(dashboard.portfolio_series);
-  const currency = first(wallet, ['currency', 'default_currency']);
-  const totalValue = amount(summary, ['total_portfolio_value', 'portfolio_value', 'total_value']);
+  const currency = first(summary, ['display_currency'], first(wallet, ['currency', 'default_currency']));
+  const totalValue = amount(summary, ['total_portfolio_value']);
   const invested = amount(summary, ['total_investment', 'total_investment_usd', 'invested_capital']);
-  const distributed = amount(summary, ['distributed_returns', 'total_distributed_returns'])
-    ?? amount(dashboard, ['distributed_returns', 'total_distributed_returns']);
-  const pendingDistribution = amount(summary, ['pending_distribution'])
-    ?? amount(dashboard, ['pending_distribution']);
+  const distributed = amount(summary, ['distributed_returns']);
+  const pendingDistribution = amount(summary, ['pending_distribution']);
   const availableBalance = amount(wallet, ['available_balance', 'balance', 'available'])
     ?? amount(summary, ['available_balance']);
   const assignedRows = rows.map((item, index) => {

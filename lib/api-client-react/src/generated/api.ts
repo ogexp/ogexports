@@ -34,6 +34,7 @@ import type {
   GetInvestorStatementParams,
   GetInvestorWalletTransactionsParams,
   GetInvestorWithdrawalsParams,
+  InvestorDashboardResponse,
   InvestorProfileUpdate,
   InvestorProjectDetailResponse,
   InvestorPushTokenRegistration,
@@ -2083,9 +2084,9 @@ export const getGetInvestorDashboardUrl = () => {
 /**
  * @summary Get investor dashboard summary
  */
-export const getInvestorDashboard = async ( options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const getInvestorDashboard = async ( options?: Parameters<typeof customFetch>[1]): Promise<InvestorDashboardResponse> => {
 
-  return customFetch<JsonObject>(getGetInvestorDashboardUrl(),
+  return customFetch<InvestorDashboardResponse>(getGetInvestorDashboardUrl(),
   {
     ...options,
     method: 'GET'
