@@ -10,18 +10,18 @@ import { useColors } from '@/hooks/useColors';
 const slides = [
   {
     illustration: 'trade' as const,
-    title: 'Invest in Real Trade',
-    body: 'Access investment opportunities connected to real-world commodities, global trade and business.',
+    title: 'Invest in Real-World Trade',
+    body: 'Participate in selected import and export trade opportunities connected to real cargo.',
   },
   {
     illustration: 'portfolio' as const,
-    title: 'Grow With Opportunity',
-    body: 'Discover carefully structured opportunities and monitor your investments from one secure platform.',
+    title: 'Track Every Trade',
+    body: 'Follow each trade from cargo preparation through shipment and arrival at its destination.',
   },
   {
     illustration: 'trust' as const,
-    title: 'Built Around Trust',
-    body: 'Secure verification, transparent information and professional investment management — all in one place.',
+    title: 'Manage Your Portfolio',
+    body: 'Review your investments, wallet, distributions and trade performance in one secure place.',
   },
 ];
 
@@ -94,7 +94,7 @@ export default function Onboarding() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, paddingHorizontal: 22 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 10 }}>
         <Image source={require('../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 45, height: 36 }} />
-        <View><Text style={{ color: colors.primary, fontWeight: '700', fontSize: 16 }}>OG Exports</Text><Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 1 }}>Global Trade. Smart Investment.</Text></View>
+        <View><Text style={{ color: colors.primary, fontWeight: '700', fontSize: 16 }}>OG Exports</Text><Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 1 }}>Global Trade. Digital Investment.</Text></View>
       </View>
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <Animated.View style={{ opacity, transform: [{ translateX }] }}>

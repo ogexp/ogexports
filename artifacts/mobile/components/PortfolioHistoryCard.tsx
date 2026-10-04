@@ -5,8 +5,8 @@ import { Card } from '@/components/InvestorUI';
 import { amount, first, list, money } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
 
-type Range = '1D' | '1W' | '1M' | '3M' | '1Y' | 'All';
-const ranges: Range[] = ['1D', '1W', '1M', '3M', '1Y', 'All'];
+type Range = '1M' | '3M' | '6M' | '1Y' | 'All';
+const ranges: Range[] = ['1M', '3M', '6M', '1Y', 'All'];
 const chartWidth = 320;
 const chartLeft = 12;
 const chartRight = chartWidth - 12;
@@ -36,7 +36,7 @@ export function PortfolioHistoryCard({
       return date && value != null ? [{ point, date, value }] : [];
     });
     if (range === 'All') return all;
-    const days = range === '1D' ? 1 : range === '1W' ? 7 : range === '1M' ? 30 : range === '3M' ? 90 : 365;
+    const days = range === '1M' ? 30 : range === '3M' ? 90 : range === '6M' ? 180 : 365;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     const firstInRange = all.findIndex(item => new Date(item.date).getTime() >= cutoff.getTime());

@@ -8,11 +8,11 @@ import { useColors } from '@/hooks/useColors';
 export default function Entry() {
   const { ready, token, onboardingComplete, appUnlocked } = useAuth();
   const colors = useColors();
-  const opacity = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0.92)).current;
-  const glowOpacity = useRef(new Animated.Value(0)).current;
-  const glowScale = useRef(new Animated.Value(0.9)).current;
-  const taglineOpacity = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(Platform.OS === 'web' ? 1 : 0)).current;
+  const scale = useRef(new Animated.Value(Platform.OS === 'web' ? 1 : 0.92)).current;
+  const glowOpacity = useRef(new Animated.Value(Platform.OS === 'web' ? 0.35 : 0)).current;
+  const glowScale = useRef(new Animated.Value(Platform.OS === 'web' ? 1 : 0.9)).current;
+  const taglineOpacity = useRef(new Animated.Value(Platform.OS === 'web' ? 1 : 0)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -41,7 +41,7 @@ export default function Entry() {
       <Animated.View style={{ alignItems: 'center', opacity, transform: [{ scale }] }}>
         <Image source={require('../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 148, height: 112 }} />
         <Text style={{ color: colors.primary, fontSize: 27, fontWeight: '700', marginTop: 24 }}>OG Exports</Text>
-        <Animated.Text style={{ color: colors.mutedForeground, fontSize: 14, marginTop: 8, letterSpacing: 0.5, opacity: taglineOpacity }}>Global Trade. Smart Investment.</Animated.Text>
+        <Animated.Text style={{ color: colors.mutedForeground, fontSize: 14, marginTop: 8, letterSpacing: 0.5, opacity: taglineOpacity }}>Global Trade. Digital Investment.</Animated.Text>
       </Animated.View>
     </View>
   );

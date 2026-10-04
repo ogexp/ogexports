@@ -4,7 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGetInvestorProject, useGetInvestorWallet, useInvestInProject } from '@workspace/api-client-react';
-import { Action, Card, ErrorState, Field, Screen, Status } from '@/components/InvestorUI';
+import { Action, Card, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
 import { amount, first, list, messageOf, record, unwrap, money } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -29,12 +29,65 @@ export default function OpportunityDetail() {
   const project = unwrap(query.data);
   const wallet = unwrap(walletQuery.data);
   const target = amount(project, ['target_amount', 'funding_target', 'amount']);
+  const fundedAmount = amount(project, ['funded_amount', 'raised_amount', 'current_amount', 'current_funding']);
+  const remainingFunding = target != null && fundedAmount != null ? Math.max(0, target - fundedAmount) : null;
   const minimum = amount(project, ['minimum_investment', 'min_investment']);
   const maximum = amount(project, ['maximum_investment', 'max_investment']);
   const walletBalance = amount(wallet, ['available_balance', 'balance', 'available']);
   const currency = first(project, ['currency'], first(wallet, ['currency']));
   const walletCurrency = first(wallet, ['currency'], currency);
   const documents = list(project.documents);
+  const tradeId = first(project, ['trade_id', 'trade_code', 'code', 'reference'], 'Trade ID not provided');
+  const tradeCurrency = first(project, ['currency']);
+  const origin = first(project, ['origin', 'origin_country', 'from_country'], '');
+  const destination = first(project, ['destination', 'destination_country', 'to_country', 'destination_market'], '');
+  const routeStops = [
+    ['Origin', origin],
+    ['Port of loading', first(project, ['port_of_loading', 'loading_port'], '')],
+    ['Vessel', first(project, ['vessel_name', 'vessel'], '')],
+    ['Destination port', first(project, ['destination_port', 'port_of_discharge'], '')],
+    ['Buyer', first(project, ['buyer_name', 'buyer'], '')],
+  ].filter(([, value]) => value);
+  const cargoDetails: [string, string][] = ([
+    ['Commodity', first(project, ['commodity_name', 'commodity'], '')],
+    ['Grade', first(project, ['grade', 'commodity_grade'], '')],
+    ['Quantity', first(project, ['quantity', 'cargo_quantity', 'quantity_tons'], '')],
+    ['Packaging', first(project, ['packaging', 'package_type'], '')],
+    ['Container type', first(project, ['container_type'], '')],
+    ['Container count', first(project, ['container_count', 'containers_count'], '')],
+    ['Origin', origin],
+    ['Destination', destination],
+  ] as [string, string][]).filter(([, value]) => value);
+  const commercialDetails: [string, string][] = ([
+    ['Trade term / Incoterm', first(project, ['incoterm', 'trade_term'], '')],
+    ['Estimated trade cycle', first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], '')],
+    ['Shipment date', first(project, ['shipment_date', 'estimated_shipment_date'], '')],
+    ['Estimated arrival', first(project, ['estimated_arrival', 'eta'], '')],
+    ['Destination market', first(project, ['destination_market', 'destination_country'], '')],
+    ['Funding deadline', first(project, ['funding_deadline', 'closing_date', 'deadline'], '')],
+  ] as [string, string][]).filter(([, value]) => value);
+  const costBreakdown = record(project.financial_breakdown ?? project.cost_breakdown);
+  const financialDetails: [string, number | null][] = ([
+    ['Commodity cost', amount(project, ['commodity_cost']) ?? amount(costBreakdown, ['commodity_cost'])],
+    ['Packing', amount(project, ['packing_cost']) ?? amount(costBreakdown, ['packing_cost'])],
+    ['Inland transportation', amount(project, ['inland_transportation_cost', 'transportation_cost']) ?? amount(costBreakdown, ['inland_transportation_cost', 'transportation_cost'])],
+    ['Port charges', amount(project, ['port_charges']) ?? amount(costBreakdown, ['port_charges'])],
+    ['Freight', amount(project, ['freight_cost', 'freight']) ?? amount(costBreakdown, ['freight_cost', 'freight'])],
+    ['Insurance', amount(project, ['insurance_cost', 'insurance']) ?? amount(costBreakdown, ['insurance_cost', 'insurance'])],
+    ['Other trade costs', amount(project, ['other_trade_costs', 'other_costs']) ?? amount(costBreakdown, ['other_trade_costs', 'other_costs'])],
+  ] as [string, number | null][]).filter(([, value]) => value != null);
+  const formatTradeMoney = (value: number | null) => value == null ? 'Not provided' : tradeCurrency ? money(value, tradeCurrency) : 'Currency not provided';
+  const fundingProgress = target != null && target > 0 && fundedAmount != null
+    ? Math.max(0, Math.min(100, Math.round(fundedAmount / target * 100)))
+    : null;
+  const fundingDetails: [string, string][] = [
+    ['Total trade requirement', formatTradeMoney(target)],
+    ['Amount funded', formatTradeMoney(fundedAmount)],
+    ['Remaining funding', formatTradeMoney(remainingFunding)],
+    ['Minimum investment', formatTradeMoney(minimum)],
+    ['Maximum investment', formatTradeMoney(maximum)],
+    ['Funding deadline', first(project, ['funding_deadline', 'closing_date', 'deadline'], 'Not provided')],
+  ];
   const kycRequired = /kyc|verification/i.test(error);
   const activeFlowStep = stage === 'amount' ? 2 : stage === 'payment' ? 3 : stage === 'review' ? 4 : 5;
 
@@ -107,9 +160,9 @@ export default function OpportunityDetail() {
       setDocumentBusy('');
     }
   }
-  return <Screen title={first(project, ['title', 'name', 'project_name'], query.isLoading ? 'Loading opportunity' : 'Opportunity')} subtitle={first(project, ['type', 'category', 'location'], 'OG Exports opportunity')}>
+  return <Screen title="Trade Opportunity" subtitle={first(project, ['commodity_name', 'commodity', 'destination'], 'Trade details')}>
     <View accessibilityRole="progressbar" accessibilityLabel={`Investment flow step ${activeFlowStep} of 5`} style={{ flexDirection: 'row', gap: 5, marginBottom: 14 }}>
-      {(['Opportunity', 'Amount', 'Payment', 'Review', 'Confirm'] as const).map((label, index) => {
+      {(['Trade', 'Amount', 'Payment', 'Review', 'Submit'] as const).map((label, index) => {
         const complete = index + 1 <= activeFlowStep;
         return <View key={label} style={{ flex: 1, borderRadius: 9, paddingVertical: 8, alignItems: 'center', backgroundColor: complete ? colors.primary : colors.secondary }}>
           <Text style={{ color: complete ? colors.primaryForeground : colors.mutedForeground, fontSize: 9, fontWeight: '700', textAlign: 'center' }}>{index + 1}. {label}</Text>
@@ -119,28 +172,70 @@ export default function OpportunityDetail() {
     {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading opportunity details…</Text></Card> : null}
     {query.isError ? <ErrorState message="Opportunity details could not be loaded." onRetry={() => void query.refetch()} /> : null}
     {!query.isLoading && !query.isError ? <>
+      <Section title="Trade overview" />
       <Card>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>PROJECT STATUS</Text><Status value={first(project, ['status', 'state'], '—')} /></View>
-        {first(project, ['description', 'summary']) ? <Text style={{ color: colors.foreground, lineHeight: 22, marginTop: 15 }}>{first(project, ['description', 'summary'])}</Text> : null}
-        <View style={{ marginTop: 18, gap: 13 }}>
-          {target != null ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Funding target</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{money(target, currency)}</Text></View> : null}
-          {amount(project, ['raised_amount', 'funded_amount']) != null ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Raised</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{money(amount(project, ['raised_amount', 'funded_amount']), currency)}</Text></View> : null}
-          {amount(project, ['current_funding', 'current_amount']) != null ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Current funding</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{money(amount(project, ['current_funding', 'current_amount']), currency)}</Text></View> : null}
-          {minimum != null ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Minimum investment</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{money(minimum, currency)}</Text></View> : null}
-          {maximum != null ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Maximum investment</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{money(maximum, currency)}</Text></View> : null}
-          {first(project, ['expected_return', 'return_rate', 'roi']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Indicative return · not guaranteed</Text><Text style={{ color: colors.primary, fontWeight: '700' }}>{first(project, ['expected_return', 'return_rate', 'roi'])}</Text></View> : null}
-          {first(project, ['duration', 'term']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Investment term</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(project, ['duration', 'term'])}</Text></View> : null}
-          {first(project, ['quantity', 'trade_size', 'volume']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Trade size</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(project, ['quantity', 'trade_size', 'volume'])}</Text></View> : null}
-          {first(project, ['expected_timeline', 'timeline']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Expected timeline</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(project, ['expected_timeline', 'timeline'])}</Text></View> : null}
-          {first(project, ['risk_level', 'risk_rating']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Risk level</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(project, ['risk_level', 'risk_rating'])}</Text></View> : null}
-          {first(project, ['commodity']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Commodity</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(project, ['commodity'])}</Text></View> : null}
-          {first(project, ['origin']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Origin</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(project, ['origin'])}</Text></View> : null}
-          {first(project, ['destination']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Destination</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(project, ['destination'])}</Text></View> : null}
-          {first(project, ['trade_direction']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}><Text style={{ color: colors.mutedForeground }}>Trade direction</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(project, ['trade_direction'])}</Text></View> : null}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <View style={{ flex: 1 }}><Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>TRADE ID</Text><Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 5 }}>{tradeId}</Text></View>
+          <Status value={first(project, ['status', 'state'], 'Not provided')} />
         </View>
+        {first(project, ['description', 'summary']) ? <Text style={{ color: colors.foreground, lineHeight: 22, marginTop: 14 }}>{first(project, ['description', 'summary'])}</Text> : null}
+      </Card>
+
+      <Section title="Global trade route" />
+      <Card>
+        {routeStops.length ? routeStops.map(([label, value], index) => <View key={`${label}-${index}`} style={{ flexDirection: 'row', gap: 11, minHeight: index < routeStops.length - 1 ? 51 : 34 }}>
+          <View style={{ width: 15, alignItems: 'center' }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, marginTop: 4, backgroundColor: index === 0 || index === routeStops.length - 1 ? colors.primary : colors.accent }} />
+            {index < routeStops.length - 1 ? <View style={{ width: 1, flex: 1, marginTop: 3, backgroundColor: colors.border }} /> : null}
+          </View>
+          <View style={{ flex: 1, paddingBottom: 12 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{label}</Text>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700', marginTop: 3 }}>{value}</Text>
+          </View>
+        </View>) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>Route details have not been provided by OG Exports.</Text>}
+      </Card>
+
+      <Section title="Cargo information" />
+      <Card>
+        {cargoDetails.length ? cargoDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
+        </View>) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>Cargo specifications have not been provided.</Text>}
+      </Card>
+
+      <Section title="Commercial information" />
+      <Card>
+        {commercialDetails.length ? commercialDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
+        </View>) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>Commercial details have not been provided.</Text>}
+      </Card>
+
+      <Section title="Funding information" />
+      <Card>
+        {fundingDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
+        </View>)}
+        {fundingProgress != null ? <View style={{ marginTop: 14 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 }}><Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Funding progress</Text><Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700' }}>{fundingProgress}%</Text></View>
+          <View style={{ height: 7, borderRadius: 4, backgroundColor: colors.secondary, overflow: 'hidden' }}><View style={{ width: `${fundingProgress}%`, height: 7, borderRadius: 4, backgroundColor: colors.primary }} /></View>
+        </View> : <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 12 }}>Funding progress is not available.</Text>}
+      </Card>
+
+      <Section title="Financial breakdown" />
+      <Card>
+        {financialDetails.length ? financialDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{formatTradeMoney(value)}</Text>
+        </View>) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>A financial cost breakdown has not been provided.</Text>}
+      </Card>
+
+      <Section title="Projected / target information" />
+      <Card>
+        {first(project, ['target_return', 'projected_return', 'expected_return', 'return_rate', 'roi']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Target return</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{first(project, ['target_return', 'projected_return', 'expected_return', 'return_rate', 'roi'])}</Text></View> : null}
+        {first(project, ['target_distribution', 'projected_distribution', 'estimated_distribution']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Estimated distribution</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{first(project, ['target_distribution', 'projected_distribution', 'estimated_distribution'])}</Text></View> : null}
+        {first(project, ['estimated_trade_cycle', 'projected_cycle', 'expected_timeline']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Expected trade cycle</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{first(project, ['estimated_trade_cycle', 'projected_cycle', 'expected_timeline'])}</Text></View> : null}
+        <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 9 }}>Projected figures are not guaranteed. Investment performance is subject to actual trade performance and applicable risks.</Text>
       </Card>
       <Card>
-        <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginBottom: 10 }}>Project documents</Text>
+        <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginBottom: 10 }}>Trade documents</Text>
         {documents.length ? documents.map((document, index) => {
           const key = first(document, ['id'], String(index));
           const name = first(document, ['title', 'original_name', 'name'], 'Project document');
@@ -158,7 +253,7 @@ export default function OpportunityDetail() {
             </View>
             {!viewUrl && !downloadUrl ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 8 }}>Secure access links are not provided for this document.</Text> : null}
           </View>;
-        }) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>No project documents are available from OG Exports for this opportunity.</Text>}
+        }) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>No trade documents are available from OG Exports for this opportunity.</Text>}
         {documentError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginTop: 8 }}>{documentError}</Text> : null}
       </Card>
       <Pressable onPress={() => router.push('/account/legal/risk')} style={{ marginBottom: 12 }}><Text style={{ color: colors.primary, fontWeight: '700' }}>Read the risk disclosure →</Text></Pressable>

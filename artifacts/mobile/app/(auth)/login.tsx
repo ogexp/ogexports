@@ -40,7 +40,7 @@ export default function Login() {
       <View style={{ alignItems: 'center', marginBottom: 22 }}>
         <Image source={require('../../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 112, height: 82 }} />
         <Text style={{ color: colors.primary, fontSize: 25, fontWeight: '700', marginTop: 18 }}>OG Exports</Text>
-        <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 7 }}>Global Trade. Smart Investment.</Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 7 }}>Global Trade. Digital Investment.</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 5 }}>Sign in to your investor account.</Text>
       </View>
       <Card>
