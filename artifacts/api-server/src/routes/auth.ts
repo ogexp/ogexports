@@ -59,7 +59,7 @@ function rateLimitAuth(req: Request, res: Response, next: NextFunction): void {
 
 router.use(rateLimitAuth);
 
-router.post("/auth/register", async (req, res) => {
+router.post(["/auth/register", "/auth/registers/pre"], async (req, res) => {
   const body = bodyOf(req);
   const name = stringValue(body.name);
   const email = normalizeEmail(stringValue(body.email));
