@@ -1,48 +1,87 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Image, Platform, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Image, Platform, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
 export default function Entry() {
   const { ready, token, onboardingComplete, appUnlocked } = useAuth();
   const colors = useColors();
-  const opacity = useRef(new Animated.Value(Platform.OS === 'web' ? 1 : 0)).current;
-  const scale = useRef(new Animated.Value(Platform.OS === 'web' ? 1 : 0.92)).current;
-  const glowOpacity = useRef(new Animated.Value(Platform.OS === 'web' ? 0.35 : 0)).current;
-  const glowScale = useRef(new Animated.Value(Platform.OS === 'web' ? 1 : 0.9)).current;
-  const taglineOpacity = useRef(new Animated.Value(Platform.OS === 'web' ? 1 : 0)).current;
+  const useNativeDriver = Platform.OS !== 'web';
+  const brandOpacity = useRef(new Animated.Value(0)).current;
+  const brandScale = useRef(new Animated.Value(0.975)).current;
+  const subtitleOpacity = useRef(new Animated.Value(0)).current;
+  const screenOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 520, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.spring(scale, { toValue: 1, damping: 16, stiffness: 130, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(glowOpacity, { toValue: 1, duration: 780, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.spring(glowScale, { toValue: 1, damping: 18, stiffness: 90, useNativeDriver: Platform.OS !== 'web' }),
-    ]).start();
-    Animated.timing(taglineOpacity, { toValue: 1, duration: 320, delay: 180, useNativeDriver: Platform.OS !== 'web' }).start();
-  }, [opacity, scale, glowOpacity, glowScale, taglineOpacity]);
+    const reveal = Animated.parallel([
+      Animated.timing(brandOpacity, {
+        toValue: 1,
+        duration: 520,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver,
+      }),
+      Animated.timing(brandScale, {
+        toValue: 1,
+        duration: 620,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver,
+      }),
+    ]);
+    const subtitleReveal = Animated.timing(subtitleOpacity, {
+      toValue: 1,
+      duration: 320,
+      delay: 150,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver,
+    });
+    reveal.start();
+    subtitleReveal.start();
+    return () => {
+      reveal.stop();
+      subtitleReveal.stop();
+    };
+  }, [brandOpacity, brandScale, subtitleOpacity, useNativeDriver]);
 
   useEffect(() => {
     if (!ready) return;
     const destination = token
       ? appUnlocked ? '/(tabs)' : '/lock'
       : onboardingComplete ? '/(auth)/login' : '/onboarding';
-    const timer = setTimeout(() => router.replace(destination), 850);
-    return () => clearTimeout(timer);
-  }, [ready, token, onboardingComplete, appUnlocked]);
+    let cancelFade: (() => void) | undefined;
+    const timer = setTimeout(() => {
+      const fadeOut = Animated.timing(screenOpacity, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver,
+      });
+      cancelFade = () => fadeOut.stop();
+      fadeOut.start(({ finished }) => {
+        if (finished) router.replace(destination);
+      });
+    }, 850);
+    return () => {
+      clearTimeout(timer);
+      cancelFade?.();
+    };
+  }, [ready, token, onboardingComplete, appUnlocked, screenOpacity, useNativeDriver]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 28 }}>
-      <Animated.View style={{ position: 'absolute', width: 300, height: 300, borderRadius: 150, opacity: glowOpacity, transform: [{ scale: glowScale }], overflow: 'hidden' }}>
-        <LinearGradient colors={[colors.glow, colors.lightGreen, colors.background]} locations={[0, 0.58, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1 }} />
-      </Animated.View>
-      <Animated.View style={{ alignItems: 'center', opacity, transform: [{ scale }] }}>
+    <Animated.View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 28, opacity: screenOpacity }}>
+      <Animated.View style={{ alignItems: 'center', opacity: brandOpacity, transform: [{ scale: brandScale }] }}>
         <Image source={require('../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 148, height: 112 }} />
         <Text style={{ color: colors.primary, fontSize: 27, fontWeight: '700', marginTop: 24 }}>OG Exports</Text>
-        <Animated.Text style={{ color: colors.mutedForeground, fontSize: 14, marginTop: 8, letterSpacing: 0.5, opacity: taglineOpacity }}>Global Trade. Digital Investment.</Animated.Text>
+        <Animated.Text style={{ color: colors.mutedForeground, fontSize: 14, marginTop: 8, letterSpacing: 0.3, opacity: subtitleOpacity }}>Global Trade. Digital Investment.</Animated.Text>
       </Animated.View>
-    </View>
+      <Animated.View
+        accessibilityRole="progressbar"
+        accessibilityLabel="Loading OG Exports"
+        style={{ alignItems: 'center', marginTop: 36, opacity: subtitleOpacity }}
+      >
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 9 }}>Preparing your investor experience</Text>
+      </Animated.View>
+    </Animated.View>
   );
 }

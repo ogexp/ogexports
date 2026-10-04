@@ -25,7 +25,7 @@
           "image": "./assets/images/og-logo.png",
           "imageWidth": 150,
           "resizeMode": "contain",
-          "backgroundColor": "#FFFFFF"
+          "backgroundColor": "#F8FAF8"
         }
       ]
     ],
