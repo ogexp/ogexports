@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { Action, Card, Field, Screen } from '@/components/InvestorUI';
@@ -10,21 +10,21 @@ import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Login() {
-  const { apiOrigin, updateOrigin, setChallenge, acceptSession } = useAuth();
+  const { apiOrigin, setChallenge, acceptSession } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const login = useInvestorMobileLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [server, setServer] = useState(apiOrigin);
-  const [showServer, setShowServer] = useState(!apiOrigin);
   const [error, setError] = useState('');
 
   async function submit() {
     setError('');
+    if (!apiOrigin) {
+      setError('Investor sign-in is not configured yet. Please contact OG Exports support.');
+      return;
+    }
     try {
-      if (!apiOrigin && !server.trim()) throw new Error('Add your API server address to connect your investor account.');
-      if (server.trim()) await updateOrigin(server);
       const result = record(await login.mutateAsync({ data: { email: email.trim(), password, device_name: 'og_investor_mobile' } }));
       const user = record(result.user);
       if (result.requires_2fa) {
@@ -61,7 +61,6 @@ export default function Login() {
         <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 5 }}>Sign in to your investor account.</Text>
       </View>
       <Card>
-        {showServer ? <Field label="Investor API address" value={server} onChangeText={setServer} placeholder="https://api.yourcompany.com" keyboardType="default" autoCapitalize="none" /> : <Pressable onPress={() => setShowServer(true)} style={{ marginBottom: 12 }}><Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Connected to {apiOrigin} · Change server</Text></Pressable>}
         <Field label="Email address" value={email} onChangeText={setEmail} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" />
         <Field label="Password" value={password} onChangeText={setPassword} placeholder="Enter your password" secureTextEntry autoCapitalize="none" />
         {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 14, lineHeight: 20 }}>{error}</Text> : null}
