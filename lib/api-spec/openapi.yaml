@@ -2,35 +2,511 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 1.0.0
+  description: OG Exports investor mobile API, generated from the Laravel mobile API contract
 servers:
   - url: /api
     description: Base API path
 tags:
-  - name: health
-    description: Health operations
+  - name: auth
+    description: Mobile authentication
+  - name: investor
+    description: Investor portfolio, opportunities, wallet, KYC and account
+  - name: communication
+    description: Notifications, conversations and support
 paths:
-  /healthz:
-    get:
-      operationId: healthCheck
-      tags: [health]
-      summary: Health check
-      description: Returns server health status
+  /auth/mobile/login:
+    post:
+      operationId: investorMobileLogin
+      tags: [auth]
+      summary: Sign in to the investor mobile app
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
       responses:
-        "200":
-          description: Healthy
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HealthStatus"
+        "200": { description: Login result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "403": { description: Verification required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "422": { description: Validation error, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /auth/register:
+    post:
+      operationId: investorRegister
+      tags: [auth]
+      summary: Create an investor account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Registration result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "422": { description: Validation error, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /auth/mobile/verify-email:
+    post:
+      operationId: investorVerifyEmail
+      tags: [auth]
+      summary: Verify an investor email address
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Verification result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /auth/mobile/2fa/verify:
+    post:
+      operationId: investorVerifyTwoFactor
+      tags: [auth]
+      summary: Complete two-factor sign-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Verification result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /auth/forgot-password:
+    post:
+      operationId: investorForgotPassword
+      tags: [auth]
+      summary: Request a password reset code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Reset request result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /auth/verify-reset-otp:
+    post:
+      operationId: investorVerifyResetCode
+      tags: [auth]
+      summary: Verify a password reset code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Verification result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /auth/reset-password:
+    post:
+      operationId: investorResetPassword
+      tags: [auth]
+      summary: Set a new account password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Password reset result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /auth/mobile/logout:
+    post:
+      operationId: investorMobileLogout
+      tags: [auth]
+      summary: End the investor mobile session
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Logout result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /me:
+    get:
+      operationId: getInvestorMe
+      tags: [investor]
+      summary: Get the signed-in user
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: User resource, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+    put:
+      operationId: updateInvestorMe
+      tags: [investor]
+      summary: Update signed-in user profile
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Updated user, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /me/password:
+    put:
+      operationId: updateInvestorPassword
+      tags: [investor]
+      summary: Change account password
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Password update result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/security/transaction-password:
+    get:
+      operationId: getInvestorTransactionPasswordStatus
+      tags: [investor]
+      summary: Get transaction-password setup status
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Transaction-password status, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/security/transaction-password/set:
+    post:
+      operationId: setInvestorTransactionPassword
+      tags: [investor]
+      summary: Set an investor transaction password
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Update result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/security/transaction-password/reset:
+    post:
+      operationId: resetInvestorTransactionPassword
+      tags: [investor]
+      summary: Reset an investor transaction password
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Update result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/dashboard:
+    get:
+      operationId: getInvestorDashboard
+      tags: [investor]
+      summary: Get investor dashboard summary
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Dashboard data, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/projects:
+    get:
+      operationId: getInvestorProjects
+      tags: [investor]
+      summary: List investment opportunities
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+        - { name: type, in: query, schema: { type: string } }
+        - { name: per_page, in: query, schema: { type: integer } }
+      responses:
+        "200": { description: Opportunity list, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/projects/{id}:
+    get:
+      operationId: getInvestorProject
+      tags: [investor]
+      summary: Get an investment opportunity
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Opportunity detail, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/projects/{id}/invest:
+    post:
+      operationId: investInProject
+      tags: [investor]
+      summary: Create an investment in a project
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Investment result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/investments:
+    get:
+      operationId: getInvestorInvestments
+      tags: [investor]
+      summary: List the investor portfolio
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: type, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string } }
+        - { name: per_page, in: query, schema: { type: integer } }
+      responses:
+        "200": { description: Portfolio positions, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/investments/{id}:
+    get:
+      operationId: getInvestorInvestment
+      tags: [investor]
+      summary: Get a portfolio position
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Portfolio position detail, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/wallet:
+    get:
+      operationId: getInvestorWallet
+      tags: [investor]
+      summary: Get investor wallet balances
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Wallet, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/wallet/transactions:
+    get:
+      operationId: getInvestorWalletTransactions
+      tags: [investor]
+      summary: List wallet transactions
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: page, in: query, schema: { type: integer } }
+      responses:
+        "200": { description: Wallet ledger, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/wallet/exchange-rates:
+    get:
+      operationId: getInvestorExchangeRates
+      tags: [investor]
+      summary: Get supported currency exchange rates
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Rates, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/deposit-options:
+    get:
+      operationId: getInvestorDepositOptions
+      tags: [investor]
+      summary: List available deposit methods
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Deposit options, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/payment-bank-accounts:
+    get:
+      operationId: getInvestorPaymentBankAccounts
+      tags: [investor]
+      summary: List platform bank accounts for deposits
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Platform accounts, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/deposits:
+    get:
+      operationId: getInvestorDeposits
+      tags: [investor]
+      summary: List investor deposits
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+        - { name: per_page, in: query, schema: { type: integer } }
+      responses:
+        "200": { description: Deposits, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+    post:
+      operationId: createInvestorDeposit
+      tags: [investor]
+      summary: Submit a deposit
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "201": { description: Deposit created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/withdrawals:
+    get:
+      operationId: getInvestorWithdrawals
+      tags: [investor]
+      summary: List investor withdrawals
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+      responses:
+        "200": { description: Withdrawals, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+    post:
+      operationId: createInvestorWithdrawal
+      tags: [investor]
+      summary: Submit a withdrawal request
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "201": { description: Withdrawal created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/withdrawals/otp/send:
+    post:
+      operationId: sendInvestorWithdrawalOtp
+      tags: [investor]
+      summary: Email a withdrawal verification code
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: OTP delivery result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/profile:
+    get:
+      operationId: getInvestorProfile
+      tags: [investor]
+      summary: Get investor profile
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Profile, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+    put:
+      operationId: updateInvestorProfile
+      tags: [investor]
+      summary: Update investor profile
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Updated profile, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/kyc:
+    get:
+      operationId: getInvestorKyc
+      tags: [investor]
+      summary: List investor identity-verification applications
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: per_page, in: query, schema: { type: integer } }
+      responses:
+        "200": { description: KYC applications, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+    post:
+      operationId: submitInvestorKyc
+      tags: [investor]
+      summary: Submit identity-verification information
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "201": { description: KYC application created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/profile/kyc/upload:
+    post:
+      operationId: uploadInvestorKycDocument
+      tags: [investor]
+      summary: Attach an uploaded document to the investor KYC application
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "201": { description: Document and verification status, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/reports:
+    get:
+      operationId: getInvestorReports
+      tags: [investor]
+      summary: List investor reports
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Reports, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+    post:
+      operationId: createInvestorReport
+      tags: [investor]
+      summary: Generate an investor report
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Generated report, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/notifications:
+    get:
+      operationId: getInvestorNotifications
+      tags: [communication]
+      summary: List investor notifications
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Notifications, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/notifications/unread-count:
+    get:
+      operationId: getInvestorUnreadNotificationCount
+      tags: [communication]
+      summary: Get unread notification count
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Unread count, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/notifications/read-all:
+    post:
+      operationId: markAllInvestorNotificationsRead
+      tags: [communication]
+      summary: Mark all investor notifications as read
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Update result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/notifications/{id}/read:
+    post:
+      operationId: markInvestorNotificationRead
+      tags: [communication]
+      summary: Mark an investor notification as read
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Update result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /conversations/with-admin:
+    get:
+      operationId: getInvestorAdminConversation
+      tags: [communication]
+      summary: Get or create the investor support conversation
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Conversation, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /conversations/{conversation}/messages:
+    get:
+      operationId: getInvestorConversationMessages
+      tags: [communication]
+      summary: List support conversation messages
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: conversation, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Messages, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+    post:
+      operationId: sendInvestorConversationMessage
+      tags: [communication]
+      summary: Send a support conversation message
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: conversation, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "201": { description: Message created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /support/tickets:
+    get:
+      operationId: getInvestorSupportTickets
+      tags: [communication]
+      summary: List support tickets
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Tickets, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+    post:
+      operationId: createInvestorSupportTicket
+      tags: [communication]
+      summary: Create a support ticket
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "201": { description: Ticket created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
 components:
   schemas:
-    HealthStatus:
+    JsonObject:
       type: object
-      properties:
-        status:
-          type: string
-      required:
-        - status
+      additionalProperties: true
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
 
