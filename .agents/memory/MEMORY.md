@@ -1,3 +1,2 @@
 - [OG Exports API contract](investor-api-contract.md) — use server data only; investor API omits phone verification and withdrawal fee/net fields.
 - [OG Exports mobile visual direction](og-exports-visual-direction.md) — premium light white/emerald UI, restrained gold, and no artwork that implies unreported returns.
-- [Auth backend connection gate](login-register-backend-gate.md) — keep login and registration frontend-only until the user explicitly asks to connect them.
