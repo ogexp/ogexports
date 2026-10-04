@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreateInvestorWithdrawal,
@@ -9,7 +9,7 @@ import {
   useSendInvestorWithdrawalOtp,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Status } from '@/components/InvestorUI';
-import { first, list, messageOf, record, unwrap } from '@/lib/data';
+import { amount as readAmount, first, list, messageOf, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -25,7 +25,7 @@ export default function Withdraw() {
   const wallet = unwrap(walletQuery.data);
   const profile = unwrap(profileQuery.data);
   const savedBank = record(profile.default_bank_account);
-  const currency = first(wallet, ['currency'], 'USD');
+  const currency = first(wallet, ['currency']);
   const availableValue = wallet.available_balance;
   const availableBalance = typeof availableValue === 'number' ? availableValue : Number.isFinite(Number(availableValue)) && availableValue != null ? Number(availableValue) : null;
   const hasSavedBank = Boolean(first(savedBank, ['bank_name']) && first(savedBank, ['account_holder']) && (first(savedBank, ['account_number']) || first(savedBank, ['iban'])));
@@ -42,18 +42,23 @@ export default function Withdraw() {
   const [swift, setSwift] = useState('');
   const [branch, setBranch] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [stage, setStage] = useState<'form' | 'review' | 'submitted'>('form');
+  const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
   const showBankForm = !hasSavedBank || useDifferentBank;
 
   async function requestOtp() {
     setError('');
+    setNotice('');
     try {
-      await sendOtp.mutateAsync();
-      Alert.alert('Code sent', 'Check your email for the withdrawal verification code.');
+      const result = record(await sendOtp.mutateAsync());
+      setNotice(first(result, ['message'], 'Withdrawal verification code requested. Check the email registered to your account.'));
     } catch (err) { setError(messageOf(err)); }
   }
 
-  async function submit() {
+  function review() {
     setError('');
+    setNotice('');
     const amountNumber = Number(amount);
     if (!Number.isFinite(amountNumber) || amountNumber < 1 || (availableBalance !== null && amountNumber > availableBalance)) {
       setError('Enter a valid amount within your available wallet balance.');
@@ -67,11 +72,23 @@ export default function Withdraw() {
       setError('Enter the bank name, account holder, and an account number or IBAN.');
       return;
     }
+    setStage('review');
+  }
+
+  async function submit() {
+    setError('');
+    setNotice('');
+    const amountNumber = Number(amount);
+    if (!Number.isFinite(amountNumber) || amountNumber < 1) {
+      setError('Enter a valid withdrawal amount.');
+      setStage('form');
+      return;
+    }
     const bankDetails = showBankForm
-      ? { bank_name: bankName.trim(), account_holder: holder.trim(), account_number: accountNumber.trim(), iban: iban.trim(), swift: swift.trim(), branch: branch.trim(), currency }
+      ? { bank_name: bankName.trim(), account_holder: holder.trim(), account_number: accountNumber.trim(), iban: iban.trim(), swift: swift.trim(), branch: branch.trim(), currency: currency || undefined }
       : undefined;
     try {
-      await create.mutateAsync({
+      const response = record(await create.mutateAsync({
         data: {
           amount: amountNumber,
           otp: otp.trim(),
@@ -79,8 +96,11 @@ export default function Withdraw() {
           bank_details: bankDetails,
           save_bank_details: Boolean(bankDetails && saveBankDetails),
         },
-      });
-      Alert.alert('Withdrawal requested', 'Your request is now awaiting review.');
+      }));
+      const withdrawal = record(response.data);
+      setConfirmation(withdrawal);
+      setNotice(first(response, ['message'], 'Withdrawal request received from OG Exports.'));
+      setStage('submitted');
       setAmount('');
       setOtp('');
       setTransactionPassword('');
@@ -96,12 +116,12 @@ export default function Withdraw() {
     <Card>
       <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>AVAILABLE TO WITHDRAW</Text>
       <Text style={{ color: colors.foreground, fontSize: 25, fontWeight: '700', marginTop: 5 }}>
-        {availableBalance === null ? '—' : `${availableBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`}
+        {availableBalance === null || !currency ? '—' : money(availableBalance, currency)}
       </Text>
       {!hasSavedBank ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8 }}>Add payout details here or save a default account in Settings.</Text> : null}
     </Card>
 
-    <Card>
+    {stage === 'form' ? <Card>
       <Field label={`Withdrawal amount (${currency})`} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
       {hasSavedBank ? <>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 10 }}>
@@ -129,8 +149,47 @@ export default function Withdraw() {
       </View>
       <Field label="Transaction password" value={transactionPassword} onChangeText={setTransactionPassword} placeholder="Transaction password" secureTextEntry autoCapitalize="none" />
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
-      <Action title="Submit withdrawal" icon="arrow-up-right" loading={create.isPending} disabled={!amount || !otp || !transactionPassword} onPress={() => void submit()} />
-    </Card>
+      {notice ? <Text style={{ color: colors.primary, lineHeight: 19, marginBottom: 12 }}>{notice}</Text> : null}
+      <Action title="Review withdrawal" icon="arrow-right" disabled={!amount || !otp || !transactionPassword} onPress={review} />
+    </Card> : null}
+
+    {stage === 'review' ? <Card>
+      <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 17 }}>Review withdrawal</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <Text style={{ color: colors.mutedForeground }}>Withdrawal amount</Text>
+        <Text style={{ color: colors.foreground, fontWeight: '700' }}>{currency ? money(Number(amount), currency) : 'Currency unavailable'}</Text>
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 10 }}>
+        <Text style={{ color: colors.mutedForeground }}>Payout account</Text>
+        <Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{showBankForm ? `${bankName} · ${holder}` : `${first(savedBank, ['bank_name'])} · account ending ${first(savedBank, ['account_number', 'iban']).slice(-4)}`}</Text>
+      </View>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 6, marginBottom: 14 }}>The investor API does not return a pre-submission fee or net payout estimate. OG Exports will return the request status and reference after submission.</Text>
+      {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
+      <Action title="Confirm withdrawal request" icon="lock" loading={create.isPending} onPress={() => void submit()} />
+      <View style={{ marginTop: 10 }}><Action title="Edit withdrawal" secondary onPress={() => setStage('form')} /></View>
+    </Card> : null}
+
+    {stage === 'submitted' && confirmation ? <Card style={{ borderColor: colors.primary }}>
+      <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Server confirmation</Text>
+      {notice ? <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>{notice}</Text> : null}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 10, marginTop: 5 }}>
+        <Text style={{ color: colors.mutedForeground }}>Status</Text><Status value={first(confirmation, ['status'], 'Not provided')} />
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
+        <Text style={{ color: colors.mutedForeground }}>Reference</Text><Text style={{ color: colors.foreground, fontWeight: '600' }}>{first(confirmation, ['reference', 'withdraw_id'], 'Not provided')}</Text>
+      </View>
+      {readAmount(confirmation, ['amount']) != null && currency ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
+        <Text style={{ color: colors.mutedForeground }}>Requested amount</Text><Text style={{ color: colors.foreground, fontWeight: '600' }}>{money(readAmount(confirmation, ['amount']), currency)}</Text>
+      </View> : null}
+      {readAmount(confirmation, ['fee', 'fees', 'transaction_fee']) != null && currency ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
+        <Text style={{ color: colors.mutedForeground }}>Fee</Text><Text style={{ color: colors.foreground, fontWeight: '600' }}>{money(readAmount(confirmation, ['fee', 'fees', 'transaction_fee']), currency)}</Text>
+      </View> : null}
+      {readAmount(confirmation, ['net_amount', 'payout_amount']) != null && currency ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
+        <Text style={{ color: colors.mutedForeground }}>Net payout</Text><Text style={{ color: colors.foreground, fontWeight: '600' }}>{money(readAmount(confirmation, ['net_amount', 'payout_amount']), currency)}</Text>
+      </View> : null}
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 8 }}>A requested withdrawal is not a completed payout. Check its server status in your withdrawal history.</Text>
+      <View style={{ marginTop: 14 }}><Action title="Request another withdrawal" secondary onPress={() => { setConfirmation(null); setNotice(''); setError(''); setStage('form'); }} /></View>
+    </Card> : null}
 
     <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700', marginVertical: 8 }}>Recent withdrawals</Text>
     {historyQuery.isError ? <ErrorState message="Withdrawal history could not be loaded." onRetry={() => void historyQuery.refetch()} /> : null}

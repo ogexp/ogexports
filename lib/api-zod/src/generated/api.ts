@@ -93,6 +93,70 @@ export const UpdateInvestorPasswordResponse = zod.record(zod.string(), zod.unkno
 
 
 /**
+ * @summary List account sessions
+ */
+export const GetInvestorSessionsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Revoke other account sessions
+ */
+export const RevokeOtherInvestorSessionsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Revoke an account session
+ */
+export const RevokeInvestorSessionParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RevokeInvestorSessionResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary List recent account security activity
+ */
+export const GetInvestorSecurityActivityResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Get two-factor authentication status
+ */
+export const GetInvestorTwoFactorStatusResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Request two-factor authentication setup
+ */
+export const EnableInvestorTwoFactorBody = zod.record(zod.string(), zod.unknown())
+
+export const EnableInvestorTwoFactorResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Confirm two-factor authentication setup
+ */
+export const ConfirmInvestorTwoFactorBody = zod.record(zod.string(), zod.unknown())
+
+export const ConfirmInvestorTwoFactorResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Disable two-factor authentication
+ */
+export const DisableInvestorTwoFactorBody = zod.record(zod.string(), zod.unknown())
+
+export const DisableInvestorTwoFactorResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Get public site and platform settings
+ */
+export const GetPublicInvestorAppSettingsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary Get transaction-password setup status
  */
 export const GetInvestorTransactionPasswordStatusResponse = zod.record(zod.string(), zod.unknown())
@@ -185,8 +249,13 @@ export const GetInvestorWalletResponse = zod.record(zod.string(), zod.unknown())
 /**
  * @summary List wallet transactions
  */
+export const getInvestorWalletTransactionsQueryPerPageMax = 100;
+
+
+
 export const GetInvestorWalletTransactionsQueryParams = zod.object({
-  "page": zod.coerce.number().int().optional()
+  "page": zod.coerce.number().int().optional(),
+  "per_page": zod.coerce.number().int().min(1).max(getInvestorWalletTransactionsQueryPerPageMax).optional()
 })
 
 export const GetInvestorWalletTransactionsResponse = zod.record(zod.string(), zod.unknown())

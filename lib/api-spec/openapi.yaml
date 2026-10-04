@@ -143,6 +143,94 @@ paths:
             schema: { $ref: "#/components/schemas/JsonObject" }
       responses:
         "200": { description: Password update result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /me/sessions:
+    get:
+      operationId: getInvestorSessions
+      tags: [investor]
+      summary: List account sessions
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Account sessions, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /me/sessions/others:
+    delete:
+      operationId: revokeOtherInvestorSessions
+      tags: [investor]
+      summary: Revoke other account sessions
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Revoked sessions result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /me/sessions/{id}:
+    delete:
+      operationId: revokeInvestorSession
+      tags: [investor]
+      summary: Revoke an account session
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Revocation result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /me/audit-logs:
+    get:
+      operationId: getInvestorSecurityActivity
+      tags: [investor]
+      summary: List recent account security activity
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Security activity, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /me/2fa:
+    get:
+      operationId: getInvestorTwoFactorStatus
+      tags: [investor]
+      summary: Get two-factor authentication status
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Two-factor status, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /me/2fa/enable:
+    post:
+      operationId: enableInvestorTwoFactor
+      tags: [investor]
+      summary: Request two-factor authentication setup
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Verification code requested, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /me/2fa/confirm:
+    post:
+      operationId: confirmInvestorTwoFactor
+      tags: [investor]
+      summary: Confirm two-factor authentication setup
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Two-factor enabled, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /me/2fa/disable:
+    post:
+      operationId: disableInvestorTwoFactor
+      tags: [investor]
+      summary: Disable two-factor authentication
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Two-factor disabled, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /settings:
+    get:
+      operationId: getPublicInvestorAppSettings
+      tags: [investor]
+      summary: Get public site and platform settings
+      responses:
+        "200": { description: Public settings, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /investor/security/transaction-password:
     get:
       operationId: getInvestorTransactionPasswordStatus
@@ -260,6 +348,7 @@ paths:
       security: [{ BearerAuth: [] }]
       parameters:
         - { name: page, in: query, schema: { type: integer } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
       responses:
         "200": { description: Wallet ledger, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /investor/wallet/exchange-rates:

@@ -53,11 +53,12 @@ export default function Login() {
   return (
     <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 18, paddingBottom: insets.bottom + 24, paddingHorizontal: 22, justifyContent: 'center' }} bottomOffset={72} keyboardShouldPersistTaps="handled">
       <View style={{ alignItems: 'center', marginBottom: 26 }}>
-        <View style={{ width: 58, height: 58, borderRadius: 18, backgroundColor: '#1f6d4c', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        <View style={{ width: 58, height: 58, borderRadius: 18, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           <Image source={require('../../assets/images/icon.png')} style={{ width: 58, height: 58 }} />
         </View>
-        <Text style={{ color: colors.foreground, fontSize: 28, fontWeight: '700', marginTop: 18 }}>Your capital, clearly.</Text>
-        <Text style={{ color: colors.mutedForeground, fontSize: 14, marginTop: 7 }}>Sign in to your OG Exports investor account.</Text>
+        <Text style={{ color: colors.primary, fontSize: 25, fontWeight: '700', marginTop: 18 }}>OG Exports</Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 7 }}>Global Trade. Smart Investment.</Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 5 }}>Sign in to your investor account.</Text>
       </View>
       <Card>
         {showServer ? <Field label="Investor API address" value={server} onChangeText={setServer} placeholder="https://api.yourcompany.com" keyboardType="default" autoCapitalize="none" /> : <Pressable onPress={() => setShowServer(true)} style={{ marginBottom: 12 }}><Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Connected to {apiOrigin} · Change server</Text></Pressable>}

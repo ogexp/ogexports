@@ -14,7 +14,7 @@ export default function PositionDetail() {
   const colors = useColors();
   const query = useGetInvestorInvestment(id, { query: { queryKey: ['investor-position', id], enabled: Boolean(id && token) } });
   const row = unwrap(query.data);
-  const currency = first(row, ['currency'], 'USD');
+  const currency = first(row, ['currency']);
   return <Screen title={first(row, ['project_name', 'title', 'name'], 'Investment')} subtitle="Portfolio position">
     {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading position…</Text></Card> : null}
     {query.isError ? <ErrorState message="This investment position could not be loaded." onRetry={() => void query.refetch()} /> : null}

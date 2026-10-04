@@ -44,13 +44,16 @@ export function amount(row: Json, keys: string[]): number | null {
   return null;
 }
 
-export function money(value: unknown, currency = 'USD'): string {
-  const numeric = typeof value === 'number' ? value : Number(value);
+export function money(value: unknown, currency?: string): string {
+  if (value === null || value === undefined || value === '') return '—';
+  const code = currency?.trim().toUpperCase();
+  if (!code) return '—';
+  const numeric = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN;
   if (!Number.isFinite(numeric)) return '—';
   try {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(numeric);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(numeric);
   } catch {
-    return `${currency} ${numeric.toLocaleString()}`;
+    return `${code} ${numeric.toLocaleString()}`;
   }
 }
 

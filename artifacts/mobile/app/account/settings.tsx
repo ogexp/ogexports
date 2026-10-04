@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetInvestorProfile,
+  useGetInvestorWallet,
   useGetInvestorTransactionPasswordStatus,
   useInvestorMobileLogout,
   useResetInvestorTransactionPassword,
@@ -22,6 +23,7 @@ export default function Settings() {
   const colors = useColors();
   const queryClient = useQueryClient();
   const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: !!token } });
+  const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: !!token, staleTime: 30_000 } });
   const transactionPasswordQuery = useGetInvestorTransactionPasswordStatus({
     query: { queryKey: ['investor-transaction-password-status'], enabled: !!token },
   });
@@ -31,6 +33,8 @@ export default function Settings() {
   const resetTransactionPassword = useResetInvestorTransactionPassword();
   const logout = useInvestorMobileLogout();
   const profile = unwrap(profileQuery.data);
+  const wallet = unwrap(walletQuery.data);
+  const walletCurrency = first(wallet, ['currency', 'default_currency']);
   const personal = record(profile.personal);
   const address = record(profile.address);
   const savedAccount = record(profile.default_bank_account);
@@ -50,9 +54,10 @@ export default function Settings() {
   const [iban, setIban] = useState('');
   const [swift, setSwift] = useState('');
   const [branch, setBranch] = useState('');
-  const [bankCurrency, setBankCurrency] = useState('USD');
+  const [bankCurrency, setBankCurrency] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loginPasswordForTransaction, setLoginPasswordForTransaction] = useState('');
   const [newTransactionPassword, setNewTransactionPassword] = useState('');
   const [confirmTransactionPassword, setConfirmTransactionPassword] = useState('');
@@ -70,7 +75,7 @@ export default function Settings() {
       setIban(first(savedAccount, ['iban']));
       setSwift(first(savedAccount, ['swift']));
       setBranch(first(savedAccount, ['branch']));
-      setBankCurrency(first(savedAccount, ['currency'], 'USD'));
+      setBankCurrency(first(savedAccount, ['currency']));
     }
   }, [apiOrigin, profileQuery.data]);
 
@@ -99,7 +104,7 @@ export default function Settings() {
             iban: iban.trim(),
             swift: swift.trim(),
             branch: branch.trim(),
-            currency: bankCurrency.trim() || 'USD',
+            currency: bankCurrency.trim() || undefined,
             is_default: true,
           },
         ];
@@ -113,10 +118,15 @@ export default function Settings() {
 
   async function savePassword() {
     setError('');
+    if (newPassword !== confirmPassword) {
+      setError('The new password and confirmation do not match.');
+      return;
+    }
     try {
-      await updatePassword.mutateAsync({ data: { current_password: currentPassword, password: newPassword, password_confirmation: newPassword } });
+      await updatePassword.mutateAsync({ data: { current_password: currentPassword, password: newPassword, password_confirmation: confirmPassword } });
       setCurrentPassword('');
       setNewPassword('');
+      setConfirmPassword('');
       Alert.alert('Password updated', 'Your sign-in password has been changed.');
     } catch (err) { setError(messageOf(err)); }
   }
@@ -191,15 +201,29 @@ export default function Settings() {
       <Field label="IBAN (optional if account number is provided)" value={iban} onChangeText={setIban} placeholder="IBAN" autoCapitalize="none" />
       <Field label="SWIFT / BIC (optional)" value={swift} onChangeText={setSwift} placeholder="SWIFT / BIC" autoCapitalize="characters" />
       <Field label="Branch (optional)" value={branch} onChangeText={setBranch} placeholder="Branch" />
-      <Field label="Bank account currency" value={bankCurrency} onChangeText={setBankCurrency} placeholder="USD" autoCapitalize="characters" />
+      <Field label="Account currency (optional)" value={bankCurrency} onChangeText={setBankCurrency} placeholder="Currency code" autoCapitalize="characters" />
       <Action title="Save profile and payout details" icon="save" loading={updateProfile.isPending} onPress={() => void saveProfile()} />
+    </Card>
+
+    <Card>
+      <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 10 }}>App preferences</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
+        <Text style={{ color: colors.mutedForeground }}>Language</Text>
+        <Text style={{ color: colors.foreground, fontWeight: '600' }}>English</Text>
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
+        <Text style={{ color: colors.mutedForeground }}>Wallet currency</Text>
+        <Text style={{ color: colors.foreground, fontWeight: '600' }}>{walletQuery.isLoading ? 'Loading…' : walletCurrency || 'Not available'}</Text>
+      </View>
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 5 }}>This app is currently in English. Amounts use the wallet currency returned by OG Exports; the investor API does not provide a selectable mobile display-currency setting.</Text>
     </Card>
 
     <Card>
       <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Sign-in password</Text>
       <Field label="Current password" value={currentPassword} onChangeText={setCurrentPassword} placeholder="Current password" secureTextEntry autoCapitalize="none" />
       <Field label="New password" value={newPassword} onChangeText={setNewPassword} placeholder="At least 8 characters" secureTextEntry autoCapitalize="none" />
-      <Action title="Update sign-in password" icon="lock" loading={updatePassword.isPending} disabled={!currentPassword || newPassword.length < 8} onPress={() => void savePassword()} />
+      <Field label="Confirm new password" value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Re-enter new password" secureTextEntry autoCapitalize="none" />
+      <Action title="Update sign-in password" icon="lock" loading={updatePassword.isPending} disabled={!currentPassword || newPassword.length < 8 || !confirmPassword} onPress={() => void savePassword()} />
     </Card>
 
     <Card>

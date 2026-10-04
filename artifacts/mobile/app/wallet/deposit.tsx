@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -10,7 +10,7 @@ import {
   useGetInvestorWallet,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Status } from '@/components/InvestorUI';
-import { first, list, messageOf, unwrap } from '@/lib/data';
+import { amount as readAmount, first, list, messageOf, money, record, unwrap } from '@/lib/data';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -28,7 +28,7 @@ export default function Deposit() {
   const banks = list(banksQuery.data);
   const projects = list(optionsQuery.data);
   const deposits = list(depositsQuery.data);
-  const currency = first(wallet, ['currency', 'default_currency'], 'USD');
+  const currency = first(wallet, ['currency', 'default_currency']);
   const [amount, setAmount] = useState('');
   const [bankId, setBankId] = useState('');
   const [projectId, setProjectId] = useState('');
@@ -36,7 +36,11 @@ export default function Deposit() {
   const [proof, setProof] = useState('');
   const [proofName, setProofName] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [stage, setStage] = useState<'form' | 'review' | 'submitted'>('form');
+  const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
   const selectedBank = banks.find(item => first(item, ['id']) === bankId);
+  const selectedProject = projects.find(item => first(item, ['id']) === projectId);
 
   async function pickProof() {
     setError('');
@@ -56,12 +60,19 @@ export default function Deposit() {
 
   async function submit() {
     setError('');
+    setNotice('');
+    const numericAmount = Number(amount);
+    if (!currency || !Number.isFinite(numericAmount) || numericAmount < 1) {
+      setError('Enter a valid deposit amount and wait for the wallet currency to load.');
+      setStage('form');
+      return;
+    }
     const numericBankId = bankId && Number.isFinite(Number(bankId)) ? Number(bankId) : undefined;
     const numericProjectId = projectId && Number.isFinite(Number(projectId)) ? Number(projectId) : undefined;
     try {
-      const response = await create.mutateAsync({
+      const response = record(await create.mutateAsync({
         data: {
-          amount: Number(amount),
+          amount: numericAmount,
           currency,
           method: 'bank_transfer',
           bank_account_id: numericBankId,
@@ -70,10 +81,11 @@ export default function Deposit() {
           proof_path: proof || undefined,
           project_id: numericProjectId,
         },
-      });
-      const responseData = unwrap(response);
-      const deposit = responseData.data && typeof responseData.data === 'object' ? responseData.data as Record<string, unknown> : responseData;
-      Alert.alert('Deposit submitted', `Your transfer is awaiting confirmation.${typeof deposit.reference === 'string' ? ` Reference: ${deposit.reference}` : ''}`);
+      }));
+      const deposit = record(response.data);
+      setConfirmation(deposit);
+      setNotice(first(response, ['message'], 'Deposit request received from OG Exports.'));
+      setStage('submitted');
       setAmount('');
       setReference('');
       setProof('');
@@ -88,6 +100,7 @@ export default function Deposit() {
   }
 
   return <Screen title="Add funds" subtitle={`Record a bank transfer to your OG Exports wallet · ${currency}`}>
+    {stage === 'form' ? <>
     {banksQuery.isError ? <ErrorState message="Company bank accounts could not be loaded." onRetry={() => void banksQuery.refetch()} /> : null}
     {optionsQuery.isError ? <ErrorState message="Available project options could not be loaded." onRetry={() => void optionsQuery.refetch()} /> : null}
     {projects.length ? <Card>
@@ -124,9 +137,46 @@ export default function Deposit() {
         <Text style={{ color: colors.primary, fontWeight: '700' }}>{proofName ? `Receipt attached · ${proofName}` : 'Attach receipt (PDF or image)'}</Text>
       </Pressable>
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
-      <Action title="Submit deposit" icon="arrow-down-left" loading={create.isPending} disabled={!amount || Number(amount) < 1} onPress={() => void submit()} />
+      <Action title="Review deposit" icon="arrow-right" disabled={!currency || !amount || Number(amount) < 1} onPress={() => {
+        setError('');
+        if (!currency || !Number.isFinite(Number(amount)) || Number(amount) < 1) {
+          setError('Enter a valid amount after your wallet currency has loaded.');
+          return;
+        }
+        setStage('review');
+      }} />
     </Card>
     <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>Deposits are reviewed by OG Exports before funds are credited. Your wallet balance changes only after approval.</Text>
+    </> : null}
+
+    {stage === 'review' ? <Card>
+      <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Review deposit</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 11, marginTop: 7, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <Text style={{ color: colors.mutedForeground }}>Transfer amount</Text>
+        <Text style={{ color: colors.foreground, fontWeight: '700' }}>{currency ? money(Number(amount), currency) : '—'}</Text>
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, gap: 12 }}>
+        <Text style={{ color: colors.mutedForeground }}>Receiving account</Text>
+        <Text style={{ color: colors.foreground, textAlign: 'right', flex: 1 }}>{selectedBank ? first(selectedBank, ['bank_name', 'name'], 'Bank account') : 'Choose from company accounts after returning to the form'}</Text>
+      </View>
+      {reference.trim() ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, gap: 12 }}><Text style={{ color: colors.mutedForeground }}>Transfer reference</Text><Text style={{ color: colors.foreground, textAlign: 'right', flex: 1 }}>{reference.trim()}</Text></View> : null}
+      {proofName ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, gap: 12 }}><Text style={{ color: colors.mutedForeground }}>Receipt</Text><Text numberOfLines={1} style={{ color: colors.foreground, textAlign: 'right', flex: 1 }}>{proofName}</Text></View> : null}
+      {selectedProject ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, gap: 12 }}><Text style={{ color: colors.mutedForeground }}>Associated project</Text><Text style={{ color: colors.foreground, textAlign: 'right', flex: 1 }}>{first(selectedProject, ['title', 'name'], 'Investment project')}</Text></View> : null}
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 9, marginBottom: 14 }}>The server records this as a bank-transfer request for review. Wallet funds are credited only after OG Exports approves it.</Text>
+      {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
+      <Action title="Submit deposit request" icon="lock" loading={create.isPending} onPress={() => void submit()} />
+      <View style={{ marginTop: 10 }}><Action title="Edit deposit" secondary onPress={() => setStage('form')} /></View>
+    </Card> : null}
+
+    {stage === 'submitted' && confirmation ? <Card style={{ borderColor: colors.primary }}>
+      <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Server confirmation</Text>
+      {notice ? <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>{notice}</Text> : null}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 9, marginTop: 6 }}><Text style={{ color: colors.mutedForeground }}>Status</Text><Status value={first(confirmation, ['status'], 'Not provided')} /></View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}><Text style={{ color: colors.mutedForeground }}>Reference</Text><Text style={{ color: colors.foreground, fontWeight: '600' }}>{first(confirmation, ['reference', 'deposit_reference'], 'Not provided')}</Text></View>
+      {readAmount(confirmation, ['amount']) != null && currency ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}><Text style={{ color: colors.mutedForeground }}>Amount</Text><Text style={{ color: colors.foreground, fontWeight: '600' }}>{money(readAmount(confirmation, ['amount']), currency)}</Text></View> : null}
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 8 }}>This request does not mean funds have been credited. Check the status in recent deposits.</Text>
+      <View style={{ marginTop: 14 }}><Action title="Record another deposit" secondary onPress={() => { setConfirmation(null); setNotice(''); setError(''); setStage('form'); }} /></View>
+    </Card> : null}
 
     <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700', marginVertical: 8 }}>Recent deposits</Text>
     {depositsQuery.isError ? <ErrorState message="Deposit history could not be loaded." onRetry={() => void depositsQuery.refetch()} /> : null}

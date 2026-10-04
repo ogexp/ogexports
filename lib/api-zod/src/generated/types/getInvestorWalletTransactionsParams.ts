@@ -8,4 +8,9 @@
 
 export type GetInvestorWalletTransactionsParams = {
 page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+per_page?: number;
 };

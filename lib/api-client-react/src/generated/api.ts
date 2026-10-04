@@ -999,6 +999,726 @@ export const useUpdateInvestorPassword = <TError = ErrorType<unknown>,
       return useMutation(getUpdateInvestorPasswordMutationOptions(options));
     }
 
+export const getGetInvestorSessionsUrl = () => {
+
+
+
+
+  return `/api/me/sessions`
+}
+
+/**
+ * @summary List account sessions
+ */
+export const getInvestorSessions = async ( options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getGetInvestorSessionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInvestorSessionsQueryKey = () => {
+    return [
+    `/api/me/sessions`
+    ] as const;
+    }
+
+
+export const getGetInvestorSessionsQueryOptions = <TData = Awaited<ReturnType<typeof getInvestorSessions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorSessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInvestorSessionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInvestorSessions>>> = ({ signal }) => getInvestorSessions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInvestorSessions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInvestorSessionsQueryResult = NonNullable<Awaited<ReturnType<typeof getInvestorSessions>>>
+export type GetInvestorSessionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List account sessions
+ */
+
+export function useGetInvestorSessions<TData = Awaited<ReturnType<typeof getInvestorSessions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorSessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInvestorSessionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRevokeOtherInvestorSessionsUrl = () => {
+
+
+
+
+  return `/api/me/sessions/others`
+}
+
+/**
+ * @summary Revoke other account sessions
+ */
+export const revokeOtherInvestorSessions = async ( options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getRevokeOtherInvestorSessionsUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeOtherInvestorSessionsMutationKey = () => ['revokeOtherInvestorSessions'] as const;
+
+export const getRevokeOtherInvestorSessionsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOtherInvestorSessions>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeOtherInvestorSessions>>, TError,void, TContext> => {
+
+const mutationKey = getRevokeOtherInvestorSessionsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeOtherInvestorSessions>>, void> = () => {
+
+
+          return  revokeOtherInvestorSessions(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeOtherInvestorSessionsMutationResult = NonNullable<Awaited<ReturnType<typeof revokeOtherInvestorSessions>>>
+
+    export type RevokeOtherInvestorSessionsMutationError = ErrorType<unknown>
+
+
+    /**
+ * @summary Revoke other account sessions
+ */
+export const useRevokeOtherInvestorSessions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeOtherInvestorSessions>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeOtherInvestorSessions>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRevokeOtherInvestorSessionsMutationOptions(options));
+    }
+
+export const getRevokeInvestorSessionUrl = (id: string,) => {
+
+
+
+
+  return `/api/me/sessions/${id}`
+}
+
+/**
+ * @summary Revoke an account session
+ */
+export const revokeInvestorSession = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getRevokeInvestorSessionUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeInvestorSessionMutationKey = () => ['revokeInvestorSession'] as const;
+
+export const getRevokeInvestorSessionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeInvestorSession>>, TError,RevokeInvestorSessionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeInvestorSession>>, TError,RevokeInvestorSessionMutationVariables, TContext> => {
+
+const mutationKey = getRevokeInvestorSessionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeInvestorSession>>, RevokeInvestorSessionMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  revokeInvestorSession(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeInvestorSessionMutationResult = NonNullable<Awaited<ReturnType<typeof revokeInvestorSession>>>
+
+    export type RevokeInvestorSessionMutationError = ErrorType<unknown>
+    export type RevokeInvestorSessionMutationVariables = {id: string}
+
+    /**
+ * @summary Revoke an account session
+ */
+export const useRevokeInvestorSession = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeInvestorSession>>, TError,RevokeInvestorSessionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeInvestorSession>>,
+        TError,
+        RevokeInvestorSessionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRevokeInvestorSessionMutationOptions(options));
+    }
+
+export const getGetInvestorSecurityActivityUrl = () => {
+
+
+
+
+  return `/api/me/audit-logs`
+}
+
+/**
+ * @summary List recent account security activity
+ */
+export const getInvestorSecurityActivity = async ( options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getGetInvestorSecurityActivityUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInvestorSecurityActivityQueryKey = () => {
+    return [
+    `/api/me/audit-logs`
+    ] as const;
+    }
+
+
+export const getGetInvestorSecurityActivityQueryOptions = <TData = Awaited<ReturnType<typeof getInvestorSecurityActivity>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorSecurityActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInvestorSecurityActivityQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInvestorSecurityActivity>>> = ({ signal }) => getInvestorSecurityActivity({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInvestorSecurityActivity>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInvestorSecurityActivityQueryResult = NonNullable<Awaited<ReturnType<typeof getInvestorSecurityActivity>>>
+export type GetInvestorSecurityActivityQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List recent account security activity
+ */
+
+export function useGetInvestorSecurityActivity<TData = Awaited<ReturnType<typeof getInvestorSecurityActivity>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorSecurityActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInvestorSecurityActivityQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetInvestorTwoFactorStatusUrl = () => {
+
+
+
+
+  return `/api/me/2fa`
+}
+
+/**
+ * @summary Get two-factor authentication status
+ */
+export const getInvestorTwoFactorStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getGetInvestorTwoFactorStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInvestorTwoFactorStatusQueryKey = () => {
+    return [
+    `/api/me/2fa`
+    ] as const;
+    }
+
+
+export const getGetInvestorTwoFactorStatusQueryOptions = <TData = Awaited<ReturnType<typeof getInvestorTwoFactorStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorTwoFactorStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInvestorTwoFactorStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInvestorTwoFactorStatus>>> = ({ signal }) => getInvestorTwoFactorStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInvestorTwoFactorStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInvestorTwoFactorStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getInvestorTwoFactorStatus>>>
+export type GetInvestorTwoFactorStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get two-factor authentication status
+ */
+
+export function useGetInvestorTwoFactorStatus<TData = Awaited<ReturnType<typeof getInvestorTwoFactorStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorTwoFactorStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInvestorTwoFactorStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getEnableInvestorTwoFactorUrl = () => {
+
+
+
+
+  return `/api/me/2fa/enable`
+}
+
+/**
+ * @summary Request two-factor authentication setup
+ */
+export const enableInvestorTwoFactor = async (jsonObject: JsonObject, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<JsonObject>(getEnableInvestorTwoFactorUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(jsonObject)
+  }
+);}
+
+
+
+
+
+export const getEnableInvestorTwoFactorMutationKey = () => ['enableInvestorTwoFactor'] as const;
+
+export const getEnableInvestorTwoFactorMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enableInvestorTwoFactor>>, TError,EnableInvestorTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof enableInvestorTwoFactor>>, TError,EnableInvestorTwoFactorMutationVariables, TContext> => {
+
+const mutationKey = getEnableInvestorTwoFactorMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof enableInvestorTwoFactor>>, EnableInvestorTwoFactorMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  enableInvestorTwoFactor(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EnableInvestorTwoFactorMutationResult = NonNullable<Awaited<ReturnType<typeof enableInvestorTwoFactor>>>
+    export type EnableInvestorTwoFactorMutationBody = BodyType<JsonObject>
+    export type EnableInvestorTwoFactorMutationError = ErrorType<unknown>
+    export type EnableInvestorTwoFactorMutationVariables = {data: BodyType<JsonObject>}
+
+    /**
+ * @summary Request two-factor authentication setup
+ */
+export const useEnableInvestorTwoFactor = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enableInvestorTwoFactor>>, TError,EnableInvestorTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof enableInvestorTwoFactor>>,
+        TError,
+        EnableInvestorTwoFactorMutationVariables,
+        TContext
+      > => {
+      return useMutation(getEnableInvestorTwoFactorMutationOptions(options));
+    }
+
+export const getConfirmInvestorTwoFactorUrl = () => {
+
+
+
+
+  return `/api/me/2fa/confirm`
+}
+
+/**
+ * @summary Confirm two-factor authentication setup
+ */
+export const confirmInvestorTwoFactor = async (jsonObject: JsonObject, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<JsonObject>(getConfirmInvestorTwoFactorUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(jsonObject)
+  }
+);}
+
+
+
+
+
+export const getConfirmInvestorTwoFactorMutationKey = () => ['confirmInvestorTwoFactor'] as const;
+
+export const getConfirmInvestorTwoFactorMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmInvestorTwoFactor>>, TError,ConfirmInvestorTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmInvestorTwoFactor>>, TError,ConfirmInvestorTwoFactorMutationVariables, TContext> => {
+
+const mutationKey = getConfirmInvestorTwoFactorMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmInvestorTwoFactor>>, ConfirmInvestorTwoFactorMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmInvestorTwoFactor(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmInvestorTwoFactorMutationResult = NonNullable<Awaited<ReturnType<typeof confirmInvestorTwoFactor>>>
+    export type ConfirmInvestorTwoFactorMutationBody = BodyType<JsonObject>
+    export type ConfirmInvestorTwoFactorMutationError = ErrorType<unknown>
+    export type ConfirmInvestorTwoFactorMutationVariables = {data: BodyType<JsonObject>}
+
+    /**
+ * @summary Confirm two-factor authentication setup
+ */
+export const useConfirmInvestorTwoFactor = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmInvestorTwoFactor>>, TError,ConfirmInvestorTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmInvestorTwoFactor>>,
+        TError,
+        ConfirmInvestorTwoFactorMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmInvestorTwoFactorMutationOptions(options));
+    }
+
+export const getDisableInvestorTwoFactorUrl = () => {
+
+
+
+
+  return `/api/me/2fa/disable`
+}
+
+/**
+ * @summary Disable two-factor authentication
+ */
+export const disableInvestorTwoFactor = async (jsonObject: JsonObject, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<JsonObject>(getDisableInvestorTwoFactorUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(jsonObject)
+  }
+);}
+
+
+
+
+
+export const getDisableInvestorTwoFactorMutationKey = () => ['disableInvestorTwoFactor'] as const;
+
+export const getDisableInvestorTwoFactorMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disableInvestorTwoFactor>>, TError,DisableInvestorTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disableInvestorTwoFactor>>, TError,DisableInvestorTwoFactorMutationVariables, TContext> => {
+
+const mutationKey = getDisableInvestorTwoFactorMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disableInvestorTwoFactor>>, DisableInvestorTwoFactorMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  disableInvestorTwoFactor(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisableInvestorTwoFactorMutationResult = NonNullable<Awaited<ReturnType<typeof disableInvestorTwoFactor>>>
+    export type DisableInvestorTwoFactorMutationBody = BodyType<JsonObject>
+    export type DisableInvestorTwoFactorMutationError = ErrorType<unknown>
+    export type DisableInvestorTwoFactorMutationVariables = {data: BodyType<JsonObject>}
+
+    /**
+ * @summary Disable two-factor authentication
+ */
+export const useDisableInvestorTwoFactor = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disableInvestorTwoFactor>>, TError,DisableInvestorTwoFactorMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof disableInvestorTwoFactor>>,
+        TError,
+        DisableInvestorTwoFactorMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDisableInvestorTwoFactorMutationOptions(options));
+    }
+
+export const getGetPublicInvestorAppSettingsUrl = () => {
+
+
+
+
+  return `/api/settings`
+}
+
+/**
+ * @summary Get public site and platform settings
+ */
+export const getPublicInvestorAppSettings = async ( options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getGetPublicInvestorAppSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicInvestorAppSettingsQueryKey = () => {
+    return [
+    `/api/settings`
+    ] as const;
+    }
+
+
+export const getGetPublicInvestorAppSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getPublicInvestorAppSettings>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicInvestorAppSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicInvestorAppSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicInvestorAppSettings>>> = ({ signal }) => getPublicInvestorAppSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicInvestorAppSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicInvestorAppSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicInvestorAppSettings>>>
+export type GetPublicInvestorAppSettingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get public site and platform settings
+ */
+
+export function useGetPublicInvestorAppSettings<TData = Awaited<ReturnType<typeof getPublicInvestorAppSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicInvestorAppSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicInvestorAppSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetInvestorTransactionPasswordStatusUrl = () => {
 
 

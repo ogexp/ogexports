@@ -78,7 +78,7 @@ export function Status({ value }: { value: string }) {
   const colors = useColors();
   const approved = /approved|active|complete|paid|verified|success/i.test(value);
   const pending = /pending|review|processing/i.test(value);
-  return <View style={[s.status, { backgroundColor: approved ? '#e7f3ea' : pending ? '#f6efd9' : colors.secondary }]}><Text style={{ color: approved ? '#286344' : pending ? '#866822' : colors.mutedForeground, fontSize: 11, fontWeight: '700' }}>{value || '—'}</Text></View>;
+  return <View style={[s.status, { backgroundColor: approved ? colors.statusSuccessBackground : pending ? colors.statusPendingBackground : colors.secondary }]}><Text style={{ color: approved ? colors.statusSuccess : pending ? colors.statusPending : colors.mutedForeground, fontSize: 11, fontWeight: '700' }}>{value || '—'}</Text></View>;
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {

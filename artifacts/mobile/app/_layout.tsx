@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { router, Stack, useSegments } from 'expo-router';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Inter_400Regular,
@@ -11,9 +12,9 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { useColors } from '@/hooks/useColors';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -21,13 +22,36 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
+  const { ready, token, appUnlocked } = useAuth();
+  const colors = useColors();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (!ready || token) return;
+    const firstSegment = String(segments[0] ?? '');
+    const publicSegments = new Set(['', 'index', 'onboarding', '(auth)']);
+    if (!publicSegments.has(firstSegment)) router.replace('/(auth)/login');
+  }, [ready, token, segments]);
+
+  if (token && !appUnlocked) {
+    return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+      <Stack.Screen name="lock" />
+    </Stack>;
+  }
+
   return (
-    <Stack screenOptions={{ headerBackTitle: 'Back', headerTintColor: '#1f6d4c', contentStyle: { backgroundColor: '#f7f7f1' } }}>
+    <Stack screenOptions={{ headerBackTitle: 'Back', headerTintColor: colors.primary, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+      <Stack.Screen name="lock" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ presentation: 'modal', headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="project/[id]" options={{ title: 'Opportunity' }} />
       <Stack.Screen name="position/[id]" options={{ title: 'Investment' }} />
+      <Stack.Screen name="account/portfolio" options={{ title: 'Portfolio' }} />
+      <Stack.Screen name="account/transactions" options={{ title: 'Transactions' }} />
+      <Stack.Screen name="account/security" options={{ title: 'Security & devices' }} />
+      <Stack.Screen name="account/legal/[section]" options={{ title: 'Policies' }} />
       <Stack.Screen name="wallet/deposit" options={{ title: 'Add funds' }} />
       <Stack.Screen name="wallet/withdraw" options={{ title: 'Withdraw' }} />
       <Stack.Screen name="account/kyc" options={{ title: 'Identity verification' }} />

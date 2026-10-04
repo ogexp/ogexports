@@ -17,7 +17,7 @@ export default function Account() {
   const initials = first(account, ['name'], 'OG').split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
   const kyc = first(account, ['kyc_status', 'verification_status'], 'Not started');
   const open = (path: string) => router.push(path as never);
-  return <Screen title="Your account" subtitle="Profile, verification and preferences">
+  return <Screen title="Your profile" subtitle="Account details, verification and preferences">
     {profileQuery.isError ? <ErrorState message="Account details could not be refreshed." onRetry={() => void profileQuery.refetch()} /> : null}
     <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
       <View style={{ width: 50, height: 50, borderRadius: 18, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: colors.accentForeground, fontWeight: '700', fontSize: 17 }}>{initials}</Text></View>
@@ -26,11 +26,17 @@ export default function Account() {
     </Card>
     <Card><View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}><Text style={{ color: colors.foreground, fontWeight: '700' }}>Identity verification</Text><Status value={kyc} /></View><Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 8, lineHeight: 18 }}>Verification helps protect your account and is required for investing.</Text><Pressable onPress={() => open('/account/kyc')} style={{ marginTop: 10 }}><Text style={{ color: colors.primary, fontWeight: '700' }}>View verification →</Text></Pressable></Card>
     <Card style={{ paddingHorizontal: 14 }}>
+      <Row label="Portfolio" icon="pie-chart" onPress={() => open('/account/portfolio')} />
+      <Row label="Transaction history" icon="list" onPress={() => open('/account/transactions')} />
       <Row label="Identity verification" icon="shield" onPress={() => open('/account/kyc')} />
       <Row label="Reports" icon="file-text" onPress={() => open('/account/reports')} />
       <Row label="Notifications" icon="bell" onPress={() => open('/account/notifications')} />
       <Row label="Messages & support" icon="message-circle" onPress={() => open('/account/messages')} />
-      <Row label="Security & preferences" icon="settings" onPress={() => open('/account/settings')} />
+      <Row label="Security & devices" icon="lock" onPress={() => open('/account/security')} />
+      <Row label="Profile & preferences" icon="settings" onPress={() => open('/account/settings')} />
+      <Row label="Terms of service" icon="file-text" onPress={() => open('/account/legal/terms')} />
+      <Row label="Privacy policy" icon="shield" onPress={() => open('/account/legal/privacy')} />
+      <Row label="Risk disclosure" icon="alert-triangle" onPress={() => open('/account/legal/risk')} />
     </Card>
   </Screen>;
 }

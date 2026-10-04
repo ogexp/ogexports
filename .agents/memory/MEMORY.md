@@ -1,0 +1,1 @@
+- [OG Exports API contract](investor-api-contract.md) — use server data only; investor API omits phone verification and withdrawal fee/net fields.
