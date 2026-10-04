@@ -124,7 +124,7 @@ export default function PositionDetail() {
           <Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
         </View>) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>Shipment tracking details have not been provided by OG Exports yet.</Text>}
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 12 }}>Only reported milestones are shown; no live carrier position is inferred.</Text>
-        <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/tracking/[id]', params: { id, source: 'position' } })} style={{ minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 13, borderRadius: 12, backgroundColor: colors.primary }}>
+        <Pressable testID="position-open-container-record" accessibilityRole="button" onPress={() => router.push({ pathname: '/tracking/[id]', params: { id, source: 'position' } })} style={{ minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 13, borderRadius: 12, backgroundColor: colors.primary }}>
           <Text style={{ color: colors.primaryForeground, fontSize: 13, fontWeight: '700' }}>Open container record</Text>
           <Text style={{ color: colors.primaryForeground, fontSize: 17 }}>›</Text>
         </Pressable>

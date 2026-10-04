@@ -15,6 +15,12 @@ Use server-provided trade identifiers, shipment details, documents, and statuses
 
 Timeline stage names may be shown as the standard visual sequence, but each stage's status, description, and date must be supplied by the backend/admin system. Show unavailable when a stage update is missing; never infer progress from stage order, dates, or a trade-level status.
 
+When no carrier/shipping API is integrated, label only a backend-supplied timestamp as “Last Updated” and clearly state that live tracking is not connected. Never simulate a live position or use the device clock as a tracking update.
+
+**Why:** the user explicitly requires “Never fake live tracking.”
+
+**How to apply:** make live-data claims conditional on a real carrier integration, and keep shipment refresh/update timestamps server-sourced.
+
 KYC gating applies to investments only: require a server-reported `Verified` status before allowing an investment, and leave deposits and withdrawals unchanged. Never infer verification from submitted forms or uploaded documents.
 
 **Why:** the user chose to gate only investments; approval must remain authoritative to OG Exports.

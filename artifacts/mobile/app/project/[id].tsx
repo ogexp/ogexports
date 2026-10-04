@@ -228,7 +228,7 @@ export default function OpportunityDetail() {
           </View>
         </View>)}
         {routeStops.every(stop => stop.value === 'Not provided' && !stop.detail) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 4 }}>OG Exports has not supplied route or transport details for this trade.</Text> : null}
-        <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/tracking/[id]', params: { id, source: 'project' } })} style={{ minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12, borderRadius: 12, backgroundColor: colors.primary }}>
+        <Pressable testID="project-view-container-record" accessibilityRole="button" onPress={() => router.push({ pathname: '/tracking/[id]', params: { id, source: 'project' } })} style={{ minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12, borderRadius: 12, backgroundColor: colors.primary }}>
           <Text style={{ color: colors.primaryForeground, fontSize: 13, fontWeight: '700' }}>View container record</Text>
           <Feather name="arrow-up-right" size={15} color={colors.primaryForeground} />
         </Pressable>

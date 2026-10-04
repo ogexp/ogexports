@@ -4,7 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { useGetInvestorInvestment, useGetInvestorProject } from '@workspace/api-client-react';
 import { Card, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
-import { first, list, record, unwrap } from '@/lib/data';
+import { first, list, record, unwrap, type Json } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -16,25 +16,63 @@ type JourneyStep = {
 };
 
 const JOURNEY_LABELS = ['Origin', 'Port', 'Vessel', 'Destination', 'Buyer', 'Settlement'] as const;
+type JourneyLabel = typeof JOURNEY_LABELS[number];
 
-function hasTimestamp(value: string) {
-  return /^\d{4}-\d{2}-\d{2}(?:[T\s].*)?$/.test(value) && Number.isFinite(Date.parse(value));
+const JOURNEY_ALIASES: Record<JourneyLabel, string[]> = {
+  Origin: ['origin', 'originpoint'],
+  Port: ['port', 'loadingport', 'portofloading', 'portdeparture'],
+  Vessel: ['vessel'],
+  Destination: ['destination', 'destinationport', 'destinationarrival'],
+  Buyer: ['buyer', 'buyerdelivery'],
+  Settlement: ['settlement', 'tradesettlement'],
+};
+
+const JOURNEY_STATUS_KEYS: Record<JourneyLabel, string[]> = {
+  Origin: ['origin_status', 'origin_stage_status'],
+  Port: ['port_status', 'port_stage_status', 'loading_port_status'],
+  Vessel: ['vessel_status', 'vessel_stage_status'],
+  Destination: ['destination_status', 'destination_stage_status'],
+  Buyer: ['buyer_status', 'buyer_stage_status'],
+  Settlement: ['settlement_status', 'trade_settlement_status'],
+};
+
+function normalized(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-function getJourney(row: Record<string, unknown>, container: Record<string, unknown>): JourneyStep[] {
+function statusKind(status: string): 'completed' | 'in-progress' | 'other' {
+  const value = normalized(status);
+  if (/^(complete|completed|done|finished|delivered|settled|distributed|cleared|departed|arrived|success)$/.test(value)) return 'completed';
+  if (/^(inprogress|intransit|underway|processing|active|started|ongoing)$/.test(value)) return 'in-progress';
+  return 'other';
+}
+
+function getJourney(row: Json, trade: Json, container: Json): JourneyStep[] {
   const supplied = list(
     row.container_journey ?? row.journey ?? row.tracking_stages ?? row.container_milestones ?? row.milestones
-      ?? container.container_journey ?? container.journey ?? container.tracking_stages ?? container.container_milestones ?? container.milestones,
+      ?? container.container_journey ?? container.journey ?? container.tracking_stages ?? container.container_milestones ?? container.milestones
+      ?? trade.container_journey ?? trade.journey ?? trade.tracking_stages ?? trade.container_milestones ?? trade.milestones,
   );
+  const read = (keys: string[], fallback = '') => first(row, keys, first(trade, keys, first(container, keys, fallback)));
+  const routeDetails: Record<JourneyLabel, string> = {
+    Origin: read(['origin', 'origin_country', 'from_country', 'country_of_origin']),
+    Port: read(['port_of_loading', 'loading_port']),
+    Vessel: read(['vessel_name', 'vessel']),
+    Destination: read(['destination_port', 'port_of_discharge']),
+    Buyer: read(['buyer_name', 'buyer']),
+    Settlement: '',
+  };
 
   return JOURNEY_LABELS.map(label => {
-    const entry = supplied.find(item => first(item, ['stage', 'name', 'label', 'type']).toLowerCase() === label.toLowerCase());
-    if (!entry) return { label, status: '', date: '', detail: '' };
+    const aliases = new Set(JOURNEY_ALIASES[label].map(normalized));
+    const entry = supplied.find(item => aliases.has(normalized(first(item, ['stage', 'name', 'label', 'type']))));
+    const directStatus = first(row, JOURNEY_STATUS_KEYS[label], first(trade, JOURNEY_STATUS_KEYS[label], first(container, JOURNEY_STATUS_KEYS[label])));
+    if (!entry) return { label, status: directStatus, date: '', detail: routeDetails[label] };
     return {
       label,
-      status: first(entry, ['status', 'stage_status']),
+      status: first(entry, ['status', 'stage_status'], directStatus),
       date: first(entry, ['date', 'occurred_at', 'completed_at', 'updated_at']),
-      detail: first(entry, ['details', 'description', 'location', 'note']),
+      detail: first(entry, ['details', 'description', 'location', 'note'], routeDetails[label]),
     };
   });
 }
@@ -61,24 +99,25 @@ export default function ContainerTracking() {
   const trade = record(row.trade ?? row.project ?? row.trade_details);
   const container = record(row.container ?? row.container_details ?? trade.container ?? trade.container_details);
 
-  const read = (rowKeys: string[], containerKeys: string[], fallback = 'Unavailable') =>
-    first(row, rowKeys, first(container, containerKeys, fallback));
+  const read = (keys: string[], fallback = 'Unavailable') =>
+    first(row, keys, first(trade, keys, first(container, keys, fallback)));
 
-  const containerNumber = read(['container_number'], ['container_number', 'number']);
-  const billOfLading = read(['bill_of_lading_number', 'bill_of_lading', 'bl_number'], ['bill_of_lading_number', 'bill_of_lading', 'bl_number']);
-  const vessel = read(['vessel_name', 'vessel'], ['vessel_name', 'vessel']);
-  const loadingPort = read(['port_of_loading', 'loading_port'], ['port_of_loading', 'loading_port']);
-  const destinationPort = read(['destination_port', 'port_of_discharge'], ['destination_port', 'port_of_discharge']);
-  const etd = read(['etd', 'departure_date'], ['etd', 'departure_date']);
-  const eta = read(['eta', 'estimated_arrival'], ['eta', 'estimated_arrival']);
-  const latestUpdate = read(['latest_update', 'last_updated', 'updated_at'], ['latest_update', 'last_updated', 'updated_at']);
-  const tradeStatus = first(row, ['trade_status', 'shipment_status'], first(container, ['status', 'current_status'], 'Unavailable'));
+  const containerNumber = read(['container_number', 'number']);
+  const billOfLading = read(['bill_of_lading_number', 'bill_of_lading', 'bl_number']);
+  const vessel = read(['vessel_name', 'vessel']);
+  const loadingPort = read(['port_of_loading', 'loading_port']);
+  const destinationPort = read(['destination_port', 'port_of_discharge']);
+  const etd = read(['etd', 'estimated_departure', 'estimated_departure_date', 'departure_date']);
+  const eta = read(['eta', 'estimated_arrival', 'estimated_arrival_date']);
+  const latestUpdate = read(['latest_tracking_update', 'tracking_update_message', 'latest_update', 'tracking_update']);
+  const tradeStatus = first(row, ['current_trade_status', 'trade_status', 'shipment_status'], first(trade, ['current_trade_status', 'trade_status', 'shipment_status', 'status'], first(container, ['trade_status', 'shipment_status', 'current_status', 'status'], 'Unavailable')));
   const timestampCandidates = [
-    first(row, ['updated_at', 'last_updated']),
-    first(container, ['updated_at', 'last_updated']),
+    first(row, ['tracking_updated_at', 'last_tracking_update_at', 'last_updated']),
+    first(trade, ['tracking_updated_at', 'last_tracking_update_at', 'last_updated']),
+    first(container, ['tracking_updated_at', 'last_tracking_update_at', 'last_updated', 'updated_at']),
   ];
-  const lastUpdated = timestampCandidates.find(hasTimestamp) ?? 'Unavailable';
-  const journey = getJourney(row, container);
+  const lastUpdated = timestampCandidates.find(Boolean) ?? 'Unavailable';
+  const journey = getJourney(row, trade, container);
 
   return <Screen title="Container tracking" subtitle="Reported shipment record">
     {query.isLoading ? <Card>
@@ -113,36 +152,37 @@ export default function ContainerTracking() {
           </View>
         </View>
         <View style={{ paddingHorizontal: 17, paddingVertical: 5 }}>
-          <DetailRow label="Bill of lading" value={billOfLading} mono />
+          <DetailRow label="Bill of Lading Number" value={billOfLading} mono />
           <DetailRow label="Vessel name" value={vessel} />
           <DetailRow label="Port of loading" value={loadingPort} />
           <DetailRow label="Destination port" value={destinationPort} />
           <DetailRow label="ETD" value={etd} />
           <DetailRow label="ETA" value={eta} />
           <DetailRow label="Latest update" value={latestUpdate} />
-          <DetailRow label="Last updated" value={lastUpdated} />
+          <DetailRow label="Last Updated" value={lastUpdated} />
         </View>
       </Card>
 
       <Section title="Container journey" />
       <Card style={{ paddingHorizontal: 15, paddingVertical: 16 }}>
         {journey.map((step, index) => {
-          const supplied = Boolean(step.status || step.date || step.detail);
+          const kind = statusKind(step.status);
+          const markerColor = kind === 'completed' ? colors.statusSuccess : kind === 'in-progress' ? colors.primary : colors.border;
           return <View key={step.label} style={{ flexDirection: 'row', gap: 12, minHeight: index === journey.length - 1 ? 57 : 77 }}>
             <View style={{ width: 26, alignItems: 'center' }}>
-              <View style={{ width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: supplied ? colors.primary : colors.border, backgroundColor: supplied ? colors.lightGreen : colors.secondary }}>
-                <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: supplied ? colors.primary : colors.mutedForeground }} />
+              <View style={{ width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: kind === 'other' ? 1.5 : 0, borderColor: markerColor, backgroundColor: kind === 'completed' ? colors.statusSuccess : kind === 'in-progress' ? colors.primary : colors.secondary }}>
+                {kind === 'completed' ? <Feather name="check" size={14} color={colors.primaryForeground} /> : null}
+                {kind === 'in-progress' ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primaryForeground }} /> : null}
               </View>
               {index < journey.length - 1 ? <View style={{ width: 1, flex: 1, marginTop: 4, backgroundColor: colors.border }} /> : null}
             </View>
             <View style={{ flex: 1, paddingBottom: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700' }}>{step.label}</Text>
-                {step.status ? <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700', textAlign: 'right', flexShrink: 1 }}>{step.status}</Text> : null}
+                <Text style={{ color: step.status ? colors.primary : colors.mutedForeground, fontSize: 11, fontWeight: step.status ? '700' : '400', textAlign: 'right', flexShrink: 1 }}>{step.status || 'Stage status not provided'}</Text>
               </View>
               {step.date ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{step.date}</Text> : null}
               {step.detail ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 4 }}>{step.detail}</Text> : null}
-              {!supplied ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>No stage update provided</Text> : null}
             </View>
           </View>;
         })}
