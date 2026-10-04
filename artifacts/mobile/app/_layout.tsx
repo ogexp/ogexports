@@ -91,6 +91,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="project/[id]" options={{ title: 'Opportunity' }} />
       <Stack.Screen name="position/[id]" options={{ title: 'Investment' }} />
+      <Stack.Screen name="tracking/[id]" options={{ title: 'Container tracking' }} />
       <Stack.Screen name="account/portfolio" options={{ title: 'Portfolio' }} />
       <Stack.Screen name="account/transactions" options={{ title: 'Transactions' }} />
       <Stack.Screen name="account/security" options={{ title: 'Security & devices' }} />
