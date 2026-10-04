@@ -13,6 +13,8 @@ The OG Exports investor app must communicate:
 
 Use server-provided trade identifiers, shipment details, documents, and statuses as the source of truth. Do not invent missing values or imply live logistics tracking. Make an investment's trade/container association easy to find, and state clearly when OG Exports has not supplied information.
 
+Timeline stage names may be shown as the standard visual sequence, but each stage's status, description, and date must be supplied by the backend/admin system. Show unavailable when a stage update is missing; never infer progress from stage order, dates, or a trade-level status.
+
 KYC gating applies to investments only: require a server-reported `Verified` status before allowing an investment, and leave deposits and withdrawals unchanged. Never infer verification from submitted forms or uploaded documents.
 
 **Why:** the user chose to gate only investments; approval must remain authoritative to OG Exports.
@@ -22,3 +24,7 @@ KYC gating applies to investments only: require a server-reported `Verified` sta
 **Why:** the user established these as platform-wide acceptance criteria for the OG Exports investor app.
 
 **How to apply:** check the API contract and UI together when changing investor flows; preserve verification gates, expose available documents and authoritative statuses, and group detailed trade information without obscuring missing data.
+
+**Why:** the user explicitly requires trade timeline statuses to remain under backend/admin control.
+
+**How to apply:** render stages consistently across trade detail views, but mark completion or in-progress status only from that stage's server-provided event.

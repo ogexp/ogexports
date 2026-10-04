@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useGetInvestorProfile, useGetInvestorProject, useGetInvestorWallet, useInvestInProject } from '@workspace/api-client-react';
 import { Action, Card, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
 import { amount, first, list, messageOf, record, unwrap, money } from '@/lib/data';
+import { TradeTimeline } from '@/components/TradeTimeline';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { shareInvestorFile } from '@/lib/file-download';
@@ -42,6 +43,7 @@ export default function OpportunityDetail() {
   const currency = first(project, ['currency'], first(wallet, ['currency']));
   const walletCurrency = first(wallet, ['currency'], currency);
   const documents = list(project.documents);
+  const timeline = list(project.trade_timeline ?? project.timeline ?? project.updates);
   const tradeId = first(project, ['trade_id', 'trade_code', 'code', 'reference'], 'Trade ID not provided');
   const tradeCurrency = first(project, ['currency']);
   const origin = first(project, ['origin', 'origin_country', 'from_country'], '');
@@ -207,6 +209,8 @@ export default function OpportunityDetail() {
         </View>
         {first(project, ['description', 'summary']) ? <Text style={{ color: colors.foreground, lineHeight: 22, marginTop: 14 }}>{first(project, ['description', 'summary'])}</Text> : null}
       </Card>
+
+      <TradeTimeline events={timeline} />
 
       <Section title="Global trade route" />
       <Card>

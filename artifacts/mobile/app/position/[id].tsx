@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useGetInvestorInvestment } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
 import { amount, first, list, money, record, unwrap } from '@/lib/data';
+import { TradeTimeline } from '@/components/TradeTimeline';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -125,20 +126,7 @@ export default function PositionDetail() {
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 12 }}>Only reported milestones are shown; no live carrier position is inferred.</Text>
       </Card>
 
-      <Section title="Trade timeline" />
-      {timeline.length ? <Card>
-        {timeline.map((event, index) => <View key={first(event, ['id', 'event_id'], String(index))} style={{ flexDirection: 'row', gap: 11, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: colors.primary, marginTop: 5 }} />
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <Text style={{ color: colors.foreground, fontWeight: '700', flex: 1 }}>{first(event, ['title', 'status', 'name'], 'Trade update')}</Text>
-              <Status value={first(event, ['status', 'state'], 'Update')} />
-            </View>
-            <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 4 }}>{first(event, ['description', 'message', 'note'], 'Update description not provided')}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 5 }}>{first(event, ['created_at', 'date', 'timestamp'], 'Date not provided')}</Text>
-          </View>
-        </View>)}
-      </Card> : <EmptyState title="No trade updates yet" body="Trade milestones will appear here when reported by OG Exports." />}
+      <TradeTimeline events={timeline} />
 
       <Section title="Trade documents" />
       {documents.length ? <Card>{documents.map((document, index) => <View key={first(document, ['id', 'document_id'], String(index))} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: colors.border }}>
