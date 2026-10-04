@@ -6,6 +6,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
+export * from './containerJourney';
+export * from './containerJourneyUpdate';
+export * from './containerTracking';
+export * from './containerTrackingUpdate';
 export * from './getInvestorDepositsParams';
 export * from './getInvestorInvestmentsParams';
 export * from './getInvestorKycParams';
@@ -13,7 +17,12 @@ export * from './getInvestorProjectsParams';
 export * from './getInvestorWalletTransactionsParams';
 export * from './getInvestorWithdrawalsParams';
 export * from './investorProfileUpdate';
+export * from './investorProjectDetail';
+export * from './investorProjectDetailEnvelope';
+export * from './investorProjectDetailResponse';
 export * from './investorPushTokenRegistration';
 export * from './investorPushTokenRegistrationPlatform';
 export * from './investorPushTokenRevocation';
+export * from './journeyStage';
+export * from './journeyStageUpdate';
 export * from './jsonObject';

@@ -1,4 +1,4 @@
-- [OG Exports API contract](investor-api-contract.md) — server-only financial values; investor API omits phone verification and withdrawal fee/net fields.
+- [OG Exports API contract](investor-api-contract.md) — Laravel is the investor data source; never substitute disconnected local data or invent missing financial values.
 - [OG Exports mobile visual direction](og-exports-visual-direction.md) — premium light/emerald UI, four investor tabs, and Profile via the top-right avatar.
 - [API origin configuration](api-origin-configuration.md) — keep the API address off the login screen; use app environment or existing Settings configuration.
 - [Investor email auth & profile](investor-auth-rollout.md) — email codes cover signup verification, recovery, and optional 2FA; mobile/country stay profile-only.

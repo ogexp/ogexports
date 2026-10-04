@@ -20,6 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ContainerTracking,
+  ContainerTrackingUpdate,
   GetInvestorDepositsParams,
   GetInvestorInvestmentsParams,
   GetInvestorKycParams,
@@ -27,6 +29,7 @@ import type {
   GetInvestorWalletTransactionsParams,
   GetInvestorWithdrawalsParams,
   InvestorProfileUpdate,
+  InvestorProjectDetailResponse,
   InvestorPushTokenRegistration,
   InvestorPushTokenRevocation,
   JsonObject
@@ -2235,9 +2238,9 @@ export const getGetInvestorProjectUrl = (id: string,) => {
 /**
  * @summary Get an investment opportunity
  */
-export const getInvestorProject = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const getInvestorProject = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<InvestorProjectDetailResponse> => {
 
-  return customFetch<JsonObject>(getGetInvestorProjectUrl(id),
+  return customFetch<InvestorProjectDetailResponse>(getGetInvestorProjectUrl(id),
   {
     ...options,
     method: 'GET'
@@ -2485,9 +2488,9 @@ export const getGetInvestorInvestmentUrl = (id: string,) => {
 /**
  * @summary Get a portfolio position
  */
-export const getInvestorInvestment = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const getInvestorInvestment = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<InvestorProjectDetailResponse> => {
 
-  return customFetch<JsonObject>(getGetInvestorInvestmentUrl(id),
+  return customFetch<InvestorProjectDetailResponse>(getGetInvestorInvestmentUrl(id),
   {
     ...options,
     method: 'GET'
@@ -4835,5 +4838,173 @@ export const useCreateInvestorSupportTicket = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateInvestorSupportTicketMutationOptions(options));
+    }
+
+export const getGetAdminProjectContainerTrackingUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/projects/${id}/container-tracking`
+}
+
+/**
+ * Only OG Exports administrators can access this record. A missing record returns 404; no shipment status is inferred.
+ * @summary Read a project's reported container record
+ */
+export const getAdminProjectContainerTracking = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<ContainerTracking> => {
+
+  return customFetch<ContainerTracking>(getGetAdminProjectContainerTrackingUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminProjectContainerTrackingQueryKey = (id: string,) => {
+    return [
+    `/api/admin/projects/${id}/container-tracking`
+    ] as const;
+    }
+
+
+export const getGetAdminProjectContainerTrackingQueryOptions = <TData = Awaited<ReturnType<typeof getAdminProjectContainerTracking>>, TError = ErrorType<JsonObject>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminProjectContainerTracking>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminProjectContainerTrackingQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminProjectContainerTracking>>> = ({ signal }) => getAdminProjectContainerTracking(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminProjectContainerTracking>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminProjectContainerTrackingQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminProjectContainerTracking>>>
+export type GetAdminProjectContainerTrackingQueryError = ErrorType<JsonObject>
+
+
+/**
+ * @summary Read a project's reported container record
+ */
+
+export function useGetAdminProjectContainerTracking<TData = Awaited<ReturnType<typeof getAdminProjectContainerTracking>>, TError = ErrorType<JsonObject>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminProjectContainerTracking>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminProjectContainerTrackingQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminProjectContainerTrackingUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/projects/${id}/container-tracking`
+}
+
+/**
+ * Only OG Exports administrators can update the project record. The first update creates it; later updates merge supplied fields, initialize all six stages as unreported, and set tracking_updated_at on the server. Clients cannot set that timestamp and no carrier position or progress is inferred.
+ * @summary Create or publish admin-reported container details and journey stages
+ */
+export const updateAdminProjectContainerTracking = async (id: string,
+    containerTrackingUpdate: ContainerTrackingUpdate, options?: Parameters<typeof customFetch>[1]): Promise<ContainerTracking> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ContainerTracking>(getUpdateAdminProjectContainerTrackingUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(containerTrackingUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminProjectContainerTrackingMutationKey = () => ['updateAdminProjectContainerTracking'] as const;
+
+export const getUpdateAdminProjectContainerTrackingMutationOptions = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminProjectContainerTracking>>, TError,UpdateAdminProjectContainerTrackingMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminProjectContainerTracking>>, TError,UpdateAdminProjectContainerTrackingMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAdminProjectContainerTrackingMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminProjectContainerTracking>>, UpdateAdminProjectContainerTrackingMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminProjectContainerTracking(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminProjectContainerTrackingMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminProjectContainerTracking>>>
+    export type UpdateAdminProjectContainerTrackingMutationBody = BodyType<ContainerTrackingUpdate>
+    export type UpdateAdminProjectContainerTrackingMutationError = ErrorType<JsonObject>
+    export type UpdateAdminProjectContainerTrackingMutationVariables = {id: string;data: BodyType<ContainerTrackingUpdate>}
+
+    /**
+ * @summary Create or publish admin-reported container details and journey stages
+ */
+export const useUpdateAdminProjectContainerTracking = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminProjectContainerTracking>>, TError,UpdateAdminProjectContainerTrackingMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminProjectContainerTracking>>,
+        TError,
+        UpdateAdminProjectContainerTrackingMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAdminProjectContainerTrackingMutationOptions(options));
     }
 

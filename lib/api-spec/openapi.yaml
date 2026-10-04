@@ -14,6 +14,8 @@ tags:
     description: Investor portfolio, opportunities, wallet, KYC and account
   - name: communication
     description: Notifications, conversations and support
+  - name: admin
+    description: OG Exports staff management operations
 paths:
   /auth/mobile/login:
     post:
@@ -307,7 +309,7 @@ paths:
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Opportunity detail, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "200": { description: "Opportunity detail, including the reported container record when available", content: { application/json: { schema: { $ref: "#/components/schemas/InvestorProjectDetailResponse" } } } }
   /investor/projects/{id}/invest:
     post:
       operationId: investInProject
@@ -344,7 +346,7 @@ paths:
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Portfolio position detail, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "200": { description: "Portfolio position detail, including its associated reported container record when available", content: { application/json: { schema: { $ref: "#/components/schemas/InvestorProjectDetailResponse" } } } }
   /investor/wallet:
     get:
       operationId: getInvestorWallet
@@ -631,8 +633,196 @@ paths:
             schema: { $ref: "#/components/schemas/JsonObject" }
       responses:
         "201": { description: Ticket created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /admin/projects/{id}/container-tracking:
+    get:
+      operationId: getAdminProjectContainerTracking
+      tags: [admin]
+      summary: Read a project's reported container record
+      description: Only OG Exports administrators can access this record. A missing record returns 404; no shipment status is inferred.
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Current admin-managed container details and all six journey stages, content: { application/json: { schema: { $ref: "#/components/schemas/ContainerTracking" } } } }
+        "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "403": { description: OG Exports administrator access required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "404": { description: Project or container record not found, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+    patch:
+      operationId: updateAdminProjectContainerTracking
+      tags: [admin]
+      summary: Create or publish admin-reported container details and journey stages
+      description: Only OG Exports administrators can update the project record. The first update creates it; later updates merge supplied fields, initialize all six stages as unreported, and set tracking_updated_at on the server. Clients cannot set that timestamp and no carrier position or progress is inferred.
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContainerTrackingUpdate" }
+      responses:
+        "200": { description: Updated admin-managed record with server-owned tracking timestamp, content: { application/json: { schema: { $ref: "#/components/schemas/ContainerTracking" } } } }
+        "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "403": { description: OG Exports administrator access required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "404": { description: Project not found, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "422": { description: Invalid container record or journey stage, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
 components:
   schemas:
+    JourneyStage:
+      type: object
+      description: An OG Exports-reported journey stage. Null values mean the information has not been reported.
+      additionalProperties: false
+      required: [status, date, details]
+      properties:
+        status:
+          type: [string, "null"]
+          maxLength: 80
+          description: Status text explicitly supplied by OG Exports; never calculated from other stages.
+        date:
+          type: [string, "null"]
+          maxLength: 64
+          description: Date or ISO 8601 timestamp explicitly supplied by OG Exports.
+        details:
+          type: [string, "null"]
+          maxLength: 1000
+          description: Stage description explicitly supplied by OG Exports.
+    ContainerJourney:
+      type: object
+      description: The six fixed trade stages, each independently reported by OG Exports.
+      additionalProperties: false
+      required: [origin, port, vessel, destination, buyer, settlement]
+      properties:
+        origin: { $ref: "#/components/schemas/JourneyStage" }
+        port: { $ref: "#/components/schemas/JourneyStage" }
+        vessel: { $ref: "#/components/schemas/JourneyStage" }
+        destination: { $ref: "#/components/schemas/JourneyStage" }
+        buyer: { $ref: "#/components/schemas/JourneyStage" }
+        settlement: { $ref: "#/components/schemas/JourneyStage" }
+    JourneyStageUpdate:
+      type: object
+      description: Partial admin update for one journey stage. Omitted values remain unchanged; null clears a reported value.
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        status:
+          type: [string, "null"]
+          maxLength: 80
+        date:
+          type: [string, "null"]
+          maxLength: 64
+        details:
+          type: [string, "null"]
+          maxLength: 1000
+    ContainerJourneyUpdate:
+      type: object
+      description: Partial update of one or more named journey stages; stage order does not imply progress.
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        origin: { $ref: "#/components/schemas/JourneyStageUpdate" }
+        port: { $ref: "#/components/schemas/JourneyStageUpdate" }
+        vessel: { $ref: "#/components/schemas/JourneyStageUpdate" }
+        destination: { $ref: "#/components/schemas/JourneyStageUpdate" }
+        buyer: { $ref: "#/components/schemas/JourneyStageUpdate" }
+        settlement: { $ref: "#/components/schemas/JourneyStageUpdate" }
+    ContainerTracking:
+      type: object
+      description: Admin-reported container record. No field represents a live carrier position.
+      additionalProperties: false
+      required: [container_journey, tracking_updated_at]
+      properties:
+        container_number:
+          type: [string, "null"]
+          maxLength: 80
+        bill_of_lading_number:
+          type: [string, "null"]
+          maxLength: 120
+        vessel_name:
+          type: [string, "null"]
+          maxLength: 160
+        port_of_loading:
+          type: [string, "null"]
+          maxLength: 160
+        destination_port:
+          type: [string, "null"]
+          maxLength: 160
+        etd:
+          type: [string, "null"]
+          maxLength: 64
+          description: Estimated departure date as supplied by OG Exports.
+        eta:
+          type: [string, "null"]
+          maxLength: 64
+          description: Estimated arrival date as supplied by OG Exports.
+        latest_tracking_update:
+          type: [string, "null"]
+          maxLength: 1000
+          description: Admin-authored update text; not a carrier event unless separately integrated.
+        trade_status:
+          type: [string, "null"]
+          maxLength: 80
+          description: Status explicitly supplied by OG Exports.
+        container_journey:
+          $ref: "#/components/schemas/ContainerJourney"
+        tracking_updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Set by the server when an admin publishes an update; never supplied by the client.
+    ContainerTrackingUpdate:
+      type: object
+      description: Admin-authored partial update. The server preserves omitted values and owns tracking_updated_at.
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        container_number:
+          type: [string, "null"]
+          maxLength: 80
+        bill_of_lading_number:
+          type: [string, "null"]
+          maxLength: 120
+        vessel_name:
+          type: [string, "null"]
+          maxLength: 160
+        port_of_loading:
+          type: [string, "null"]
+          maxLength: 160
+        destination_port:
+          type: [string, "null"]
+          maxLength: 160
+        etd:
+          type: [string, "null"]
+          maxLength: 64
+        eta:
+          type: [string, "null"]
+          maxLength: 64
+        latest_tracking_update:
+          type: [string, "null"]
+          maxLength: 1000
+        trade_status:
+          type: [string, "null"]
+          maxLength: 80
+        container_journey:
+          $ref: "#/components/schemas/ContainerJourneyUpdate"
+    InvestorProjectDetail:
+      type: object
+      description: Opportunity or investment detail fields with a typed container record when available.
+      additionalProperties: true
+      properties:
+        container:
+          $ref: "#/components/schemas/ContainerTracking"
+    InvestorProjectDetailEnvelope:
+      type: object
+      description: Laravel resource response wrapper.
+      additionalProperties: true
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/InvestorProjectDetail"
+    InvestorProjectDetailResponse:
+      oneOf:
+        - $ref: "#/components/schemas/InvestorProjectDetail"
+        - $ref: "#/components/schemas/InvestorProjectDetailEnvelope"
     InvestorPushTokenRegistration:
       type: object
       required: [expo_push_token, platform]
@@ -677,4 +867,9 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
+    AdminBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token for an authenticated OG Exports administrator; investor credentials must not authorize these routes.
 

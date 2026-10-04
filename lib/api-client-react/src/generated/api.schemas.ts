@@ -5,6 +5,203 @@
  * OG Exports investor mobile API, generated from the Laravel mobile API contract
  * OpenAPI spec version: 1.0.0
  */
+/**
+ * An OG Exports-reported journey stage. Null values mean the information has not been reported.
+ */
+export interface JourneyStage {
+  /**
+     * Status text explicitly supplied by OG Exports; never calculated from other stages.
+     * @maxLength 80
+     * @nullable
+     */
+  status: string | null;
+  /**
+     * Date or ISO 8601 timestamp explicitly supplied by OG Exports.
+     * @maxLength 64
+     * @nullable
+     */
+  date: string | null;
+  /**
+     * Stage description explicitly supplied by OG Exports.
+     * @maxLength 1000
+     * @nullable
+     */
+  details: string | null;
+}
+
+/**
+ * The six fixed trade stages, each independently reported by OG Exports.
+ */
+export interface ContainerJourney {
+  origin: JourneyStage;
+  port: JourneyStage;
+  vessel: JourneyStage;
+  destination: JourneyStage;
+  buyer: JourneyStage;
+  settlement: JourneyStage;
+}
+
+/**
+ * Partial admin update for one journey stage. Omitted values remain unchanged; null clears a reported value.
+ */
+export interface JourneyStageUpdate {
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  status?: string | null;
+  /**
+     * @maxLength 64
+     * @nullable
+     */
+  date?: string | null;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  details?: string | null;
+}
+
+/**
+ * Partial update of one or more named journey stages; stage order does not imply progress.
+ */
+export interface ContainerJourneyUpdate {
+  origin?: JourneyStageUpdate;
+  port?: JourneyStageUpdate;
+  vessel?: JourneyStageUpdate;
+  destination?: JourneyStageUpdate;
+  buyer?: JourneyStageUpdate;
+  settlement?: JourneyStageUpdate;
+}
+
+/**
+ * Admin-reported container record. No field represents a live carrier position.
+ */
+export interface ContainerTracking {
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  container_number?: string | null;
+  /**
+     * @maxLength 120
+     * @nullable
+     */
+  bill_of_lading_number?: string | null;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  vessel_name?: string | null;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  port_of_loading?: string | null;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  destination_port?: string | null;
+  /**
+     * Estimated departure date as supplied by OG Exports.
+     * @maxLength 64
+     * @nullable
+     */
+  etd?: string | null;
+  /**
+     * Estimated arrival date as supplied by OG Exports.
+     * @maxLength 64
+     * @nullable
+     */
+  eta?: string | null;
+  /**
+     * Admin-authored update text; not a carrier event unless separately integrated.
+     * @maxLength 1000
+     * @nullable
+     */
+  latest_tracking_update?: string | null;
+  /**
+     * Status explicitly supplied by OG Exports.
+     * @maxLength 80
+     * @nullable
+     */
+  trade_status?: string | null;
+  container_journey: ContainerJourney;
+  /** Set by the server when an admin publishes an update; never supplied by the client. */
+  readonly tracking_updated_at: string;
+}
+
+/**
+ * Admin-authored partial update. The server preserves omitted values and owns tracking_updated_at.
+ */
+export interface ContainerTrackingUpdate {
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  container_number?: string | null;
+  /**
+     * @maxLength 120
+     * @nullable
+     */
+  bill_of_lading_number?: string | null;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  vessel_name?: string | null;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  port_of_loading?: string | null;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  destination_port?: string | null;
+  /**
+     * @maxLength 64
+     * @nullable
+     */
+  etd?: string | null;
+  /**
+     * @maxLength 64
+     * @nullable
+     */
+  eta?: string | null;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  latest_tracking_update?: string | null;
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  trade_status?: string | null;
+  container_journey?: ContainerJourneyUpdate;
+}
+
+/**
+ * Opportunity or investment detail fields with a typed container record when available.
+ */
+export interface InvestorProjectDetail {
+  container?: ContainerTracking;
+  [key: string]: unknown;
+ }
+
+/**
+ * Laravel resource response wrapper.
+ */
+export interface InvestorProjectDetailEnvelope {
+  data: InvestorProjectDetail;
+  [key: string]: unknown;
+ }
+
+export type InvestorProjectDetailResponse = InvestorProjectDetail | InvestorProjectDetailEnvelope;
+
 export type InvestorPushTokenRegistrationPlatform = typeof InvestorPushTokenRegistrationPlatform[keyof typeof InvestorPushTokenRegistrationPlatform];
 
 

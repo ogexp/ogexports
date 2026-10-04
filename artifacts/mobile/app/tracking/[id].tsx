@@ -2,9 +2,14 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { useGetInvestorInvestment, useGetInvestorProject } from '@workspace/api-client-react';
+import {
+  useGetInvestorInvestment,
+  useGetInvestorProject,
+  type ContainerTracking,
+  type InvestorProjectDetail,
+} from '@workspace/api-client-react';
 import { Card, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
-import { first, list, record, unwrap, type Json } from '@/lib/data';
+import { unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -18,22 +23,13 @@ type JourneyStep = {
 const JOURNEY_LABELS = ['Origin', 'Port', 'Vessel', 'Destination', 'Buyer', 'Settlement'] as const;
 type JourneyLabel = typeof JOURNEY_LABELS[number];
 
-const JOURNEY_ALIASES: Record<JourneyLabel, string[]> = {
-  Origin: ['origin', 'originpoint'],
-  Port: ['port', 'loadingport', 'portofloading', 'portdeparture'],
-  Vessel: ['vessel'],
-  Destination: ['destination', 'destinationport', 'destinationarrival'],
-  Buyer: ['buyer', 'buyerdelivery'],
-  Settlement: ['settlement', 'tradesettlement'],
-};
-
-const JOURNEY_STATUS_KEYS: Record<JourneyLabel, string[]> = {
-  Origin: ['origin_status', 'origin_stage_status'],
-  Port: ['port_status', 'port_stage_status', 'loading_port_status'],
-  Vessel: ['vessel_status', 'vessel_stage_status'],
-  Destination: ['destination_status', 'destination_stage_status'],
-  Buyer: ['buyer_status', 'buyer_stage_status'],
-  Settlement: ['settlement_status', 'trade_settlement_status'],
+const JOURNEY_KEYS: Record<JourneyLabel, keyof ContainerTracking['container_journey']> = {
+  Origin: 'origin',
+  Port: 'port',
+  Vessel: 'vessel',
+  Destination: 'destination',
+  Buyer: 'buyer',
+  Settlement: 'settlement',
 };
 
 function normalized(value: string) {
@@ -47,32 +43,14 @@ function statusKind(status: string): 'completed' | 'in-progress' | 'other' {
   return 'other';
 }
 
-function getJourney(row: Json, trade: Json, container: Json): JourneyStep[] {
-  const supplied = list(
-    row.container_journey ?? row.journey ?? row.tracking_stages ?? row.container_milestones ?? row.milestones
-      ?? container.container_journey ?? container.journey ?? container.tracking_stages ?? container.container_milestones ?? container.milestones
-      ?? trade.container_journey ?? trade.journey ?? trade.tracking_stages ?? trade.container_milestones ?? trade.milestones,
-  );
-  const read = (keys: string[], fallback = '') => first(row, keys, first(trade, keys, first(container, keys, fallback)));
-  const routeDetails: Record<JourneyLabel, string> = {
-    Origin: read(['origin', 'origin_country', 'from_country', 'country_of_origin']),
-    Port: read(['port_of_loading', 'loading_port']),
-    Vessel: read(['vessel_name', 'vessel']),
-    Destination: read(['destination_port', 'port_of_discharge']),
-    Buyer: read(['buyer_name', 'buyer']),
-    Settlement: '',
-  };
-
+function getJourney(container?: ContainerTracking): JourneyStep[] {
   return JOURNEY_LABELS.map(label => {
-    const aliases = new Set(JOURNEY_ALIASES[label].map(normalized));
-    const entry = supplied.find(item => aliases.has(normalized(first(item, ['stage', 'name', 'label', 'type']))));
-    const directStatus = first(row, JOURNEY_STATUS_KEYS[label], first(trade, JOURNEY_STATUS_KEYS[label], first(container, JOURNEY_STATUS_KEYS[label])));
-    if (!entry) return { label, status: directStatus, date: '', detail: routeDetails[label] };
+    const stage = container?.container_journey[JOURNEY_KEYS[label]];
     return {
       label,
-      status: first(entry, ['status', 'stage_status'], directStatus),
-      date: first(entry, ['date', 'occurred_at', 'completed_at', 'updated_at']),
-      detail: first(entry, ['details', 'description', 'location', 'note'], routeDetails[label]),
+      status: stage?.status ?? '',
+      date: stage?.date ?? '',
+      detail: stage?.details ?? '',
     };
   });
 }
@@ -95,29 +73,21 @@ export default function ContainerTracking() {
   const projectQuery = useGetInvestorProject(id, { query: { queryKey: ['investor-project', id], enabled: Boolean(id && token && isProject) } });
   const positionQuery = useGetInvestorInvestment(id, { query: { queryKey: ['investor-position', id], enabled: Boolean(id && token && !isProject) } });
   const query = isProject ? projectQuery : positionQuery;
-  const row = unwrap(query.data);
-  const trade = record(row.trade ?? row.project ?? row.trade_details);
-  const container = record(row.container ?? row.container_details ?? trade.container ?? trade.container_details);
+  const row = unwrap(query.data) as InvestorProjectDetail;
+  const container = row.container;
+  const read = (value?: string | null) => value?.trim() || 'Unavailable';
 
-  const read = (keys: string[], fallback = 'Unavailable') =>
-    first(row, keys, first(trade, keys, first(container, keys, fallback)));
-
-  const containerNumber = read(['container_number', 'number']);
-  const billOfLading = read(['bill_of_lading_number', 'bill_of_lading', 'bl_number']);
-  const vessel = read(['vessel_name', 'vessel']);
-  const loadingPort = read(['port_of_loading', 'loading_port']);
-  const destinationPort = read(['destination_port', 'port_of_discharge']);
-  const etd = read(['etd', 'estimated_departure', 'estimated_departure_date', 'departure_date']);
-  const eta = read(['eta', 'estimated_arrival', 'estimated_arrival_date']);
-  const latestUpdate = read(['latest_tracking_update', 'tracking_update_message', 'latest_update', 'tracking_update']);
-  const tradeStatus = first(row, ['current_trade_status', 'trade_status', 'shipment_status'], first(trade, ['current_trade_status', 'trade_status', 'shipment_status', 'status'], first(container, ['trade_status', 'shipment_status', 'current_status', 'status'], 'Unavailable')));
-  const timestampCandidates = [
-    first(row, ['tracking_updated_at', 'last_tracking_update_at', 'last_updated']),
-    first(trade, ['tracking_updated_at', 'last_tracking_update_at', 'last_updated']),
-    first(container, ['tracking_updated_at', 'last_tracking_update_at', 'last_updated', 'updated_at']),
-  ];
-  const lastUpdated = timestampCandidates.find(Boolean) ?? 'Unavailable';
-  const journey = getJourney(row, trade, container);
+  const containerNumber = read(container?.container_number);
+  const billOfLading = read(container?.bill_of_lading_number);
+  const vessel = read(container?.vessel_name);
+  const loadingPort = read(container?.port_of_loading);
+  const destinationPort = read(container?.destination_port);
+  const etd = read(container?.etd);
+  const eta = read(container?.eta);
+  const latestUpdate = read(container?.latest_tracking_update);
+  const tradeStatus = read(container?.trade_status);
+  const lastUpdated = read(container?.tracking_updated_at);
+  const journey = getJourney(container);
 
   return <Screen title="Container tracking" subtitle="Reported shipment record">
     {query.isLoading ? <Card>
