@@ -114,7 +114,7 @@ export default function Register() {
     if (password.length < 8) { setError('Use a password with at least 8 characters.'); return; }
     if (password !== confirmPassword) { setError('The password and confirmation do not match.'); return; }
     if (!apiOrigin) {
-      setError('Connect the investor API server from the sign-in screen before creating an account.');
+      setError('The investor API server is not configured for this build. Set EXPO_PUBLIC_API_BASE_URL before creating an account.');
       return;
     }
     try {
@@ -155,7 +155,9 @@ export default function Register() {
         <Text style={[s.eyebrow, { color: colors.tint }]}>INVESTOR ACCESS</Text>
         <Text style={[s.title, { color: colors.primary }]}>Create your account</Text>
         <Text style={[s.subtitle, { color: colors.mutedForeground }]}>
-          Start with your email. You’ll verify it in the next step.
+          {apiOrigin
+            ? 'Start with your email. You’ll verify it in the next step.'
+            : 'Configure the investor API for this build before creating an account.'}
         </Text>
       </View>
 
@@ -164,8 +166,14 @@ export default function Register() {
           <Feather name="mail" size={17} color={colors.primary} />
         </View>
         <View style={s.noteCopy}>
-          <Text style={[s.noteTitle, { color: colors.primary }]}>Email verification next</Text>
-          <Text style={[s.noteBody, { color: colors.mutedForeground }]}>We’ll send a code to the address you enter.</Text>
+          <Text style={[s.noteTitle, { color: colors.primary }]}>
+            {apiOrigin ? 'Email verification next' : 'API connection needed'}
+          </Text>
+          <Text style={[s.noteBody, { color: colors.mutedForeground }]}>
+            {apiOrigin
+              ? 'We’ll send a code to the address you enter.'
+              : 'Set EXPO_PUBLIC_API_BASE_URL to enable signup and email verification.'}
+          </Text>
         </View>
       </View>
 
