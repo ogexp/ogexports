@@ -19,6 +19,8 @@ export default function Wallet() {
   const balance = amount(inner, ['available_balance', 'balance', 'available']);
   const investedBalance = amount(inner, ['invested_balance', 'investment_balance']);
   const pendingBalance = amount(inner, ['pending_balance', 'pending_amount']);
+  const allocatedBalance = amount(inner, ['allocated_balance', 'allocated_to_trades']);
+  const withdrawableBalance = amount(inner, ['withdrawable_balance', 'withdrawable_amount']);
   const rows = list(transactions.data);
   return <Screen title="Wallet" subtitle="Balances, deposits and withdrawals">
     <Card style={{ backgroundColor: colors.primary, borderColor: colors.primary, padding: 20 }}>
@@ -26,8 +28,14 @@ export default function Wallet() {
       <Text style={{ color: colors.primaryForeground, fontSize: 32, fontWeight: '700', marginTop: 8 }}>{wallet.isLoading ? '…' : balance != null && currency ? money(balance, currency) : '—'}</Text>
       <Text style={{ color: colors.primaryForeground, opacity: 0.8, fontSize: 12, marginTop: 8 }}>{currency ? `${currency} wallet` : 'Account currency unavailable'}</Text>
     </Card>
-    <View style={{ flexDirection: 'row', gap: 9 }}>
-      {[['Invested balance', investedBalance], ['Pending balance', pendingBalance]].map(([label, value]) => <Card key={String(label)} style={{ flex: 1, padding: 13 }}>
+    <Section title="Balance breakdown" />
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
+      {[
+        ['Allocated to trades', allocatedBalance],
+        ['Pending', pendingBalance],
+        ['Withdrawable', withdrawableBalance],
+        ['Invested balance', investedBalance],
+      ].map(([label, value]) => <Card key={String(label)} style={{ width: '48%', padding: 13 }}>
         <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{String(label)}</Text>
         <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 7 }}>{value != null && currency ? money(value, currency) : '—'}</Text>
       </Card>)}
@@ -44,5 +52,6 @@ export default function Wallet() {
       <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(item, ['description', 'type', 'transaction_type'], 'Transaction')}</Text><Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{first(item, ['created_at', 'date'], '')}</Text></View>
       <View style={{ alignItems: 'flex-end' }}><Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(item, ['currency'], currency) ? money(amount(item, ['amount', 'total']), first(item, ['currency'], currency)) : '—'}</Text><Status value={first(item, ['status'], '—')} /></View>
     </Card>)}
+    {!transactions.isLoading && !transactions.isError ? <Action title="View all transactions" icon="list" secondary onPress={() => router.push('/account/transactions')} /> : null}
   </Screen>;
 }
