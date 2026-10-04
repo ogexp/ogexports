@@ -56,11 +56,15 @@ class InvestorBankAccountReviewController extends Controller
 
         $filename = preg_replace('/[^A-Za-z0-9._ -]/', '_', $verification->original_name) ?: 'bank-proof';
 
-        return response()->file($path, [
+        $response = response()->file($path, [
             'Content-Disposition' => 'inline; filename="'.$filename.'"',
             'Cache-Control' => 'private, no-store, max-age=0',
             'X-Content-Type-Options' => 'nosniff',
         ]);
+        $response->setPrivate();
+        $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
+
+        return $response;
     }
 
     public function approve(Request $request, InvestorBankAccountVerification $verification): JsonResponse
