@@ -48,8 +48,8 @@ export default function Portfolio() {
         <View style={{ minWidth: 120, flex: 1 }}><Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Available balance</Text><Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginTop: 5 }}>{availableBalance != null && currency ? money(availableBalance, currency) : '—'}</Text></View>
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 13 }}>
-        <View style={{ flex: 1 }}><Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Profit earned</Text><Text style={{ color: colors.statusSuccess, fontSize: 15, fontWeight: '700', marginTop: 5 }}>{profit != null && currency ? money(profit, currency) : '—'}</Text></View>
-        <View style={{ alignItems: 'flex-end', flex: 1 }}><Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Lifetime ROI</Text><Text style={{ color: colors.statusSuccess, fontSize: 15, fontWeight: '700', marginTop: 5 }}>{roi == null ? '—' : `${roi.toFixed(2)}%`}</Text></View>
+        <View style={{ flex: 1 }}><Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Profit earned</Text><Text style={{ color: profit != null && profit > 0 ? colors.statusSuccess : profit != null && profit < 0 ? colors.destructive : colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 5 }}>{profit != null && currency ? money(profit, currency) : '—'}</Text></View>
+        <View style={{ alignItems: 'flex-end', flex: 1 }}><Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Lifetime ROI</Text><Text style={{ color: roi != null && roi > 0 ? colors.statusSuccess : roi != null && roi < 0 ? colors.destructive : colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 5 }}>{roi == null ? '—' : `${roi.toFixed(2)}%`}</Text></View>
       </View>
     </Card>
     {dashboardQuery.isError ? <ErrorState message="Portfolio summary could not be loaded from the investor server." onRetry={() => void dashboardQuery.refetch()} /> : null}

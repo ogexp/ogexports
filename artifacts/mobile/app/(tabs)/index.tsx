@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   useGetInvestorDashboard,
@@ -93,8 +92,8 @@ export default function InvestorHome() {
     return /withdraw|payout/.test(kind) ? 'arrow-up-right' : /invest|purchase/.test(kind) ? 'trending-up' : 'arrow-down-left';
   };
   const dockShadow = Platform.OS === 'web'
-    ? { boxShadow: `0 10px 24px ${colors.shadow}` }
-    : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 6 };
+    ? { boxShadow: `0 5px 18px ${colors.shadow}` }
+    : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 };
 
   return <ScrollView
     style={{ flex: 1, backgroundColor: colors.background }}
@@ -105,63 +104,66 @@ export default function InvestorHome() {
     }}
     showsVerticalScrollIndicator={false}
   >
-    <LinearGradient colors={[colors.walletStart, colors.walletEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      style={{ borderRadius: 30, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 34, overflow: 'hidden', minHeight: 330 }}>
-      <View pointerEvents="none" style={{ position: 'absolute', right: -68, top: -66, width: 230, height: 230, borderRadius: 120, borderWidth: 1, borderColor: colors.primaryForeground, opacity: 0.12 }} />
-      <View pointerEvents="none" style={{ position: 'absolute', left: -86, bottom: -155, width: 240, height: 240, borderRadius: 130, borderWidth: 1, borderColor: colors.primaryForeground, opacity: 0.07 }} />
-
+    <Card style={{ padding: 20, paddingBottom: 18, borderRadius: 22, marginBottom: 0 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View>
-          <Text style={{ color: colors.primaryForeground, fontSize: 15, fontWeight: '700' }}>{greeting}, {firstName}</Text>
-          <Text style={{ color: colors.primaryForeground, fontSize: 11, opacity: 0.74, marginTop: 3 }}>Your trade portfolio at a glance</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+          <Image source={require('../../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 38, height: 32 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.primary, fontSize: 9, fontWeight: '700', letterSpacing: 1.1 }}>OG EXPORTS</Text>
+            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700', marginTop: 2 }}>{greeting}, {firstName}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 2 }}>Your trade portfolio at a glance</Text>
+          </View>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
           <Pressable testID="home-notifications" accessibilityRole="button" accessibilityLabel="Open notifications" hitSlop={8} onPress={() => router.push('/account/notifications')}
-            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.76 : 1 })}>
-            <Feather name="bell" size={17} color={colors.primaryForeground} />
+            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.76 : 1 })}>
+            <Feather name="bell" size={17} color={colors.primary} />
           </Pressable>
           <Pressable testID="home-profile" accessibilityRole="button" accessibilityLabel="Open profile menu" hitSlop={8} onPress={() => router.push('/(tabs)/account')}
-            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.52)', backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.76 : 1 })}>
-            <Text style={{ color: colors.primaryForeground, fontSize: 12, fontWeight: '700' }}>{initials}</Text>
+            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.76 : 1 })}>
+            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{initials}</Text>
           </Pressable>
         </View>
       </View>
 
       <Pressable testID="home-portfolio-selector" accessibilityRole="button" accessibilityLabel="Open portfolio" onPress={() => router.push('/(tabs)/portfolio')}
-        style={({ pressed }) => ({ alignSelf: 'center', marginTop: 20, minHeight: 34, borderRadius: 20, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: 'rgba(255,255,255,0.12)', opacity: pressed ? 0.8 : 1 })}>
-        <Feather name="pie-chart" size={14} color={colors.primaryForeground} />
-        <Text numberOfLines={1} style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: '700' }}>My portfolio</Text>
-        <Feather name="chevron-down" size={14} color={colors.primaryForeground} />
+        style={({ pressed }) => ({ alignSelf: 'center', marginTop: 17, minHeight: 34, borderRadius: 17, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.secondary, opacity: pressed ? 0.8 : 1 })}>
+        <Feather name="pie-chart" size={14} color={colors.primary} />
+        <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 11, fontWeight: '700' }}>My portfolio</Text>
+        <Feather name="chevron-down" size={14} color={colors.mutedForeground} />
       </Pressable>
 
       <View style={{ alignItems: 'center', marginTop: 17 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ color: colors.primaryForeground, fontSize: 12, opacity: 0.78 }}>Total portfolio value</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Total portfolio value</Text>
           <Pressable testID="home-toggle-sensitive-values" accessibilityRole="button" accessibilityLabel={balanceHidden ? 'Show account balances' : 'Hide account balances'}
             onPress={() => setBalanceHidden(current => !current)} hitSlop={8}>
-            <Feather name={balanceHidden ? 'eye-off' : 'eye'} size={15} color={colors.primaryForeground} />
+            <Feather name={balanceHidden ? 'eye-off' : 'eye'} size={15} color={colors.primary} />
           </Pressable>
         </View>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.primaryForeground, fontSize: 38, fontWeight: '700', letterSpacing: -1.1, marginTop: 4 }}>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 36, fontWeight: '700', letterSpacing: -1.1, marginTop: 4 }}>
           {dashboard.isLoading ? '…' : displayMoney(portfolioTotal)}
         </Text>
-        <Text style={{ color: colors.primaryForeground, fontSize: 11, opacity: 0.72, marginTop: 4 }}>Reported by OG Exports</Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>Reported by OG Exports</Text>
       </View>
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 18, paddingTop: 11, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.2)' }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 18, paddingTop: 11, borderTopWidth: 1, borderTopColor: colors.border }}>
         {[
           { label: 'Total invested', value: displayMoney(investedCapital) },
           { label: 'Net returns', value: displayMoney(netReturns) },
           { label: 'Lifetime ROI', value: displayRoi },
           { label: 'Available balance', value: displayMoney(availableBalance) },
-        ].map((item, index) => <View key={item.label} style={{ width: '50%', paddingTop: index > 1 ? 12 : 3, paddingBottom: 2, paddingRight: index % 2 === 0 ? 10 : 0 }}>
-          <Text style={{ color: colors.primaryForeground, fontSize: 10, opacity: 0.76 }}>{item.label}</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.primaryForeground, fontSize: 14, fontWeight: '700', marginTop: 4 }}>{dashboard.isLoading ? '…' : item.value}</Text>
-        </View>)}
+        ].map((item, index) => {
+          const positiveReturn = item.label === 'Net returns' && netReturns != null && netReturns > 0;
+          return <View key={item.label} style={{ width: '50%', paddingTop: index > 1 ? 12 : 3, paddingBottom: 2, paddingRight: index % 2 === 0 ? 10 : 0 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{item.label}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: positiveReturn ? colors.statusSuccess : colors.foreground, fontSize: 14, fontWeight: '700', marginTop: 4 }}>{dashboard.isLoading ? '…' : item.value}</Text>
+          </View>;
+        })}
       </View>
-    </LinearGradient>
+    </Card>
 
-    <View style={[{ flexDirection: 'row', alignItems: 'stretch', justifyContent: 'space-between', borderRadius: 25, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingVertical: 8, paddingHorizontal: 7, marginHorizontal: 6, marginTop: -27, marginBottom: 13, zIndex: 2 }, dockShadow]}>
+    <View style={[{ flexDirection: 'row', alignItems: 'stretch', justifyContent: 'space-between', borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingVertical: 8, paddingHorizontal: 7, marginHorizontal: 0, marginTop: 10, marginBottom: 13, zIndex: 2 }, dockShadow]}>
       {quickActions.map((action, index) => (
         <Pressable key={action.title} testID={`home-action-${index}`} accessibilityRole="button" accessibilityLabel={action.title} onPress={action.onPress}
           style={({ pressed }) => ({ flex: 1, minWidth: 0, minHeight: 66, borderRadius: 15, alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: pressed ? colors.secondary : 'transparent' })}>
