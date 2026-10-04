@@ -3,5 +3,6 @@
 - [API origin configuration](api-origin-configuration.md) — keep the API address off the login screen; use app environment or existing Settings configuration.
 - [Investor email auth & profile](investor-auth-rollout.md) — email codes cover signup verification, recovery, and optional 2FA; mobile/country stay profile-only.
 - [Investor push delivery](investor-push-delivery.md) — use Expo Push with explicit opt-in; live delivery requires the real Expo project ID and business-event source.
+- [Expo DevTools runtime](expo-devtools-runtime.md) — a missing libglib can break the optional debugger without blocking Metro or the app preview.
 - [OG Exports platform principles](og-exports-platform-principles.md) — make trade traceability, verified documents/status, simple real-trade data, and financial security visible throughout the investor app.
 - [OG Exports phase workflow](og-exports-phase-workflow.md) — implement the investor app one user-provided phase at a time, then verify before moving on.

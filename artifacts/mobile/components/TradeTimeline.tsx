@@ -1,29 +1,21 @@
 import React from 'react';
 import { Text, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
 import { Card, Section, Status } from '@/components/InvestorUI';
 import { first, type Json } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
 
 const stages = [
-  { label: 'Trade Created', aliases: ['tradecreated', 'created'] },
-  { label: 'Cargo Procurement', aliases: ['cargoprocurement', 'procurement'] },
-  { label: 'Cargo Prepared', aliases: ['cargoprepared', 'prepared'] },
-  { label: 'Container Stuffed', aliases: ['containerstuffed', 'stuffed'] },
-  { label: 'Customs Clearance', aliases: ['customsclearance', 'customscleared'] },
-  { label: 'Port Departure', aliases: ['portdeparture', 'departedport'] },
-  { label: 'In Transit', aliases: ['intransit', 'transit'] },
-  { label: 'Destination Arrival', aliases: ['destinationarrival', 'arrivedatdestination'] },
-  { label: 'Buyer Delivery', aliases: ['buyerdelivery', 'deliveredtobuyer'] },
-  { label: 'Trade Settlement', aliases: ['tradesettlement', 'settlement'] },
+  { label: 'Investment Confirmation', aliases: ['investmentconfirmation', 'investmentconfirmed', 'investmentapproved'] },
+  { label: 'Trade Execution', aliases: ['tradeexecution', 'tradeexecuted', 'cargoprocurement', 'procurement', 'cargoprepared', 'prepared'] },
+  { label: 'Shipment', aliases: ['shipment', 'shipped', 'shipping', 'origin', 'port', 'vessel', 'containerstuffed', 'stuffed', 'customsclearance', 'customscleared', 'portdeparture', 'departedport', 'intransit', 'transit'] },
+  { label: 'Delivery', aliases: ['delivery', 'delivered', 'destination', 'destinationarrival', 'arrivedatdestination', 'buyer', 'buyerdelivery', 'deliveredtobuyer'] },
+  { label: 'Settlement', aliases: ['settlement', 'settled'] },
   { label: 'Distribution', aliases: ['distribution', 'distributed'] },
 ] as const;
 
 const stageLabels = new Map<string, string>();
 for (const stage of stages) {
-  for (const alias of [stage.label, ...stage.aliases]) {
-    stageLabels.set(normalize(alias), stage.label);
-  }
+  for (const alias of [stage.label, ...stage.aliases]) stageLabels.set(normalize(alias), stage.label);
 }
 
 function normalize(value: string) {
@@ -35,21 +27,14 @@ function stageName(event: Json) {
 }
 
 function eventStatus(event: Json) {
-  return first(event, ['status', 'state', 'milestone_status', 'completion_status'], 'Status not provided');
+  return first(event, ['status', 'state', 'milestone_status', 'completion_status'], 'Status not provided by OG Exports');
 }
 
-function statusKind(status: string): 'completed' | 'in-progress' | 'other' {
-  const value = normalize(status);
-  if (/^(complete|completed|done|finished|delivered|settled|distributed|cleared|departed|arrived|success)$/.test(value)) return 'completed';
-  if (/^(inprogress|intransit|underway|processing|active|started|ongoing)$/.test(value)) return 'in-progress';
-  return 'other';
-}
-
-export function TradeTimeline({ events, title = 'Trade timeline' }: { events: Json[]; title?: string }) {
+export function TradeTimeline({ events, title = 'Timeline' }: { events: Json[]; title?: string }) {
   const colors = useColors();
   const stageEvents = stages.map(stage => ({
     ...stage,
-    event: events.find(item => stageLabels.get(normalize(stageName(item))) === stage.label),
+    events: events.filter(item => stageLabels.get(normalize(stageName(item))) === stage.label),
   }));
   const unmatchedEvents = events.filter(event => !stageLabels.has(normalize(stageName(event))));
 
@@ -57,43 +42,40 @@ export function TradeTimeline({ events, title = 'Trade timeline' }: { events: Js
     <Section title={title} />
     <Card>
       {stageEvents.map((stage, index) => {
-        const event = stage.event;
-        const status = event ? eventStatus(event) : 'Status not provided';
-        const kind = event ? statusKind(status) : 'other';
-        const markerColor = kind === 'completed' ? colors.statusSuccess : kind === 'in-progress' ? colors.primary : colors.border;
-        const description = event ? first(event, ['description', 'message', 'note']) : '';
-        const date = event ? first(event, ['updated_at', 'created_at', 'date', 'timestamp']) : '';
         return <View key={stage.label} style={{ flexDirection: 'row', gap: 12, minHeight: index < stageEvents.length - 1 ? 67 : 52 }}>
           <View style={{ width: 20, alignItems: 'center' }}>
-            <View style={{ width: 17, height: 17, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: kind === 'completed' ? colors.statusSuccess : kind === 'in-progress' ? colors.primary : colors.card, borderWidth: kind === 'other' ? 1.5 : 0, borderColor: markerColor }}>
-              {kind === 'completed' ? <Feather name="check" size={11} color={colors.primaryForeground} /> : null}
-              {kind === 'in-progress' ? <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: colors.primaryForeground }} /> : null}
-            </View>
+            <View style={{ width: 17, height: 17, borderRadius: 9, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border }} />
             {index < stageEvents.length - 1 ? <View style={{ width: 1, flex: 1, marginTop: 3, backgroundColor: colors.border }} /> : null}
           </View>
           <View style={{ flex: 1, paddingBottom: 14 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700', flex: 1 }}>{stage.label}</Text>
-              {event ? <Status value={status} /> : <Text style={{ color: colors.mutedForeground, fontSize: 10, textAlign: 'right' }}>Status not provided</Text>}
-            </View>
-            {description ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 4 }}>{description}</Text> : null}
-            {date ? <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 4 }}>{date}</Text> : null}
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700' }}>{stage.label}</Text>
+            {stage.events.length ? stage.events.map((event, eventIndex) => {
+              const label = stageName(event);
+              const description = first(event, ['description', 'details', 'message', 'note']);
+              const date = first(event, ['date', 'updated_at', 'created_at', 'timestamp']);
+              return <View key={`${stage.label}-${first(event, ['id', 'event_id'], String(eventIndex))}`} style={{ marginTop: 8, padding: 10, borderRadius: 12, backgroundColor: colors.secondary }}>
+                {label && normalize(label) !== normalize(stage.label) ? <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '600', marginBottom: 5 }}>{label}</Text> : null}
+                <Status value={eventStatus(event)} />
+                {description ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 5 }}>{description}</Text> : null}
+                {date ? <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 4 }}>{date}</Text> : null}
+              </View>;
+            }) : <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 5 }}>Status not provided by OG Exports</Text>}
           </View>
         </View>;
       })}
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 3 }}>
-        Stage statuses and update dates are provided by OG Exports. No progress is inferred by the app.
+        Stage statuses, descriptions, and dates are reported by OG Exports. No progress is inferred by the app.
       </Text>
       {unmatchedEvents.length ? <>
         <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 13 }} />
-        <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginBottom: 4 }}>Other updates from OG Exports</Text>
+        <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginBottom: 4 }}>Other updates</Text>
         {unmatchedEvents.map((event, index) => <View key={first(event, ['id', 'event_id'], String(index))} style={{ paddingVertical: 9, borderBottomWidth: index < unmatchedEvents.length - 1 ? 1 : 0, borderBottomColor: colors.border }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <Text style={{ color: colors.foreground, fontWeight: '600', flex: 1 }}>{stageName(event) || 'Trade update'}</Text>
             <Status value={eventStatus(event)} />
           </View>
-          {first(event, ['description', 'message', 'note']) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 4 }}>{first(event, ['description', 'message', 'note'])}</Text> : null}
-          {first(event, ['updated_at', 'created_at', 'date', 'timestamp']) ? <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 4 }}>{first(event, ['updated_at', 'created_at', 'date', 'timestamp'])}</Text> : null}
+          {first(event, ['description', 'details', 'message', 'note']) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 4 }}>{first(event, ['description', 'details', 'message', 'note'])}</Text> : null}
+          {first(event, ['date', 'updated_at', 'created_at', 'timestamp']) ? <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 4 }}>{first(event, ['date', 'updated_at', 'created_at', 'timestamp'])}</Text> : null}
         </View>)}
       </> : null}
     </Card>
