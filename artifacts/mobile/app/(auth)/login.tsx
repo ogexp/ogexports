@@ -10,7 +10,7 @@ import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Login() {
-  const { apiOrigin, setChallenge, acceptSession } = useAuth();
+  const { apiOrigin, acceptSession } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const login = useInvestorMobileLogin();
@@ -27,25 +27,10 @@ export default function Login() {
     try {
       const result = record(await login.mutateAsync({ data: { email: email.trim(), password, device_name: 'og_investor_mobile' } }));
       const user = record(result.user);
-      if (result.requires_2fa) {
-        setChallenge({ email: email.trim(), token: String(result.token ?? ''), mode: '2fa' });
-        router.push('/(auth)/verify');
-      } else if (result.requires_verification) {
-        setChallenge({ email: email.trim(), mode: 'email' });
-        router.push('/(auth)/verify');
-      } else if (typeof result.token === 'string') {
-        await acceptSession(result.token, user);
-        router.replace('/(tabs)');
-      } else {
-        throw new Error('The server response did not include a session token.');
-      }
+      if (typeof result.token !== 'string') throw new Error('The server response did not include a session token.');
+      await acceptSession(result.token, user);
+      router.replace('/(tabs)');
     } catch (err) {
-      const payload = record(record(err).data);
-      if (payload.requires_verification) {
-        setChallenge({ email: email.trim(), mode: 'email' });
-        router.push('/(auth)/verify');
-        return;
-      }
       setError(messageOf(err));
     }
   }

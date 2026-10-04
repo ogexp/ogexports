@@ -5,7 +5,7 @@ import { Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'r
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { Action, Card } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
-import { messageOf } from '@/lib/data';
+import { messageOf, record } from '@/lib/data';
 import { useInvestorRegister } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -80,7 +80,7 @@ function RegisterField({
 }
 
 export default function Register() {
-  const { apiOrigin, setChallenge } = useAuth();
+  const { apiOrigin, acceptSession } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const mutation = useInvestorRegister();
@@ -104,7 +104,7 @@ export default function Register() {
       return;
     }
     try {
-      await mutation.mutateAsync({
+      const result = record(await mutation.mutateAsync({
         data: {
           name: fullName.trim(),
           email: email.trim(),
@@ -112,9 +112,10 @@ export default function Register() {
           password_confirmation: confirmPassword,
           account_type: 'investor',
         },
-      });
-      setChallenge({ email: email.trim(), mode: 'email' });
-      router.push('/(auth)/verify');
+      }));
+      if (typeof result.token !== 'string') throw new Error('The server response did not include a session token.');
+      await acceptSession(result.token, record(result.user));
+      router.replace('/(tabs)');
     } catch (err) {
       setError(messageOf(err));
     }

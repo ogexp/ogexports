@@ -26,8 +26,7 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/JsonObject" }
       responses:
-        "200": { description: Login result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
-        "403": { description: Verification required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "200": { description: Signed-in investor account and session, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
         "422": { description: Validation error, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /auth/register:
     post:
@@ -40,7 +39,7 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/JsonObject" }
       responses:
-        "200": { description: Registration result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "200": { description: Created investor account and session, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
         "422": { description: Validation error, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /auth/mobile/verify-email:
     post:

@@ -7,7 +7,6 @@ import {
   createInvestorSession,
   genericRecoveryMessage,
   hashPassword,
-  issueChallenge,
   issuePasswordResetChallenge,
   normalizeEmail,
   publicInvestorUser,
@@ -74,7 +73,6 @@ router.post(["/auth/register", "/auth/registers/pre"], async (req, res) => {
   if (accountType !== "investor") return validationError(res, "Only investor accounts can be created here.");
 
   try {
-    assertDevelopmentCodeDelivery();
     const [existing] = await db.select({ id: investorUsers.id }).from(investorUsers)
       .where(eq(investorUsers.email, email)).limit(1);
     if (existing) return validationError(res, "An account with this email already exists.");
@@ -88,12 +86,8 @@ router.post(["/auth/register", "/auth/registers/pre"], async (req, res) => {
       passwordHash: await hashPassword(password),
     }).returning();
     if (!user) throw new Error("The account could not be created.");
-    await issueChallenge(user.id, user.email, "email_verification");
-    res.status(200).json({
-      success: true,
-      requires_verification: true,
-      message: "Check the API Server workflow logs for the development verification code.",
-    });
+    const token = await createInvestorSession(user.id, "og_investor_mobile");
+    res.status(200).json({ success: true, token, user: publicInvestorUser(user) });
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Account creation failed.";
     res.status(detail.includes("Email code delivery") ? 503 : 500).json({ message: detail });
@@ -118,14 +112,6 @@ router.post("/auth/mobile/login", async (req, res) => {
       res.status(401).json({ message: "The email or password is incorrect." });
       return;
     }
-    if (!user.emailVerifiedAt) {
-      res.status(403).json({
-        requires_verification: true,
-        message: "Verify your email address before signing in.",
-      });
-      return;
-    }
-
     const token = await createInvestorSession(user.id, deviceName);
     res.json({ token, user: publicInvestorUser(user) });
   } catch {
