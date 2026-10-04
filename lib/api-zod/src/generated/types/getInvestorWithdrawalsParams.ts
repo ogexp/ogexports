@@ -8,4 +8,13 @@
 
 export type GetInvestorWithdrawalsParams = {
 status?: string;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+per_page?: number;
 };

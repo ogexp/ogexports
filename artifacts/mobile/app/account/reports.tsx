@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
-import { useGetInvestorReports, useCreateInvestorReport } from '@workspace/api-client-react';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { useGetInvestorReports, useCreateInvestorReport, useGetInvestorStatement } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Screen, Status } from '@/components/InvestorUI';
-import { first, list, messageOf, record, unwrap } from '@/lib/data';
+import { amount as readAmount, first, list, messageOf, money, record, unwrap } from '@/lib/data';
 import { shareInvestorFile } from '@/lib/file-download';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -18,15 +18,39 @@ function formatInfo(value: string) {
   return { extension: 'pdf', mimeType: 'application/pdf' };
 }
 
+function monthLabel(value: string) {
+  const date = new Date(`${value}-01T12:00:00`);
+  if (!Number.isFinite(date.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' }).format(date);
+}
+
 export default function Reports() {
   const { token, apiOrigin } = useAuth();
   const colors = useColors();
   const query = useGetInvestorReports({ query: { queryKey: ['investor-reports'], enabled: !!token, staleTime: 30_000 } });
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const statementQuery = useGetInvestorStatement(selectedMonth ? { month: selectedMonth } : {}, {
+    query: { queryKey: ['investor-statement', selectedMonth || 'current'], enabled: !!token, staleTime: 60_000 },
+  });
   const create = useCreateInvestorReport();
   const reports = list(query.data);
+  const statement = record(unwrap(statementQuery.data));
   const [reportType, setReportType] = useState('monthly');
   const [error, setError] = useState('');
   const [downloadId, setDownloadId] = useState('');
+  const [statementError, setStatementError] = useState('');
+  const [statementDownloadMonth, setStatementDownloadMonth] = useState('');
+  const currency = first(statement, ['currency']);
+  const selectedStatementMonth = first(statement, ['month']) || selectedMonth;
+  const availableMonths = Array.isArray(statement.available_months)
+    ? statement.available_months.filter((value): value is string => typeof value === 'string')
+    : [];
+  const statementTransactions = list(statement.transactions);
+
+  function statementAmount(field: string) {
+    const value = readAmount(statement, [field]);
+    return value !== null && currency ? money(value, currency) : 'Not provided by OG Exports';
+  }
 
   async function generate() {
     setError('');
@@ -37,9 +61,28 @@ export default function Reports() {
       const url = first(payload, ['download_url']);
       if (!url) throw new Error('The report was created, but the server did not return its download address.');
       await shareInvestorFile(url, first(report, ['name'], 'OG Exports investor report'), apiOrigin, 'application/pdf', 'pdf');
-      Alert.alert('Report ready', 'Your statement is available to save or share.');
+      Alert.alert('Report ready', 'Your report is available to save or share.');
       void query.refetch();
     } catch (err) { setError(messageOf(err)); }
+  }
+
+  async function downloadStatement() {
+    if (!selectedStatementMonth) {
+      setStatementError('The server has not returned a statement month yet.');
+      return;
+    }
+    setStatementError('');
+    setStatementDownloadMonth(selectedStatementMonth);
+    try {
+      await shareInvestorFile(
+        `/api/investor/statements/${encodeURIComponent(selectedStatementMonth)}/pdf`,
+        `OG Exports statement ${selectedStatementMonth}`,
+        apiOrigin,
+        'application/pdf',
+        'pdf',
+      );
+    } catch (err) { setStatementError(messageOf(err)); }
+    finally { setStatementDownloadMonth(''); }
   }
 
   async function download(report: Record<string, unknown>) {
@@ -55,9 +98,77 @@ export default function Reports() {
     finally { setDownloadId(''); }
   }
 
-  return <Screen title="Reports" subtitle="Generate and download your investor statements">
+  return <Screen title="Investor statements & reports" subtitle="Monthly wallet activity and downloadable account reports">
+    <Card style={{ gap: 12 }}>
+      <View>
+        <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Monthly statement</Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 4 }}>Opening balance, posted wallet movements and closing balance in your wallet currency.</Text>
+      </View>
+      {availableMonths.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+        {availableMonths.map(month => {
+          const active = month === selectedStatementMonth;
+          return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} testID={`statement-month-${month}`} key={month} onPress={() => {
+            setSelectedMonth(month);
+            setStatementError('');
+          }} style={{ borderRadius: 18, paddingVertical: 8, paddingHorizontal: 13, backgroundColor: active ? colors.primary : colors.secondary, borderWidth: 1, borderColor: active ? colors.primary : colors.border }}>
+            <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontSize: 12, fontWeight: '700' }}>{monthLabel(month)}</Text>
+          </Pressable>;
+        })}
+      </ScrollView> : null}
+      {statementQuery.isError ? <ErrorState message="The monthly statement could not be loaded from OG Exports." onRetry={() => void statementQuery.refetch()} /> : null}
+      {statementQuery.isLoading ? <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Loading monthly statement…</Text> : null}
+      {!statementQuery.isLoading && !statementQuery.isError && selectedStatementMonth ? <>
+        <View style={{ borderRadius: 16, backgroundColor: colors.secondary, padding: 14, gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Opening balance</Text>
+            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700', textAlign: 'right' }}>{statementAmount('opening_balance')}</Text>
+          </View>
+          <View style={{ height: 1, backgroundColor: colors.border }} />
+          {[
+            ['Deposits', 'deposits'],
+            ['Investments', 'investments'],
+            ['Principal returned', 'principal_returns'],
+            ['Distributions · profit only', 'distributions'],
+            ['Withdrawals', 'withdrawals'],
+            ['Other movements · net', 'other_movements'],
+          ].map(([label, field]) => <View key={field} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{label}</Text>
+            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right' }}>{statementAmount(field)}</Text>
+          </View>)}
+          <View style={{ height: 1, backgroundColor: colors.border }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700' }}>Closing balance</Text>
+            <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '800', textAlign: 'right' }}>{statementAmount('closing_balance')}</Text>
+          </View>
+        </View>
+        <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16 }}>Balances include available and reserved pending wallet funds. Pending requests are not posted movements; investment profits are separated from returned principal.</Text>
+        {statementTransactions.length ? <View style={{ gap: 8 }}>
+          <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700' }}>Posted transactions</Text>
+          {statementTransactions.map((item, index) => {
+            const id = first(item, ['transaction_id', 'id'], String(index));
+            const amount = readAmount(item, ['amount']);
+            const itemCurrency = first(item, ['currency'], currency);
+            const principal = readAmount(item, ['principal_return']);
+            const profit = readAmount(item, ['distribution_amount']);
+            return <View key={id} style={{ borderTopWidth: 1, borderColor: colors.border, paddingTop: 9 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>{first(item, ['type'], 'Wallet transaction').replace(/[_-]+/g, ' ')}</Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{first(item, ['reference'], 'Reference not provided')} · {first(item, ['date_time'], '')}</Text>
+                  {principal !== null && profit !== null ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>Principal {money(principal, itemCurrency)} · Profit {money(profit, itemCurrency)}</Text> : null}
+                </View>
+                <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>{amount !== null && itemCurrency ? `${first(item, ['direction']) === 'debit' ? '− ' : '+ '}${money(amount, itemCurrency)}` : 'Not provided by OG Exports'}</Text>
+              </View>
+            </View>;
+          })}
+        </View> : <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>No posted wallet movements for this month.</Text>}
+        {statementError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18 }}>{statementError}</Text> : null}
+        <Action title="Download / share monthly PDF" icon="download" loading={statementDownloadMonth === selectedStatementMonth} onPress={() => void downloadStatement()} />
+      </> : null}
+    </Card>
+
     <Card>
-      <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 10 }}>Choose report type</Text>
+      <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 10 }}>Generate an investment report</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
         {reportTypes.map(value => <Pressable accessibilityRole="button" key={value} onPress={() => setReportType(value)} style={{ borderRadius: 18, paddingHorizontal: 13, paddingVertical: 8, backgroundColor: reportType === value ? colors.primary : colors.secondary }}>
           <Text style={{ color: reportType === value ? colors.primaryForeground : colors.foreground, textTransform: 'capitalize', fontWeight: '700', fontSize: 12 }}>{value}</Text>

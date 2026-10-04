@@ -316,6 +316,14 @@ per_page?: number;
 export type GetInvestorInvestmentsParams = {
 type?: string;
 status?: string;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
 per_page?: number;
 };
 
@@ -330,15 +338,40 @@ per_page?: number;
 
 export type GetInvestorDepositsParams = {
 status?: string;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
 per_page?: number;
 };
 
 export type GetInvestorWithdrawalsParams = {
 status?: string;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+per_page?: number;
 };
 
 export type GetInvestorKycParams = {
 per_page?: number;
+};
+
+export type GetInvestorStatementParams = {
+/**
+ * Month in YYYY-MM format; defaults to the current month.
+ * @pattern ^\d{4}-(0[1-9]|1[0-2])$
+ */
+month?: string;
 };
 
 export type GetAdminInvestmentProjectsParams = {

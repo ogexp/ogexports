@@ -22,6 +22,7 @@ export * from './getInvestorDepositsParams';
 export * from './getInvestorInvestmentsParams';
 export * from './getInvestorKycParams';
 export * from './getInvestorProjectsParams';
+export * from './getInvestorStatementParams';
 export * from './getInvestorWalletTransactionsParams';
 export * from './getInvestorWithdrawalsParams';
 export * from './investorProfileUpdate';

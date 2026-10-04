@@ -1,146 +1,402 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useGetInvestorInvestments, useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
-import { Card, EmptyState, ErrorState, Field, Screen } from '@/components/InvestorUI';
-import { amount, first, list, money, record, unwrap } from '@/lib/data';
+import { useLocalSearchParams } from 'expo-router';
+import {
+  useGetInvestorDeposits,
+  useGetInvestorInvestments,
+  useGetInvestorWallet,
+  useGetInvestorWalletTransactions,
+  useGetInvestorWithdrawals,
+} from '@workspace/api-client-react';
+import { Card, EmptyState, Field, Screen, Status } from '@/components/InvestorUI';
+import { amount as readAmount, first, Json, list, messageOf, money, record, unwrap } from '@/lib/data';
+import { shareInvestorFile } from '@/lib/file-download';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
-type ActivityTab = 'Wallet' | 'Investments';
-type TransactionFilter = 'All' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
-const transactionFilters: TransactionFilter[] = ['All', 'Deposits', 'Investments', 'Withdrawals', 'Distributions'];
+type Filter = 'All' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
+type Category = Exclude<Filter, 'All'> | 'Other';
+type TransactionRow = {
+  key: string;
+  category: Category;
+  title: string;
+  transactionId: string;
+  investmentId: string;
+  tradeId: string;
+  amount: number | null;
+  currency: string;
+  occurredAt: string;
+  status: string;
+  paymentMethod: string;
+  reference: string;
+  paymentReference: string;
+  pdfPath: string;
+  searchText: string;
+};
+
+const filters: Filter[] = ['All', 'Deposits', 'Investments', 'Withdrawals', 'Distributions'];
+const unavailable = 'Not provided by OG Exports';
+const pageSize = 100;
+
+function formatDateTime(value: string) {
+  if (!value) return unavailable;
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return value;
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(timestamp));
+}
+
+function formatLabel(value: string) {
+  if (!value) return unavailable;
+  return value.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+}
+
+function categoryForWalletTransaction(item: Json): Category {
+  const type = `${first(item, ['type', 'transaction_type', 'category'])} ${first(item, ['description', 'title'])}`.toLowerCase();
+  if (/deposit|top.?up|funding/.test(type)) return 'Deposits';
+  if (/withdraw|payout/.test(type)) return 'Withdrawals';
+  if (/distribution|profit|dividend|bonus|investment_return/.test(type)) return 'Distributions';
+  if (/invest|purchase|participation/.test(type)) return 'Investments';
+  return 'Other';
+}
+
+function safePdfPath(resource: string, id: string) {
+  const numericId = Number(id);
+  if (!Number.isInteger(numericId) || numericId < 1) return '';
+  return `/api/investor/${resource}/${encodeURIComponent(id)}/pdf`;
+}
+
+function tradeIdFor(investment: Json, transaction?: Json) {
+  const project = record(investment.project);
+  const projectMeta = record(project.meta);
+  const container = record(project.container);
+  const transactionMeta = record(transaction?.meta);
+  return first(investment, ['trade_id', 'trade_reference'],
+    first(project, ['trade_id', 'trade_reference'],
+      first(projectMeta, ['trade_id', 'trade_reference'],
+        first(container, ['trade_id', 'trade_reference'],
+          first(transactionMeta, ['trade_id', 'trade_reference'])))));
+}
+
+function lastPageFor(data: unknown) {
+  const envelope = record(data);
+  const meta = record(envelope.meta);
+  return readAmount(meta, ['last_page']) ?? readAmount(envelope, ['last_page']);
+}
 
 function DetailLine({ label, value }: { label: string; value: string }) {
   const colors = useColors();
   return <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderColor: colors.border }}>
-    <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{label}</Text>
-    <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right', flexShrink: 1 }}>{value}</Text>
+    <Text style={{ color: colors.mutedForeground, fontSize: 12, flex: 0.8 }}>{label}</Text>
+    <Text selectable style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right', flex: 1.2 }}>{value || unavailable}</Text>
   </View>;
 }
 
 export default function Transactions() {
-  const { token } = useAuth();
+  const { token, apiOrigin } = useAuth();
   const colors = useColors();
   const params = useLocalSearchParams<{ search?: string; tab?: string; selected?: string }>();
-  const [tab, setTab] = useState<ActivityTab>(params.tab === 'Investments' ? 'Investments' : 'Wallet');
-  const [filter, setFilter] = useState<TransactionFilter>('All');
+  const [filter, setFilter] = useState<Filter>('All');
   const [search, setSearch] = useState(typeof params.search === 'string' ? params.search : '');
   const [selectedId, setSelectedId] = useState(typeof params.selected === 'string' ? params.selected : '');
-  const [walletPage, setWalletPage] = useState(1);
-  const transactionsQuery = useGetInvestorWalletTransactions({ page: walletPage, per_page: 100 }, {
-    query: { queryKey: ['investor-wallet-transactions', walletPage, 100], enabled: !!token, staleTime: 20_000 },
-  });
-  const investmentsQuery = useGetInvestorInvestments({ per_page: 50 }, {
-    query: { queryKey: ['investor-positions', 50], enabled: !!token, staleTime: 30_000 },
-  });
-  const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: !!token, staleTime: 30_000 } });
-  const wallet = unwrap(walletQuery.data);
-  const currency = first(wallet, ['currency']);
-  const transactions = list(transactionsQuery.data);
-  const transactionEnvelope = record(transactionsQuery.data);
-  const transactionMeta = record(transactionEnvelope.meta);
-  const lastWalletPage = amount(transactionMeta, ['last_page']) ?? amount(transactionEnvelope, ['last_page']);
-  const hasNextWalletPage = lastWalletPage != null ? walletPage < lastWalletPage : transactions.length === 100;
-  const investments = list(investmentsQuery.data);
-  const rows = (tab === 'Wallet' ? transactions : investments).filter(item => {
-    if (tab === 'Investments' || filter === 'All') return true;
-    const type = `${first(item, ['type', 'transaction_type', 'category'])} ${first(item, ['description', 'title'])}`.toLowerCase();
-    if (filter === 'Deposits') return /deposit|top.?up|funding/.test(type);
-    if (filter === 'Withdrawals') return /withdraw|payout/.test(type);
-    if (filter === 'Investments') return /invest|purchase|participation/.test(type);
-    return /distribution|profit|dividend|bonus/.test(type);
-  });
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return rows;
-    return rows.filter(item => [
-      first(item, ['reference', 'transaction_id', 'id']),
-      first(item, ['type', 'transaction_type', 'category']),
-      first(item, ['description', 'title', 'project_name', 'name']),
-      first(item, ['status', 'state']),
-      first(item, ['created_at', 'date']),
-    ].join(' ').toLowerCase().includes(query));
-  }, [rows, search]);
-  const selected = filtered.find(item => first(item, ['id', 'transaction_id', 'reference']) === selectedId);
-  const query = tab === 'Wallet' ? transactionsQuery : investmentsQuery;
+  const [page, setPage] = useState(1);
+  const [busyPdfKey, setBusyPdfKey] = useState('');
+  const [pdfError, setPdfError] = useState('');
 
-  function setActivityTab(next: ActivityTab) {
-    setTab(next);
-    setSelectedId('');
-    setFilter('All');
+  const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token), staleTime: 30_000 } });
+  const walletTransactionsQuery = useGetInvestorWalletTransactions({ page, per_page: pageSize }, {
+    query: { queryKey: ['investor-wallet-transactions', page, pageSize], enabled: Boolean(token), staleTime: 20_000 },
+  });
+  const depositsQuery = useGetInvestorDeposits({ page, per_page: pageSize }, {
+    query: { queryKey: ['investor-deposits', page, pageSize], enabled: Boolean(token), staleTime: 20_000 },
+  });
+  const withdrawalsQuery = useGetInvestorWithdrawals({ page, per_page: pageSize }, {
+    query: { queryKey: ['investor-withdrawals', page, pageSize], enabled: Boolean(token), staleTime: 20_000 },
+  });
+  const investmentsQuery = useGetInvestorInvestments({ page, per_page: pageSize }, {
+    query: { queryKey: ['investor-positions', page, pageSize], enabled: Boolean(token), staleTime: 30_000 },
+  });
+
+  const wallet = unwrap(walletQuery.data);
+  const walletCurrency = first(wallet, ['currency']);
+  const walletTransactions = list(walletTransactionsQuery.data);
+  const deposits = list(depositsQuery.data);
+  const withdrawals = list(withdrawalsQuery.data);
+  const investments = list(investmentsQuery.data);
+  const usedWalletTransactions = new Set<string>();
+  const investmentById = new Map(investments.map(item => [first(item, ['id', 'investment_id']), item]));
+
+  function findWalletTransaction(kind: 'deposit' | 'withdrawal' | 'investment', recordId: string, reference: string) {
+    return walletTransactions.find(transaction => {
+      const type = first(transaction, ['type', 'transaction_type']).toLowerCase();
+      if (type !== kind) return false;
+      const meta = record(transaction.meta);
+      const metaId = first(meta, [`${kind}_id`, 'investment_id']);
+      return Boolean(recordId && metaId === recordId) || Boolean(reference && first(transaction, ['reference']) === reference);
+    });
   }
 
-  return <Screen title="Transaction history" subtitle="Search your wallet activity and investment records">
-    <View style={{ flexDirection: 'row', backgroundColor: colors.secondary, borderRadius: 14, padding: 4, marginBottom: 14 }}>
-      {(['Wallet', 'Investments'] as const).map(item => {
-        const active = tab === item;
-        return <Pressable key={item} onPress={() => setActivityTab(item)} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 11, backgroundColor: active ? colors.card : 'transparent' }}>
-          <Text style={{ color: active ? colors.primary : colors.mutedForeground, fontWeight: '700', fontSize: 13 }}>{item}</Text>
+  function markWalletTransactionUsed(transaction?: Json) {
+    if (!transaction) return;
+    const id = first(transaction, ['id', 'transaction_id', 'reference']);
+    if (id) usedWalletTransactions.add(id);
+  }
+
+  const rows: TransactionRow[] = [];
+
+  deposits.forEach((deposit, index) => {
+    const id = first(deposit, ['id']);
+    const reference = first(deposit, ['reference', 'deposit_reference']);
+    const matched = findWalletTransaction('deposit', id, reference);
+    markWalletTransactionUsed(matched);
+    const matchedMeta = record(matched?.meta);
+    const key = `deposit:${id || reference || `${page}-${index}`}`;
+    const title = first(deposit, ['description', 'bank_account_name'], 'Deposit');
+    const paymentMethod = first(deposit, ['payment_method', 'method'], first(matchedMeta, ['payment_method', 'method']));
+    const paymentReference = first(deposit, ['bank_reference', 'transfer_reference']);
+    rows.push({
+      key,
+      category: 'Deposits',
+      title,
+      transactionId: matched ? first(matched, ['id', 'transaction_id']) : first(deposit, ['transaction_id']),
+      investmentId: '',
+      tradeId: '',
+      amount: readAmount(deposit, ['amount']),
+      currency: first(deposit, ['currency', 'original_currency']),
+      occurredAt: first(deposit, ['created_at', 'date']),
+      status: first(deposit, ['review_status', 'status']),
+      paymentMethod,
+      reference,
+      paymentReference,
+      pdfPath: safePdfPath('deposits', id) || (matched ? safePdfPath('wallet/transactions', first(matched, ['id'])) : ''),
+      searchText: [id, reference, paymentReference, title, paymentMethod, first(deposit, ['status'])].join(' '),
+    });
+  });
+
+  withdrawals.forEach((withdrawal, index) => {
+    const id = first(withdrawal, ['id']);
+    const reference = first(withdrawal, ['reference', 'withdraw_id']);
+    const matched = findWalletTransaction('withdrawal', id, reference);
+    markWalletTransactionUsed(matched);
+    const bankDetails = record(withdrawal.bank_details);
+    const key = `withdrawal:${id || reference || `${page}-${index}`}`;
+    const title = first(withdrawal, ['description'], 'Withdrawal');
+    const paymentMethod = first(withdrawal, ['payment_method', 'method'], first(bankDetails, ['payment_method', 'method']));
+    rows.push({
+      key,
+      category: 'Withdrawals',
+      title,
+      transactionId: matched ? first(matched, ['id', 'transaction_id']) : first(withdrawal, ['transaction_id']),
+      investmentId: '',
+      tradeId: '',
+      amount: readAmount(withdrawal, ['amount']),
+      currency: first(withdrawal, ['currency', 'amount_currency'], first(bankDetails, ['currency'], walletCurrency)),
+      occurredAt: first(withdrawal, ['created_at', 'date']),
+      status: first(withdrawal, ['status', 'state']),
+      paymentMethod,
+      reference,
+      paymentReference: '',
+      pdfPath: safePdfPath('withdrawals', id) || (matched ? safePdfPath('wallet/transactions', first(matched, ['id'])) : ''),
+      searchText: [id, reference, title, paymentMethod, first(withdrawal, ['status'])].join(' '),
+    });
+  });
+
+  investments.forEach((investment, index) => {
+    const id = first(investment, ['id', 'investment_id']);
+    const reference = first(investment, ['reference']);
+    const matched = findWalletTransaction('investment', id, reference);
+    markWalletTransactionUsed(matched);
+    const project = record(investment.project);
+    const meta = record(matched?.meta);
+    const title = first(project, ['title', 'name'], first(investment, ['project_title'], 'Investment'));
+    const paymentMethod = first(investment, ['payment_method', 'payment_source'], first(matched ?? {}, ['payment_method', 'method'], first(meta, ['payment_method', 'method'])));
+    const key = `investment:${id || reference || `${page}-${index}`}`;
+    rows.push({
+      key,
+      category: 'Investments',
+      title,
+      transactionId: matched ? first(matched, ['id', 'transaction_id']) : first(investment, ['transaction_id']),
+      investmentId: id,
+      tradeId: tradeIdFor(investment, matched),
+      amount: readAmount(investment, ['amount', 'investment_amount', 'principal']),
+      currency: first(investment, ['amount_currency', 'currency'], walletCurrency),
+      occurredAt: first(investment, ['invested_at', 'created_at', 'date'], first(matched ?? {}, ['created_at', 'date'])),
+      status: first(investment, ['status', 'state'], first(matched ?? {}, ['status', 'state'])),
+      paymentMethod,
+      reference: reference || first(matched ?? {}, ['reference']),
+      paymentReference: '',
+      pdfPath: safePdfPath('investments', id),
+      searchText: [id, reference, title, paymentMethod, tradeIdFor(investment, matched), first(investment, ['status'])].join(' '),
+    });
+  });
+
+  walletTransactions.forEach((transaction, index) => {
+    const id = first(transaction, ['id', 'transaction_id']);
+    const walletKey = id || first(transaction, ['reference']);
+    if (walletKey && usedWalletTransactions.has(walletKey)) return;
+    const category = categoryForWalletTransaction(transaction);
+    const meta = record(transaction.meta);
+    const investmentId = first(meta, ['investment_id'], first(transaction, ['investment_id']));
+    const investment = investmentById.get(investmentId) ?? {};
+    const title = first(transaction, ['description', 'title'], first(meta, ['project_title', 'project_name'], formatLabel(first(transaction, ['type', 'transaction_type'], 'Transaction'))));
+    const paymentMethod = first(transaction, ['payment_method', 'method'], first(meta, ['payment_method', 'method']));
+    const key = `wallet:${walletKey || `${page}-${index}`}`;
+    rows.push({
+      key,
+      category,
+      title,
+      transactionId: id,
+      investmentId,
+      tradeId: tradeIdFor(investment, transaction),
+      amount: readAmount(transaction, ['amount']),
+      currency: first(transaction, ['currency'], first(meta, ['wallet_currency'], walletCurrency)),
+      occurredAt: first(transaction, ['created_at', 'date']),
+      status: first(transaction, ['status', 'state']),
+      paymentMethod,
+      reference: first(transaction, ['reference', 'transaction_reference']),
+      paymentReference: '',
+      pdfPath: safePdfPath('wallet/transactions', id),
+      searchText: [id, investmentId, title, paymentMethod, first(transaction, ['reference']), first(transaction, ['type', 'transaction_type']), first(transaction, ['status'])].join(' '),
+    });
+  });
+
+  rows.sort((a, b) => {
+    const left = Date.parse(a.occurredAt);
+    const right = Date.parse(b.occurredAt);
+    if (!Number.isFinite(left)) return Number.isFinite(right) ? 1 : 0;
+    if (!Number.isFinite(right)) return -1;
+    return right - left;
+  });
+
+  const query = search.trim().toLowerCase();
+  const filteredRows = rows.filter(row => {
+    const matchesFilter = filter === 'All' || row.category === filter;
+    const matchesSearch = !query || `${row.searchText} ${row.transactionId} ${row.investmentId} ${row.tradeId} ${row.reference} ${row.paymentReference} ${row.status} ${formatDateTime(row.occurredAt)} ${row.category}`.toLowerCase().includes(query);
+    return matchesFilter && matchesSearch;
+  });
+  const selectedRow = filteredRows.find(row => row.key === selectedId || row.transactionId === selectedId || row.reference === selectedId);
+
+  const querySources = [
+    { name: 'Wallet transactions', category: null as Filter | null, query: walletTransactionsQuery, data: walletTransactionsQuery.data },
+    { name: 'Deposits', category: 'Deposits' as Filter, query: depositsQuery, data: depositsQuery.data },
+    { name: 'Withdrawals', category: 'Withdrawals' as Filter, query: withdrawalsQuery, data: withdrawalsQuery.data },
+    { name: 'Investments', category: 'Investments' as Filter, query: investmentsQuery, data: investmentsQuery.data },
+  ].filter(source => filter === 'All' || source.category === null || source.category === filter);
+  const failedSources = querySources.filter(source => source.query.isError);
+  const isLoading = querySources.some(source => source.query.isLoading);
+  const hasNextPage = querySources.some(source => {
+    const lastPage = lastPageFor(source.data);
+    return lastPage != null ? page < lastPage : list(source.data).length >= pageSize;
+  });
+
+  async function accessPdf(row: TransactionRow) {
+    if (!row.pdfPath) {
+      setPdfError('A PDF receipt or statement is not available for this record.');
+      return;
+    }
+    if (!apiOrigin) {
+      setPdfError('Set the OG Exports investor server address in Settings before downloading.');
+      return;
+    }
+    setBusyPdfKey(row.key);
+    setPdfError('');
+    try {
+      const url = new URL(row.pdfPath, apiOrigin).toString();
+      const name = `OG-Exports-${row.category}-${row.reference || row.transactionId || row.key}`;
+      await shareInvestorFile(url, name, apiOrigin, 'application/pdf', 'pdf');
+    } catch (error) {
+      setPdfError(messageOf(error));
+    } finally {
+      setBusyPdfKey('');
+    }
+  }
+
+  async function retryFailedSources() {
+    await Promise.all(querySources.filter(source => source.query.isError).map(source => source.query.refetch()));
+  }
+
+  return <Screen title="Transactions" subtitle="Deposits, investments, withdrawals and distributions">
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 12 }}>
+      {filters.map(item => {
+        const active = filter === item;
+        return <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => {
+          setFilter(item);
+          setSelectedId('');
+          setPage(1);
+          setPdfError('');
+        }} style={{ borderRadius: 18, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: active ? colors.primary : colors.secondary, borderWidth: 1, borderColor: active ? colors.primary : colors.border }}>
+          <Text style={{ color: active ? colors.primaryForeground : colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>{item}</Text>
         </Pressable>;
       })}
-    </View>
-    {tab === 'Wallet' ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7, paddingBottom: 12 }}>
-      {transactionFilters.map(item => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: filter === item }} onPress={() => { setFilter(item); setSelectedId(''); }} style={{ borderRadius: 18, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: filter === item ? colors.primary : colors.secondary, borderWidth: 1, borderColor: filter === item ? colors.primary : colors.border }}>
-        <Text style={{ color: filter === item ? colors.primaryForeground : colors.mutedForeground, fontSize: 11, fontWeight: '700' }}>{item}</Text>
-      </Pressable>)}
-    </ScrollView> : null}
-    <Field label="Search history" value={search} onChangeText={setSearch} placeholder="Reference, project, type or status" autoCapitalize="none" />
-    {walletQuery.isError && tab === 'Wallet' ? <ErrorState message="Wallet currency details could not be loaded." onRetry={() => void walletQuery.refetch()} /> : null}
-    {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading {tab.toLowerCase()}…</Text></Card> : null}
-    {query.isError ? <ErrorState message={`${tab} history could not be loaded.`} onRetry={() => void query.refetch()} /> : null}
-    {!query.isLoading && !query.isError && filtered.length === 0 ? <EmptyState title={search ? 'No matching records' : `No ${tab.toLowerCase()} yet`} body={search ? 'Try another search term.' : 'Records returned by the investor server will appear here.'} /> : null}
-    {filtered.map((item, index) => {
-      const id = first(item, ['id', 'transaction_id', 'reference'], String(index));
-      const title = tab === 'Wallet'
-        ? first(item, ['description', 'title', 'type', 'transaction_type'], 'Wallet activity')
-        : first(item, ['project_name', 'title', 'name'], 'Investment');
-      const status = first(item, ['status', 'state'], '—');
-      const value = amount(item, ['amount', 'investment_amount', 'principal']);
-      const date = first(item, ['created_at', 'date', 'created'], '');
-      const active = selectedId === id;
-      return <Pressable key={id} onPress={() => {
-        if (tab === 'Investments') {
-          const investmentId = first(item, ['id', 'investment_id'], '');
-          if (investmentId) router.push({ pathname: '/position/[id]', params: { id: investmentId } });
-        } else setSelectedId(active ? '' : id);
+    </ScrollView>
+    <Field label="Search transactions" value={search} onChangeText={setSearch} placeholder="ID, reference, trade, status or project" autoCapitalize="none" />
+    {failedSources.length ? <Card style={{ borderColor: colors.destructive }}>
+      <Text style={{ color: colors.foreground, fontWeight: '700' }}>Some records may be missing</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5 }}>{failedSources.map(source => source.name).join(', ')} could not be loaded from OG Exports.</Text>
+      <Pressable accessibilityRole="button" onPress={() => void retryFailedSources()} style={{ alignSelf: 'flex-start', paddingVertical: 9 }}>
+        <Text style={{ color: colors.primary, fontWeight: '700' }}>Retry unavailable sources</Text>
+      </Pressable>
+    </Card> : null}
+    {walletQuery.isError ? <Card><Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Wallet currency was not provided. Amounts without a transaction currency are shown as unavailable.</Text></Card> : null}
+    {isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading transactions from OG Exports…</Text></Card> : null}
+    {!isLoading && !filteredRows.length && !failedSources.length ? <EmptyState title={search ? 'No matching transactions' : `No ${filter.toLowerCase()} found`} body={search ? 'Try a different ID, reference or search term.' : 'Records returned by OG Exports will appear here.'} /> : null}
+
+    {filteredRows.map(row => {
+      const active = selectedRow?.key === row.key;
+      const amountLabel = row.amount != null && row.currency ? money(row.amount, row.currency) : unavailable;
+      return <Pressable key={row.key} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => {
+        setSelectedId(active ? '' : row.key);
+        setPdfError('');
       }}>
-        <Card style={{ borderColor: active ? colors.primary : colors.border }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <Card style={{ marginBottom: 10, borderColor: active ? colors.primary : colors.border }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Text numberOfLines={1} style={{ color: colors.foreground, fontWeight: '700' }}>{title}</Text>
-              <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 11 }}>{first(item, ['reference', 'transaction_id'], 'Reference unavailable')}</Text>
+              <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 14, fontWeight: '700' }}>{row.title}</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 5 }}>{formatLabel(row.category)} · {formatDateTime(row.occurredAt)}</Text>
             </View>
-            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700' }}>{first(item, ['currency'], currency) ? money(value, first(item, ['currency'], currency)) : '—'}</Text>
+            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700', textAlign: 'right', maxWidth: '42%' }}>{amountLabel}</Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 11 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{date}</Text>
-            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>{status}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 10 }}>
+            <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 11, flex: 1 }}>{row.reference || unavailable}</Text>
+            <Status value={row.status || unavailable} />
           </View>
-          {active && tab === 'Wallet' ? <View style={{ marginTop: 12 }}>
-            <DetailLine label="Transaction ID" value={first(item, ['transaction_id', 'id'], 'Not provided')} />
-            <DetailLine label="Date" value={date || 'Not provided'} />
-            <DetailLine label="Type" value={first(item, ['type', 'transaction_type', 'category'], 'Not provided')} />
-            <DetailLine label="Payment method" value={first(item, ['payment_method', 'method'], 'Not provided')} />
-            <DetailLine label="Related investment" value={first(item, ['project_title', 'project_name', 'investment_reference'], 'Not provided')} />
-            {amount(item, ['fee', 'fees', 'transaction_fee']) != null ? <DetailLine label="Fee" value={money(amount(item, ['fee', 'fees', 'transaction_fee']), first(item, ['currency'], currency))} /> : null}
-            {amount(item, ['net_amount', 'received_amount', 'payout_amount']) != null ? <DetailLine label="Net amount" value={money(amount(item, ['net_amount', 'received_amount', 'payout_amount']), first(item, ['currency'], currency))} /> : null}
-            {amount(item, ['balance_after']) != null ? <DetailLine label="Balance after" value={money(amount(item, ['balance_after']), first(item, ['currency'], currency))} /> : null}
-            <DetailLine label="Status" value={status} />
+          {active ? <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: 12, paddingTop: 4 }}>
+            <DetailLine label="Transaction ID" value={row.transactionId} />
+            {row.category === 'Investments' || row.category === 'Distributions' || row.investmentId
+              ? <DetailLine label="Investment ID" value={row.investmentId} />
+              : null}
+            {row.category === 'Investments' || row.category === 'Distributions' || row.tradeId
+              ? <DetailLine label="Trade ID" value={row.tradeId} />
+              : null}
+            <DetailLine label="Amount" value={amountLabel} />
+            <DetailLine label="Date / time" value={formatDateTime(row.occurredAt)} />
+            <DetailLine label="Status" value={formatLabel(row.status)} />
+            <DetailLine label="Payment method" value={formatLabel(row.paymentMethod)} />
+            <DetailLine label="Reference" value={row.reference} />
+            {row.paymentReference && row.paymentReference !== row.reference
+              ? <DetailLine label="Payment reference" value={row.paymentReference} />
+              : null}
+            {pdfError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginTop: 9 }}>{pdfError}</Text> : null}
+            <Pressable accessibilityRole="button" testID={`transaction-pdf-${row.key}`} disabled={!row.pdfPath || busyPdfKey === row.key} onPress={() => void accessPdf(row)} style={{ marginTop: 12, borderRadius: 12, padding: 12, alignItems: 'center', backgroundColor: colors.secondary, opacity: !row.pdfPath || busyPdfKey === row.key ? 0.5 : 1 }}>
+              <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{busyPdfKey === row.key ? 'Preparing PDF…' : 'Access PDF receipt / statement'}</Text>
+            </Pressable>
           </View> : null}
         </Card>
       </Pressable>;
     })}
-    {tab === 'Wallet' && !transactionsQuery.isError ? <View style={{ marginTop: 10 }}>
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 10 }}>Page {walletPage}{lastWalletPage != null ? ` of ${lastWalletPage}` : ''} · Filters and search apply to this page.</Text>
+
+    <View style={{ marginTop: 4, marginBottom: 18 }}>
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, textAlign: 'center', marginBottom: 9 }}>Page {page} · {filteredRows.length} records shown from the selected server pages</Text>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
-        <Pressable accessibilityRole="button" disabled={walletPage === 1 || transactionsQuery.isLoading} onPress={() => { setWalletPage(page => page - 1); setSelectedId(''); }} style={{ padding: 12, borderRadius: 12, backgroundColor: colors.secondary, opacity: walletPage === 1 || transactionsQuery.isLoading ? 0.45 : 1 }}>
+        <Pressable accessibilityRole="button" disabled={page === 1 || isLoading} onPress={() => { setPage(value => value - 1); setSelectedId(''); }} style={{ borderRadius: 12, paddingVertical: 11, paddingHorizontal: 16, backgroundColor: colors.secondary, opacity: page === 1 || isLoading ? 0.45 : 1 }}>
           <Text style={{ color: colors.primary, fontWeight: '700' }}>Previous</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" disabled={!hasNextWalletPage || transactionsQuery.isLoading} onPress={() => { setWalletPage(page => page + 1); setSelectedId(''); }} style={{ padding: 12, borderRadius: 12, backgroundColor: colors.secondary, opacity: !hasNextWalletPage || transactionsQuery.isLoading ? 0.45 : 1 }}>
-          <Text style={{ color: colors.primary, fontWeight: '700' }}>Next</Text>
+        <Pressable accessibilityRole="button" disabled={!hasNextPage || isLoading} onPress={() => { setPage(value => value + 1); setSelectedId(''); }} style={{ borderRadius: 12, paddingVertical: 11, paddingHorizontal: 16, backgroundColor: colors.secondary, opacity: !hasNextPage || isLoading ? 0.45 : 1 }}>
+          <Text style={{ color: colors.primary, fontWeight: '700' }}>Load older transactions</Text>
         </Pressable>
       </View>
-    </View> : null}
+    </View>
   </Screen>;
 }

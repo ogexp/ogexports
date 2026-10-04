@@ -444,10 +444,16 @@ export const InvestInProjectResponse = zod.record(zod.string(), zod.unknown())
 /**
  * @summary List the investor portfolio
  */
+
+export const getInvestorInvestmentsQueryPerPageMax = 100;
+
+
+
 export const GetInvestorInvestmentsQueryParams = zod.object({
   "type": zod.coerce.string().optional(),
   "status": zod.coerce.string().optional(),
-  "per_page": zod.coerce.number().int().optional()
+  "page": zod.coerce.number().int().min(1).optional(),
+  "per_page": zod.coerce.number().int().min(1).max(getInvestorInvestmentsQueryPerPageMax).optional()
 })
 
 export const GetInvestorInvestmentsResponse = zod.record(zod.string(), zod.unknown())
@@ -707,9 +713,15 @@ export const GetInvestorPaymentBankAccountsResponse = zod.record(zod.string(), z
 /**
  * @summary List investor deposits
  */
+
+export const getInvestorDepositsQueryPerPageMax = 100;
+
+
+
 export const GetInvestorDepositsQueryParams = zod.object({
   "status": zod.coerce.string().optional(),
-  "per_page": zod.coerce.number().int().optional()
+  "page": zod.coerce.number().int().min(1).optional(),
+  "per_page": zod.coerce.number().int().min(1).max(getInvestorDepositsQueryPerPageMax).optional()
 })
 
 export const GetInvestorDepositsResponse = zod.record(zod.string(), zod.unknown())
@@ -726,8 +738,15 @@ export const CreateInvestorDepositResponse = zod.record(zod.string(), zod.unknow
 /**
  * @summary List investor withdrawals
  */
+
+export const getInvestorWithdrawalsQueryPerPageMax = 100;
+
+
+
 export const GetInvestorWithdrawalsQueryParams = zod.object({
-  "status": zod.coerce.string().optional()
+  "status": zod.coerce.string().optional(),
+  "page": zod.coerce.number().int().min(1).optional(),
+  "per_page": zod.coerce.number().int().min(1).max(getInvestorWithdrawalsQueryPerPageMax).optional()
 })
 
 export const GetInvestorWithdrawalsResponse = zod.record(zod.string(), zod.unknown())
@@ -785,6 +804,32 @@ export const SubmitInvestorKycResponse = zod.record(zod.string(), zod.unknown())
 export const UploadInvestorKycDocumentBody = zod.record(zod.string(), zod.unknown())
 
 export const UploadInvestorKycDocumentResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Get a monthly wallet statement
+ */
+export const getInvestorStatementQueryMonthRegExp = new RegExp('^\\d{4}-(0[1-9]|1[0-2])$');
+
+
+export const GetInvestorStatementQueryParams = zod.object({
+  "month": zod.coerce.string().regex(getInvestorStatementQueryMonthRegExp).optional().describe('Month in YYYY-MM format; defaults to the current month.')
+})
+
+export const GetInvestorStatementResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Download a monthly wallet statement PDF
+ */
+export const downloadInvestorStatementPdfPathMonthRegExp = new RegExp('^\\d{4}-(0[1-9]|1[0-2])$');
+
+
+export const DownloadInvestorStatementPdfParams = zod.object({
+  "month": zod.coerce.string().regex(downloadInvestorStatementPdfPathMonthRegExp)
+})
+
+export const DownloadInvestorStatementPdfResponse = zod.unknown()
 
 
 /**

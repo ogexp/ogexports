@@ -31,6 +31,7 @@ import type {
   GetInvestorInvestmentsParams,
   GetInvestorKycParams,
   GetInvestorProjectsParams,
+  GetInvestorStatementParams,
   GetInvestorWalletTransactionsParams,
   GetInvestorWithdrawalsParams,
   InvestorProfileUpdate,
@@ -3793,6 +3794,167 @@ export const useUploadInvestorKycDocument = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getUploadInvestorKycDocumentMutationOptions(options));
     }
+
+export const getGetInvestorStatementUrl = (params?: GetInvestorStatementParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/investor/statements?${stringifiedParams}` : `/api/investor/statements`
+}
+
+/**
+ * @summary Get a monthly wallet statement
+ */
+export const getInvestorStatement = async (params?: GetInvestorStatementParams, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getGetInvestorStatementUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInvestorStatementQueryKey = (params?: GetInvestorStatementParams,) => {
+    return [
+    `/api/investor/statements`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetInvestorStatementQueryOptions = <TData = Awaited<ReturnType<typeof getInvestorStatement>>, TError = ErrorType<unknown>>(params?: GetInvestorStatementParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorStatement>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInvestorStatementQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInvestorStatement>>> = ({ signal }) => getInvestorStatement(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInvestorStatement>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInvestorStatementQueryResult = NonNullable<Awaited<ReturnType<typeof getInvestorStatement>>>
+export type GetInvestorStatementQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a monthly wallet statement
+ */
+
+export function useGetInvestorStatement<TData = Awaited<ReturnType<typeof getInvestorStatement>>, TError = ErrorType<unknown>>(
+ params?: GetInvestorStatementParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorStatement>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInvestorStatementQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDownloadInvestorStatementPdfUrl = (month: string,) => {
+
+
+
+
+  return `/api/investor/statements/${month}/pdf`
+}
+
+/**
+ * @summary Download a monthly wallet statement PDF
+ */
+export const downloadInvestorStatementPdf = async (month: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadInvestorStatementPdfUrl(month),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadInvestorStatementPdfQueryKey = (month: string,) => {
+    return [
+    `/api/investor/statements/${month}/pdf`
+    ] as const;
+    }
+
+
+export const getDownloadInvestorStatementPdfQueryOptions = <TData = Awaited<ReturnType<typeof downloadInvestorStatementPdf>>, TError = ErrorType<unknown>>(month: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadInvestorStatementPdf>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadInvestorStatementPdfQueryKey(month);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadInvestorStatementPdf>>> = ({ signal }) => downloadInvestorStatementPdf(month, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: month !== null && month !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadInvestorStatementPdf>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadInvestorStatementPdfQueryResult = NonNullable<Awaited<ReturnType<typeof downloadInvestorStatementPdf>>>
+export type DownloadInvestorStatementPdfQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Download a monthly wallet statement PDF
+ */
+
+export function useDownloadInvestorStatementPdf<TData = Awaited<ReturnType<typeof downloadInvestorStatementPdf>>, TError = ErrorType<unknown>>(
+ month: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadInvestorStatementPdf>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadInvestorStatementPdfQueryOptions(month,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetInvestorReportsUrl = () => {
 

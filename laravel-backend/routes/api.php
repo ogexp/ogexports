@@ -269,6 +269,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reports', [InvestorReportController::class, 'index']);
         Route::post('/reports', [InvestorReportController::class, 'generate']);
         Route::get('/reports/{id}/download', [InvestorReportController::class, 'download']);
+        Route::get('/statements', [\App\Http\Controllers\Api\Investor\StatementController::class, 'show']);
+        Route::get('/statements/{month}/pdf', [\App\Http\Controllers\Api\Investor\StatementController::class, 'download'])
+            ->where('month', '\d{4}-(0[1-9]|1[0-2])');
 
         Route::get('/profile', [InvestorProfileController::class, 'show']);
         Route::put('/profile', [InvestorProfileController::class, 'update']);
