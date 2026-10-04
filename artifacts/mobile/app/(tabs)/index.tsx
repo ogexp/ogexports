@@ -144,7 +144,7 @@ export default function InvestorHome() {
           style={({ pressed }) => ({ width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.76 : 1 })}>
           <Feather name="bell" size={18} color={colors.primary} />
         </Pressable>
-        <Pressable testID="home-profile" accessibilityRole="button" accessibilityLabel="Open profile menu" hitSlop={8} onPress={() => router.push('/(tabs)/account')}
+        <Pressable testID="home-profile" accessibilityRole="button" accessibilityLabel="Open profile and account options" hitSlop={8} onPress={() => router.push('/account/profile')}
           style={({ pressed }) => ({ width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.76 : 1 })}>
           <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{initials}</Text>
         </Pressable>
