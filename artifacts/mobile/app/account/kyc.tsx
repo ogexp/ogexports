@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { Feather } from '@expo/vector-icons';
 import { useGetInvestorProfile, useSubmitInvestorKyc, useUpdateInvestorProfile, useUploadInvestorKycDocument } from '@workspace/api-client-react';
@@ -316,6 +317,14 @@ export default function Kyc() {
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5 }}>{statusMessage}</Text>
       </View>
       <Status value={status} />
+    </Card>
+
+    <Card>
+      <Text style={{ color: colors.foreground, fontWeight: '700' }}>Face ID & app sign-in</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 6, marginBottom: 11 }}>
+        Face ID, fingerprint, and app PIN are managed separately from identity verification.
+      </Text>
+      <Action title="Open Security & devices" icon="lock" secondary onPress={() => router.push('/account/security')} />
     </Card>
 
     <Card>

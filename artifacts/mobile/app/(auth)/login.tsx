@@ -137,6 +137,19 @@ export default function Login() {
           </Text> : null}
           <Text style={{ color: colors.mutedForeground, fontSize: 11, textAlign: 'center', marginTop: 11 }}>Or use your account password</Text>
         </View> : null}
+        {!hasSavedBiometricSession ? <View style={{ marginBottom: 15, padding: 13, borderRadius: 14, backgroundColor: colors.secondary }}>
+          <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>Face ID / fingerprint sign-in</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 5 }}>
+            {Platform.OS === 'web'
+              ? 'Biometric sign-in works only in the installed iOS or Android app, not in the browser preview.'
+              : token
+                ? 'Turn it on in Profile → Security & devices. Biometrics unlock a saved session on this device.'
+                : 'Sign in with your password first, then enable it in Profile → Security & devices. A full sign-out clears the saved session, so biometrics cannot replace a fresh password sign-in.'}
+          </Text>
+          {Platform.OS !== 'web' && token ? <Pressable onPress={() => router.push('/account/security')} style={{ alignSelf: 'flex-start', paddingTop: 9 }}>
+            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Open Security & devices</Text>
+          </Pressable> : null}
+        </View> : null}
         <Field label="Email address" value={email} onChangeText={value => { setEmail(value); setError(''); }} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" />
         <Field label="Password" value={password} onChangeText={value => { setPassword(value); setError(''); }} placeholder="Enter your password" secureTextEntry autoCapitalize="none" />
         {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 14, lineHeight: 20 }}>{error}</Text> : null}
