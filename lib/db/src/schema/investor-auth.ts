@@ -4,7 +4,6 @@ export const investorUsers = pgTable("investor_users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  phone: text("phone").notNull(),
   accountType: text("account_type").notNull().default("investor"),
   passwordHash: text("password_hash").notNull(),
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),

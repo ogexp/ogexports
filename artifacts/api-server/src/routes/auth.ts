@@ -63,14 +63,12 @@ router.post("/auth/register", async (req, res) => {
   const body = bodyOf(req);
   const name = stringValue(body.name);
   const email = normalizeEmail(stringValue(body.email));
-  const phone = stringValue(body.phone);
   const password = typeof body.password === "string" ? body.password : "";
   const passwordConfirmation = typeof body.password_confirmation === "string" ? body.password_confirmation : "";
   const accountType = stringValue(body.account_type);
 
   if (name.length < 2 || name.length > 120) return validationError(res, "Enter your full name.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return validationError(res, "Enter a valid email address.");
-  if (phone.length < 7 || phone.length > 32) return validationError(res, "Enter a valid mobile number.");
   if (password.length < 8 || password.length > 128) return validationError(res, "Password must be between 8 and 128 characters.");
   if (password !== passwordConfirmation) return validationError(res, "The password and confirmation do not match.");
   if (accountType !== "investor") return validationError(res, "Only investor accounts can be created here.");
@@ -86,7 +84,6 @@ router.post("/auth/register", async (req, res) => {
       id,
       name,
       email,
-      phone,
       accountType: "investor",
       passwordHash: await hashPassword(password),
     }).returning();

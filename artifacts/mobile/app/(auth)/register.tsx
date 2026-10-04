@@ -86,10 +86,9 @@ export default function Register() {
   const mutation = useInvestorRegister();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [focusedField, setFocusedField] = useState<'fullName' | 'email' | 'mobile' | 'password' | 'confirmPassword' | null>(null);
+  const [focusedField, setFocusedField] = useState<'fullName' | 'email' | 'password' | 'confirmPassword' | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -98,7 +97,6 @@ export default function Register() {
     setError('');
     if (!fullName.trim()) { setError('Enter your full name.'); return; }
     if (!email.trim()) { setError('Enter your email address.'); return; }
-    if (!mobile.trim()) { setError('Enter your mobile number.'); return; }
     if (password.length < 8) { setError('Use a password with at least 8 characters.'); return; }
     if (password !== confirmPassword) { setError('The password and confirmation do not match.'); return; }
     if (!apiOrigin) {
@@ -110,7 +108,6 @@ export default function Register() {
         data: {
           name: fullName.trim(),
           email: email.trim(),
-          phone: mobile.trim(),
           password,
           password_confirmation: confirmPassword,
           account_type: 'investor',
@@ -184,19 +181,6 @@ export default function Register() {
           required
         />
         <RegisterField
-          label="MOBILE NUMBER"
-          value={mobile}
-          onChangeText={value => { setMobile(value); setError(''); }}
-          placeholder="0300-1234567"
-          keyboardType="phone-pad"
-          autoComplete="tel"
-          textContentType="telephoneNumber"
-          focused={focusedField === 'mobile'}
-          onFocus={() => setFocusedField('mobile')}
-          onBlur={() => setFocusedField(null)}
-          required
-        />
-        <RegisterField
           label="PASSWORD"
           value={password}
           onChangeText={value => { setPassword(value); setError(''); }}
@@ -251,7 +235,7 @@ export default function Register() {
         <Action
           title="Create Account"
           loading={mutation.isPending}
-          disabled={!fullName.trim() || !email.trim() || !mobile.trim() || !password || !confirmPassword}
+          disabled={!fullName.trim() || !email.trim() || !password || !confirmPassword}
           onPress={() => void submit()}
         />
       </View>

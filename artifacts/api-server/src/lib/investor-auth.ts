@@ -131,7 +131,6 @@ export function publicInvestorUser(user: InvestorUser): Record<string, unknown> 
     id: user.id,
     name: user.name,
     email: user.email,
-    phone: user.phone,
     account_type: user.accountType,
     email_verified_at: user.emailVerifiedAt?.toISOString() ?? null,
   };
