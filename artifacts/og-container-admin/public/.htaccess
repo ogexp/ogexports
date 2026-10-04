@@ -1,0 +1,34 @@
+# Strip any panel/CDN-injected CORS headers from the SPA.
+# Cross-origin policy must be set only by the Laravel API (api.ogexports.co).
+<IfModule mod_headers.c>
+    Header always unset Access-Control-Allow-Origin
+    Header always unset Access-Control-Allow-Methods
+    Header always unset Access-Control-Allow-Headers
+    Header always unset Access-Control-Allow-Credentials
+    Header always unset Access-Control-Max-Age
+    Header unset Access-Control-Allow-Origin
+    Header unset Access-Control-Allow-Methods
+    Header unset Access-Control-Allow-Headers
+    Header unset Access-Control-Allow-Credentials
+    Header unset Access-Control-Max-Age
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    Options -MultiViews
+    RewriteEngine On
+    RewriteBase /
+
+    # Avoid /products -> /products/ 301 that shadows the SPA when a dir exists.
+    DirectorySlash Off
+
+    # Force SPA for product routes even if a static products/ folder reappears.
+    RewriteRule ^products/?$ index.html [L]
+    RewriteRule ^products/[^/]+/?$ index.html [L]
+
+    # Serve existing assets and directories normally.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Let the React router handle every application route.
+    RewriteRule ^ index.html [L]
+</IfModule>

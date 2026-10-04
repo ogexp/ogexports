@@ -1,0 +1,301 @@
+import { useEffect, useState } from "react"
+import { useLocation } from "wouter"
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useToast } from "@/hooks/use-toast"
+import { CheckCircle2, ChevronRight, ShieldCheck, Wallet, Loader2, AlertCircle } from "lucide-react"
+import { ContainerInvestment, LongTermProject } from "@/data/investments"
+import { api, ApiError } from "@/lib/api"
+import { getFundingMetrics } from "@/lib/funding-metrics"
+import { useCurrency } from "@/lib/use-currency"
+
+interface InvestNowModalProps {
+  investment: ContainerInvestment | LongTermProject
+  initialAmount: number
+  isOpen: boolean
+  onClose: () => void
+  onSuccess?: () => void
+  pendingReserved?: number
+  remainingAmount?: number
+  isFull?: boolean
+  redirectTo?: string
+}
+
+const STEPS = ["Summary", "Amount", "Agreement", "Status"]
+
+export function InvestNowModal({
+  investment,
+  initialAmount,
+  isOpen,
+  onClose,
+  onSuccess,
+  pendingReserved = 0,
+  remainingAmount,
+  isFull = false,
+  redirectTo = "/invest/containers",
+}: InvestNowModalProps) {
+  const { toast } = useToast()
+  const c = useCurrency()
+  const [, setLocation] = useLocation()
+  const [step, setStep] = useState(0)
+  const [amount, setAmount] = useState(initialAmount.toString())
+  const [agreed, setAgreed] = useState(false)
+  const [investId, setInvestId] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [walletBalance, setWalletBalance] = useState<number | null>(null)
+  const [walletCurrency, setWalletCurrency] = useState("USD")
+  const [walletLoading, setWalletLoading] = useState(false)
+
+  const isProject = "category" in investment
+  const isContainer = !isProject
+  const itemName = isProject ? investment.name : investment.commodity
+  const returnPct = investment.expectedReturnPct
+  const raised = isProject ? investment.currentFunding : investment.currentFunding
+  const target = isProject ? investment.fundingTarget : investment.targetFunding
+  const metrics = getFundingMetrics(raised, target, pendingReserved)
+  const remaining = remainingAmount != null ? remainingAmount : metrics.remaining
+  const full = isFull || metrics.isFull
+  const usePkrWallet = c.isPK && walletCurrency === "PKR"
+
+  useEffect(() => {
+    if (!isOpen) return
+    setStep(0)
+    setAmount(String(initialAmount || investment.minInvestment || 100))
+    setAgreed(false)
+    setInvestId("")
+    setWalletLoading(true)
+    api.get("/api/investor/wallet")
+      .then((res: any) => {
+        const w = res?.data ?? res
+        setWalletBalance(Number(w?.available_balance ?? 0))
+        setWalletCurrency(String(w?.currency || "USD").toUpperCase())
+      })
+      .catch(() => {
+        setWalletBalance(0)
+      })
+      .finally(() => setWalletLoading(false))
+  }, [isOpen, initialAmount, investment.minInvestment])
+
+  const handleNext = () => setStep(s => Math.min(s + 1, STEPS.length - 1))
+  const handleBack = () => setStep(s => Math.max(s - 1, 0))
+
+  const value = Number(amount) || 0
+  const estimatedReturn = value * (returnPct / 100)
+  const valuePkr = usePkrWallet ? c.convert(value) : null
+  const estimatedReturnPkr = usePkrWallet ? c.convert(estimatedReturn) : null
+  const walletDebitNeeded = usePkrWallet ? c.convert(value) : value
+
+  const amountError = (() => {
+    if (full) return "This opportunity is fully subscribed."
+    if (value < investment.minInvestment) return `Minimum investment is ${c.fmtDual(investment.minInvestment)}`
+    if (investment.maxInvestment && value > investment.maxInvestment) return `Maximum investment is ${c.fmtDual(investment.maxInvestment)}`
+    if (value > remaining) return `Only ${c.fmtDual(remaining)} remaining capacity`
+    if (walletBalance != null && walletDebitNeeded > walletBalance) {
+      return `Amount cannot exceed wallet balance (${c.fmtWalletAmount(walletBalance, walletCurrency)})`
+    }
+    return null
+  })()
+
+  const handleSubmit = async () => {
+    if (amountError) return
+    setSubmitting(true)
+    try {
+      const res: any = await api.post(`/api/investor/projects/${investment.id}/invest`, { amount: value })
+      const data = res?.data ?? res
+      const ref = data?.reference || (data?.id ? `OGEXP-${data.id}` : "submitted")
+      setInvestId(String(ref))
+      toast({
+        title: "Investment confirmed",
+        description: `Reference ${ref}. Redirecting to your investments…`,
+      })
+      onSuccess?.()
+      onClose()
+      window.setTimeout(() => setLocation(redirectTo), 1200)
+    } catch (e: any) {
+      const msg =
+        e instanceof ApiError
+          ? (e.errors?.amount?.[0] || e.message)
+          : e?.message || "Investment failed"
+      toast({ title: "Could not invest", description: String(msg), variant: "destructive" })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden bg-card border-border/60">
+        <div className="bg-muted/30 px-6 py-4 border-b border-border/50">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-heading font-semibold">Complete Your Investment</h2>
+            <div className="text-sm font-medium text-muted-foreground">Step {Math.min(step + 1, STEPS.length)} of {STEPS.length}</div>
+          </div>
+          <div className="flex gap-1">
+            {STEPS.map((s, i) => (
+              <div key={s} className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-primary" : "bg-primary/20"}`} />
+            ))}
+          </div>
+        </div>
+
+        <div className="p-6">
+          {step === 0 && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-semibold text-lg">{itemName}</h3>
+                  <p className="text-sm text-muted-foreground">{isProject ? "Long-Term Project" : "Container Export"}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Expected Return</div>
+                  <div className="font-semibold text-emerald-500">{returnPct}% {isProject ? "Annual" : "Total"}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Term</div>
+                  <div className="font-semibold">{isProject ? `${investment.investmentPeriodMonths} Months` : `${investment.investmentPeriodDays} Days`}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Remaining Capacity</div>
+                  <div className="font-semibold">{c.fmtDual(remaining)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Wallet Balance</div>
+                  <div className="font-semibold flex items-center gap-1">
+                    <Wallet className="w-3.5 h-3.5" />
+                    {walletLoading ? "…" : c.fmtWalletAmount(walletBalance ?? 0, walletCurrency)}
+                  </div>
+                </div>
+              </div>
+              {full && (
+                <div className="bg-amber-500/10 border border-amber-500/20 text-amber-700 p-3 rounded-xl text-sm flex gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  Fully subscribed — no slots remaining.
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 1 && (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Investment Amount (USD)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    min={investment.minInvestment}
+                    max={Math.min(investment.maxInvestment || Infinity, remaining)}
+                    className="pl-8 text-lg h-12"
+                    disabled={full}
+                  />
+                </div>
+                {usePkrWallet && value > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    ≈ {c.fmtDual(value, valuePkr)}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Minimum: {c.fmtDual(investment.minInvestment)}
+                  {investment.maxInvestment ? ` · Maximum: ${c.fmtDual(investment.maxInvestment)}` : ""}
+                  {" · "}Remaining: {c.fmtDual(remaining)}
+                </p>
+                {amountError && <p className="text-xs text-red-500">{amountError}</p>}
+              </div>
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+                <div className="flex justify-between text-sm gap-2">
+                  <span className="text-muted-foreground shrink-0">Investment Amount</span>
+                  <span className="font-semibold text-right">{c.fmtDual(value, valuePkr)}</span>
+                </div>
+                <div className="flex justify-between text-sm gap-2">
+                  <span className="text-muted-foreground shrink-0">Estimated Return ({returnPct}%)</span>
+                  <span className="font-semibold text-emerald-500 text-right">+{c.fmtDual(estimatedReturn, estimatedReturnPkr)}</span>
+                </div>
+                <div className="h-px bg-border/50" />
+                <div className="flex justify-between font-semibold gap-2">
+                  <span className="shrink-0">Total Expected Value</span>
+                  <span className="text-right">
+                    {c.fmtDual(
+                      value + estimatedReturn,
+                      valuePkr != null && estimatedReturnPkr != null ? valuePkr + estimatedReturnPkr : null,
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-6">
+              <h3 className="font-heading font-semibold text-lg">Investment Agreement</h3>
+              <div className="h-48 overflow-y-auto p-4 bg-muted/20 border border-border/50 rounded-xl text-xs text-muted-foreground space-y-4">
+                <p className="font-semibold text-foreground">OG EXPORTS — PROFIT SHARING AGREEMENT</p>
+                <p>Funds will be deducted from your OG Wallet immediately and transferred to the platform investment pool. Your investment is confirmed on submission (first-come, first-served).</p>
+                <p>1. <strong>Capital at Risk:</strong> All investments involve risk. Capital is not guaranteed.</p>
+                <p>2. <strong>Returns:</strong> The stated return of {returnPct}% is an expected target.</p>
+                <p>3. <strong>Completion:</strong> When the project completes, principal plus profit will be credited back to your wallet.</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(!!checked)} />
+                <label htmlFor="terms" className="text-sm font-medium leading-none">
+                  I agree to the Investment Agreement and understand the risks.
+                </label>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="py-8 text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+              </div>
+              <h3 className="text-xl font-heading font-bold">Investment Confirmed</h3>
+              <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                Your investment has been confirmed. Funds were deducted from your wallet and allocated to this project.
+              </p>
+              <div className="inline-block bg-muted/50 rounded-lg px-4 py-2 font-mono text-sm border border-border/50">
+                Ref: {investId}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="p-6 pt-0 sm:justify-between flex-row-reverse border-t border-border/50 mt-2">
+          {step < 3 && (
+            <div className="flex gap-2 w-full justify-between">
+              <Button variant="outline" onClick={step === 0 ? onClose : handleBack} disabled={submitting}>
+                {step === 0 ? "Cancel" : "Back"}
+              </Button>
+              {step === 0 && (
+                <Button onClick={handleNext} disabled={full}>
+                  Continue <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              )}
+              {step === 1 && (
+                <Button onClick={handleNext} disabled={!!amountError || value <= 0}>
+                  Continue <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              )}
+              {step === 2 && (
+                <Button onClick={() => void handleSubmit()} disabled={!agreed || submitting || !!amountError}>
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                  Confirm Invest
+                </Button>
+              )}
+            </div>
+          )}
+          {step === 3 && (
+            <Button onClick={onClose} className="w-full">Done</Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

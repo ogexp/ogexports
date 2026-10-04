@@ -1,23 +1,157 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>OG Exports Container Admin</title>
-    <meta name="description" content="Administrator workspace for publishing OG Exports-reported container and trade updates." />
-    <meta name="robots" content="noindex, nofollow" />
-    <meta property="og:title" content="OG Exports Container Admin" />
-    <meta property="og:description" content="Administrator workspace for publishing OG Exports-reported container and trade updates." />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#0F3D2E" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a2518" media="(prefers-color-scheme: dark)" />
+
+    <!-- Primary SEO -->
+    <title>OG Exports — Premium Pakistan Agricultural Exports | B2B Trade Platform</title>
+    <meta name="description" content="OG Exports is Pakistan's leading B2B agricultural trading company. Premium Basmati rice, sesame seeds, maize, mangoes, and frozen produce exported to 40+ countries across the Middle East, Europe, Africa, and Asia." />
+    <meta name="keywords" content="Pakistan agricultural exports, Basmati rice export, sesame seeds Pakistan, yellow maize export, fresh mangoes Pakistan, B2B food trade, halal certified exports, PSQCA certified, imported products Pakistan, wheat flour Pakistan" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="author" content="OG Exports (Pvt) Ltd" />
+    <link rel="canonical" href="https://ogexports.co/" />
+
+    <!-- Geo -->
+    <meta name="geo.region" content="PK" />
+    <meta name="geo.placename" content="Pakistan" />
+    <meta name="geo.position" content="30.3753;69.3451" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="OG Exports — Premium Pakistan Agricultural Exports" />
+    <meta property="og:description" content="Pakistan's leading B2B agricultural trading company. Premium Basmati rice, sesame seeds, maize, mangoes and frozen produce exported to 40+ countries." />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ogexports.co/" />
+    <meta property="og:site_name" content="OG Exports" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://ogexports.co/opengraph.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="OG Exports — Pakistan Agricultural Exports" />
+
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="OG Exports Container Admin" />
-    <meta name="twitter:description" content="Administrator workspace for publishing OG Exports-reported container and trade updates." />
-    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <meta name="twitter:title" content="OG Exports — Premium Pakistan Agricultural Exports" />
+    <meta name="twitter:description" content="Pakistan's leading B2B agricultural trading company. Premium Basmati rice, sesame, maize, mangoes exported to 40+ countries." />
+    <meta name="twitter:site" content="@OGExports" />
+    <meta name="twitter:image" content="https://ogexports.co/opengraph.jpg" />
+
+    <!-- Structured Data: Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "OG Exports",
+      "alternateName": "OG Exports (Pvt) Ltd",
+      "url": "https://ogexports.co",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://ogexports.co/og-logo.png",
+        "width": 200,
+        "height": 60
+      },
+      "description": "Pakistan's leading B2B agricultural trading company exporting premium Basmati rice, sesame seeds, maize, mangoes, and frozen produce to 40+ countries.",
+      "foundingDate": "2018",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "PK",
+        "addressLocality": "Karachi"
+      },
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "telephone": "+92-303-256-9000",
+          "contactType": "sales",
+          "availableLanguage": ["English", "Urdu"]
+        }
+      ],
+      "sameAs": [
+        "https://www.linkedin.com/company/ogexports",
+        "https://twitter.com/OGExports"
+      ],
+      "areaServed": {
+        "@type": "Place",
+        "name": "Worldwide"
+      },
+      "knowsAbout": ["Agricultural Export", "Basmati Rice", "Sesame Seeds", "Food Trade", "B2B Commerce"]
+    }
+    </script>
+
+    <!-- Structured Data: WebSite with SearchAction -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "OG Exports",
+      "url": "https://ogexports.co",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://ogexports.co/products?search={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" href="%BASE_URL%og-favicon.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="%BASE_URL%og-favicon.png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png" />
+
+    <!-- Font preconnect (performance) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Fonts: All families in one request for performance -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+
+    <!-- DNS prefetch for third-party services -->
+    <link rel="dns-prefetch" href="//clerk.ogexports.co" />
+    <link rel="dns-prefetch" href="//api.clerk.dev" />
+
+    <!-- Rendered before JavaScript loads to prevent a blank-page flash -->
+    <style>
+      #initial-site-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: grid;
+        place-items: center;
+        background: #ffffff;
+      }
+      #initial-site-loader::after {
+        content: "";
+        width: 2.5rem;
+        height: 2.5rem;
+        border: 3px solid rgba(15, 61, 46, 0.16);
+        border-top-color: #0f3d2e;
+        border-radius: 50%;
+        animation: initial-site-loader-spin 0.75s linear infinite;
+      }
+      @media (prefers-color-scheme: dark) {
+        #initial-site-loader {
+          background: #071c13;
+        }
+        #initial-site-loader::after {
+          border-color: rgba(255, 255, 255, 0.14);
+          border-top-color: #d4a94f;
+        }
+      }
+      @keyframes initial-site-loader-spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="initial-site-loader" role="status" aria-label="Loading website"></div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

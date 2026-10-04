@@ -1,0 +1,39 @@
+import React from "react";
+import { Leaf, ShieldCheck, Box, Ship, Anchor, UserCheck, DollarSign, BarChart2, Wallet } from "lucide-react";
+import { StepTimeline } from "./StepTimeline";
+
+const EXPORT_STEPS = [
+  { icon: Leaf, title: "Direct Sourcing", description: "We procure directly from Punjab and Sindh farming communities at harvest, locking in premium quality and competitive pricing." },
+  { icon: ShieldCheck, title: "Quality Testing", description: "Every lot undergoes rigorous laboratory analysis — moisture, purity, broken grain %, foreign matter — against EU, FDA, and Gulf standards." },
+  { icon: Box, title: "Precision Packing", description: "Export-grade packaging in climate-controlled facilities. Custom branding, weight, and markings per buyer specifications." },
+  { icon: Ship, title: "Port & Documentation", description: "Full customs clearance, phytosanitary certification, COA, packing lists, and LC-compliant commercial invoices prepared in-house." },
+  { icon: Anchor, title: "Global Delivery", description: "End-to-end shipment tracking from Port Qasim to destination. Real-time updates shared with buyers and investors." },
+];
+
+const INVESTMENT_STEPS = [
+  { icon: UserCheck, title: "Register & KYC", description: "Create your investor account and complete our SECP-compliant identity verification in under 10 minutes." },
+  { icon: BarChart2, title: "Choose Investment", description: "Browse open containers, the Fresh F&V Market project, or the Potato Processing Plant. Review full transparency documents." },
+  { icon: DollarSign, title: "Deposit Funds", description: "Transfer via bank wire or SWIFT to our HBL escrow account. Minimum $100 for containers, $5,000 for long-term projects." },
+  { icon: Ship, title: "Track Progress", description: "Monitor your container's voyage, loading stages, and port clearance live from your investor dashboard." },
+  { icon: Wallet, title: "Receive Return", description: "Principal plus profit-share is credited to your wallet upon buyer settlement and verified receipt of funds." },
+];
+
+export function ProcessTimelines() {
+  return (
+    <section className="py-24 bg-card/30 relative border-b border-border">
+      <div className="container px-4 md:px-6 space-y-32">
+        <StepTimeline
+          title="Our Export Process"
+          subtitle="From farm to destination — every step executed with institutional precision."
+          steps={EXPORT_STEPS}
+        />
+
+        <StepTimeline
+          title="How Investment Works"
+          subtitle="A fully transparent, trackable process from deposit to return."
+          steps={INVESTMENT_STEPS}
+        />
+      </div>
+    </section>
+  );
+}

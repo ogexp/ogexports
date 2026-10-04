@@ -1,2 +1,20 @@
 User-agent: *
 Allow: /
+
+# Private portals — do not index
+Disallow: /admin/
+Disallow: /account/
+Disallow: /buyer/
+Disallow: /invest/dashboard
+Disallow: /invest/deposit
+Disallow: /invest/withdraw
+Disallow: /invest/wallet
+Disallow: /invest/kyc
+Disallow: /invest/settings
+Disallow: /invest/profile
+Disallow: /invest/notifications
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /forgot-password
+
+Sitemap: https://ogexports.co/sitemap.xml

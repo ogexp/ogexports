@@ -1,14 +1,14 @@
 kind = "web"
-previewPath = "/container-admin/"
-title = "OG Exports Container Admin"
-description = "An administrator-only web interface for publishing OG Exports-reported container identifiers, dates, trade status, and journey-stage updates through the existing Laravel API."
+previewPath = "/og-exports/"
+title = "OG Exports Investor Portal"
+description = "The OG Exports investor portal and administration console, connected to the Laravel API for investor accounts, KYC, compliance, and bank-proof review."
 version = "1.0.0"
 id = "artifacts/og-container-admin"
 router = "path"
 
 [[services]]
 name = "web"
-paths = [ "/container-admin/" ]
+paths = [ "/og-exports/" ]
 localPort = 22552
 
 [services.development]
@@ -25,4 +25,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "22552"
-BASE_PATH = "/container-admin/"
+BASE_PATH = "/og-exports/"
