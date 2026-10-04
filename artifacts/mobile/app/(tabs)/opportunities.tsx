@@ -1,14 +1,24 @@
 import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGetInvestorProjects } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, Field, Screen, Status } from '@/components/InvestorUI';
+import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { amount, first, list, money } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
-const categories = ['All', 'Rice', 'Maize', 'Sesame', 'Potatoes', 'Other'];
+const categories = [
+  { value: 'All', label: 'All' },
+  { value: 'Rice', label: 'Rice' },
+  { value: 'Maize', label: 'Maize' },
+  { value: 'Sesame', label: 'Sesame' },
+  { value: 'Potatoes', label: 'Potatoes' },
+  { value: 'Other', label: 'Other Commodities' },
+] as const;
+type CommodityCategory = typeof categories[number]['value'];
 const opportunityTabs = ['Featured', 'New', 'Nearly Funded', 'Closing Soon'] as const;
 type OpportunityTab = typeof opportunityTabs[number];
 type MarketplaceFilters = {
@@ -49,16 +59,41 @@ function fundingProgress(item: Record<string, unknown>) {
     : null;
 }
 
+function durationInDays(item: Record<string, unknown>) {
+  const explicitDays = amount(item, ['duration_days', 'trade_duration_days', 'cycle_days']);
+  if (explicitDays != null) return explicitDays;
+  const raw = first(item, ['trade_cycle', 'estimated_trade_cycle', 'duration', 'term', 'investment_duration']).toLowerCase();
+  const match = raw.match(/(\d+(?:\.\d+)?)\s*(days?|d|weeks?|wks?|months?|mos?|years?|yrs?)\b/);
+  if (!match) return null;
+  const value = Number(match[1]);
+  const unit = match[2];
+  if (/^d/.test(unit)) return value;
+  if (/^w/.test(unit)) return value * 7;
+  if (/^m/.test(unit)) return value * 30;
+  return value * 365;
+}
+
+function durationLabel(item: Record<string, unknown>) {
+  const days = amount(item, ['duration_days', 'trade_duration_days', 'cycle_days']);
+  if (days != null) return `${days} days`;
+  return first(item, ['trade_cycle', 'estimated_trade_cycle', 'duration', 'term', 'investment_duration']);
+}
+
 function dateValue(item: Record<string, unknown>, keys: string[]) {
   const value = first(item, keys, '');
   const parsed = value ? new Date(value).getTime() : NaN;
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function isFeatured(item: Record<string, unknown>) {
+  return ['true', '1', 'yes'].includes(first(item, ['is_featured', 'featured'], '').toLowerCase());
+}
+
 export default function Opportunities() {
   const { token } = useAuth();
   const colors = useColors();
-  const [category, setCategory] = useState('All');
+  const insets = useSafeAreaInsets();
+  const [category, setCategory] = useState<CommodityCategory>('All');
   const [tab, setTab] = useState<OpportunityTab>('Featured');
   const [search, setSearch] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -66,6 +101,14 @@ export default function Opportunities() {
   const [appliedFilters, setAppliedFilters] = useState<MarketplaceFilters>(emptyFilters);
   const query = useGetInvestorProjects({ per_page: 50 }, { query: { queryKey: ['investor-projects', 50], enabled: !!token, staleTime: 60_000 } });
   const sourceRows = list(query.data);
+  const serverStatuses = Array.from(new Set(sourceRows.map(item => first(item, ['status', 'state']).trim()).filter(Boolean)));
+  const serverRiskLevels = Array.from(new Set(sourceRows.map(item => first(item, ['risk_level', 'risk_rating']).trim()).filter(Boolean)));
+  const statusOptions = ['Any', ...serverStatuses.sort((a, b) => a.localeCompare(b))];
+  const riskOptions = ['Any', ...Array.from(new Set(['Low', 'Medium', 'High', ...serverRiskLevels])).sort((a, b) => {
+    if (a === 'Any') return -1;
+    if (b === 'Any') return 1;
+    return a.localeCompare(b);
+  })];
   const matchingRows = sourceRows.filter(item => {
     const normalizedSearch = search.trim().toLowerCase();
     const searchable = [
@@ -75,6 +118,9 @@ export default function Opportunities() {
       first(item, ['origin', 'origin_country', 'from_country']),
       first(item, ['destination', 'destination_country', 'to_country', 'destination_market']),
       first(item, ['description', 'summary']),
+      first(item, ['risk_level', 'risk_rating']),
+      first(item, ['status', 'state']),
+      first(item, ['incoterm', 'trade_term']),
     ].join(' ').toLowerCase();
     if (normalizedSearch && !searchable.includes(normalizedSearch)) return false;
     if (category !== 'All' && categoryFor(item) !== category) return false;
@@ -82,10 +128,9 @@ export default function Opportunities() {
     const minimum = amount(item, ['minimum_investment', 'min_investment', 'minimum_amount']);
     const maxMinimum = Number(appliedFilters.maxMinimum);
     if (Number.isFinite(maxMinimum) && maxMinimum > 0 && (minimum == null || minimum > maxMinimum)) return false;
-    const durationText = first(item, ['duration_days', 'trade_duration_days', 'cycle_days', 'duration', 'term'], '');
-    const durationNumber = Number(durationText.match(/[\d.]+/)?.[0]);
+    const tradeDurationDays = durationInDays(item);
     const maxDuration = Number(appliedFilters.maxDurationDays);
-    if (Number.isFinite(maxDuration) && maxDuration > 0 && (!Number.isFinite(durationNumber) || durationNumber > maxDuration)) return false;
+    if (Number.isFinite(maxDuration) && maxDuration > 0 && (tradeDurationDays == null || tradeDurationDays > maxDuration)) return false;
     if (appliedFilters.destination && !first(item, ['destination', 'destination_country', 'to_country', 'destination_market']).toLowerCase().includes(appliedFilters.destination.trim().toLowerCase())) return false;
     if (appliedFilters.risk !== 'Any' && !first(item, ['risk_level', 'risk_rating']).toLowerCase().includes(appliedFilters.risk.toLowerCase())) return false;
     if (appliedFilters.status && !first(item, ['status', 'state']).toLowerCase().includes(appliedFilters.status.trim().toLowerCase())) return false;
@@ -96,7 +141,7 @@ export default function Opportunities() {
     if (appliedFilters.funding === '80–99%' && (progress == null || progress < 80 || progress >= 100)) return false;
     if (appliedFilters.funding === 'Fully funded' && (progress == null || progress < 100)) return false;
 
-    if (tab === 'Featured' && !['true', '1', 'yes'].includes(first(item, ['is_featured', 'featured'], '').toLowerCase())) return false;
+    if (tab === 'Featured' && !isFeatured(item)) return false;
     if (tab === 'Nearly Funded' && (progress == null || progress < 80 || progress >= 100)) return false;
     if (tab === 'Closing Soon') {
       const deadline = dateValue(item, ['funding_deadline', 'closing_date', 'closes_at', 'deadline']);
@@ -115,6 +160,13 @@ export default function Opportunities() {
     appliedFilters.risk !== 'Any' ? appliedFilters.risk : '',
     appliedFilters.funding !== 'Any' ? appliedFilters.funding : '',
   ].filter(Boolean).length;
+  const activeCriteriaCount = activeFilterCount + (category !== 'All' ? 1 : 0) + (search.trim() ? 1 : 0);
+  const resetCriteria = () => {
+    setCategory('All');
+    setSearch('');
+    setDraftFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+  };
   const moneyLabel = (value: number | null, currency: string) => value == null ? 'Not provided' : currency ? money(value, currency) : 'Currency not provided';
 
   return <Screen title="Explore Trade Opportunities" subtitle="Import and export opportunities reported by OG Exports">

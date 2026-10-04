@@ -3,12 +3,13 @@ import { Linking, Pressable, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { useGetInvestorProject, useGetInvestorWallet, useInvestInProject } from '@workspace/api-client-react';
+import { useGetInvestorProfile, useGetInvestorProject, useGetInvestorWallet, useInvestInProject } from '@workspace/api-client-react';
 import { Action, Card, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
 import { amount, first, list, messageOf, record, unwrap, money } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { shareInvestorFile } from '@/lib/file-download';
+import { getInvestorKycStatus, isInvestorKycVerified } from '@/lib/kyc';
 
 export default function OpportunityDetail() {
   const { id: raw } = useLocalSearchParams<{ id: string }>();
@@ -17,6 +18,7 @@ export default function OpportunityDetail() {
   const colors = useColors();
   const queryClient = useQueryClient();
   const query = useGetInvestorProject(id, { query: { queryKey: ['investor-project', id], enabled: Boolean(id && token) } });
+  const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: !!token } });
   const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: !!token, staleTime: 30_000 } });
   const invest = useInvestInProject();
   const [investAmount, setInvestAmount] = useState('');
@@ -27,6 +29,9 @@ export default function OpportunityDetail() {
   const [documentBusy, setDocumentBusy] = useState('');
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
   const project = unwrap(query.data);
+  const investorProfile = unwrap(profileQuery.data);
+  const kycStatus = getInvestorKycStatus(investorProfile);
+  const kycVerified = !profileQuery.isLoading && !profileQuery.isFetching && !profileQuery.isError && isInvestorKycVerified(investorProfile);
   const wallet = unwrap(walletQuery.data);
   const target = amount(project, ['target_amount', 'funding_target', 'amount']);
   const fundedAmount = amount(project, ['funded_amount', 'raised_amount', 'current_amount', 'current_funding']);
@@ -89,10 +94,15 @@ export default function OpportunityDetail() {
     ['Funding deadline', first(project, ['funding_deadline', 'closing_date', 'deadline'], 'Not provided')],
   ];
   const kycRequired = /kyc|verification/i.test(error);
-  const activeFlowStep = stage === 'amount' ? 2 : stage === 'payment' ? 3 : stage === 'review' ? 4 : 5;
+  const activeFlowStep = !kycVerified ? 1 : stage === 'amount' ? 2 : stage === 'payment' ? 3 : stage === 'review' ? 4 : 5;
 
   function continueToPayment() {
     setError('');
+    if (!kycVerified) {
+      setError('Investment access requires a Verified identity status from OG Exports.');
+      router.push('/account/kyc');
+      return;
+    }
     const value = Number(investAmount);
     if (!Number.isFinite(value) || value <= 0) { setError('Enter an investment amount greater than zero.'); return; }
     if (minimum != null && value < minimum) { setError(`The minimum investment for this opportunity is ${money(minimum, currency)}.`); return; }
@@ -103,12 +113,22 @@ export default function OpportunityDetail() {
 
   function continueToReview() {
     setError('');
+    if (!kycVerified) {
+      setError('Investment access requires a Verified identity status from OG Exports.');
+      router.push('/account/kyc');
+      return;
+    }
     setRiskAccepted(false);
     setStage('review');
   }
 
   async function submit() {
     setError('');
+    if (!kycVerified) {
+      setError('Investment access requires a Verified identity status from OG Exports.');
+      router.push('/account/kyc');
+      return;
+    }
     try {
       const result = record(await invest.mutateAsync({ id, data: { amount: Number(investAmount) } }));
       const investment = record(result.data);
@@ -259,6 +279,16 @@ export default function OpportunityDetail() {
       <Pressable onPress={() => router.push('/account/legal/risk')} style={{ marginBottom: 12 }}><Text style={{ color: colors.primary, fontWeight: '700' }}>Read the risk disclosure →</Text></Pressable>
       {error ? <ErrorState message={error} /> : null}
       {kycRequired ? <Pressable onPress={() => router.push('/account/kyc')}><Text style={{ color: colors.primary, fontWeight: '700', marginBottom: 12 }}>Complete identity verification →</Text></Pressable> : null}
+      {profileQuery.isLoading || profileQuery.isFetching ? <Card><Text style={{ color: colors.mutedForeground }}>Checking your identity-verification status before enabling investments…</Text></Card> : null}
+      {profileQuery.isError ? <ErrorState message="Investment access is unavailable because your verification status could not be confirmed." onRetry={() => void profileQuery.refetch()} /> : null}
+      {!profileQuery.isLoading && !profileQuery.isFetching && !profileQuery.isError && !kycVerified ? <Card style={{ borderColor: colors.primary }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', flex: 1 }}>Verification required to invest</Text>
+          <Status value={kycStatus} />
+        </View>
+        <Text style={{ color: colors.mutedForeground, lineHeight: 20, marginTop: 8 }}>Investments are available only after OG Exports reports your KYC status as Verified. Deposits and withdrawals are not affected by this investment requirement.</Text>
+        <View style={{ marginTop: 12 }}><Action title="Complete identity verification" icon="shield" onPress={() => router.push('/account/kyc')} /></View>
+      </Card> : null}
       {stage === 'submitted' && confirmation ? <Card style={{ borderColor: colors.primary }}>
         <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Investment request submitted</Text>
         {first(confirmation, ['message']) ? <Text style={{ color: colors.mutedForeground, marginTop: 7, lineHeight: 19 }}>{first(confirmation, ['message'])}</Text> : null}
@@ -268,7 +298,7 @@ export default function OpportunityDetail() {
         <Text style={{ color: colors.mutedForeground, marginTop: 5 }}>Amount submitted: {money(Number(confirmation.amount), currency)}</Text>
         <View style={{ marginTop: 14 }}><Action title="View portfolio" icon="pie-chart" onPress={() => router.push('/account/portfolio')} /></View>
       </Card> : null}
-      {stage === 'amount' ? <Card>
+      {kycVerified && stage === 'amount' ? <Card>
         <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700', marginBottom: 5 }}>Invest in this opportunity</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 14 }}>Investments are funded from your wallet. OG Exports checks eligibility, available balance and verification status before accepting an investment.</Text>
         {walletBalance != null ? <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700', marginBottom: 12 }}>Available wallet balance · {money(walletBalance, walletCurrency)}</Text> : walletQuery.isError ? <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 12 }}>Wallet balance could not be checked; the server will validate it before accepting an investment.</Text> : null}
@@ -276,7 +306,7 @@ export default function OpportunityDetail() {
         <Action title="Continue to payment" icon="arrow-right" disabled={!investAmount} onPress={continueToPayment} />
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 12 }}>Fee and currency-conversion estimates are not provided by the investor API. The server response is authoritative.</Text>
       </Card> : null}
-      {stage === 'payment' ? <Card>
+      {kycVerified && stage === 'payment' ? <Card>
         <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Payment method</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5, marginBottom: 12 }}>Choose how this investment request will be funded.</Text>
         <Card style={{ borderColor: colors.primary, marginBottom: 10 }}>
@@ -294,7 +324,7 @@ export default function OpportunityDetail() {
         <Action title="Review investment" icon="arrow-right" onPress={continueToReview} />
         <View style={{ marginTop: 9 }}><Action title="Back to amount" secondary onPress={() => setStage('amount')} /></View>
       </Card> : null}
-      {stage === 'review' ? <Card>
+      {kycVerified && stage === 'review' ? <Card>
         <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Review before confirming</Text>
         <View style={{ marginTop: 14, gap: 11 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}><Text style={{ color: colors.mutedForeground }}>Opportunity</Text><Text style={{ color: colors.foreground, fontWeight: '700', flex: 1, textAlign: 'right' }}>{first(project, ['title', 'name', 'project_name'], 'Opportunity')}</Text></View>

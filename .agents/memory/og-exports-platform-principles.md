@@ -13,6 +13,12 @@ The OG Exports investor app must communicate:
 
 Use server-provided trade identifiers, shipment details, documents, and statuses as the source of truth. Do not invent missing values or imply live logistics tracking. Make an investment's trade/container association easy to find, and state clearly when OG Exports has not supplied information.
 
+KYC gating applies to investments only: require a server-reported `Verified` status before allowing an investment, and leave deposits and withdrawals unchanged. Never infer verification from submitted forms or uploaded documents.
+
+**Why:** the user chose to gate only investments; approval must remain authoritative to OG Exports.
+
+**How to apply:** fail closed for investment access when KYC status is missing, loading, or unavailable. Do not add KYC checks to deposits or withdrawals unless the user changes this scope.
+
 **Why:** the user established these as platform-wide acceptance criteria for the OG Exports investor app.
 
 **How to apply:** check the API contract and UI together when changing investor flows; preserve verification gates, expose available documents and authoritative statuses, and group detailed trade information without obscuring missing data.

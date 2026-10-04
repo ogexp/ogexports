@@ -7,6 +7,7 @@ import { Card, ErrorState, Row, Screen, Section, Status } from '@/components/Inv
 import { first, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { getInvestorKycStatus } from '@/lib/kyc';
 
 export default function Account() {
   const { token, user } = useAuth();
@@ -15,7 +16,7 @@ export default function Account() {
   const profile = unwrap(profileQuery.data);
   const account = { ...record(user), ...record(profile) };
   const initials = first(account, ['name'], 'OG').split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
-  const kyc = first(account, ['kyc_status', 'verification_status'], profileQuery.isLoading ? 'Loading' : 'Not provided');
+  const kyc = profileQuery.isLoading ? 'Loading' : getInvestorKycStatus(account);
   const open = (path: string) => router.push(path as never);
   return <Screen title="Profile" subtitle="Your identity, payment details and account preferences">
     {profileQuery.isError ? <ErrorState message="Account details could not be refreshed." onRetry={() => void profileQuery.refetch()} /> : null}
