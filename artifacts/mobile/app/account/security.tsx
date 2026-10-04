@@ -399,6 +399,9 @@ export default function Security() {
               ? `${biometricName} is ready on this device. When enabled, it unlocks your saved account session; your password is never stored.`
               : biometricInfo?.reason ?? 'Biometric availability could not be confirmed on this device.'}
       </Text>
+      <Text style={{ color: colors.mutedForeground, marginTop: 8, lineHeight: 18, fontSize: 12 }}>
+        This one setting controls biometric app unlock and the Face ID / fingerprint sign-in option. The sign-in option needs a saved session on this device; after a full sign-out, use your account password.
+      </Text>
       {biometricError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginTop: 10, fontSize: 12, lineHeight: 18 }}>{biometricError}</Text> : null}
       {biometricNotice ? <Text style={{ color: colors.primary, marginTop: 10, fontSize: 12, lineHeight: 18 }}>{biometricNotice}</Text> : null}
       {Platform.OS !== 'web' ? <>
