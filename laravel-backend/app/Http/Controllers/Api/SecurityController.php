@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -23,20 +24,25 @@ class SecurityController extends Controller
 {
     public function sessions(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $user = $request->user();
+        $userId = $user->id;
         $currentId = $request->hasSession() ? $request->session()->getId() : null;
+        $currentToken = $user->currentAccessToken();
+        $currentTokenId = $currentToken instanceof PersonalAccessToken
+            ? (string) $currentToken->getKey()
+            : null;
 
-        $rows = DB::table('sessions')
+        $browserSessions = DB::table('sessions')
             ->where('user_id', $userId)
             ->orderByDesc('last_activity')
             ->limit(50)
-            ->get();
-
-        $data = $rows->map(function ($row) use ($currentId) {
+            ->get()
+            ->map(function ($row) use ($currentId) {
             $ua = (string) ($row->user_agent ?? '');
 
             return [
                 'id' => $row->id,
+                'session_type' => 'Browser',
                 'ip' => $row->ip_address,
                 'user_agent' => $ua,
                 'device' => $this->parseDevice($ua),
@@ -50,12 +56,64 @@ class SecurityController extends Controller
             ];
         });
 
+        $mobileSessions = $user->tokens()
+            ->orderByDesc('last_used_at')
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get()
+            ->map(function (PersonalAccessToken $token) use ($currentTokenId) {
+                $lastActivity = $token->last_used_at ?? $token->created_at;
+
+                return [
+                    'id' => 'mobile:'.$token->getKey(),
+                    'session_type' => 'Mobile app',
+                    'ip' => null,
+                    'device' => $token->name ?: 'Mobile device',
+                    'last_activity' => $lastActivity?->toIso8601String(),
+                    'last_activity_human' => $lastActivity?->diffForHumans(),
+                    'is_current' => $currentTokenId !== null
+                        && hash_equals($currentTokenId, (string) $token->getKey()),
+                ];
+            });
+
+        $data = $browserSessions->concat($mobileSessions)
+            ->sortByDesc(fn (array $session) => $session['last_activity']
+                ? strtotime($session['last_activity'])
+                : 0)
+            ->take(50)
+            ->values();
+
         return response()->json(['data' => $data]);
     }
 
     public function destroySession(Request $request, string $id): JsonResponse
     {
-        $userId = $request->user()->id;
+        $user = $request->user();
+        if (str_starts_with($id, 'mobile:')) {
+            $tokenId = substr($id, strlen('mobile:'));
+            abort_unless(ctype_digit($tokenId), 404, 'Session not found.');
+
+            $currentToken = $user->currentAccessToken();
+            if ($currentToken instanceof PersonalAccessToken
+                && hash_equals((string) $currentToken->getKey(), $tokenId)) {
+                throw ValidationException::withMessages([
+                    'session' => ['Cannot revoke the current session. Use logout instead.'],
+                ]);
+            }
+
+            $token = $user->tokens()->whereKey((int) $tokenId)->first();
+            abort_if(! $token, 404, 'Session not found.');
+            $token->delete();
+
+            AuditsActions::log('session.revoked', 'security', $user, [
+                'session_type' => 'mobile',
+                'token_id' => (int) $tokenId,
+            ]);
+
+            return response()->json(['message' => 'Mobile session revoked.']);
+        }
+
+        $userId = $user->id;
         $currentId = $request->hasSession() ? $request->session()->getId() : null;
 
         if ($currentId && hash_equals((string) $currentId, $id)) {
@@ -73,23 +131,39 @@ class SecurityController extends Controller
             abort(404, 'Session not found.');
         }
 
-        AuditsActions::log('session.revoked', 'security', $request->user(), ['session_id' => $id]);
+        AuditsActions::log('session.revoked', 'security', $user, ['session_id' => $id]);
 
         return response()->json(['message' => 'Session revoked.']);
     }
 
     public function destroyOtherSessions(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $user = $request->user();
+        $userId = $user->id;
         $currentId = $request->hasSession() ? $request->session()->getId() : null;
+        $currentToken = $user->currentAccessToken();
+        $currentTokenId = $currentToken instanceof PersonalAccessToken
+            ? (string) $currentToken->getKey()
+            : null;
 
         $q = DB::table('sessions')->where('user_id', $userId);
         if ($currentId) {
             $q->where('id', '!=', $currentId);
         }
-        $count = $q->delete();
+        $browserCount = $q->delete();
 
-        AuditsActions::log('session.revoked_others', 'security', $request->user(), ['count' => $count]);
+        $tokens = $user->tokens();
+        if ($currentTokenId !== null) {
+            $tokens->where('id', '!=', $currentTokenId);
+        }
+        $tokenCount = $tokens->delete();
+        $count = $browserCount + $tokenCount;
+
+        AuditsActions::log('session.revoked_others', 'security', $user, [
+            'count' => $count,
+            'browser_sessions' => $browserCount,
+            'mobile_tokens' => $tokenCount,
+        ]);
 
         return response()->json(['message' => 'Other sessions revoked.', 'count' => $count]);
     }

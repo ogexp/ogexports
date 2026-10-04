@@ -494,6 +494,11 @@ class AuthController extends Controller
             'user_id' => $user->id,
             'role' => $user->roles->first()?->name,
         ]);
+        \App\Support\AuditsActions::log('login.mobile_success', 'security', $user, [
+            'channel' => 'mobile',
+            'device' => $deviceName,
+            'user_agent' => (string) $request->userAgent(),
+        ]);
 
         return response()->json([
             'message' => 'Logged in successfully.',
@@ -568,9 +573,11 @@ class AuthController extends Controller
      */
     public function mobileLogout(Request $request): JsonResponse
     {
-        $token = $request->user()?->currentAccessToken();
+        $user = $request->user();
+        $token = $user?->currentAccessToken();
 
         if ($token) {
+            \App\Support\AuditsActions::log('logout.mobile', 'security', $user);
             $token->delete();
         }
 

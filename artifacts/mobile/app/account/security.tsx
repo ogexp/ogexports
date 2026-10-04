@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import {
   useConfirmInvestorTwoFactor,
   useDisableInvestorTwoFactor,
   useEnableInvestorTwoFactor,
+  useGetInvestorSecurityActivity,
   useGetInvestorSessions,
+  useGetInvestorTransactionPasswordStatus,
   useGetInvestorTwoFactorStatus,
+  useInvestorMobileLogout,
   useRevokeInvestorSession,
   useRevokeOtherInvestorSessions,
 } from '@workspace/api-client-react';
@@ -23,20 +27,52 @@ function displayDate(value: unknown) {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
 }
 
+function activityLabel(action: string) {
+  const labels: Record<string, string> = {
+    'login.success': 'Successful sign-in',
+    'login.mobile_success': 'Mobile sign-in',
+    'login.2fa_success': 'Sign-in verified with 2FA',
+    'password.changed': 'Sign-in password changed',
+    'password.reset': 'Sign-in password reset',
+    'email.verified': 'Email address verified',
+    '2fa.enable_requested': 'Two-factor setup requested',
+    '2fa.enabled': 'Two-factor authentication enabled',
+    '2fa.disabled': 'Two-factor authentication disabled',
+    'transaction_password.set': 'Transaction password set',
+    'transaction_password.reset': 'Transaction password changed',
+    'session.revoked': 'Device session revoked',
+    'session.revoked_others': 'Other device sessions revoked',
+    'logout.mobile': 'Mobile device signed out',
+  };
+  if (labels[action]) return labels[action];
+  return action.split(/[._]+/).filter(Boolean).map(word => word[0].toUpperCase() + word.slice(1)).join(' ') || 'Security activity';
+}
+
 export default function Security() {
-  const { token, user, biometricEnabled, appPinEnabled, setBiometricEnabled, setAppPinEnabled } = useAuth();
+  const { token, user, biometricEnabled, appPinEnabled, setBiometricEnabled, setAppPinEnabled, signOut } = useAuth();
   const colors = useColors();
   const queryClient = useQueryClient();
   const sessions = useGetInvestorSessions({ query: { queryKey: ['investor-security-sessions'], enabled: !!token } });
+  const activity = useGetInvestorSecurityActivity({ query: { queryKey: ['investor-security-activity'], enabled: !!token } });
   const twoFactor = useGetInvestorTwoFactorStatus({ query: { queryKey: ['investor-two-factor-status'], enabled: !!token } });
+  const transactionPassword = useGetInvestorTransactionPasswordStatus({
+    query: { queryKey: ['investor-transaction-password-status'], enabled: !!token },
+  });
   const revokeSession = useRevokeInvestorSession();
   const revokeOthers = useRevokeOtherInvestorSessions();
+  const logout = useInvestorMobileLogout();
   const enableTwoFactor = useEnableInvestorTwoFactor();
   const confirmTwoFactor = useConfirmInvestorTwoFactor();
   const disableTwoFactor = useDisableInvestorTwoFactor();
   const sessionsList = list(sessions.data);
+  const activityList = list(activity.data).filter(item => first(item, ['module']).toLowerCase() === 'security');
   const twoFactorData = unwrap(twoFactor.data);
   const twoFactorEnabled = twoFactorData.enabled === true;
+  const transactionPasswordData = unwrap(transactionPassword.data);
+  const transactionPasswordSet = transactionPasswordData.has_transaction_password === true
+    || transactionPasswordData.set === true
+    || transactionPasswordData.is_set === true
+    || transactionPasswordData.configured === true;
   const userId = first(record(user), ['id'], '');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -45,6 +81,7 @@ export default function Security() {
   const [confirmNewPin, setConfirmNewPin] = useState('');
   const [setupRequested, setSetupRequested] = useState(false);
   const [confirmAll, setConfirmAll] = useState(false);
+  const [confirmLogoutAll, setConfirmLogoutAll] = useState(false);
   const [confirmSessionId, setConfirmSessionId] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -52,6 +89,7 @@ export default function Security() {
 
   function refreshSecurity() {
     void queryClient.invalidateQueries({ queryKey: ['investor-security-sessions'] });
+    void queryClient.invalidateQueries({ queryKey: ['investor-security-activity'] });
     void queryClient.invalidateQueries({ queryKey: ['investor-two-factor-status'] });
   }
 
@@ -200,6 +238,27 @@ export default function Security() {
     }
   }
 
+  async function logoutAllDevices() {
+    setError('');
+    setNotice('');
+    setBusy(true);
+    try {
+      await revokeOthers.mutateAsync();
+      await logout.mutateAsync();
+      queryClient.clear();
+      await signOut();
+      router.replace('/(auth)/login');
+    } catch (err) {
+      setError(`Other sessions may already be revoked, but this device could not complete sign-out: ${messageOf(err)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function openSettings() {
+    router.push('/account/settings');
+  }
+
   return <Screen title="Security & devices" subtitle="Manage app unlock, email verification, and active sessions">
     {error ? <ErrorState message={error} /> : null}
     {notice ? <Card><Text style={{ color: colors.primary, lineHeight: 20 }}>{notice}</Text></Card> : null}
@@ -294,6 +353,36 @@ export default function Security() {
       {Platform.OS !== 'web' ? <View style={{ marginTop: 14 }}><Action title={biometricEnabled ? 'Turn off biometric login' : 'Enable biometric login'} icon="lock" secondary={biometricEnabled} loading={busy} onPress={() => void toggleBiometrics()} /></View> : null}
     </Card>
 
+    <Section title="Password & transaction security" />
+    <Card>
+      <Text style={{ color: colors.foreground, fontWeight: '700' }}>Sign-in password</Text>
+      <Text style={{ color: colors.mutedForeground, marginTop: 5, marginBottom: 11, lineHeight: 18, fontSize: 12 }}>
+        Change your account password with your current password as verification.
+      </Text>
+      <Action title="Change sign-in password" icon="key" secondary onPress={openSettings} />
+      <View style={{ height: 14 }} />
+      <Text style={{ color: colors.foreground, fontWeight: '700' }}>Withdrawal transaction password</Text>
+      <Text style={{ color: colors.mutedForeground, marginTop: 5, marginBottom: 11, lineHeight: 18, fontSize: 12 }}>
+        {transactionPassword.isLoading
+          ? 'Checking transaction authentication…'
+          : transactionPassword.isError
+            ? 'Transaction-password status could not be loaded.'
+            : transactionPasswordSet
+              ? 'A transaction password is set. Withdrawals also require an email verification code.'
+              : 'Set a transaction password. Withdrawals also require an email verification code.'}
+      </Text>
+      {transactionPassword.isError ? <Pressable onPress={() => void transactionPassword.refetch()} style={{ marginBottom: 10 }}>
+        <Text style={{ color: colors.primary, fontWeight: '700' }}>Retry status check</Text>
+      </Pressable> : null}
+      <Action title={transactionPasswordSet ? 'Manage transaction password' : 'Set transaction password'} icon="shield" secondary onPress={openSettings} />
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 10 }}>
+        OG Exports verifies the email code and transaction password when a withdrawal is submitted.
+      </Text>
+      <View style={{ marginTop: 10 }}>
+        <Action title="Review withdrawal verification" icon="arrow-right" secondary onPress={() => router.push('/wallet/withdraw')} />
+      </View>
+    </Card>
+
     <Section title="Account sessions" right={sessionsList.length > 1 ? <Pressable onPress={() => setConfirmAll(value => !value)}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Revoke others</Text></Pressable> : null} />
     <Card><Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>
       Review devices signed in to this investor account and revoke any session you no longer use.
@@ -317,7 +406,9 @@ export default function Security() {
           <Text style={{ color: colors.foreground, flex: 1, fontWeight: '700' }}>{first(session, ['device'], 'Mobile session')}</Text>
           {current ? <Status value="Current session" /> : null}
         </View>
+        <Text style={{ color: colors.mutedForeground, marginTop: 5, fontSize: 11 }}>{first(session, ['session_type'], 'Account session')}</Text>
         <Text style={{ color: colors.mutedForeground, marginTop: 7, fontSize: 12 }}>Last active: {displayDate(session.last_activity)}</Text>
+        {first(session, ['ip']) ? <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 11 }}>IP address: {first(session, ['ip'])}</Text> : null}
         {!current && id ? <Pressable onPress={() => setConfirmSessionId(id)} style={{ alignSelf: 'flex-start', paddingTop: 12 }}><Text style={{ color: colors.destructive, fontWeight: '700' }}>Revoke this session</Text></Pressable> : null}
         {confirmSessionId === id ? <View style={{ marginTop: 12 }}>
           <Text style={{ color: colors.foreground, marginBottom: 10 }}>Sign this device out?</Text>
@@ -328,5 +419,49 @@ export default function Security() {
         </View> : null}
       </Card>;
     })}
+
+    <Section title="Login activity" />
+    <Card>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>
+        Recent sign-ins and security changes recorded by OG Exports.
+      </Text>
+    </Card>
+    {activity.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading security activity…</Text></Card> : null}
+    {activity.isError ? <ErrorState message="Login activity could not be loaded." onRetry={() => void activity.refetch()} /> : null}
+    {!activity.isLoading && !activity.isError && activityList.length === 0
+      ? <EmptyState title="No security activity" body="OG Exports has not returned any recent security events." />
+      : null}
+    {activityList.map((item, index) => {
+      const meta = record(item.meta);
+      const device = first(meta, ['device']);
+      const channel = first(meta, ['channel']);
+      return <Card key={first(item, ['id'], `${first(item, ['action'], 'activity')}-${index}`)}>
+        <Text style={{ color: colors.foreground, fontWeight: '700' }}>{activityLabel(first(item, ['action']))}</Text>
+        <Text style={{ color: colors.mutedForeground, marginTop: 6, fontSize: 12 }}>{displayDate(item.created_at)}</Text>
+        {device || channel ? <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 11 }}>
+          {device || (channel === 'mobile' ? 'Mobile app' : 'Account activity')}
+        </Text> : null}
+        {first(item, ['ip']) ? <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 11 }}>IP address: {first(item, ['ip'])}</Text> : null}
+      </Card>;
+    })}
+
+    <Section title="Sign out everywhere" />
+    <Card style={{ borderColor: colors.destructive }}>
+      <Text style={{ color: colors.foreground, fontWeight: '700' }}>End every active session</Text>
+      <Text style={{ color: colors.mutedForeground, marginTop: 5, marginBottom: 12, fontSize: 12, lineHeight: 18 }}>
+        This revokes other browser and mobile sessions, then signs this device out.
+      </Text>
+      {!confirmLogoutAll
+        ? <Action title="Log out from all devices" icon="log-out" secondary onPress={() => setConfirmLogoutAll(true)} />
+        : <>
+          <Text style={{ color: colors.destructive, marginBottom: 12, fontSize: 12, lineHeight: 18 }}>
+            You will need to sign in again on this device and every other device.
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1 }}><Action title="Cancel" secondary onPress={() => setConfirmLogoutAll(false)} /></View>
+            <View style={{ flex: 1 }}><Action title="Confirm logout" icon="log-out" loading={busy || revokeOthers.isPending || logout.isPending} onPress={() => void logoutAllDevices()} /></View>
+          </View>
+        </>}
+    </Card>
   </Screen>;
 }
