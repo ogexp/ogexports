@@ -17,7 +17,7 @@ import { useColors } from '@/hooks/useColors';
 
 const depositStages = ['Submitted', 'Under Review', 'Verified', 'Credited'] as const;
 const completedStatuses = new Set(['approved', 'verified', 'credited', 'completed']);
-const reviewStatuses = new Set(['pending', 'submitted', 'under review', 'under_review', 'review', 'in review', 'in_review', 'pending verification', 'pending_verification']);
+const reviewStatuses = new Set(['pending', 'under review', 'review', 'in review', 'pending verification']);
 
 function isEnabled(value: string) {
   return ['true', '1', 'yes'].includes(value.trim().toLowerCase());
@@ -30,8 +30,8 @@ function DepositProgress({ deposit }: { deposit: Record<string, unknown> }) {
   const approved = completedStatuses.has(status);
   const inReview = reviewStatuses.has(status);
   const stopped = ['rejected', 'cancelled', 'canceled'].includes(status);
-  const completeCount = approved ? 4 : stopped ? 2 : 1;
-  const activeIndex = approved || stopped ? -1 : inReview ? 1 : 0;
+  const completeCount = approved ? 4 : stopped ? (status === 'rejected' ? 2 : 1) : inReview ? 1 : status === 'submitted' ? 0 : 0;
+  const activeIndex = approved || stopped ? -1 : inReview ? 1 : status === 'submitted' ? 0 : -1;
   const explanation = approved
     ? 'OG Exports approves the deposit and credits the wallet in the same server transaction.'
     : inReview
@@ -100,6 +100,7 @@ export default function Deposit() {
   const paymentCurrency = first(selectedBank ?? {}, ['currency']).toUpperCase() || walletCurrency;
   const proofRequired = isEnabled(first(selectedBank ?? {}, ['proof_required', 'requires_proof']));
   const timelineDeposit = confirmation ?? deposits.find(item => first(item, ['id', 'reference', 'deposit_reference']) === selectedDepositId);
+  const confirmationCurrency = first(confirmation ?? {}, ['currency', 'wallet_currency'], paymentCurrency);
 
   async function pickProof() {
     setError('');
@@ -276,9 +277,6 @@ export default function Deposit() {
     </Card> : null}
 
     {stage === 'submitted' && confirmation ? <Card style={{ borderColor: colors.primary }}>
-      {(() => {
-        const confirmationCurrency = first(confirmation, ['currency', 'wallet_currency'], paymentCurrency);
-        return <>
       <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Deposit request submitted</Text>
       {notice ? <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>{notice}</Text> : null}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9, marginTop: 6 }}>
@@ -290,8 +288,6 @@ export default function Deposit() {
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 8 }}>A submitted request is not yet a wallet credit. Follow the server status below.</Text>
       <DepositProgress deposit={confirmation} />
       <View style={{ marginTop: 14 }}><Action title="Record another deposit" secondary onPress={() => { setConfirmation(null); setSelectedDepositId(''); setNotice(''); setError(''); setStage('form'); }} /></View>
-        </>;
-      })()}
     </Card> : null}
 
     <Section title="Recent deposits" right={<Pressable accessibilityRole="button" accessibilityLabel="Refresh deposit history" onPress={() => {
