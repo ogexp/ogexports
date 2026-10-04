@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Image, Platform, Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { Action, Card, Field } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
-import { messageOf, record } from '@/lib/data';
+import { first, messageOf, record } from '@/lib/data';
 import { useInvestorMobileLogin } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { resolvePostAuthHref } from '@/lib/post-auth-route';
+import { authenticateWithBiometrics, getBiometricInfo, type BiometricInfo } from '@/lib/biometrics';
 
 export default function Login() {
-  const { apiOrigin, acceptSession, setChallenge } = useAuth();
+  const { apiOrigin, token, user, biometricEnabled, acceptSession, setChallenge, unlockApp } = useAuth();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -20,6 +21,23 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [biometricInfo, setBiometricInfo] = useState<BiometricInfo | null>(null);
+  const [biometricBusy, setBiometricBusy] = useState(false);
+  const hasSavedBiometricSession = Platform.OS !== 'web' && !!token && biometricEnabled;
+  const savedName = first(record(user), ['name'], 'Saved investor account');
+  const savedEmail = first(record(user), ['email']);
+
+  useEffect(() => {
+    let active = true;
+    if (!hasSavedBiometricSession) {
+      setBiometricInfo(null);
+      return () => { active = false; };
+    }
+    void getBiometricInfo()
+      .then(info => { if (active) setBiometricInfo(info); })
+      .catch(() => { if (active) setBiometricInfo({ available: false, name: 'biometrics' }); });
+    return () => { active = false; };
+  }, [hasSavedBiometricSession]);
 
   async function submit() {
     setError('');
@@ -61,6 +79,36 @@ export default function Login() {
     }
   }
 
+  async function signInWithBiometrics() {
+    setError('');
+    if (!token || !biometricEnabled) {
+      setError('No saved biometric session is available. Sign in with your account password.');
+      return;
+    }
+    setBiometricBusy(true);
+    try {
+      const info = await getBiometricInfo();
+      setBiometricInfo(info);
+      if (!info.available) {
+        setError(`Set up ${info.name} on this device, or sign in with your account password.`);
+        return;
+      }
+      const result = await authenticateWithBiometrics('Verify your identity to sign in to OG Exports');
+      if (result.success) {
+        unlockApp();
+        router.replace(resolvePostAuthHref(returnTo));
+      } else if (!['user_cancel', 'app_cancel', 'system_cancel'].includes(result.error)) {
+        setError(result.error === 'lockout'
+          ? `${info.name} is temporarily locked. Sign in with your account password.`
+          : `${info.name} was not verified. Try again or sign in with your account password.`);
+      }
+    } catch {
+      setError('Biometric sign-in is unavailable. Use your account password instead.');
+    } finally {
+      setBiometricBusy(false);
+    }
+  }
+
   return (
     <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: colors.secondary }} contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 18, paddingBottom: insets.bottom + 24, paddingHorizontal: 22, justifyContent: 'center' }} bottomOffset={72} keyboardShouldPersistTaps="handled">
       <View style={{ alignItems: 'center', marginBottom: 22 }}>
@@ -70,6 +118,25 @@ export default function Login() {
         <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 5 }}>Sign in to your investor account.</Text>
       </View>
       <Card>
+        {hasSavedBiometricSession ? <View style={{ marginBottom: 15, padding: 13, borderRadius: 14, backgroundColor: colors.lightGreen }}>
+          <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>SAVED SECURE SESSION</Text>
+          <Text style={{ color: colors.foreground, fontWeight: '700', marginTop: 5 }}>{savedName}</Text>
+          {savedEmail ? <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 3 }}>{savedEmail}</Text> : null}
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 7, marginBottom: 10 }}>
+            Biometric verification unlocks the session stored securely on this device. Your account password is not stored.
+          </Text>
+          <Action
+            title={biometricInfo?.available ? `Continue with ${biometricInfo.name}` : 'Checking biometric availability…'}
+            icon="unlock"
+            loading={biometricBusy}
+            disabled={!biometricInfo?.available}
+            onPress={() => void signInWithBiometrics()}
+          />
+          {biometricInfo && !biometricInfo.available ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 8 }}>
+            {`Set up Face ID, Touch ID or fingerprint unlock on this device, or continue with your password below.`}
+          </Text> : null}
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, textAlign: 'center', marginTop: 11 }}>Or use your account password</Text>
+        </View> : null}
         <Field label="Email address" value={email} onChangeText={value => { setEmail(value); setError(''); }} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" />
         <Field label="Password" value={password} onChangeText={value => { setPassword(value); setError(''); }} placeholder="Enter your password" secureTextEntry autoCapitalize="none" />
         {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 14, lineHeight: 20 }}>{error}</Text> : null}

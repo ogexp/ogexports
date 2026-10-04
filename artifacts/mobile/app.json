@@ -20,6 +20,12 @@
       "expo-secure-store",
       "expo-sharing",
       [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "OG Exports uses Face ID to unlock your saved investor account and confirm protected actions."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/og-logo.png",

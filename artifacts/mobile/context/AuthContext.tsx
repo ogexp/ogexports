@@ -29,7 +29,8 @@ type AuthValue = {
 
 const AuthContext = createContext<AuthValue | null>(null);
 const ONBOARDING_KEY = 'og-investor-onboarding-complete';
-const BIOMETRIC_KEY = 'og-investor-biometric-login';
+const LEGACY_BIOMETRIC_KEY = 'og-investor-biometric-login';
+const biometricPreferenceKey = (userId: string) => `og-investor-biometric-login:${userId}`;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -49,11 +50,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       getSavedToken().catch(() => null),
       loadSavedUser().catch(() => null),
       AsyncStorage.getItem(ONBOARDING_KEY).catch(() => null),
-      AsyncStorage.getItem(BIOMETRIC_KEY).catch(() => null),
+      AsyncStorage.getItem(LEGACY_BIOMETRIC_KEY).catch(() => null),
       Platform.OS === 'web' ? Promise.resolve(null) : getAppPinOwner(),
-    ]).then(async ([origin, savedToken, savedUser, onboardingFlag, biometricFlag, pinOwner]) => {
+    ]).then(async ([origin, savedToken, savedUser, onboardingFlag, legacyBiometricFlag, pinOwner]) => {
       if (!mounted) return;
       const savedUserId = first(record(savedUser), ['id'], '');
+      let biometricFlag = savedUserId
+        ? await AsyncStorage.getItem(biometricPreferenceKey(savedUserId)).catch(() => null)
+        : null;
+      if (biometricFlag === null && legacyBiometricFlag !== null && savedUserId) {
+        biometricFlag = legacyBiometricFlag;
+        await AsyncStorage.setItem(biometricPreferenceKey(savedUserId), legacyBiometricFlag).catch(() => undefined);
+      }
+      if (legacyBiometricFlag !== null) {
+        await AsyncStorage.removeItem(LEGACY_BIOMETRIC_KEY).catch(() => undefined);
+      }
       const savedPinEnabled = Platform.OS !== 'web' && !!savedToken && !!savedUserId && pinOwner === savedUserId;
       if (Platform.OS !== 'web' && pinOwner && !savedPinEnabled) await removeAppPin();
       setApiOrigin(origin);
@@ -82,10 +93,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const nextUserId = first(record(nextUser), ['id'], '');
     const pinOwner = Platform.OS === 'web' ? null : await getAppPinOwner();
     const nextAppPinEnabled = !!nextUserId && pinOwner === nextUserId && await hasAppPin(nextUserId);
+    const nextBiometricEnabled = !!nextUserId
+      && await AsyncStorage.getItem(biometricPreferenceKey(nextUserId)) === 'enabled';
     if (Platform.OS !== 'web' && pinOwner && !nextAppPinEnabled) await removeAppPin();
     await saveSession(nextToken, nextUser);
     setToken(nextToken);
     setUser(nextUser);
+    setBiometricEnabledState(nextBiometricEnabled);
     setAppPinEnabledState(nextAppPinEnabled);
     setAppUnlocked(true);
     setChallenge(null);
@@ -100,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (Platform.OS !== 'web') await removeAppPin();
     setToken(null);
     setUser(null);
+    setBiometricEnabledState(false);
     setAppPinEnabledState(false);
     setAppUnlocked(true);
     setChallenge(null);
@@ -110,7 +125,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setOnboardingComplete(true);
   };
   const setBiometricEnabled = async (enabled: boolean) => {
-    await AsyncStorage.setItem(BIOMETRIC_KEY, enabled ? 'enabled' : 'disabled');
+    const userId = first(record(user), ['id'], '');
+    if (!userId) throw new Error('Sign in before changing biometric sign-in.');
+    await AsyncStorage.setItem(biometricPreferenceKey(userId), enabled ? 'enabled' : 'disabled');
     setBiometricEnabledState(enabled);
     setAppUnlocked(true);
   };

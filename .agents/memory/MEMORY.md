@@ -9,3 +9,4 @@
 - [OG Exports phase workflow](og-exports-phase-workflow.md) — implement the investor app one user-provided phase at a time, then verify before moving on.
 - [OpenAPI binary uploads](openapi-binary-validation.md) — enforce upload size limits on the server; generated Zod schemas cannot apply maxLength to Blob fields.
 - [Mobile session security](mobile-session-security.md) — Sanctum mobile tokens must be listed and revoked alongside browser sessions; logout-everywhere also invalidates the current token.
+- [Biometric session unlock](biometric-session-unlock.md) — Face ID/fingerprint unlocks only a securely stored, account-scoped session; never store passwords or remove password fallback.

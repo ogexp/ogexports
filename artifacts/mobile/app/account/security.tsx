@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
-import * as LocalAuthentication from 'expo-local-authentication';
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import {
@@ -20,6 +19,7 @@ import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { saveAppPin, verifyAppPin } from '@/lib/app-pin';
+import { authenticateWithBiometrics, getBiometricInfo } from '@/lib/biometrics';
 
 function displayDate(value: unknown) {
   if (typeof value !== 'string' || !value) return 'Date unavailable';
@@ -86,6 +86,15 @@ export default function Security() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [biometricName, setBiometricName] = useState('biometrics');
+
+  useEffect(() => {
+    let active = true;
+    void getBiometricInfo()
+      .then(info => { if (active) setBiometricName(info.name); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
 
   function refreshSecurity() {
     void queryClient.invalidateQueries({ queryKey: ['investor-security-sessions'] });
@@ -145,19 +154,18 @@ export default function Security() {
     }
   }
 
-  async function verifyOnDevice() {
-    if (Platform.OS === 'web') throw new Error('Device biometrics are not available in the web preview.');
-    const [hardware, enrolled] = await Promise.all([
-      LocalAuthentication.hasHardwareAsync(),
-      LocalAuthentication.isEnrolledAsync(),
-    ]);
-    if (!hardware || !enrolled) throw new Error('Set up Face ID, fingerprint or a device passcode before enabling biometric login.');
-    const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Confirm your identity',
-      cancelLabel: 'Cancel',
-      disableDeviceFallback: false,
-    });
-    if (!result.success) throw new Error('Biometric authentication was not completed.');
+  async function verifyOnDevice(): Promise<string> {
+    const info = await getBiometricInfo();
+    setBiometricName(info.name);
+    if (!info.available) throw new Error(`Set up ${info.name} on this device before enabling biometric sign-in.`);
+    const result = await authenticateWithBiometrics(`Confirm ${info.name} sign-in`);
+    if (!result.success) {
+      if (['user_cancel', 'app_cancel', 'system_cancel'].includes(result.error)) {
+        throw new Error('Verification cancelled. No security settings were changed.');
+      }
+      throw new Error(`${info.name} verification failed. No security settings were changed.`);
+    }
+    return info.name;
   }
 
   async function toggleBiometrics() {
@@ -165,9 +173,17 @@ export default function Security() {
     setNotice('');
     setBusy(true);
     try {
-      await verifyOnDevice();
+      let verifiedName = biometricName;
+      if (!biometricEnabled) {
+        verifiedName = await verifyOnDevice();
+      } else {
+        const info = await getBiometricInfo();
+        setBiometricName(info.name);
+        verifiedName = info.name;
+        if (info.available) verifiedName = await verifyOnDevice();
+      }
       await setBiometricEnabled(!biometricEnabled);
-      setNotice(biometricEnabled ? 'Biometric login disabled on this device.' : 'Biometric login enabled on this device.');
+      setNotice(biometricEnabled ? `${verifiedName} sign-in disabled on this device.` : `${verifiedName} sign-in enabled on this device.`);
     } catch (err) {
       setError(messageOf(err));
     } finally {
@@ -342,15 +358,15 @@ export default function Security() {
       </>}
     </Card>
 
-    <Section title="Biometric sign-in" />
+    <Section title={biometricName === 'Face ID' || biometricName === 'Touch ID' ? `${biometricName} sign-in` : 'Biometric sign-in'} />
     <Card>
       <Text style={{ color: colors.foreground, fontWeight: '700' }}>{biometricEnabled ? 'Enabled on this device' : 'Not enabled'}</Text>
       <Text style={{ color: colors.mutedForeground, marginTop: 6, lineHeight: 19, fontSize: 12 }}>
         {Platform.OS === 'web'
           ? 'Manage biometric sign-in in the mobile app on a device with Face ID or fingerprint support.'
-          : 'Biometric verification stays on your device. Your saved account token remains in secure device storage.'}
+          : `${biometricName} verifies on this device only. When enabled, it unlocks your saved account session; your password is never stored.`}
       </Text>
-      {Platform.OS !== 'web' ? <View style={{ marginTop: 14 }}><Action title={biometricEnabled ? 'Turn off biometric login' : 'Enable biometric login'} icon="lock" secondary={biometricEnabled} loading={busy} onPress={() => void toggleBiometrics()} /></View> : null}
+      {Platform.OS !== 'web' ? <View style={{ marginTop: 14 }}><Action title={biometricEnabled ? `Turn off ${biometricName} sign-in` : `Enable ${biometricName} sign-in`} icon="unlock" secondary={biometricEnabled} loading={busy} onPress={() => void toggleBiometrics()} /></View> : null}
     </Card>
 
     <Section title="Password & transaction security" />

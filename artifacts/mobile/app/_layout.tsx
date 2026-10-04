@@ -67,7 +67,7 @@ function RootLayoutNav() {
     if (!ready) return;
     const firstSegment = String(segments[0] ?? '');
     const publicSegments = new Set(['', 'index', 'onboarding', '(auth)']);
-    if (token && !appUnlocked && firstSegment !== 'lock') {
+    if (token && !appUnlocked && firstSegment !== 'lock' && firstSegment !== '(auth)') {
       router.replace({ pathname: '/lock', params: { returnTo } });
       return;
     }
@@ -79,6 +79,7 @@ function RootLayoutNav() {
   if (token && !appUnlocked) {
     return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="lock" />
+      <Stack.Screen name="(auth)" options={{ presentation: 'modal', headerShown: false }} />
     </Stack>;
   }
 
