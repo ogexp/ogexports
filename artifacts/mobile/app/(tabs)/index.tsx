@@ -15,14 +15,24 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
 
-function Metric({ label, value, icon, detail }: { label: string; value: string; icon: keyof typeof Feather.glyphMap; detail?: string }) {
+function DemoTag() {
+  const colors = useColors();
+  return <View style={{ backgroundColor: colors.accent, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 }}>
+    <Text style={{ color: colors.accentForeground, fontSize: 8, letterSpacing: 0.55, fontWeight: '800' }}>DEMO</Text>
+  </View>;
+}
+
+function Metric({ label, value, icon, detail, demo = false }: { label: string; value: string; icon: keyof typeof Feather.glyphMap; detail?: string; demo?: boolean }) {
   const colors = useColors();
   return <View style={{ flex: 1, minWidth: 138, padding: 15, borderRadius: 18, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 12, flex: 1 }}>{label}</Text>
       <Feather name={icon} size={15} color={colors.accent} />
     </View>
-    <Text adjustsFontSizeToFit numberOfLines={1} style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', marginTop: 9 }}>{value}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 9 }}>
+      <Text adjustsFontSizeToFit numberOfLines={1} style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', flexShrink: 1 }}>{value}</Text>
+      {demo ? <DemoTag /> : null}
+    </View>
     {detail ? <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 4 }}>{detail}</Text> : null}
   </View>;
 }
@@ -64,11 +74,23 @@ export default function InvestorHome() {
   const wallet = record(data.wallet);
   const series = record(data.portfolio_series);
   const currency = first(wallet, ['currency', 'default_currency']);
-  const balance = amount(wallet, ['available_balance', 'balance', 'available']) ?? amount(summary, ['available_balance']);
-  const portfolioTotal = amount(summary, ['total_portfolio_value', 'portfolio_value', 'total_value']);
-  const investedCapital = amount(summary, ['total_investment', 'total_investment_usd', 'invested_capital']);
-  const returns = amount(summary, ['total_profit_earned', 'total_profit_earned_usd', 'total_returns', 'profit']);
-  const activeCount = amount(summary, ['active_investments_count', 'active_investment_count', 'investments_count']);
+  const liveBalance = amount(wallet, ['available_balance', 'balance', 'available']) ?? amount(summary, ['available_balance']);
+  const livePortfolioTotal = amount(summary, ['total_portfolio_value', 'portfolio_value', 'total_value']);
+  const liveInvestedCapital = amount(summary, ['total_investment', 'total_investment_usd', 'invested_capital']);
+  const liveReturns = amount(summary, ['total_profit_earned', 'total_profit_earned_usd', 'total_returns', 'profit']);
+  const liveActiveCount = amount(summary, ['active_investments_count', 'active_investment_count', 'investments_count']);
+  const demoFallbacksAvailable = !!token && dashboard.isFetched && !dashboard.isLoading;
+  const demoBalance = demoFallbacksAvailable && liveBalance == null;
+  const demoPortfolioTotal = demoFallbacksAvailable && livePortfolioTotal == null;
+  const demoInvestedCapital = demoFallbacksAvailable && liveInvestedCapital == null;
+  const demoReturns = demoFallbacksAvailable && liveReturns == null;
+  const demoActiveCount = demoFallbacksAvailable && liveActiveCount == null;
+  const balance = liveBalance ?? (demoBalance ? 2_000 : null);
+  const portfolioTotal = livePortfolioTotal ?? (demoPortfolioTotal ? 10_500 : null);
+  const investedCapital = liveInvestedCapital ?? (demoInvestedCapital ? 10_000 : null);
+  const returns = liveReturns ?? (demoReturns ? 500 : null);
+  const activeCount = liveActiveCount ?? (demoActiveCount ? 2 : null);
+  const hasDemoValues = demoBalance || demoPortfolioTotal || demoInvestedCapital || demoReturns || demoActiveCount;
   const name = first(record(user), ['name', 'first_name'], 'Investor');
   const firstName = name.split(/\s+/)[0] || 'Investor';
   const initials = name.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'OG';
@@ -139,7 +161,7 @@ export default function InvestorHome() {
       <Pressable accessibilityRole="button" accessibilityLabel="Open investor wallet" onPress={() => router.push('/(tabs)/wallet')}
         style={({ pressed }) => ({ alignSelf: 'center', marginTop: 20, minHeight: 34, borderRadius: 20, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: 'rgba(255,255,255,0.12)', opacity: pressed ? 0.8 : 1 })}>
         <Feather name="credit-card" size={14} color={colors.primaryForeground} />
-        <Text numberOfLines={1} style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: '700' }}>{currency ? `${currency} Account` : 'Investor Wallet'}</Text>
+        <Text numberOfLines={1} style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: '700' }}>{demoBalance ? 'DEMO · USD' : currency ? `${currency} Account` : 'Investor Wallet'}</Text>
         <Feather name="chevron-down" size={14} color={colors.primaryForeground} />
       </Pressable>
 
@@ -151,11 +173,14 @@ export default function InvestorHome() {
             <Feather name={balanceHidden ? 'eye-off' : 'eye'} size={15} color={colors.primaryForeground} />
           </Pressable>
         </View>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.primaryForeground, fontSize: 38, fontWeight: '700', letterSpacing: -1.1, marginTop: 4 }}>
-          {dashboard.isLoading ? '…' : displayMoney(balance)}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 4 }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.primaryForeground, fontSize: 38, fontWeight: '700', letterSpacing: -1.1, flexShrink: 1 }}>
+            {dashboard.isLoading ? '…' : displayMoney(balance, demoBalance ? 'USD' : currency)}
+          </Text>
+          {demoBalance ? <DemoTag /> : null}
+        </View>
         <Text style={{ color: colors.primaryForeground, fontSize: 11, opacity: 0.72, marginTop: 4 }}>
-          {currency ? `${currency} wallet` : 'Investor account'}
+          {demoBalance ? 'Illustrative example only' : currency ? `${currency} wallet` : 'Investor account'}
         </Text>
       </View>
     </LinearGradient>
@@ -171,6 +196,11 @@ export default function InvestorHome() {
         </Pressable>
       ))}
     </View>
+
+    {hasDemoValues ? <View accessibilityRole="summary" style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 9, padding: 13, marginBottom: 12, borderRadius: 14, backgroundColor: colors.statusPendingBackground, borderWidth: 1, borderColor: colors.border }}>
+      <Feather name="info" size={16} color={colors.statusPending} style={{ marginTop: 1 }} />
+      <Text style={{ flex: 1, color: colors.statusPending, fontSize: 12, lineHeight: 18, fontWeight: '600' }}>DEMO figures are illustrative examples only — they are not real account data.</Text>
+    </View> : null}
 
     {dashboard.isError ? <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 4, paddingVertical: 5 }}>
       <Text style={{ flex: 1, color: colors.mutedForeground, fontSize: 11 }}>Live wallet details are unavailable.</Text>
@@ -240,10 +270,10 @@ export default function InvestorHome() {
 
     <Section title="Portfolio overview" right={<Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/portfolio')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>View all</Text></Pressable>} />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 3 }}>
-      <Metric label="Total Portfolio" value={dashboard.isLoading ? 'Loading…' : displayMoney(portfolioTotal)} icon="pie-chart" detail="Reported by OG Exports" />
-      <Metric label="Invested Capital" value={dashboard.isLoading ? 'Loading…' : displayMoney(investedCapital)} icon="briefcase" detail="Current investments" />
-      <Metric label="Total Returns" value={dashboard.isLoading ? 'Loading…' : displayMoney(returns)} icon="bar-chart-2" detail="Reported by OG Exports" />
-      <Metric label="Active Investments" value={dashboard.isLoading ? 'Loading…' : activeCount == null ? '—' : String(activeCount)} icon="activity" detail="Current positions" />
+      <Metric label="Total Portfolio" value={dashboard.isLoading ? 'Loading…' : displayMoney(portfolioTotal, demoPortfolioTotal ? 'USD' : currency)} icon="pie-chart" detail={demoPortfolioTotal ? 'Illustrative example only' : 'Reported by OG Exports'} demo={demoPortfolioTotal} />
+      <Metric label="Invested Capital" value={dashboard.isLoading ? 'Loading…' : displayMoney(investedCapital, demoInvestedCapital ? 'USD' : currency)} icon="briefcase" detail={demoInvestedCapital ? 'Illustrative example only' : 'Current investments'} demo={demoInvestedCapital} />
+      <Metric label="Total Returns" value={dashboard.isLoading ? 'Loading…' : displayMoney(returns, demoReturns ? 'USD' : currency)} icon="bar-chart-2" detail={demoReturns ? 'Illustrative example only' : 'Reported by OG Exports'} demo={demoReturns} />
+      <Metric label="Active Investments" value={dashboard.isLoading ? 'Loading…' : activeCount == null ? '—' : String(activeCount)} icon="activity" detail={demoActiveCount ? 'Illustrative example only' : 'Current positions'} demo={demoActiveCount} />
     </View>
   </ScrollView>;
 }

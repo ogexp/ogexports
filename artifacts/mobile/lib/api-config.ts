@@ -28,8 +28,7 @@ export function configureApiOrigin(input: string): string {
 
 export async function loadApiOrigin(): Promise<string> {
   const saved = await AsyncStorage.getItem(ORIGIN_KEY);
-  const fromEnvironment = process.env.EXPO_PUBLIC_API_BASE_URL
-    ?? (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : '');
+  const fromEnvironment = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
   const origin = saved || fromEnvironment;
   if (!origin) return '';
   try {
