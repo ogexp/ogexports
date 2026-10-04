@@ -17,6 +17,8 @@ export default function Wallet() {
   const inner = data.data && typeof data.data === 'object' ? data.data as Record<string, unknown> : data;
   const currency = first(inner, ['currency', 'default_currency']);
   const balance = amount(inner, ['available_balance', 'balance', 'available']);
+  const investedBalance = amount(inner, ['invested_balance', 'investment_balance']);
+  const pendingBalance = amount(inner, ['pending_balance', 'pending_amount']);
   const rows = list(transactions.data);
   return <Screen title="Wallet" subtitle="Balances, deposits and withdrawals">
     <Card style={{ backgroundColor: colors.primary, borderColor: colors.primary, padding: 20 }}>
@@ -24,6 +26,12 @@ export default function Wallet() {
       <Text style={{ color: colors.primaryForeground, fontSize: 32, fontWeight: '700', marginTop: 8 }}>{wallet.isLoading ? '…' : balance != null && currency ? money(balance, currency) : '—'}</Text>
       <Text style={{ color: colors.primaryForeground, opacity: 0.8, fontSize: 12, marginTop: 8 }}>{currency ? `${currency} wallet` : 'Account currency unavailable'}</Text>
     </Card>
+    <View style={{ flexDirection: 'row', gap: 9 }}>
+      {[['Invested balance', investedBalance], ['Pending balance', pendingBalance]].map(([label, value]) => <Card key={String(label)} style={{ flex: 1, padding: 13 }}>
+        <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{String(label)}</Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 7 }}>{value != null && currency ? money(value, currency) : '—'}</Text>
+      </Card>)}
+    </View>
     {wallet.isError ? <ErrorState message="Wallet balance could not be loaded." onRetry={() => void wallet.refetch()} /> : null}
     <View style={{ flexDirection: 'row', gap: 10 }}><View style={{ flex: 1 }}><Action title="Add funds" icon="plus" onPress={() => router.push('/wallet/deposit')} /></View><View style={{ flex: 1 }}><Action title="Withdraw" icon="arrow-up-right" secondary onPress={() => router.push('/wallet/withdraw')} /></View></View>
     <Section title="Recent activity" right={<Pressable onPress={() => void transactions.refetch()}><Feather name="refresh-cw" size={15} color={colors.primary} /></Pressable>} />

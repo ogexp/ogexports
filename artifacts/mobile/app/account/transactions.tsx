@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useGetInvestorInvestments, useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, Field, Screen } from '@/components/InvestorUI';
@@ -8,6 +8,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
 type ActivityTab = 'Wallet' | 'Investments';
+type TransactionFilter = 'All' | 'Deposits' | 'Withdrawals' | 'Investments' | 'Returns' | 'Fees';
+const transactionFilters: TransactionFilter[] = ['All', 'Deposits', 'Withdrawals', 'Investments', 'Returns', 'Fees'];
 
 function DetailLine({ label, value }: { label: string; value: string }) {
   const colors = useColors();
@@ -21,6 +23,7 @@ export default function Transactions() {
   const { token } = useAuth();
   const colors = useColors();
   const [tab, setTab] = useState<ActivityTab>('Wallet');
+  const [filter, setFilter] = useState<TransactionFilter>('All');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState('');
   const transactionsQuery = useGetInvestorWalletTransactions({ page: 1, per_page: 100 }, {
@@ -34,7 +37,15 @@ export default function Transactions() {
   const currency = first(wallet, ['currency']);
   const transactions = list(transactionsQuery.data);
   const investments = list(investmentsQuery.data);
-  const rows = tab === 'Wallet' ? transactions : investments;
+  const rows = (tab === 'Wallet' ? transactions : investments).filter(item => {
+    if (tab === 'Investments' || filter === 'All') return true;
+    const type = `${first(item, ['type', 'transaction_type', 'category'])} ${first(item, ['description', 'title'])}`.toLowerCase();
+    if (filter === 'Deposits') return /deposit|top.?up|funding/.test(type);
+    if (filter === 'Withdrawals') return /withdraw|payout/.test(type);
+    if (filter === 'Investments') return /invest|purchase|participation/.test(type);
+    if (filter === 'Returns') return /return|profit|distribution|dividend/.test(type);
+    return /fee|charge/.test(type);
+  });
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return rows;
@@ -52,6 +63,7 @@ export default function Transactions() {
   function setActivityTab(next: ActivityTab) {
     setTab(next);
     setSelectedId('');
+    setFilter('All');
   }
 
   return <Screen title="Transaction history" subtitle="Search your wallet activity and investment records">
@@ -63,6 +75,11 @@ export default function Transactions() {
         </Pressable>;
       })}
     </View>
+    {tab === 'Wallet' ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7, paddingBottom: 12 }}>
+      {transactionFilters.map(item => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: filter === item }} onPress={() => { setFilter(item); setSelectedId(''); }} style={{ borderRadius: 18, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: filter === item ? colors.primary : colors.secondary, borderWidth: 1, borderColor: filter === item ? colors.primary : colors.border }}>
+        <Text style={{ color: filter === item ? colors.primaryForeground : colors.mutedForeground, fontSize: 11, fontWeight: '700' }}>{item}</Text>
+      </Pressable>)}
+    </ScrollView> : null}
     <Field label="Search history" value={search} onChangeText={setSearch} placeholder="Reference, project, type or status" autoCapitalize="none" />
     {walletQuery.isError && tab === 'Wallet' ? <ErrorState message="Wallet currency details could not be loaded." onRetry={() => void walletQuery.refetch()} /> : null}
     {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading {tab.toLowerCase()}…</Text></Card> : null}
@@ -96,8 +113,11 @@ export default function Transactions() {
             <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>{status}</Text>
           </View>
           {active && tab === 'Wallet' ? <View style={{ marginTop: 12 }}>
+            <DetailLine label="Transaction ID" value={first(item, ['transaction_id', 'id'], 'Not provided')} />
+            <DetailLine label="Date" value={date || 'Not provided'} />
             <DetailLine label="Type" value={first(item, ['type', 'transaction_type', 'category'], 'Not provided')} />
             <DetailLine label="Payment method" value={first(item, ['payment_method', 'method'], 'Not provided')} />
+            <DetailLine label="Related investment" value={first(item, ['project_title', 'project_name', 'investment_reference'], 'Not provided')} />
             {amount(item, ['fee', 'fees', 'transaction_fee']) != null ? <DetailLine label="Fee" value={money(amount(item, ['fee', 'fees', 'transaction_fee']), first(item, ['currency'], currency))} /> : null}
             {amount(item, ['net_amount', 'received_amount', 'payout_amount']) != null ? <DetailLine label="Net amount" value={money(amount(item, ['net_amount', 'received_amount', 'payout_amount']), first(item, ['currency'], currency))} /> : null}
             {amount(item, ['balance_after']) != null ? <DetailLine label="Balance after" value={money(amount(item, ['balance_after']), first(item, ['currency'], currency))} /> : null}

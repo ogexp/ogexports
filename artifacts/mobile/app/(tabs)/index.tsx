@@ -7,6 +7,7 @@ import { Card, EmptyState, ErrorState, Screen, Section, Status } from '@/compone
 import { amount, first, list, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
 
 export default function InvestorHome() {
   const { token, user } = useAuth();
@@ -16,6 +17,7 @@ export default function InvestorHome() {
   const data = unwrap(dashboard.data);
   const summary = record(data.summary);
   const wallet = record(data.wallet);
+  const portfolioSeries = record(data.portfolio_series);
   const name = first(record(user), ['name', 'first_name'], 'Investor');
   const balance = amount(wallet, ['available_balance', 'balance', 'available']) ?? amount(summary, ['available_balance']);
   const total = amount(summary, ['total_investment', 'total_investment_usd', 'portfolio_value']);
@@ -30,7 +32,10 @@ export default function InvestorHome() {
   ];
 
   return (
-    <Screen title={`Good to see you, ${name.split(' ')[0]}`} subtitle="Your OG Exports investor overview">
+    <Screen title={`Good to see you, ${name.split(' ')[0]}`} subtitle="Your OG Exports investor overview" action={<View style={{ flexDirection: 'row', gap: 15, alignItems: 'center' }}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Open notifications" onPress={() => router.push('/account/notifications')}><Feather name="bell" size={19} color={colors.primary} /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Open profile" onPress={() => router.push('/(tabs)/account')}><Feather name="user" size={19} color={colors.primary} /></Pressable>
+    </View>}>
       <Card style={{ backgroundColor: colors.primary, borderColor: colors.primary, padding: 20 }}>
         <Text style={{ color: colors.primaryForeground, opacity: 0.78, fontSize: 12, fontWeight: '600' }}>TOTAL INVESTED</Text>
         <Text style={{ color: colors.primaryForeground, fontSize: 33, fontWeight: '700', marginTop: 8 }}>{money(total, first(wallet, ['currency']))}</Text>
@@ -42,6 +47,7 @@ export default function InvestorHome() {
       </Card>
 
       {dashboard.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading your live account summary…</Text></Card> : dashboard.isError ? <ErrorState message="Your live investor summary could not be loaded." onRetry={() => void dashboard.refetch()} /> : null}
+      <PortfolioHistoryCard points={portfolioSeries.points} currency={first(wallet, ['currency'])} loading={dashboard.isLoading} compact />
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 }}>
         {quickActions.map(action => <Pressable key={action.title} onPress={action.onPress} style={{ width: '48.5%', backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 15, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
