@@ -4,9 +4,6 @@ import { router } from 'expo-router';
 import { Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { Action, Card } from '@/components/InvestorUI';
-import { useAuth } from '@/context/AuthContext';
-import { messageOf } from '@/lib/data';
-import { useInvestorRegister } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -90,10 +87,8 @@ function RegisterField({
 }
 
 export default function Register() {
-  const { setChallenge } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const mutation = useInvestorRegister();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -101,6 +96,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
   const confirmationHint = !confirmPassword
     ? 'Enter the password again to confirm.'
@@ -108,18 +104,13 @@ export default function Register() {
       ? 'Passwords match.'
       : 'Passwords do not match.';
 
-  async function submit() {
+  function submit() {
     setError('');
+    setNotice('');
     if (!email.trim()) { setError('Enter your email address.'); return; }
     if (password.length < 8) { setError('Use a password with at least 8 characters.'); return; }
     if (password !== confirmPassword) { setError('The password and confirmation do not match.'); return; }
-    try {
-      await mutation.mutateAsync({ data: { email: email.trim(), password, password_confirmation: confirmPassword, account_type: 'investor' } });
-      setChallenge({ email: email.trim(), mode: 'email' });
-      router.push('/(auth)/verify');
-    } catch (err) {
-      setError(messageOf(err));
-    }
+    setNotice('No account was created and no verification code was sent. Signup is not connected yet.');
   }
 
   const topInset = Platform.OS === 'web' ? 72 : insets.top + 10;
@@ -160,8 +151,8 @@ export default function Register() {
           <Feather name="mail" size={17} color={colors.primary} />
         </View>
         <View style={s.noteCopy}>
-          <Text style={[s.noteTitle, { color: colors.primary }]}>Email verification next</Text>
-          <Text style={[s.noteBody, { color: colors.mutedForeground }]}>We’ll send a code to the address you enter.</Text>
+          <Text style={[s.noteTitle, { color: colors.primary }]}>Signup is not connected yet</Text>
+          <Text style={[s.noteBody, { color: colors.mutedForeground }]}>Your details stay on this screen and won’t be sent.</Text>
         </View>
       </View>
 
@@ -171,7 +162,7 @@ export default function Register() {
           label="Email address"
           icon="mail"
           value={email}
-          onChangeText={value => { setEmail(value); setError(''); }}
+          onChangeText={value => { setEmail(value); setError(''); setNotice(''); }}
           placeholder="name@example.com"
           keyboardType="email-address"
           autoComplete="email"
@@ -184,7 +175,7 @@ export default function Register() {
           label="Password"
           icon="lock"
           value={password}
-          onChangeText={value => { setPassword(value); setError(''); }}
+          onChangeText={value => { setPassword(value); setError(''); setNotice(''); }}
           placeholder="At least 8 characters"
           autoComplete="new-password"
           textContentType="newPassword"
@@ -210,7 +201,7 @@ export default function Register() {
           label="Confirm password"
           icon="lock"
           value={confirmPassword}
-          onChangeText={value => { setConfirmPassword(value); setError(''); }}
+          onChangeText={value => { setConfirmPassword(value); setError(''); setNotice(''); }}
           placeholder="Re-enter your password"
           autoComplete="new-password"
           textContentType="newPassword"
@@ -238,12 +229,17 @@ export default function Register() {
             <Text accessibilityRole="alert" style={[s.errorText, { color: colors.destructive }]}>{error}</Text>
           </View>
         ) : null}
+        {notice ? (
+          <View style={s.noticeRow}>
+            <Feather name="info" size={16} color={colors.primary} />
+            <Text style={[s.errorText, { color: colors.mutedForeground }]}>{notice}</Text>
+          </View>
+        ) : null}
         <Action
           title="Create account"
           icon="arrow-right"
-          loading={mutation.isPending}
           disabled={!email.trim() || !password || !confirmPassword}
-          onPress={() => void submit()}
+          onPress={submit}
         />
       </Card>
 
@@ -284,6 +280,7 @@ const s = StyleSheet.create({
   hintRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   hint: { fontSize: 11, lineHeight: 16 },
   errorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 14 },
+  noticeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 14 },
   errorText: { flex: 1, fontSize: 12, lineHeight: 18 },
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 5 },
   footerText: { fontSize: 13 },
