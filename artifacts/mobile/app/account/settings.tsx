@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { isRunningInExpoGo } from 'expo';
 import { useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
@@ -111,6 +112,10 @@ export default function Settings() {
     setPushError('');
     if (Platform.OS === 'web') {
       setPushError('Push notifications can only be enabled on an iOS or Android device.');
+      return;
+    }
+    if (Platform.OS === 'android' && isRunningInExpoGo()) {
+      setPushError('Android Expo Go does not support remote push notifications. Install a development or published app build to enable them.');
       return;
     }
     if (!expoProjectId) {

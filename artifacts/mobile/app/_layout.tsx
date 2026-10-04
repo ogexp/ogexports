@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { router, Stack, useGlobalSearchParams, usePathname, useSegments } from 'expo-router';
+import { isRunningInExpoGo } from 'expo';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Inter_400Regular,
@@ -35,7 +36,7 @@ function RootLayoutNav() {
   const returnTo = serializeRouteState(pathname, routeParams);
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web' || (Platform.OS === 'android' && isRunningInExpoGo())) return;
     let active = true;
     let subscription: { remove: () => void } | undefined;
     const handledResponses = new Set<string>();
