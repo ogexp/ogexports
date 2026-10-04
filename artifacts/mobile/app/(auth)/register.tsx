@@ -3,7 +3,7 @@ import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
-import { Action } from '@/components/InvestorUI';
+import { Action, Card } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
 import { messageOf } from '@/lib/data';
 import { useInvestorRegister } from '@workspace/api-client-react';
@@ -154,6 +154,7 @@ export default function Register() {
       </View>
 
       <View style={s.form}>
+        <Card style={s.registerCard}>
         <RegisterField
           label="FULL NAME"
           value={fullName}
@@ -238,6 +239,7 @@ export default function Register() {
           disabled={!fullName.trim() || !email.trim() || !password || !confirmPassword}
           onPress={() => void submit()}
         />
+        </Card>
       </View>
 
       <View style={s.footer}>
@@ -262,6 +264,7 @@ const s = StyleSheet.create({
   title: { fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.6 },
   subtitle: { fontSize: 13, lineHeight: 19, marginTop: 6, textAlign: 'center' },
   form: { width: '100%' },
+  registerCard: { padding: 18, marginBottom: 14 },
   field: { gap: 5, marginBottom: 15 },
   label: { fontSize: 12, fontWeight: '600', letterSpacing: 0.65 },
   inputShell: { minHeight: 46, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, paddingHorizontal: 4 },
