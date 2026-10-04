@@ -6,6 +6,11 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { InvestorProjectDetail } from './investorProjectDetail';
-import type { InvestorProjectDetailEnvelope } from './investorProjectDetailEnvelope';
 
-export type InvestorProjectDetailResponse = InvestorProjectDetail | InvestorProjectDetailEnvelope;
+/**
+ * Laravel project resource response envelope.
+ */
+export interface InvestorProjectDetailResponse {
+  data: InvestorProjectDetail;
+  [key: string]: unknown;
+ }

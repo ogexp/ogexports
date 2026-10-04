@@ -309,14 +309,28 @@ export interface InvestorProjectDetail {
  }
 
 /**
- * Laravel resource response wrapper.
+ * Laravel project resource response envelope.
  */
-export interface InvestorProjectDetailEnvelope {
+export interface InvestorProjectDetailResponse {
   data: InvestorProjectDetail;
   [key: string]: unknown;
  }
 
-export type InvestorProjectDetailResponse = InvestorProjectDetail | InvestorProjectDetailEnvelope;
+/**
+ * Investor position fields and its Laravel project resource.
+ */
+export interface InvestorInvestmentDetail {
+  project: InvestorProjectDetail;
+  [key: string]: unknown;
+ }
+
+/**
+ * Laravel investor investment resource envelope.
+ */
+export interface InvestorInvestmentDetailResponse {
+  data: InvestorInvestmentDetail;
+  [key: string]: unknown;
+ }
 
 /**
  * Financial summary amounts are denominated in display_currency.

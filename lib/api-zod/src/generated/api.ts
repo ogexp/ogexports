@@ -236,387 +236,162 @@ export const GetInvestorProjectParams = zod.object({
   "id": zod.coerce.string()
 })
 
-export const getInvestorProjectResponseOneContainerContainerNumberMax = 80;
+export const getInvestorProjectResponseDataContainerContainerNumberMax = 80;
 
-export const getInvestorProjectResponseOneContainerBillOfLadingNumberMax = 120;
+export const getInvestorProjectResponseDataContainerBillOfLadingNumberMax = 120;
 
-export const getInvestorProjectResponseOneContainerVesselNameMax = 160;
+export const getInvestorProjectResponseDataContainerVesselNameMax = 160;
 
-export const getInvestorProjectResponseOneContainerPortOfLoadingMax = 160;
+export const getInvestorProjectResponseDataContainerPortOfLoadingMax = 160;
 
-export const getInvestorProjectResponseOneContainerDestinationPortMax = 160;
+export const getInvestorProjectResponseDataContainerDestinationPortMax = 160;
 
-export const getInvestorProjectResponseOneContainerEtdMax = 64;
+export const getInvestorProjectResponseDataContainerEtdMax = 64;
 
-export const getInvestorProjectResponseOneContainerEtaMax = 64;
+export const getInvestorProjectResponseDataContainerEtaMax = 64;
 
-export const getInvestorProjectResponseOneContainerLatestTrackingUpdateMax = 1000;
+export const getInvestorProjectResponseDataContainerLatestTrackingUpdateMax = 1000;
 
-export const getInvestorProjectResponseOneContainerTradeStatusMax = 80;
+export const getInvestorProjectResponseDataContainerTradeStatusMax = 80;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyOriginStatusMax = 80;
+export const getInvestorProjectResponseDataContainerContainerJourneyOriginStatusMax = 80;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyOriginDateMax = 64;
+export const getInvestorProjectResponseDataContainerContainerJourneyOriginDateMax = 64;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyOriginDetailsMax = 1000;
+export const getInvestorProjectResponseDataContainerContainerJourneyOriginDetailsMax = 1000;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyPortStatusMax = 80;
+export const getInvestorProjectResponseDataContainerContainerJourneyPortStatusMax = 80;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyPortDateMax = 64;
+export const getInvestorProjectResponseDataContainerContainerJourneyPortDateMax = 64;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyPortDetailsMax = 1000;
+export const getInvestorProjectResponseDataContainerContainerJourneyPortDetailsMax = 1000;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyVesselStatusMax = 80;
+export const getInvestorProjectResponseDataContainerContainerJourneyVesselStatusMax = 80;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyVesselDateMax = 64;
+export const getInvestorProjectResponseDataContainerContainerJourneyVesselDateMax = 64;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyVesselDetailsMax = 1000;
+export const getInvestorProjectResponseDataContainerContainerJourneyVesselDetailsMax = 1000;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyDestinationStatusMax = 80;
+export const getInvestorProjectResponseDataContainerContainerJourneyDestinationStatusMax = 80;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyDestinationDateMax = 64;
+export const getInvestorProjectResponseDataContainerContainerJourneyDestinationDateMax = 64;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyDestinationDetailsMax = 1000;
+export const getInvestorProjectResponseDataContainerContainerJourneyDestinationDetailsMax = 1000;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyBuyerStatusMax = 80;
+export const getInvestorProjectResponseDataContainerContainerJourneyBuyerStatusMax = 80;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyBuyerDateMax = 64;
+export const getInvestorProjectResponseDataContainerContainerJourneyBuyerDateMax = 64;
 
-export const getInvestorProjectResponseOneContainerContainerJourneyBuyerDetailsMax = 1000;
+export const getInvestorProjectResponseDataContainerContainerJourneyBuyerDetailsMax = 1000;
 
-export const getInvestorProjectResponseOneContainerContainerJourneySettlementStatusMax = 80;
+export const getInvestorProjectResponseDataContainerContainerJourneySettlementStatusMax = 80;
 
-export const getInvestorProjectResponseOneContainerContainerJourneySettlementDateMax = 64;
+export const getInvestorProjectResponseDataContainerContainerJourneySettlementDateMax = 64;
 
-export const getInvestorProjectResponseOneContainerContainerJourneySettlementDetailsMax = 1000;
+export const getInvestorProjectResponseDataContainerContainerJourneySettlementDetailsMax = 1000;
 
-export const getInvestorProjectResponseOneTradeUpdatesItemAttachmentSizeBytesMin = 0;
+export const getInvestorProjectResponseDataTradeUpdatesItemAttachmentSizeBytesMin = 0;
 
-export const getInvestorProjectResponseOneProjectContainerContainerNumberMax = 80;
+export const getInvestorProjectResponseDataProjectContainerContainerNumberMax = 80;
 
-export const getInvestorProjectResponseOneProjectContainerBillOfLadingNumberMax = 120;
+export const getInvestorProjectResponseDataProjectContainerBillOfLadingNumberMax = 120;
 
-export const getInvestorProjectResponseOneProjectContainerVesselNameMax = 160;
+export const getInvestorProjectResponseDataProjectContainerVesselNameMax = 160;
 
-export const getInvestorProjectResponseOneProjectContainerPortOfLoadingMax = 160;
+export const getInvestorProjectResponseDataProjectContainerPortOfLoadingMax = 160;
 
-export const getInvestorProjectResponseOneProjectContainerDestinationPortMax = 160;
+export const getInvestorProjectResponseDataProjectContainerDestinationPortMax = 160;
 
-export const getInvestorProjectResponseOneProjectContainerEtdMax = 64;
+export const getInvestorProjectResponseDataProjectContainerEtdMax = 64;
 
-export const getInvestorProjectResponseOneProjectContainerEtaMax = 64;
+export const getInvestorProjectResponseDataProjectContainerEtaMax = 64;
 
-export const getInvestorProjectResponseOneProjectContainerLatestTrackingUpdateMax = 1000;
+export const getInvestorProjectResponseDataProjectContainerLatestTrackingUpdateMax = 1000;
 
-export const getInvestorProjectResponseOneProjectContainerTradeStatusMax = 80;
+export const getInvestorProjectResponseDataProjectContainerTradeStatusMax = 80;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyOriginStatusMax = 80;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyOriginStatusMax = 80;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyOriginDateMax = 64;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyOriginDateMax = 64;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyOriginDetailsMax = 1000;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyOriginDetailsMax = 1000;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyPortStatusMax = 80;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyPortStatusMax = 80;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyPortDateMax = 64;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyPortDateMax = 64;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyPortDetailsMax = 1000;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyPortDetailsMax = 1000;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyVesselStatusMax = 80;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyVesselStatusMax = 80;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyVesselDateMax = 64;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyVesselDateMax = 64;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyVesselDetailsMax = 1000;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyVesselDetailsMax = 1000;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyDestinationStatusMax = 80;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyDestinationStatusMax = 80;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyDestinationDateMax = 64;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyDestinationDateMax = 64;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyDestinationDetailsMax = 1000;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyDestinationDetailsMax = 1000;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyBuyerStatusMax = 80;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyBuyerStatusMax = 80;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyBuyerDateMax = 64;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyBuyerDateMax = 64;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneyBuyerDetailsMax = 1000;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneyBuyerDetailsMax = 1000;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneySettlementStatusMax = 80;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneySettlementStatusMax = 80;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneySettlementDateMax = 64;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneySettlementDateMax = 64;
 
-export const getInvestorProjectResponseOneProjectContainerContainerJourneySettlementDetailsMax = 1000;
+export const getInvestorProjectResponseDataProjectContainerContainerJourneySettlementDetailsMax = 1000;
 
-export const getInvestorProjectResponseOneProjectTradeUpdatesItemAttachmentSizeBytesMin = 0;
+export const getInvestorProjectResponseDataProjectTradeUpdatesItemAttachmentSizeBytesMin = 0;
 
-export const getInvestorProjectResponseTwoDataContainerContainerNumberMax = 80;
 
-export const getInvestorProjectResponseTwoDataContainerBillOfLadingNumberMax = 120;
 
-export const getInvestorProjectResponseTwoDataContainerVesselNameMax = 160;
-
-export const getInvestorProjectResponseTwoDataContainerPortOfLoadingMax = 160;
-
-export const getInvestorProjectResponseTwoDataContainerDestinationPortMax = 160;
-
-export const getInvestorProjectResponseTwoDataContainerEtdMax = 64;
-
-export const getInvestorProjectResponseTwoDataContainerEtaMax = 64;
-
-export const getInvestorProjectResponseTwoDataContainerLatestTrackingUpdateMax = 1000;
-
-export const getInvestorProjectResponseTwoDataContainerTradeStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyOriginStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyOriginDateMax = 64;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyOriginDetailsMax = 1000;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyPortStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyPortDateMax = 64;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyPortDetailsMax = 1000;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyVesselStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyVesselDateMax = 64;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyVesselDetailsMax = 1000;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyDestinationStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyDestinationDateMax = 64;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyDestinationDetailsMax = 1000;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyBuyerStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyBuyerDateMax = 64;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneyBuyerDetailsMax = 1000;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneySettlementStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneySettlementDateMax = 64;
-
-export const getInvestorProjectResponseTwoDataContainerContainerJourneySettlementDetailsMax = 1000;
-
-export const getInvestorProjectResponseTwoDataTradeUpdatesItemAttachmentSizeBytesMin = 0;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerNumberMax = 80;
-
-export const getInvestorProjectResponseTwoDataProjectContainerBillOfLadingNumberMax = 120;
-
-export const getInvestorProjectResponseTwoDataProjectContainerVesselNameMax = 160;
-
-export const getInvestorProjectResponseTwoDataProjectContainerPortOfLoadingMax = 160;
-
-export const getInvestorProjectResponseTwoDataProjectContainerDestinationPortMax = 160;
-
-export const getInvestorProjectResponseTwoDataProjectContainerEtdMax = 64;
-
-export const getInvestorProjectResponseTwoDataProjectContainerEtaMax = 64;
-
-export const getInvestorProjectResponseTwoDataProjectContainerLatestTrackingUpdateMax = 1000;
-
-export const getInvestorProjectResponseTwoDataProjectContainerTradeStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyOriginStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyOriginDateMax = 64;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyOriginDetailsMax = 1000;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyPortStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyPortDateMax = 64;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyPortDetailsMax = 1000;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyVesselStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyVesselDateMax = 64;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyVesselDetailsMax = 1000;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyDestinationStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyDestinationDateMax = 64;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyDestinationDetailsMax = 1000;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyBuyerStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyBuyerDateMax = 64;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneyBuyerDetailsMax = 1000;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneySettlementStatusMax = 80;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneySettlementDateMax = 64;
-
-export const getInvestorProjectResponseTwoDataProjectContainerContainerJourneySettlementDetailsMax = 1000;
-
-export const getInvestorProjectResponseTwoDataProjectTradeUpdatesItemAttachmentSizeBytesMin = 0;
-
-
-
-export const GetInvestorProjectResponse = zod.union([zod.object({
-  "container": zod.object({
-  "container_number": zod.string().max(getInvestorProjectResponseOneContainerContainerNumberMax).nullish(),
-  "bill_of_lading_number": zod.string().max(getInvestorProjectResponseOneContainerBillOfLadingNumberMax).nullish(),
-  "vessel_name": zod.string().max(getInvestorProjectResponseOneContainerVesselNameMax).nullish(),
-  "port_of_loading": zod.string().max(getInvestorProjectResponseOneContainerPortOfLoadingMax).nullish(),
-  "destination_port": zod.string().max(getInvestorProjectResponseOneContainerDestinationPortMax).nullish(),
-  "etd": zod.string().max(getInvestorProjectResponseOneContainerEtdMax).nullish().describe('Estimated departure date as supplied by OG Exports.'),
-  "eta": zod.string().max(getInvestorProjectResponseOneContainerEtaMax).nullish().describe('Estimated arrival date as supplied by OG Exports.'),
-  "latest_tracking_update": zod.string().max(getInvestorProjectResponseOneContainerLatestTrackingUpdateMax).nullish().describe('Admin-authored update text; not a carrier event unless separately integrated.'),
-  "trade_status": zod.string().max(getInvestorProjectResponseOneContainerTradeStatusMax).nullish().describe('Status explicitly supplied by OG Exports.'),
-  "container_journey": zod.object({
-  "origin": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyOriginStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyOriginDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyOriginDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "port": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyPortStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyPortDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyPortDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "vessel": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyVesselStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyVesselDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyVesselDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "destination": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyDestinationStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyDestinationDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyDestinationDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "buyer": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyBuyerStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyBuyerDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneyBuyerDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "settlement": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneySettlementStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneySettlementDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseOneContainerContainerJourneySettlementDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.')
-}).describe('The six fixed trade stages, each independently reported by OG Exports.'),
-  "tracking_updated_at": zod.coerce.date().describe('Set by the server when an admin publishes an update; never supplied by the client.')
-}).optional().describe('Admin-reported container record. No field represents a live carrier position.'),
-  "trade_updates": zod.array(zod.object({
-  "id": zod.number().int(),
-  "status": zod.string(),
-  "description": zod.string(),
-  "occurred_at": zod.coerce.date(),
-  "attachment_url": zod.string().nullable(),
-  "attachment_name": zod.string().nullable(),
-  "attachment_mime": zod.string().nullable(),
-  "attachment_size_bytes": zod.number().int().min(getInvestorProjectResponseOneTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
-  "created_at": zod.coerce.date().nullish()
-})).optional().describe('Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded.'),
-  "project": zod.object({
-  "container": zod.object({
-  "container_number": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerNumberMax).nullish(),
-  "bill_of_lading_number": zod.string().max(getInvestorProjectResponseOneProjectContainerBillOfLadingNumberMax).nullish(),
-  "vessel_name": zod.string().max(getInvestorProjectResponseOneProjectContainerVesselNameMax).nullish(),
-  "port_of_loading": zod.string().max(getInvestorProjectResponseOneProjectContainerPortOfLoadingMax).nullish(),
-  "destination_port": zod.string().max(getInvestorProjectResponseOneProjectContainerDestinationPortMax).nullish(),
-  "etd": zod.string().max(getInvestorProjectResponseOneProjectContainerEtdMax).nullish().describe('Estimated departure date as supplied by OG Exports.'),
-  "eta": zod.string().max(getInvestorProjectResponseOneProjectContainerEtaMax).nullish().describe('Estimated arrival date as supplied by OG Exports.'),
-  "latest_tracking_update": zod.string().max(getInvestorProjectResponseOneProjectContainerLatestTrackingUpdateMax).nullish().describe('Admin-authored update text; not a carrier event unless separately integrated.'),
-  "trade_status": zod.string().max(getInvestorProjectResponseOneProjectContainerTradeStatusMax).nullish().describe('Status explicitly supplied by OG Exports.'),
-  "container_journey": zod.object({
-  "origin": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyOriginStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyOriginDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyOriginDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "port": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyPortStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyPortDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyPortDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "vessel": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyVesselStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyVesselDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyVesselDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "destination": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyDestinationStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyDestinationDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyDestinationDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "buyer": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyBuyerStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyBuyerDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneyBuyerDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "settlement": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneySettlementStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneySettlementDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseOneProjectContainerContainerJourneySettlementDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.')
-}).describe('The six fixed trade stages, each independently reported by OG Exports.'),
-  "tracking_updated_at": zod.coerce.date().describe('Set by the server when an admin publishes an update; never supplied by the client.')
-}).optional().describe('Admin-reported container record. No field represents a live carrier position.'),
-  "trade_updates": zod.array(zod.object({
-  "id": zod.number().int(),
-  "status": zod.string(),
-  "description": zod.string(),
-  "occurred_at": zod.coerce.date(),
-  "attachment_url": zod.string().nullable(),
-  "attachment_name": zod.string().nullable(),
-  "attachment_mime": zod.string().nullable(),
-  "attachment_size_bytes": zod.number().int().min(getInvestorProjectResponseOneProjectTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
-  "created_at": zod.coerce.date().nullish()
-})).optional().describe('Persisted events explicitly published by OG Exports for this position\'s project.')
-}).optional().describe('Associated project record included with a portfolio position.')
-}).describe('Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.'),zod.object({
+export const GetInvestorProjectResponse = zod.object({
   "data": zod.object({
   "container": zod.object({
-  "container_number": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerNumberMax).nullish(),
-  "bill_of_lading_number": zod.string().max(getInvestorProjectResponseTwoDataContainerBillOfLadingNumberMax).nullish(),
-  "vessel_name": zod.string().max(getInvestorProjectResponseTwoDataContainerVesselNameMax).nullish(),
-  "port_of_loading": zod.string().max(getInvestorProjectResponseTwoDataContainerPortOfLoadingMax).nullish(),
-  "destination_port": zod.string().max(getInvestorProjectResponseTwoDataContainerDestinationPortMax).nullish(),
-  "etd": zod.string().max(getInvestorProjectResponseTwoDataContainerEtdMax).nullish().describe('Estimated departure date as supplied by OG Exports.'),
-  "eta": zod.string().max(getInvestorProjectResponseTwoDataContainerEtaMax).nullish().describe('Estimated arrival date as supplied by OG Exports.'),
-  "latest_tracking_update": zod.string().max(getInvestorProjectResponseTwoDataContainerLatestTrackingUpdateMax).nullish().describe('Admin-authored update text; not a carrier event unless separately integrated.'),
-  "trade_status": zod.string().max(getInvestorProjectResponseTwoDataContainerTradeStatusMax).nullish().describe('Status explicitly supplied by OG Exports.'),
+  "container_number": zod.string().max(getInvestorProjectResponseDataContainerContainerNumberMax).nullish(),
+  "bill_of_lading_number": zod.string().max(getInvestorProjectResponseDataContainerBillOfLadingNumberMax).nullish(),
+  "vessel_name": zod.string().max(getInvestorProjectResponseDataContainerVesselNameMax).nullish(),
+  "port_of_loading": zod.string().max(getInvestorProjectResponseDataContainerPortOfLoadingMax).nullish(),
+  "destination_port": zod.string().max(getInvestorProjectResponseDataContainerDestinationPortMax).nullish(),
+  "etd": zod.string().max(getInvestorProjectResponseDataContainerEtdMax).nullish().describe('Estimated departure date as supplied by OG Exports.'),
+  "eta": zod.string().max(getInvestorProjectResponseDataContainerEtaMax).nullish().describe('Estimated arrival date as supplied by OG Exports.'),
+  "latest_tracking_update": zod.string().max(getInvestorProjectResponseDataContainerLatestTrackingUpdateMax).nullish().describe('Admin-authored update text; not a carrier event unless separately integrated.'),
+  "trade_status": zod.string().max(getInvestorProjectResponseDataContainerTradeStatusMax).nullish().describe('Status explicitly supplied by OG Exports.'),
   "container_journey": zod.object({
   "origin": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyOriginStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyOriginDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyOriginDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyOriginStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyOriginDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyOriginDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "port": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyPortStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyPortDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyPortDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyPortStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyPortDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyPortDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "vessel": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyVesselStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyVesselDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyVesselDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyVesselStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyVesselDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyVesselDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "destination": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyDestinationStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyDestinationDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyDestinationDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyDestinationStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyDestinationDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyDestinationDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "buyer": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyBuyerStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyBuyerDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneyBuyerDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyBuyerStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyBuyerDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneyBuyerDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "settlement": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneySettlementStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneySettlementDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseTwoDataContainerContainerJourneySettlementDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneySettlementStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneySettlementDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorProjectResponseDataContainerContainerJourneySettlementDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.')
 }).describe('The six fixed trade stages, each independently reported by OG Exports.'),
   "tracking_updated_at": zod.coerce.date().describe('Set by the server when an admin publishes an update; never supplied by the client.')
@@ -629,50 +404,50 @@ export const GetInvestorProjectResponse = zod.union([zod.object({
   "attachment_url": zod.string().nullable(),
   "attachment_name": zod.string().nullable(),
   "attachment_mime": zod.string().nullable(),
-  "attachment_size_bytes": zod.number().int().min(getInvestorProjectResponseTwoDataTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
+  "attachment_size_bytes": zod.number().int().min(getInvestorProjectResponseDataTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
   "created_at": zod.coerce.date().nullish()
 })).optional().describe('Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded.'),
   "project": zod.object({
   "container": zod.object({
-  "container_number": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerNumberMax).nullish(),
-  "bill_of_lading_number": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerBillOfLadingNumberMax).nullish(),
-  "vessel_name": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerVesselNameMax).nullish(),
-  "port_of_loading": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerPortOfLoadingMax).nullish(),
-  "destination_port": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerDestinationPortMax).nullish(),
-  "etd": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerEtdMax).nullish().describe('Estimated departure date as supplied by OG Exports.'),
-  "eta": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerEtaMax).nullish().describe('Estimated arrival date as supplied by OG Exports.'),
-  "latest_tracking_update": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerLatestTrackingUpdateMax).nullish().describe('Admin-authored update text; not a carrier event unless separately integrated.'),
-  "trade_status": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerTradeStatusMax).nullish().describe('Status explicitly supplied by OG Exports.'),
+  "container_number": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerNumberMax).nullish(),
+  "bill_of_lading_number": zod.string().max(getInvestorProjectResponseDataProjectContainerBillOfLadingNumberMax).nullish(),
+  "vessel_name": zod.string().max(getInvestorProjectResponseDataProjectContainerVesselNameMax).nullish(),
+  "port_of_loading": zod.string().max(getInvestorProjectResponseDataProjectContainerPortOfLoadingMax).nullish(),
+  "destination_port": zod.string().max(getInvestorProjectResponseDataProjectContainerDestinationPortMax).nullish(),
+  "etd": zod.string().max(getInvestorProjectResponseDataProjectContainerEtdMax).nullish().describe('Estimated departure date as supplied by OG Exports.'),
+  "eta": zod.string().max(getInvestorProjectResponseDataProjectContainerEtaMax).nullish().describe('Estimated arrival date as supplied by OG Exports.'),
+  "latest_tracking_update": zod.string().max(getInvestorProjectResponseDataProjectContainerLatestTrackingUpdateMax).nullish().describe('Admin-authored update text; not a carrier event unless separately integrated.'),
+  "trade_status": zod.string().max(getInvestorProjectResponseDataProjectContainerTradeStatusMax).nullish().describe('Status explicitly supplied by OG Exports.'),
   "container_journey": zod.object({
   "origin": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyOriginStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyOriginDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyOriginDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyOriginStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyOriginDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyOriginDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "port": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyPortStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyPortDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyPortDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyPortStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyPortDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyPortDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "vessel": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyVesselStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyVesselDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyVesselDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyVesselStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyVesselDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyVesselDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "destination": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyDestinationStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyDestinationDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyDestinationDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyDestinationStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyDestinationDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyDestinationDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "buyer": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyBuyerStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyBuyerDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneyBuyerDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyBuyerStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyBuyerDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneyBuyerDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "settlement": zod.object({
-  "status": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneySettlementStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneySettlementDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorProjectResponseTwoDataProjectContainerContainerJourneySettlementDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneySettlementStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneySettlementDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerJourneySettlementDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.')
 }).describe('The six fixed trade stages, each independently reported by OG Exports.'),
   "tracking_updated_at": zod.coerce.date().describe('Set by the server when an admin publishes an update; never supplied by the client.')
@@ -685,12 +460,12 @@ export const GetInvestorProjectResponse = zod.union([zod.object({
   "attachment_url": zod.string().nullable(),
   "attachment_name": zod.string().nullable(),
   "attachment_mime": zod.string().nullable(),
-  "attachment_size_bytes": zod.number().int().min(getInvestorProjectResponseTwoDataProjectTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
+  "attachment_size_bytes": zod.number().int().min(getInvestorProjectResponseDataProjectTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
   "created_at": zod.coerce.date().nullish()
 })).optional().describe('Persisted events explicitly published by OG Exports for this position\'s project.')
 }).optional().describe('Associated project record included with a portfolio position.')
 }).describe('Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.')
-}).describe('Laravel resource response wrapper.')])
+}).describe('Laravel project resource response envelope.')
 
 
 /**
@@ -730,387 +505,163 @@ export const GetInvestorInvestmentParams = zod.object({
   "id": zod.coerce.string()
 })
 
-export const getInvestorInvestmentResponseOneContainerContainerNumberMax = 80;
+export const getInvestorInvestmentResponseDataProjectContainerContainerNumberMax = 80;
 
-export const getInvestorInvestmentResponseOneContainerBillOfLadingNumberMax = 120;
+export const getInvestorInvestmentResponseDataProjectContainerBillOfLadingNumberMax = 120;
 
-export const getInvestorInvestmentResponseOneContainerVesselNameMax = 160;
+export const getInvestorInvestmentResponseDataProjectContainerVesselNameMax = 160;
 
-export const getInvestorInvestmentResponseOneContainerPortOfLoadingMax = 160;
+export const getInvestorInvestmentResponseDataProjectContainerPortOfLoadingMax = 160;
 
-export const getInvestorInvestmentResponseOneContainerDestinationPortMax = 160;
+export const getInvestorInvestmentResponseDataProjectContainerDestinationPortMax = 160;
 
-export const getInvestorInvestmentResponseOneContainerEtdMax = 64;
+export const getInvestorInvestmentResponseDataProjectContainerEtdMax = 64;
 
-export const getInvestorInvestmentResponseOneContainerEtaMax = 64;
+export const getInvestorInvestmentResponseDataProjectContainerEtaMax = 64;
 
-export const getInvestorInvestmentResponseOneContainerLatestTrackingUpdateMax = 1000;
+export const getInvestorInvestmentResponseDataProjectContainerLatestTrackingUpdateMax = 1000;
 
-export const getInvestorInvestmentResponseOneContainerTradeStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectContainerTradeStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyOriginStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyOriginStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyOriginDateMax = 64;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyOriginDateMax = 64;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyOriginDetailsMax = 1000;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyOriginDetailsMax = 1000;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyPortStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyPortStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyPortDateMax = 64;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyPortDateMax = 64;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyPortDetailsMax = 1000;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyPortDetailsMax = 1000;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyVesselStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyVesselStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyVesselDateMax = 64;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyVesselDateMax = 64;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyVesselDetailsMax = 1000;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyVesselDetailsMax = 1000;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyDestinationStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyDestinationStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyDestinationDateMax = 64;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyDestinationDateMax = 64;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyDestinationDetailsMax = 1000;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyDestinationDetailsMax = 1000;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyBuyerStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyBuyerStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyBuyerDateMax = 64;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyBuyerDateMax = 64;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneyBuyerDetailsMax = 1000;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneyBuyerDetailsMax = 1000;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneySettlementStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneySettlementStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneySettlementDateMax = 64;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneySettlementDateMax = 64;
 
-export const getInvestorInvestmentResponseOneContainerContainerJourneySettlementDetailsMax = 1000;
+export const getInvestorInvestmentResponseDataProjectContainerContainerJourneySettlementDetailsMax = 1000;
 
-export const getInvestorInvestmentResponseOneTradeUpdatesItemAttachmentSizeBytesMin = 0;
+export const getInvestorInvestmentResponseDataProjectTradeUpdatesItemAttachmentSizeBytesMin = 0;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerNumberMax = 80;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerNumberMax = 80;
 
-export const getInvestorInvestmentResponseOneProjectContainerBillOfLadingNumberMax = 120;
+export const getInvestorInvestmentResponseDataProjectProjectContainerBillOfLadingNumberMax = 120;
 
-export const getInvestorInvestmentResponseOneProjectContainerVesselNameMax = 160;
+export const getInvestorInvestmentResponseDataProjectProjectContainerVesselNameMax = 160;
 
-export const getInvestorInvestmentResponseOneProjectContainerPortOfLoadingMax = 160;
+export const getInvestorInvestmentResponseDataProjectProjectContainerPortOfLoadingMax = 160;
 
-export const getInvestorInvestmentResponseOneProjectContainerDestinationPortMax = 160;
+export const getInvestorInvestmentResponseDataProjectProjectContainerDestinationPortMax = 160;
 
-export const getInvestorInvestmentResponseOneProjectContainerEtdMax = 64;
+export const getInvestorInvestmentResponseDataProjectProjectContainerEtdMax = 64;
 
-export const getInvestorInvestmentResponseOneProjectContainerEtaMax = 64;
+export const getInvestorInvestmentResponseDataProjectProjectContainerEtaMax = 64;
 
-export const getInvestorInvestmentResponseOneProjectContainerLatestTrackingUpdateMax = 1000;
+export const getInvestorInvestmentResponseDataProjectProjectContainerLatestTrackingUpdateMax = 1000;
 
-export const getInvestorInvestmentResponseOneProjectContainerTradeStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectProjectContainerTradeStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyOriginStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyOriginStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyOriginDateMax = 64;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyOriginDateMax = 64;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyOriginDetailsMax = 1000;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyOriginDetailsMax = 1000;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyPortStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyPortStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyPortDateMax = 64;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyPortDateMax = 64;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyPortDetailsMax = 1000;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyPortDetailsMax = 1000;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyVesselStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyVesselStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyVesselDateMax = 64;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyVesselDateMax = 64;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyVesselDetailsMax = 1000;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyVesselDetailsMax = 1000;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyDestinationStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyDestinationStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyDestinationDateMax = 64;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyDestinationDateMax = 64;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyDestinationDetailsMax = 1000;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyDestinationDetailsMax = 1000;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyBuyerStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyBuyerStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyBuyerDateMax = 64;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyBuyerDateMax = 64;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneyBuyerDetailsMax = 1000;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyBuyerDetailsMax = 1000;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneySettlementStatusMax = 80;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneySettlementStatusMax = 80;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneySettlementDateMax = 64;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneySettlementDateMax = 64;
 
-export const getInvestorInvestmentResponseOneProjectContainerContainerJourneySettlementDetailsMax = 1000;
+export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneySettlementDetailsMax = 1000;
 
-export const getInvestorInvestmentResponseOneProjectTradeUpdatesItemAttachmentSizeBytesMin = 0;
+export const getInvestorInvestmentResponseDataProjectProjectTradeUpdatesItemAttachmentSizeBytesMin = 0;
 
-export const getInvestorInvestmentResponseTwoDataContainerContainerNumberMax = 80;
 
-export const getInvestorInvestmentResponseTwoDataContainerBillOfLadingNumberMax = 120;
 
-export const getInvestorInvestmentResponseTwoDataContainerVesselNameMax = 160;
-
-export const getInvestorInvestmentResponseTwoDataContainerPortOfLoadingMax = 160;
-
-export const getInvestorInvestmentResponseTwoDataContainerDestinationPortMax = 160;
-
-export const getInvestorInvestmentResponseTwoDataContainerEtdMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataContainerEtaMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataContainerLatestTrackingUpdateMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataContainerTradeStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyOriginStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyOriginDateMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyOriginDetailsMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyPortStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyPortDateMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyPortDetailsMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyVesselStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyVesselDateMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyVesselDetailsMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyDestinationStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyDestinationDateMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyDestinationDetailsMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyBuyerStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyBuyerDateMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneyBuyerDetailsMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneySettlementStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneySettlementDateMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataContainerContainerJourneySettlementDetailsMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataTradeUpdatesItemAttachmentSizeBytesMin = 0;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerNumberMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerBillOfLadingNumberMax = 120;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerVesselNameMax = 160;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerPortOfLoadingMax = 160;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerDestinationPortMax = 160;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerEtdMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerEtaMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerLatestTrackingUpdateMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerTradeStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyOriginStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyOriginDateMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyOriginDetailsMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyPortStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyPortDateMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyPortDetailsMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyVesselStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyVesselDateMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyVesselDetailsMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyDestinationStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyDestinationDateMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyDestinationDetailsMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyBuyerStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyBuyerDateMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyBuyerDetailsMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneySettlementStatusMax = 80;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneySettlementDateMax = 64;
-
-export const getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneySettlementDetailsMax = 1000;
-
-export const getInvestorInvestmentResponseTwoDataProjectTradeUpdatesItemAttachmentSizeBytesMin = 0;
-
-
-
-export const GetInvestorInvestmentResponse = zod.union([zod.object({
-  "container": zod.object({
-  "container_number": zod.string().max(getInvestorInvestmentResponseOneContainerContainerNumberMax).nullish(),
-  "bill_of_lading_number": zod.string().max(getInvestorInvestmentResponseOneContainerBillOfLadingNumberMax).nullish(),
-  "vessel_name": zod.string().max(getInvestorInvestmentResponseOneContainerVesselNameMax).nullish(),
-  "port_of_loading": zod.string().max(getInvestorInvestmentResponseOneContainerPortOfLoadingMax).nullish(),
-  "destination_port": zod.string().max(getInvestorInvestmentResponseOneContainerDestinationPortMax).nullish(),
-  "etd": zod.string().max(getInvestorInvestmentResponseOneContainerEtdMax).nullish().describe('Estimated departure date as supplied by OG Exports.'),
-  "eta": zod.string().max(getInvestorInvestmentResponseOneContainerEtaMax).nullish().describe('Estimated arrival date as supplied by OG Exports.'),
-  "latest_tracking_update": zod.string().max(getInvestorInvestmentResponseOneContainerLatestTrackingUpdateMax).nullish().describe('Admin-authored update text; not a carrier event unless separately integrated.'),
-  "trade_status": zod.string().max(getInvestorInvestmentResponseOneContainerTradeStatusMax).nullish().describe('Status explicitly supplied by OG Exports.'),
-  "container_journey": zod.object({
-  "origin": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyOriginStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyOriginDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyOriginDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "port": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyPortStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyPortDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyPortDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "vessel": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyVesselStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyVesselDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyVesselDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "destination": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyDestinationStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyDestinationDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyDestinationDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "buyer": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyBuyerStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyBuyerDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneyBuyerDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "settlement": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneySettlementStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneySettlementDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseOneContainerContainerJourneySettlementDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.')
-}).describe('The six fixed trade stages, each independently reported by OG Exports.'),
-  "tracking_updated_at": zod.coerce.date().describe('Set by the server when an admin publishes an update; never supplied by the client.')
-}).optional().describe('Admin-reported container record. No field represents a live carrier position.'),
-  "trade_updates": zod.array(zod.object({
-  "id": zod.number().int(),
-  "status": zod.string(),
-  "description": zod.string(),
-  "occurred_at": zod.coerce.date(),
-  "attachment_url": zod.string().nullable(),
-  "attachment_name": zod.string().nullable(),
-  "attachment_mime": zod.string().nullable(),
-  "attachment_size_bytes": zod.number().int().min(getInvestorInvestmentResponseOneTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
-  "created_at": zod.coerce.date().nullish()
-})).optional().describe('Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded.'),
-  "project": zod.object({
-  "container": zod.object({
-  "container_number": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerNumberMax).nullish(),
-  "bill_of_lading_number": zod.string().max(getInvestorInvestmentResponseOneProjectContainerBillOfLadingNumberMax).nullish(),
-  "vessel_name": zod.string().max(getInvestorInvestmentResponseOneProjectContainerVesselNameMax).nullish(),
-  "port_of_loading": zod.string().max(getInvestorInvestmentResponseOneProjectContainerPortOfLoadingMax).nullish(),
-  "destination_port": zod.string().max(getInvestorInvestmentResponseOneProjectContainerDestinationPortMax).nullish(),
-  "etd": zod.string().max(getInvestorInvestmentResponseOneProjectContainerEtdMax).nullish().describe('Estimated departure date as supplied by OG Exports.'),
-  "eta": zod.string().max(getInvestorInvestmentResponseOneProjectContainerEtaMax).nullish().describe('Estimated arrival date as supplied by OG Exports.'),
-  "latest_tracking_update": zod.string().max(getInvestorInvestmentResponseOneProjectContainerLatestTrackingUpdateMax).nullish().describe('Admin-authored update text; not a carrier event unless separately integrated.'),
-  "trade_status": zod.string().max(getInvestorInvestmentResponseOneProjectContainerTradeStatusMax).nullish().describe('Status explicitly supplied by OG Exports.'),
-  "container_journey": zod.object({
-  "origin": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyOriginStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyOriginDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyOriginDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "port": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyPortStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyPortDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyPortDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "vessel": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyVesselStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyVesselDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyVesselDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "destination": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyDestinationStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyDestinationDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyDestinationDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "buyer": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyBuyerStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyBuyerDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneyBuyerDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
-  "settlement": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneySettlementStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneySettlementDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseOneProjectContainerContainerJourneySettlementDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
-}).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.')
-}).describe('The six fixed trade stages, each independently reported by OG Exports.'),
-  "tracking_updated_at": zod.coerce.date().describe('Set by the server when an admin publishes an update; never supplied by the client.')
-}).optional().describe('Admin-reported container record. No field represents a live carrier position.'),
-  "trade_updates": zod.array(zod.object({
-  "id": zod.number().int(),
-  "status": zod.string(),
-  "description": zod.string(),
-  "occurred_at": zod.coerce.date(),
-  "attachment_url": zod.string().nullable(),
-  "attachment_name": zod.string().nullable(),
-  "attachment_mime": zod.string().nullable(),
-  "attachment_size_bytes": zod.number().int().min(getInvestorInvestmentResponseOneProjectTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
-  "created_at": zod.coerce.date().nullish()
-})).optional().describe('Persisted events explicitly published by OG Exports for this position\'s project.')
-}).optional().describe('Associated project record included with a portfolio position.')
-}).describe('Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.'),zod.object({
+export const GetInvestorInvestmentResponse = zod.object({
   "data": zod.object({
+  "project": zod.object({
   "container": zod.object({
-  "container_number": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerNumberMax).nullish(),
-  "bill_of_lading_number": zod.string().max(getInvestorInvestmentResponseTwoDataContainerBillOfLadingNumberMax).nullish(),
-  "vessel_name": zod.string().max(getInvestorInvestmentResponseTwoDataContainerVesselNameMax).nullish(),
-  "port_of_loading": zod.string().max(getInvestorInvestmentResponseTwoDataContainerPortOfLoadingMax).nullish(),
-  "destination_port": zod.string().max(getInvestorInvestmentResponseTwoDataContainerDestinationPortMax).nullish(),
-  "etd": zod.string().max(getInvestorInvestmentResponseTwoDataContainerEtdMax).nullish().describe('Estimated departure date as supplied by OG Exports.'),
-  "eta": zod.string().max(getInvestorInvestmentResponseTwoDataContainerEtaMax).nullish().describe('Estimated arrival date as supplied by OG Exports.'),
-  "latest_tracking_update": zod.string().max(getInvestorInvestmentResponseTwoDataContainerLatestTrackingUpdateMax).nullish().describe('Admin-authored update text; not a carrier event unless separately integrated.'),
-  "trade_status": zod.string().max(getInvestorInvestmentResponseTwoDataContainerTradeStatusMax).nullish().describe('Status explicitly supplied by OG Exports.'),
+  "container_number": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerNumberMax).nullish(),
+  "bill_of_lading_number": zod.string().max(getInvestorInvestmentResponseDataProjectContainerBillOfLadingNumberMax).nullish(),
+  "vessel_name": zod.string().max(getInvestorInvestmentResponseDataProjectContainerVesselNameMax).nullish(),
+  "port_of_loading": zod.string().max(getInvestorInvestmentResponseDataProjectContainerPortOfLoadingMax).nullish(),
+  "destination_port": zod.string().max(getInvestorInvestmentResponseDataProjectContainerDestinationPortMax).nullish(),
+  "etd": zod.string().max(getInvestorInvestmentResponseDataProjectContainerEtdMax).nullish().describe('Estimated departure date as supplied by OG Exports.'),
+  "eta": zod.string().max(getInvestorInvestmentResponseDataProjectContainerEtaMax).nullish().describe('Estimated arrival date as supplied by OG Exports.'),
+  "latest_tracking_update": zod.string().max(getInvestorInvestmentResponseDataProjectContainerLatestTrackingUpdateMax).nullish().describe('Admin-authored update text; not a carrier event unless separately integrated.'),
+  "trade_status": zod.string().max(getInvestorInvestmentResponseDataProjectContainerTradeStatusMax).nullish().describe('Status explicitly supplied by OG Exports.'),
   "container_journey": zod.object({
   "origin": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyOriginStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyOriginDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyOriginDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyOriginStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyOriginDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyOriginDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "port": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyPortStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyPortDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyPortDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyPortStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyPortDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyPortDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "vessel": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyVesselStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyVesselDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyVesselDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyVesselStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyVesselDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyVesselDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "destination": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyDestinationStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyDestinationDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyDestinationDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyDestinationStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyDestinationDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyDestinationDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "buyer": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyBuyerStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyBuyerDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneyBuyerDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyBuyerStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyBuyerDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneyBuyerDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "settlement": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneySettlementStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneySettlementDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseTwoDataContainerContainerJourneySettlementDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneySettlementStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneySettlementDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorInvestmentResponseDataProjectContainerContainerJourneySettlementDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.')
 }).describe('The six fixed trade stages, each independently reported by OG Exports.'),
   "tracking_updated_at": zod.coerce.date().describe('Set by the server when an admin publishes an update; never supplied by the client.')
@@ -1123,50 +674,50 @@ export const GetInvestorInvestmentResponse = zod.union([zod.object({
   "attachment_url": zod.string().nullable(),
   "attachment_name": zod.string().nullable(),
   "attachment_mime": zod.string().nullable(),
-  "attachment_size_bytes": zod.number().int().min(getInvestorInvestmentResponseTwoDataTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
+  "attachment_size_bytes": zod.number().int().min(getInvestorInvestmentResponseDataProjectTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
   "created_at": zod.coerce.date().nullish()
 })).optional().describe('Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded.'),
   "project": zod.object({
   "container": zod.object({
-  "container_number": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerNumberMax).nullish(),
-  "bill_of_lading_number": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerBillOfLadingNumberMax).nullish(),
-  "vessel_name": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerVesselNameMax).nullish(),
-  "port_of_loading": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerPortOfLoadingMax).nullish(),
-  "destination_port": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerDestinationPortMax).nullish(),
-  "etd": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerEtdMax).nullish().describe('Estimated departure date as supplied by OG Exports.'),
-  "eta": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerEtaMax).nullish().describe('Estimated arrival date as supplied by OG Exports.'),
-  "latest_tracking_update": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerLatestTrackingUpdateMax).nullish().describe('Admin-authored update text; not a carrier event unless separately integrated.'),
-  "trade_status": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerTradeStatusMax).nullish().describe('Status explicitly supplied by OG Exports.'),
+  "container_number": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerNumberMax).nullish(),
+  "bill_of_lading_number": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerBillOfLadingNumberMax).nullish(),
+  "vessel_name": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerVesselNameMax).nullish(),
+  "port_of_loading": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerPortOfLoadingMax).nullish(),
+  "destination_port": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerDestinationPortMax).nullish(),
+  "etd": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerEtdMax).nullish().describe('Estimated departure date as supplied by OG Exports.'),
+  "eta": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerEtaMax).nullish().describe('Estimated arrival date as supplied by OG Exports.'),
+  "latest_tracking_update": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerLatestTrackingUpdateMax).nullish().describe('Admin-authored update text; not a carrier event unless separately integrated.'),
+  "trade_status": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerTradeStatusMax).nullish().describe('Status explicitly supplied by OG Exports.'),
   "container_journey": zod.object({
   "origin": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyOriginStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyOriginDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyOriginDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyOriginStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyOriginDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyOriginDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "port": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyPortStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyPortDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyPortDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyPortStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyPortDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyPortDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "vessel": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyVesselStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyVesselDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyVesselDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyVesselStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyVesselDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyVesselDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "destination": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyDestinationStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyDestinationDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyDestinationDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyDestinationStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyDestinationDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyDestinationDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "buyer": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyBuyerStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyBuyerDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneyBuyerDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyBuyerStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyBuyerDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneyBuyerDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.'),
   "settlement": zod.object({
-  "status": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneySettlementStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
-  "date": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneySettlementDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
-  "details": zod.string().max(getInvestorInvestmentResponseTwoDataProjectContainerContainerJourneySettlementDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
+  "status": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneySettlementStatusMax).nullable().describe('Status text explicitly supplied by OG Exports; never calculated from other stages.'),
+  "date": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneySettlementDateMax).nullable().describe('Date or ISO 8601 timestamp explicitly supplied by OG Exports.'),
+  "details": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerJourneySettlementDetailsMax).nullable().describe('Stage description explicitly supplied by OG Exports.')
 }).describe('An OG Exports-reported journey stage. Null values mean the information has not been reported.')
 }).describe('The six fixed trade stages, each independently reported by OG Exports.'),
   "tracking_updated_at": zod.coerce.date().describe('Set by the server when an admin publishes an update; never supplied by the client.')
@@ -1179,12 +730,13 @@ export const GetInvestorInvestmentResponse = zod.union([zod.object({
   "attachment_url": zod.string().nullable(),
   "attachment_name": zod.string().nullable(),
   "attachment_mime": zod.string().nullable(),
-  "attachment_size_bytes": zod.number().int().min(getInvestorInvestmentResponseTwoDataProjectTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
+  "attachment_size_bytes": zod.number().int().min(getInvestorInvestmentResponseDataProjectProjectTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
   "created_at": zod.coerce.date().nullish()
 })).optional().describe('Persisted events explicitly published by OG Exports for this position\'s project.')
 }).optional().describe('Associated project record included with a portfolio position.')
 }).describe('Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.')
-}).describe('Laravel resource response wrapper.')])
+}).describe('Investor position fields and its Laravel project resource.')
+}).describe('Laravel investor investment resource envelope.')
 
 
 /**

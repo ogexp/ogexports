@@ -6,10 +6,8 @@ import {
   useGetInvestorInvestment,
   useGetInvestorProject,
   type ContainerTracking,
-  type InvestorProjectDetail,
 } from '@workspace/api-client-react';
 import { Card, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
-import { unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -73,8 +71,9 @@ export default function ContainerTracking() {
   const projectQuery = useGetInvestorProject(id, { query: { queryKey: ['investor-project', id], enabled: Boolean(id && token && isProject) } });
   const positionQuery = useGetInvestorInvestment(id, { query: { queryKey: ['investor-position', id], enabled: Boolean(id && token && !isProject) } });
   const query = isProject ? projectQuery : positionQuery;
-  const row = unwrap(query.data) as InvestorProjectDetail;
-  const container = row.container;
+  const project = projectQuery.data?.data;
+  const positionProject = positionQuery.data?.data.project;
+  const container = isProject ? project?.container : positionProject?.container;
   const read = (value?: string | null) => value?.trim() || 'Unavailable';
 
   const containerNumber = read(container?.container_number);

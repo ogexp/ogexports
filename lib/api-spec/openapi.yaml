@@ -347,7 +347,7 @@ paths:
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: "Portfolio position detail, including its associated reported container record when available", content: { application/json: { schema: { $ref: "#/components/schemas/InvestorProjectDetailResponse" } } } }
+        "200": { description: "Portfolio position detail with its associated project and reported container record when available", content: { application/json: { schema: { $ref: "#/components/schemas/InvestorInvestmentDetailResponse" } } } }
   /investor/wallet:
     get:
       operationId: getInvestorWallet
@@ -1061,18 +1061,30 @@ components:
               description: Persisted events explicitly published by OG Exports for this position's project.
               items:
                 $ref: "#/components/schemas/ProjectTradeUpdate"
-    InvestorProjectDetailEnvelope:
+    InvestorProjectDetailResponse:
       type: object
-      description: Laravel resource response wrapper.
+      description: Laravel project resource response envelope.
       additionalProperties: true
       required: [data]
       properties:
         data:
           $ref: "#/components/schemas/InvestorProjectDetail"
-    InvestorProjectDetailResponse:
-      oneOf:
-        - $ref: "#/components/schemas/InvestorProjectDetail"
-        - $ref: "#/components/schemas/InvestorProjectDetailEnvelope"
+    InvestorInvestmentDetail:
+      type: object
+      description: Investor position fields and its Laravel project resource.
+      additionalProperties: true
+      required: [project]
+      properties:
+        project:
+          $ref: "#/components/schemas/InvestorProjectDetail"
+    InvestorInvestmentDetailResponse:
+      type: object
+      description: Laravel investor investment resource envelope.
+      additionalProperties: true
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/InvestorInvestmentDetail"
     InvestorDashboardSummary:
       type: object
       description: Financial summary amounts are denominated in display_currency.

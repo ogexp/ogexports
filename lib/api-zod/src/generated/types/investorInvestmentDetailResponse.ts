@@ -5,12 +5,12 @@
  * OG Exports investor and administrator API, generated from the Laravel API contract
  * OpenAPI spec version: 1.0.0
  */
-import type { InvestorProjectDetail } from './investorProjectDetail';
+import type { InvestorInvestmentDetail } from './investorInvestmentDetail';
 
 /**
- * Laravel resource response wrapper.
+ * Laravel investor investment resource envelope.
  */
-export interface InvestorProjectDetailEnvelope {
-  data: InvestorProjectDetail;
+export interface InvestorInvestmentDetailResponse {
+  data: InvestorInvestmentDetail;
   [key: string]: unknown;
  }

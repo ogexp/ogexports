@@ -35,6 +35,7 @@ import type {
   GetInvestorWalletTransactionsParams,
   GetInvestorWithdrawalsParams,
   InvestorDashboardResponse,
+  InvestorInvestmentDetailResponse,
   InvestorNotificationResponse,
   InvestorNotificationsResponse,
   InvestorProfileUpdate,
@@ -2500,9 +2501,9 @@ export const getGetInvestorInvestmentUrl = (id: string,) => {
 /**
  * @summary Get a portfolio position
  */
-export const getInvestorInvestment = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<InvestorProjectDetailResponse> => {
+export const getInvestorInvestment = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<InvestorInvestmentDetailResponse> => {
 
-  return customFetch<InvestorProjectDetailResponse>(getGetInvestorInvestmentUrl(id),
+  return customFetch<InvestorInvestmentDetailResponse>(getGetInvestorInvestmentUrl(id),
   {
     ...options,
     method: 'GET'
