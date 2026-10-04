@@ -11,11 +11,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { resolvePostAuthHref } from '@/lib/post-auth-route';
 
 export default function Login() {
-  const { apiOrigin, acceptSession } = useAuth();
+  const { apiOrigin, acceptSession, setChallenge } = useAuth();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const login = useInvestorMobileLogin();
+  const postAuthPath = Array.isArray(returnTo) ? returnTo[0] : returnTo;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -27,12 +28,35 @@ export default function Login() {
       return;
     }
     try {
-      const result = record(await login.mutateAsync({ data: { email: email.trim(), password, device_name: 'og_investor_mobile' } }));
+      const result = record(await login.mutateAsync({
+        data: { email: email.trim(), password, device_name: 'OG Exports mobile' },
+      }));
+      if (result.requires_2fa === true && typeof result.email === 'string') {
+        setChallenge({
+          email: result.email,
+          mode: '2fa',
+          message: typeof result.message === 'string' ? result.message : '',
+          ...(postAuthPath ? { returnTo: postAuthPath } : {}),
+        });
+        router.push('/(auth)/verify');
+        return;
+      }
       const user = record(result.user);
       if (typeof result.token !== 'string') throw new Error('The server response did not include a session token.');
       await acceptSession(result.token, user);
       router.replace(resolvePostAuthHref(returnTo));
     } catch (err) {
+      const payload = record(record(err).data);
+      if (payload.requires_email_verification === true && typeof payload.email === 'string') {
+        setChallenge({
+          email: payload.email,
+          mode: 'email',
+          message: typeof payload.message === 'string' ? payload.message : '',
+          ...(postAuthPath ? { returnTo: postAuthPath } : {}),
+        });
+        router.push('/(auth)/verify');
+        return;
+      }
       setError(messageOf(err));
     }
   }

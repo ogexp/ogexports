@@ -19,7 +19,7 @@ paths:
     post:
       operationId: investorMobileLogin
       tags: [auth]
-      summary: Sign in to the investor mobile app
+      summary: Sign in with an email address and password
       requestBody:
         required: true
         content:
@@ -32,14 +32,15 @@ paths:
     post:
       operationId: investorRegister
       tags: [auth]
-      summary: Create an investor account
+      summary: Create an investor account and send email verification
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: "#/components/schemas/JsonObject" }
       responses:
-        "200": { description: Created investor account and session, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "201": { description: Created investor account; email verification is required before sign-in, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "503": { description: Account created but verification email could not be delivered, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
         "422": { description: Validation error, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /auth/mobile/verify-email:
     post:
@@ -53,6 +54,19 @@ paths:
             schema: { $ref: "#/components/schemas/JsonObject" }
       responses:
         "200": { description: Verification result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /auth/mobile/resend-verification:
+    post:
+      operationId: investorResendEmailVerification
+      tags: [auth]
+      summary: Resend an investor email verification code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JsonObject" }
+      responses:
+        "200": { description: Generic verification email result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "429": { description: Code request rate limit, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /auth/mobile/2fa/verify:
     post:
       operationId: investorVerifyTwoFactor

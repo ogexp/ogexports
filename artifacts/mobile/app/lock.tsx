@@ -2,19 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { Image, Platform, Text, View } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Action, Card } from '@/components/InvestorUI';
+import { Action, Card, Field } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { resolvePostAuthHref } from '@/lib/post-auth-route';
+import { first, record } from '@/lib/data';
+import { verifyAppPin } from '@/lib/app-pin';
 
 export default function AppLock() {
-  const { unlockApp } = useAuth();
+  const { unlockApp, user, appPinEnabled, biometricEnabled } = useAuth();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const colors = useColors();
   const [available, setAvailable] = useState(false);
   const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [pin, setPin] = useState('');
   const [error, setError] = useState('');
+  const userId = first(record(user), ['id'], '');
+  const nextRoute = resolvePostAuthHref(returnTo);
+  const canUseBiometrics = Platform.OS !== 'web' && biometricEnabled && available;
 
   useEffect(() => {
     let active = true;
@@ -31,19 +37,44 @@ export default function AppLock() {
     try {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Unlock OG Exports Investor',
-        cancelLabel: 'Use password',
+        cancelLabel: appPinEnabled ? 'Use app PIN' : 'Use password',
         disableDeviceFallback: false,
       });
       if (result.success) {
         unlockApp();
-        router.replace(resolvePostAuthHref(returnTo));
-      } else if (result.error === 'user_fallback') {
-        router.replace('/(auth)/login');
+        router.replace(nextRoute);
+      } else if (result.error === 'user_fallback' && !appPinEnabled) {
+        router.replace({ pathname: '/(auth)/login', params: { returnTo } });
       } else {
-        setError('Authentication was not completed. Try again or sign in with your password.');
+        setError('Authentication was not completed. Try again or use your app PIN.');
       }
     } catch {
-      setError('Biometric authentication is unavailable on this device. Sign in with your password.');
+      setError('Biometric authentication is unavailable. Use your app PIN or account password.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function unlockWithPin() {
+    setError('');
+    if (!userId) {
+      setError('Your saved account could not be identified. Sign in with your password.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await verifyAppPin(pin, userId);
+      if (result.valid) {
+        unlockApp();
+        router.replace(nextRoute);
+        return;
+      }
+      setPin('');
+      setError(result.lockedUntil
+        ? 'Too many incorrect PIN attempts. Wait one minute before trying again.'
+        : 'That app PIN is incorrect.');
+    } catch {
+      setError('The app PIN could not be checked safely. Sign in with your password.');
     } finally {
       setBusy(false);
     }
@@ -57,19 +88,38 @@ export default function AppLock() {
         <Text style={{ color: colors.mutedForeground, marginTop: 6 }}>Unlock your OG Exports account</Text>
       </View>
       <Card>
-        <Text style={{ color: colors.foreground, lineHeight: 21, marginBottom: 16 }}>
-          {Platform.OS === 'web'
-            ? 'Continue with your account password to access your investor account.'
+        <Text style={{ color: colors.mutedForeground, lineHeight: 21, marginBottom: 16 }}>
+          {appPinEnabled
+            ? 'Enter your six-digit app PIN or use an enabled biometric on this device.'
             : checking
               ? 'Checking this device’s biometric capability…'
-              : available
-                ? 'Use your enrolled biometric or device passcode to unlock.'
-                : 'Biometrics are not enrolled on this device. Sign in with your account password.'}
+              : canUseBiometrics
+                ? 'Use your enabled biometric or device passcode to unlock.'
+                : 'Biometric unlock is unavailable. Sign in with your account password.'}
         </Text>
-        {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 14 }}>{error}</Text> : null}
-        {Platform.OS !== 'web' && available ? <Action title="Unlock securely" icon="lock" loading={busy} onPress={() => void authenticate()} /> : null}
-        <View style={{ marginTop: available && Platform.OS !== 'web' ? 10 : 0 }}>
-          <Action title={available && Platform.OS !== 'web' ? 'Use password instead' : 'Sign in with password'} icon="log-in" secondary={available && Platform.OS !== 'web'} onPress={() => router.replace({ pathname: '/(auth)/login', params: { returnTo } })} />
+        {appPinEnabled ? <>
+          <Field
+            label="Six-digit app PIN"
+            value={pin}
+            onChangeText={value => { setPin(value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+            placeholder="000000"
+            keyboardType="numeric"
+            secureTextEntry
+            autoCapitalize="none"
+          />
+          <Action title="Unlock with app PIN" icon="lock" loading={busy} disabled={pin.length !== 6} onPress={() => void unlockWithPin()} />
+        </> : null}
+        {canUseBiometrics ? <View style={{ marginTop: appPinEnabled ? 10 : 0 }}>
+          <Action title={appPinEnabled ? 'Use biometrics' : 'Unlock securely'} icon="lock" loading={busy} onPress={() => void authenticate()} />
+        </View> : null}
+        {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginTop: 12, lineHeight: 20 }}>{error}</Text> : null}
+        <View style={{ marginTop: canUseBiometrics || appPinEnabled ? 10 : 0 }}>
+          <Action
+            title="Sign in with password"
+            icon="log-in"
+            secondary={canUseBiometrics || appPinEnabled}
+            onPress={() => router.replace({ pathname: '/(auth)/login', params: { returnTo } })}
+          />
         </View>
       </Card>
     </View>

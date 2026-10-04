@@ -9,7 +9,7 @@ import * as zod from 'zod';
 
 
 /**
- * @summary Sign in to the investor mobile app
+ * @summary Sign in with an email address or mobile number and password
  */
 export const InvestorMobileLoginBody = zod.record(zod.string(), zod.unknown())
 
@@ -17,7 +17,7 @@ export const InvestorMobileLoginResponse = zod.record(zod.string(), zod.unknown(
 
 
 /**
- * @summary Create an investor account
+ * @summary Create an investor account and send email verification
  */
 export const InvestorRegisterBody = zod.record(zod.string(), zod.unknown())
 
@@ -30,6 +30,14 @@ export const InvestorRegisterResponse = zod.record(zod.string(), zod.unknown())
 export const InvestorVerifyEmailBody = zod.record(zod.string(), zod.unknown())
 
 export const InvestorVerifyEmailResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Resend an investor email verification code
+ */
+export const InvestorResendEmailVerificationBody = zod.record(zod.string(), zod.unknown())
+
+export const InvestorResendEmailVerificationResponse = zod.record(zod.string(), zod.unknown())
 
 
 /**

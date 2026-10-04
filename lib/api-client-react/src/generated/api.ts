@@ -67,7 +67,7 @@ export const getInvestorMobileLoginUrl = () => {
 }
 
 /**
- * @summary Sign in to the investor mobile app
+ * @summary Sign in with an email address or mobile number and password
  */
 export const investorMobileLogin = async (jsonObject: JsonObject, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
 
@@ -133,7 +133,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type InvestorMobileLoginMutationVariables = {data: BodyType<JsonObject>}
 
     /**
- * @summary Sign in to the investor mobile app
+ * @summary Sign in with an email address or mobile number and password
  */
 export const useInvestorMobileLogin = <TError = ErrorType<JsonObject>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof investorMobileLogin>>, TError,InvestorMobileLoginMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -155,7 +155,7 @@ export const getInvestorRegisterUrl = () => {
 }
 
 /**
- * @summary Create an investor account
+ * @summary Create an investor account and send email verification
  */
 export const investorRegister = async (jsonObject: JsonObject, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
 
@@ -221,7 +221,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type InvestorRegisterMutationVariables = {data: BodyType<JsonObject>}
 
     /**
- * @summary Create an investor account
+ * @summary Create an investor account and send email verification
  */
 export const useInvestorRegister = <TError = ErrorType<JsonObject>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof investorRegister>>, TError,InvestorRegisterMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -320,6 +320,94 @@ export const useInvestorVerifyEmail = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getInvestorVerifyEmailMutationOptions(options));
+    }
+
+export const getInvestorResendEmailVerificationUrl = () => {
+
+
+
+
+  return `/api/auth/mobile/resend-verification`
+}
+
+/**
+ * @summary Resend an investor email verification code
+ */
+export const investorResendEmailVerification = async (jsonObject: JsonObject, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<JsonObject>(getInvestorResendEmailVerificationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(jsonObject)
+  }
+);}
+
+
+
+
+
+export const getInvestorResendEmailVerificationMutationKey = () => ['investorResendEmailVerification'] as const;
+
+export const getInvestorResendEmailVerificationMutationOptions = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof investorResendEmailVerification>>, TError,InvestorResendEmailVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof investorResendEmailVerification>>, TError,InvestorResendEmailVerificationMutationVariables, TContext> => {
+
+const mutationKey = getInvestorResendEmailVerificationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof investorResendEmailVerification>>, InvestorResendEmailVerificationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  investorResendEmailVerification(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InvestorResendEmailVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof investorResendEmailVerification>>>
+    export type InvestorResendEmailVerificationMutationBody = BodyType<JsonObject>
+    export type InvestorResendEmailVerificationMutationError = ErrorType<JsonObject>
+    export type InvestorResendEmailVerificationMutationVariables = {data: BodyType<JsonObject>}
+
+    /**
+ * @summary Resend an investor email verification code
+ */
+export const useInvestorResendEmailVerification = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof investorResendEmailVerification>>, TError,InvestorResendEmailVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof investorResendEmailVerification>>,
+        TError,
+        InvestorResendEmailVerificationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInvestorResendEmailVerificationMutationOptions(options));
     }
 
 export const getInvestorVerifyTwoFactorUrl = () => {

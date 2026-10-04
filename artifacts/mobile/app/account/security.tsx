@@ -6,7 +6,6 @@ import {
   useConfirmInvestorTwoFactor,
   useDisableInvestorTwoFactor,
   useEnableInvestorTwoFactor,
-  useGetInvestorSecurityActivity,
   useGetInvestorSessions,
   useGetInvestorTwoFactorStatus,
   useRevokeInvestorSession,
@@ -16,6 +15,7 @@ import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status } 
 import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { saveAppPin, verifyAppPin } from '@/lib/app-pin';
 
 function displayDate(value: unknown) {
   if (typeof value !== 'string' || !value) return 'Date unavailable';
@@ -24,11 +24,10 @@ function displayDate(value: unknown) {
 }
 
 export default function Security() {
-  const { token, biometricEnabled, setBiometricEnabled } = useAuth();
+  const { token, user, biometricEnabled, appPinEnabled, setBiometricEnabled, setAppPinEnabled } = useAuth();
   const colors = useColors();
   const queryClient = useQueryClient();
   const sessions = useGetInvestorSessions({ query: { queryKey: ['investor-security-sessions'], enabled: !!token } });
-  const activity = useGetInvestorSecurityActivity({ query: { queryKey: ['investor-security-activity'], enabled: !!token } });
   const twoFactor = useGetInvestorTwoFactorStatus({ query: { queryKey: ['investor-two-factor-status'], enabled: !!token } });
   const revokeSession = useRevokeInvestorSession();
   const revokeOthers = useRevokeOtherInvestorSessions();
@@ -36,11 +35,14 @@ export default function Security() {
   const confirmTwoFactor = useConfirmInvestorTwoFactor();
   const disableTwoFactor = useDisableInvestorTwoFactor();
   const sessionsList = list(sessions.data);
-  const activityList = list(activity.data);
   const twoFactorData = unwrap(twoFactor.data);
   const twoFactorEnabled = twoFactorData.enabled === true;
+  const userId = first(record(user), ['id'], '');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  const [currentPin, setCurrentPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmNewPin, setConfirmNewPin] = useState('');
   const [setupRequested, setSetupRequested] = useState(false);
   const [confirmAll, setConfirmAll] = useState(false);
   const [confirmSessionId, setConfirmSessionId] = useState('');
@@ -50,8 +52,59 @@ export default function Security() {
 
   function refreshSecurity() {
     void queryClient.invalidateQueries({ queryKey: ['investor-security-sessions'] });
-    void queryClient.invalidateQueries({ queryKey: ['investor-security-activity'] });
     void queryClient.invalidateQueries({ queryKey: ['investor-two-factor-status'] });
+  }
+
+  function clearPinFields() {
+    setCurrentPin('');
+    setNewPin('');
+    setConfirmNewPin('');
+  }
+
+  async function checkCurrentPin() {
+    if (!userId) throw new Error('The signed-in account could not be identified.');
+    const result = await verifyAppPin(currentPin, userId);
+    if (!result.valid) {
+      throw new Error(result.lockedUntil
+        ? 'Too many incorrect PIN attempts. Wait one minute before trying again.'
+        : 'The current app PIN is incorrect.');
+    }
+  }
+
+  async function saveNewPin() {
+    setError('');
+    setNotice('');
+    if (!/^\d{6}$/.test(newPin)) { setError('Choose a six-digit app PIN.'); return; }
+    if (newPin !== confirmNewPin) { setError('The new PIN entries do not match.'); return; }
+    setBusy(true);
+    try {
+      if (appPinEnabled) await checkCurrentPin();
+      if (!userId) throw new Error('The signed-in account could not be identified.');
+      await saveAppPin(newPin, userId);
+      await setAppPinEnabled(true);
+      clearPinFields();
+      setNotice(appPinEnabled ? 'Your app PIN has been changed.' : 'App PIN lock is enabled on this device.');
+    } catch (err) {
+      setError(messageOf(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function disablePin() {
+    setError('');
+    setNotice('');
+    setBusy(true);
+    try {
+      await checkCurrentPin();
+      await setAppPinEnabled(false);
+      clearPinFields();
+      setNotice('App PIN lock is disabled on this device.');
+    } catch (err) {
+      setError(messageOf(err));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function verifyOnDevice() {
@@ -147,7 +200,7 @@ export default function Security() {
     }
   }
 
-  return <Screen title="Security & devices" subtitle="Protect sign-in and review recent account activity">
+  return <Screen title="Security & devices" subtitle="Manage app unlock, email verification, and active sessions">
     {error ? <ErrorState message={error} /> : null}
     {notice ? <Card><Text style={{ color: colors.primary, lineHeight: 20 }}>{notice}</Text></Card> : null}
 
@@ -175,6 +228,61 @@ export default function Security() {
       </> : null}
     </Card>
 
+    <Section title="App PIN lock" />
+    <Card>
+      <Text style={{ color: colors.foreground, fontWeight: '700' }}>{appPinEnabled ? 'Enabled on this device' : 'Not enabled'}</Text>
+      <Text style={{ color: colors.mutedForeground, marginTop: 6, marginBottom: 4, lineHeight: 19, fontSize: 12 }}>
+        The six-digit PIN is stored in secure device storage and is rate-limited after repeated incorrect attempts.
+      </Text>
+      {Platform.OS === 'web' ? <Text style={{ color: colors.mutedForeground, marginTop: 8, fontSize: 12 }}>
+        Set up an app PIN in the mobile app.
+      </Text> : <>
+        {appPinEnabled ? <Field
+          label="Current app PIN"
+          value={currentPin}
+          onChangeText={value => setCurrentPin(value.replace(/\D/g, '').slice(0, 6))}
+          placeholder="000000"
+          keyboardType="numeric"
+          secureTextEntry
+          autoCapitalize="none"
+        /> : null}
+        <Field
+          label={appPinEnabled ? 'New six-digit app PIN' : 'Create six-digit app PIN'}
+          value={newPin}
+          onChangeText={value => setNewPin(value.replace(/\D/g, '').slice(0, 6))}
+          placeholder="000000"
+          keyboardType="numeric"
+          secureTextEntry
+          autoCapitalize="none"
+        />
+        <Field
+          label={appPinEnabled ? 'Confirm new PIN' : 'Confirm app PIN'}
+          value={confirmNewPin}
+          onChangeText={value => setConfirmNewPin(value.replace(/\D/g, '').slice(0, 6))}
+          placeholder="000000"
+          keyboardType="numeric"
+          secureTextEntry
+          autoCapitalize="none"
+        />
+        <Action
+          title={appPinEnabled ? 'Change app PIN' : 'Enable app PIN'}
+          icon="lock"
+          loading={busy}
+          disabled={newPin.length !== 6 || confirmNewPin.length !== 6 || (appPinEnabled && currentPin.length !== 6)}
+          onPress={() => void saveNewPin()}
+        />
+        {appPinEnabled ? <View style={{ marginTop: 10 }}>
+          <Action
+            title="Disable app PIN"
+            secondary
+            loading={busy}
+            disabled={currentPin.length !== 6}
+            onPress={() => void disablePin()}
+          />
+        </View> : null}
+      </>}
+    </Card>
+
     <Section title="Biometric sign-in" />
     <Card>
       <Text style={{ color: colors.foreground, fontWeight: '700' }}>{biometricEnabled ? 'Enabled on this device' : 'Not enabled'}</Text>
@@ -187,15 +295,15 @@ export default function Security() {
     </Card>
 
     <Section title="Account sessions" right={sessionsList.length > 1 ? <Pressable onPress={() => setConfirmAll(value => !value)}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Revoke others</Text></Pressable> : null} />
-    <Card>
-      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>The investor server lists browser sessions. It does not currently expose a mobile-token device list, so this screen cannot revoke other mobile app tokens.</Text>
-    </Card>
+    <Card><Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>
+      Review devices signed in to this investor account and revoke any session you no longer use.
+    </Text></Card>
     {sessions.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading sessions…</Text></Card> : null}
     {sessions.isError ? <ErrorState message="Account sessions could not be loaded." onRetry={() => void sessions.refetch()} /> : null}
-    {!sessions.isLoading && !sessions.isError && sessionsList.length === 0 ? <EmptyState title="No browser sessions listed" body="The server has not returned any active browser sessions." /> : null}
+    {!sessions.isLoading && !sessions.isError && sessionsList.length === 0 ? <EmptyState title="No active sessions" body="No active investor sessions were returned." /> : null}
     {confirmAll ? <Card style={{ borderColor: colors.destructive }}>
       <Text style={{ color: colors.foreground, fontWeight: '700' }}>Revoke all other sessions?</Text>
-      <Text style={{ color: colors.mutedForeground, marginTop: 5, lineHeight: 19 }}>This signs out other sessions returned by the server. Your current account session is kept when the server can identify it.</Text>
+      <Text style={{ color: colors.mutedForeground, marginTop: 5, lineHeight: 19 }}>This signs out every other active device and keeps this session signed in.</Text>
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
         <View style={{ flex: 1 }}><Action title="Cancel" secondary onPress={() => setConfirmAll(false)} /></View>
         <View style={{ flex: 1 }}><Action title="Revoke sessions" loading={revokeOthers.isPending} onPress={() => void revokeAllOthers()} /></View>
@@ -206,14 +314,13 @@ export default function Security() {
       const current = session.is_current === true;
       return <Card key={id || index}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
-          <Text style={{ color: colors.foreground, flex: 1, fontWeight: '700' }}>{first(session, ['device'], 'Browser session')}</Text>
+          <Text style={{ color: colors.foreground, flex: 1, fontWeight: '700' }}>{first(session, ['device'], 'Mobile session')}</Text>
           {current ? <Status value="Current session" /> : null}
         </View>
-        <Text style={{ color: colors.mutedForeground, marginTop: 7, fontSize: 12 }}>IP address: {first(session, ['ip'], 'Not provided')}</Text>
-        <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 12 }}>Last active: {first(session, ['last_activity_human'], displayDate(session.last_activity))}</Text>
+        <Text style={{ color: colors.mutedForeground, marginTop: 7, fontSize: 12 }}>Last active: {displayDate(session.last_activity)}</Text>
         {!current && id ? <Pressable onPress={() => setConfirmSessionId(id)} style={{ alignSelf: 'flex-start', paddingTop: 12 }}><Text style={{ color: colors.destructive, fontWeight: '700' }}>Revoke this session</Text></Pressable> : null}
         {confirmSessionId === id ? <View style={{ marginTop: 12 }}>
-          <Text style={{ color: colors.foreground, marginBottom: 10 }}>Sign this browser session out?</Text>
+          <Text style={{ color: colors.foreground, marginBottom: 10 }}>Sign this device out?</Text>
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <View style={{ flex: 1 }}><Action title="Cancel" secondary onPress={() => setConfirmSessionId('')} /></View>
             <View style={{ flex: 1 }}><Action title="Revoke" loading={revokeSession.isPending} onPress={() => void revokeOne(id)} /></View>
@@ -221,15 +328,5 @@ export default function Security() {
         </View> : null}
       </Card>;
     })}
-
-    <Section title="Recent security activity" />
-    {activity.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading recent activity…</Text></Card> : null}
-    {activity.isError ? <ErrorState message="Recent security activity could not be loaded." onRetry={() => void activity.refetch()} /> : null}
-    {!activity.isLoading && !activity.isError && activityList.length === 0 ? <EmptyState title="No recent activity" body="Account security events returned by the investor server will appear here." /> : null}
-    {activityList.slice(0, 15).map((item, index) => <Card key={first(item, ['id'], String(index))}>
-      <Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(item, ['action'], 'Account event')}</Text>
-      <Text style={{ color: colors.mutedForeground, marginTop: 5, fontSize: 12 }}>{first(item, ['module'], 'Account')} · IP {first(item, ['ip'], 'not provided')}</Text>
-      <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 12 }}>{first(item, ['time'], displayDate(item.created_at))}</Text>
-    </Card>)}
   </Screen>;
 }

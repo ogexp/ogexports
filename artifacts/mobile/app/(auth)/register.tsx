@@ -80,15 +80,17 @@ function RegisterField({
 }
 
 export default function Register() {
-  const { apiOrigin, acceptSession } = useAuth();
+  const { apiOrigin, setChallenge } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const mutation = useInvestorRegister();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [country, setCountry] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [focusedField, setFocusedField] = useState<'fullName' | 'email' | 'password' | 'confirmPassword' | null>(null);
+  const [focusedField, setFocusedField] = useState<'fullName' | 'email' | 'mobile' | 'country' | 'password' | 'confirmPassword' | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -97,6 +99,8 @@ export default function Register() {
     setError('');
     if (!fullName.trim()) { setError('Enter your full name.'); return; }
     if (!email.trim()) { setError('Enter your email address.'); return; }
+    if (!mobile.trim()) { setError('Enter your mobile number with its country code.'); return; }
+    if (!country.trim()) { setError('Enter your country or region.'); return; }
     if (password.length < 8) { setError('Use a password with at least 8 characters.'); return; }
     if (password !== confirmPassword) { setError('The password and confirmation do not match.'); return; }
     if (!apiOrigin) {
@@ -108,15 +112,30 @@ export default function Register() {
         data: {
           name: fullName.trim(),
           email: email.trim(),
+          mobile: mobile.trim(),
+          country: country.trim(),
           password,
           password_confirmation: confirmPassword,
           account_type: 'investor',
         },
       }));
-      if (typeof result.token !== 'string') throw new Error('The server response did not include a session token.');
-      await acceptSession(result.token, record(result.user));
-      router.replace('/(tabs)');
+      setChallenge({
+        email: typeof result.email === 'string' ? result.email : email.trim(),
+        mode: 'email',
+        message: typeof result.message === 'string' ? result.message : '',
+      });
+      router.replace('/(auth)/verify');
     } catch (err) {
+      const payload = record(record(err).data);
+      if (payload.requires_email_verification === true && typeof payload.email === 'string') {
+        setChallenge({
+          email: payload.email,
+          mode: 'email',
+          message: typeof payload.message === 'string' ? payload.message : '',
+        });
+        router.replace('/(auth)/verify');
+        return;
+      }
       setError(messageOf(err));
     }
   }
@@ -183,6 +202,30 @@ export default function Register() {
           required
         />
         <RegisterField
+          label="MOBILE NUMBER"
+          value={mobile}
+          onChangeText={value => { setMobile(value); setError(''); }}
+          placeholder="+92 300 1234567"
+          keyboardType="phone-pad"
+          autoComplete="tel"
+          textContentType="telephoneNumber"
+          focused={focusedField === 'mobile'}
+          onFocus={() => setFocusedField('mobile')}
+          onBlur={() => setFocusedField(null)}
+          required
+        />
+        <RegisterField
+          label="COUNTRY / REGION"
+          value={country}
+          onChangeText={value => { setCountry(value); setError(''); }}
+          placeholder="Pakistan"
+          autoCapitalize="words"
+          focused={focusedField === 'country'}
+          onFocus={() => setFocusedField('country')}
+          onBlur={() => setFocusedField(null)}
+          required
+        />
+        <RegisterField
           label="PASSWORD"
           value={password}
           onChangeText={value => { setPassword(value); setError(''); }}
@@ -237,7 +280,7 @@ export default function Register() {
         <Action
           title="Create Account"
           loading={mutation.isPending}
-          disabled={!fullName.trim() || !email.trim() || !password || !confirmPassword}
+          disabled={!fullName.trim() || !email.trim() || !mobile.trim() || !country.trim() || !password || !confirmPassword}
           onPress={() => void submit()}
         />
         </Card>

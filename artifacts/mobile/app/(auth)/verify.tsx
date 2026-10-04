@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { Text } from 'react-native';
+import { Pressable, Text } from 'react-native';
 import { router } from 'expo-router';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { Action, Card, Field } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
 import { messageOf, record } from '@/lib/data';
-import { useInvestorVerifyEmail, useInvestorVerifyTwoFactor } from '@workspace/api-client-react';
+import {
+  useInvestorResendEmailVerification,
+  useInvestorVerifyEmail,
+  useInvestorVerifyTwoFactor,
+} from '@workspace/api-client-react';
+import { resolvePostAuthHref } from '@/lib/post-auth-route';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,32 +20,105 @@ export default function Verify() {
   const insets = useSafeAreaInsets();
   const emailVerify = useInvestorVerifyEmail();
   const twoFactor = useInvestorVerifyTwoFactor();
+  const resend = useInvestorResendEmailVerification();
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+
   async function submit() {
     if (!challenge) { router.replace('/(auth)/login'); return; }
     setError('');
     try {
       const response = record(challenge.mode === '2fa'
-        ? await twoFactor.mutateAsync({ data: { token: challenge.token, code, device_name: 'og_investor_mobile' } })
-        : await emailVerify.mutateAsync({ data: { email: challenge.email, code, device_name: 'og_investor_mobile' } }));
-      if (response.requires_2fa) {
-        setChallenge({ email: challenge.email, token: String(response.token ?? ''), mode: '2fa' });
-        setCode('');
-        return;
+        ? await twoFactor.mutateAsync({
+          data: { email: challenge.email, code, device_name: 'OG Exports mobile' },
+        })
+        : await emailVerify.mutateAsync({
+          data: { email: challenge.email, code, device_name: 'OG Exports mobile' },
+        }));
+      if (typeof response.token !== 'string') {
+        throw new Error('The verification response did not include a session token.');
       }
-      if (typeof response.token !== 'string') throw new Error('The verification response did not include a session token.');
       await acceptSession(response.token, record(response.user));
-      router.replace('/(tabs)');
-    } catch (err) { setError(messageOf(err)); }
+      setChallenge(null);
+      router.replace(resolvePostAuthHref(challenge.returnTo));
+    } catch (err) {
+      setError(messageOf(err));
+    }
   }
-  return <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 28, paddingBottom: insets.bottom + 24, paddingHorizontal: 20, justifyContent: 'center' }} bottomOffset={70} keyboardShouldPersistTaps="handled">
-    <Text style={{ fontSize: 27, fontWeight: '700', color: colors.foreground }}>Verify it’s you</Text>
-    <Text style={{ color: colors.mutedForeground, marginTop: 8, marginBottom: 20, lineHeight: 21 }}>Enter the code sent to {challenge?.email ?? 'your email'}.</Text>
+
+  async function resendVerification() {
+    if (!challenge || challenge.mode !== 'email') return;
+    setError('');
+    setNotice('');
+    try {
+      const response = record(await resend.mutateAsync({ data: { email: challenge.email } }));
+      setNotice(typeof response.message === 'string' ? response.message : 'A new verification code has been sent.');
+    } catch (err) {
+      setError(messageOf(err));
+    }
+  }
+
+  if (!challenge) {
+    router.replace('/(auth)/login');
+    return null;
+  }
+  const isTwoFactor = challenge.mode === '2fa';
+  const isPending = emailVerify.isPending || twoFactor.isPending;
+  return <KeyboardAwareScrollViewCompat
+    style={{ flex: 1, backgroundColor: colors.background }}
+    contentContainerStyle={{
+      flexGrow: 1,
+      paddingTop: insets.top + 28,
+      paddingBottom: insets.bottom + 24,
+      paddingHorizontal: 20,
+      justifyContent: 'center',
+    }}
+    bottomOffset={70}
+    keyboardShouldPersistTaps="handled"
+  >
+    <Text style={{ fontSize: 27, fontWeight: '700', color: colors.foreground }}>
+      {isTwoFactor ? 'Confirm your sign-in' : 'Verify your email'}
+    </Text>
+    <Text style={{ color: colors.mutedForeground, marginTop: 8, marginBottom: 20, lineHeight: 21 }}>
+      {challenge.message || (isTwoFactor
+        ? 'Enter the sign-in code sent to your verified email address.'
+        : 'Enter the code sent to your email address.')}
+      {'\n'}{challenge.email}
+    </Text>
     <Card>
-      <Field label="Verification code" value={code} onChangeText={setCode} placeholder="Enter code" keyboardType="numeric" autoCapitalize="none" />
-      {error ? <Text style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
-      <Action title="Verify and continue" loading={emailVerify.isPending || twoFactor.isPending} disabled={code.length < 4} onPress={() => void submit()} />
+      <Field
+        label="Six-digit code"
+        value={code}
+        onChangeText={value => setCode(value.replace(/\D/g, '').slice(0, 6))}
+        placeholder="000000"
+        keyboardType="numeric"
+        autoCapitalize="none"
+      />
+      {notice ? <Text style={{ color: colors.primary, marginBottom: 12, lineHeight: 19 }}>{notice}</Text> : null}
+      {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12, lineHeight: 19 }}>{error}</Text> : null}
+      <Action
+        title={isTwoFactor ? 'Verify and sign in' : 'Verify email and continue'}
+        loading={isPending}
+        disabled={code.length !== 6}
+        onPress={() => void submit()}
+      />
+      {!isTwoFactor ? <Pressable
+        accessibilityRole="button"
+        onPress={() => void resendVerification()}
+        disabled={resend.isPending}
+        style={{ alignSelf: 'center', padding: 14 }}
+      >
+        <Text style={{ color: colors.primary, fontWeight: '600' }}>
+          {resend.isPending ? 'Sending…' : 'Resend verification code'}
+        </Text>
+      </Pressable> : <Pressable
+        accessibilityRole="button"
+        onPress={() => router.replace('/(auth)/login')}
+        style={{ alignSelf: 'center', padding: 14 }}
+      >
+        <Text style={{ color: colors.primary, fontWeight: '600' }}>Back to sign in</Text>
+      </Pressable>}
     </Card>
   </KeyboardAwareScrollViewCompat>;
 }
