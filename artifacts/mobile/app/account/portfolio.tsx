@@ -16,10 +16,10 @@ import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
 type PortfolioTab = 'Active' | 'Pending' | 'Completed';
 
 function categorizeInvestmentStatus(status: string): PortfolioTab | null {
-  const normalized = status.trim().toLowerCase();
-  if (/(^|[\s_-])(complete|completed|closed|settled|distributed)([\s_-]|$)/.test(normalized)) return 'Completed';
-  if (/(^|[\s_-])(pending|processing|review|awaiting|submitted)([\s_-]|$)/.test(normalized)) return 'Pending';
-  if (/(^|[\s_-])(active|funded|invested|in.progress|ongoing)([\s_-]|$)/.test(normalized)) return 'Active';
+  const normalized = status.trim().toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ');
+  if (/(^| )(complete|completed|closed|settled|fully distributed|fully paid)( |$)/.test(normalized)) return 'Completed';
+  if (/(^| )(pending|processing|review|awaiting|submitted)( |$)/.test(normalized)) return 'Pending';
+  if (/(^| )(active|funded|invested|in progress|ongoing|confirmed|approved|preparing|stuffing|customs|in transit|shipping|shipped|arrival|delivery|delivered|settlement|disbursed)( |$)/.test(normalized)) return 'Active';
   return null;
 }
 
@@ -54,15 +54,16 @@ export default function Portfolio() {
   const currency = first(wallet, ['currency', 'default_currency']);
   const totalValue = amount(summary, ['total_portfolio_value', 'portfolio_value', 'total_value']);
   const invested = amount(summary, ['total_investment', 'total_investment_usd', 'invested_capital']);
-  const distributed = amount(summary, ['total_profit_earned', 'total_profit_earned_usd', 'total_returns', 'profit']);
-  const pendingDistribution = amount(summary, ['pending_distribution']);
+  const distributed = amount(summary, ['distributed_returns', 'total_distributed_returns'])
+    ?? amount(dashboard, ['distributed_returns', 'total_distributed_returns']);
+  const pendingDistribution = amount(summary, ['pending_distribution'])
+    ?? amount(dashboard, ['pending_distribution']);
   const availableBalance = amount(wallet, ['available_balance', 'balance', 'available'])
     ?? amount(summary, ['available_balance']);
-  const historyPoints = list(series.points);
   const assignedRows = rows.map((item, index) => {
     const trade = record(item.trade ?? item.project ?? item.trade_details);
     const container = record(item.container ?? item.container_details ?? trade.container ?? trade.container_details);
-    const investmentStatus = first(item, ['status', 'state']);
+    const investmentStatus = first(item, ['investment_status', 'status', 'state']);
     return {
       item,
       trade,
@@ -82,21 +83,23 @@ export default function Portfolio() {
     const commodity = first(item, ['commodity_name', 'commodity'], first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(item, ['project_name', 'title'])));
     const origin = first(item, ['origin', 'origin_country', 'from_country'], first(trade, ['origin', 'origin_country', 'from_country', 'country_of_origin']));
     const destination = first(item, ['destination', 'destination_country', 'to_country'], first(trade, ['destination', 'destination_country', 'to_country', 'destination_market']));
-    const investmentCurrency = first(item, ['currency'], first(trade, ['currency'], currency));
+    const investmentCurrency = first(item, ['currency'], first(trade, ['currency']));
     const investedAmount = amount(item, ['amount', 'investment_amount', 'principal']);
-    const tradeStatus = first(item, ['trade_status'], first(trade, ['trade_status', 'status']));
-    const containerStatus = first(item, ['container_status'], first(container, ['trade_status', 'status', 'current_status']));
+    const tradeStatus = first(item, ['trade_status', 'shipment_status'], first(trade, ['trade_status', 'shipment_status', 'status']));
+    const containerStatus = first(item, ['container_status'], first(
+      container,
+      ['status', 'current_status', 'shipment_status', 'trade_status'],
+      first(trade, ['container_status', 'shipment_status'], first(item, ['shipment_status'])),
+    ));
     const progress = amount(item, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage'])
       ?? amount(trade, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage']);
     const boundedProgress = progress == null ? null : Math.max(0, Math.min(100, progress));
     const targetAmount = amount(item, [
-      'projected_distribution', 'projected_distribution_amount', 'target_distribution',
-      'target_distribution_amount', 'projected_return_amount', 'estimated_return_amount',
-      'target_return_amount', 'estimated_distribution',
+      'projected_return_amount', 'estimated_return_amount', 'target_return_amount',
+      'projected_distribution', 'estimated_distribution',
     ]) ?? amount(trade, [
-      'projected_distribution', 'projected_distribution_amount', 'target_distribution',
-      'target_distribution_amount', 'projected_return_amount', 'estimated_return_amount',
-      'target_return_amount', 'estimated_distribution',
+      'projected_return_amount', 'estimated_return_amount', 'target_return_amount',
+      'projected_distribution', 'estimated_distribution',
     ]);
     const targetPercent = amount(item, ['projected_return_percentage', 'estimated_return_percentage', 'target_return_percentage'])
       ?? amount(trade, ['projected_return_percentage', 'estimated_return_percentage', 'target_return_percentage']);
@@ -108,7 +111,7 @@ export default function Portfolio() {
       : investmentCurrency ? money(investedAmount, investmentCurrency) : 'Currency not provided by OG Exports';
     const targetLabel = targetAmount != null
       ? investmentCurrency ? money(targetAmount, investmentCurrency) : 'Currency not provided by OG Exports'
-      : targetPercent != null ? `${targetPercent}%` : 'Not provided by OG Exports';
+      : targetPercent != null ? `${targetPercent.toFixed(2)}%` : 'Not provided by OG Exports';
 
     return <Card key={entry.key} style={{ padding: 18, borderRadius: 20 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
@@ -211,8 +214,6 @@ export default function Portfolio() {
     </Card>
     {dashboardQuery.isError ? <ErrorState message="Portfolio summary could not be loaded from the investor server." onRetry={() => void dashboardQuery.refetch()} /> : null}
 
-    <PortfolioHistoryCard points={series.points} currency={currency} loading={dashboardQuery.isLoading} defaultRange="3M" />
-
     {positionsQuery.isError ? <ErrorState message="Portfolio positions could not be loaded." onRetry={() => void positionsQuery.refetch()} /> : null}
     {positionsQuery.isLoading ? <Card style={{ padding: 20 }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Loading investment records…</Text>
@@ -244,5 +245,9 @@ export default function Portfolio() {
         {uncategorizedRows.map(renderInvestment)}
       </> : null}
     </> : null}
+    <PortfolioHistoryCard points={series.points} currency={currency} loading={dashboardQuery.isLoading} defaultRange="3M" />
+    <Pressable accessibilityRole="button" onPress={() => router.push('/account/transactions')}>
+      <Text style={{ color: colors.primary, fontWeight: '700', paddingVertical: 4 }}>View transaction history →</Text>
+    </Pressable>
   </Screen>;
 }
