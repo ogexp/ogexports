@@ -4,7 +4,7 @@
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/og-logo.png",
     "scheme": "mobile",
     "userInterfaceStyle": "light",
     "ios": {
@@ -12,7 +12,7 @@
     },
     "android": {},
     "web": {
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/og-logo.png"
     },
     "plugins": [
       "expo-router",
@@ -21,7 +21,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/icon.png",
+          "image": "./assets/images/og-logo.png",
           "imageWidth": 150,
           "resizeMode": "contain",
           "backgroundColor": "#FFFFFF"

@@ -53,9 +53,7 @@ export default function Login() {
   return (
     <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 18, paddingBottom: insets.bottom + 24, paddingHorizontal: 22, justifyContent: 'center' }} bottomOffset={72} keyboardShouldPersistTaps="handled">
       <View style={{ alignItems: 'center', marginBottom: 26 }}>
-        <View style={{ width: 58, height: 58, borderRadius: 18, backgroundColor: colors.logoBackground, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-          <Image source={require('../../assets/images/icon.png')} style={{ width: 58, height: 58 }} />
-        </View>
+        <Image source={require('../../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 76, height: 62 }} />
         <Text style={{ color: colors.primary, fontSize: 25, fontWeight: '700', marginTop: 18 }}>OG Exports</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 7 }}>Global Trade. Smart Investment.</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 5 }}>Sign in to your investor account.</Text>

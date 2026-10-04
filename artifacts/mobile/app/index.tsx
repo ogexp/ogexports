@@ -39,7 +39,7 @@ export default function Entry() {
         <LinearGradient colors={[colors.glow, colors.lightGreen, colors.background]} locations={[0, 0.58, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1 }} />
       </Animated.View>
       <Animated.View style={{ alignItems: 'center', opacity, transform: [{ scale }] }}>
-        <Image source={require('../assets/images/icon.png')} style={{ width: 112, height: 112, borderRadius: 28 }} />
+        <Image source={require('../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 148, height: 112 }} />
         <Text style={{ color: colors.primary, fontSize: 27, fontWeight: '700', marginTop: 24 }}>OG Exports</Text>
         <Animated.Text style={{ color: colors.mutedForeground, fontSize: 14, marginTop: 8, letterSpacing: 0.5, opacity: taglineOpacity }}>Global Trade. Smart Investment.</Animated.Text>
       </Animated.View>

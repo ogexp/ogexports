@@ -93,7 +93,7 @@ export default function Onboarding() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, paddingHorizontal: 22 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 10 }}>
-        <Image source={require('../assets/images/icon.png')} style={{ width: 36, height: 36, borderRadius: 10 }} />
+        <Image source={require('../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 45, height: 36 }} />
         <View><Text style={{ color: colors.primary, fontWeight: '700', fontSize: 16 }}>OG Exports</Text><Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 1 }}>Global Trade. Smart Investment.</Text></View>
       </View>
       <View style={{ flex: 1, justifyContent: 'center' }}>

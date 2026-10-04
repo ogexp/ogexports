@@ -50,7 +50,7 @@ export default function AppLock() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', padding: 22 }}>
       <View style={{ alignItems: 'center', marginBottom: 22 }}>
-        <Image source={require('../assets/images/icon.png')} style={{ width: 88, height: 88, borderRadius: 24 }} />
+        <Image source={require('../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 116, height: 88 }} />
         <Text style={{ color: colors.foreground, fontSize: 25, fontWeight: '700', marginTop: 18 }}>Welcome back</Text>
         <Text style={{ color: colors.mutedForeground, marginTop: 6 }}>Unlock your OG Exports account</Text>
       </View>
