@@ -4,9 +4,10 @@ import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGetInvestorProjects } from '@workspace/api-client-react';
-import { Card, EmptyState, ErrorState, Field, Screen, Status } from '@/components/InvestorUI';
+import { Card, EmptyState, ErrorState, Field, Screen } from '@/components/InvestorUI';
+import { OpportunityCard } from '@/components/OpportunityCard';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
-import { amount, first, list, money } from '@/lib/data';
+import { amount, first, list } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -52,6 +53,8 @@ function categoryFor(item: Record<string, unknown>) {
 }
 
 function fundingProgress(item: Record<string, unknown>) {
+  const suppliedProgress = amount(item, ['funding_progress_percent', 'funding_progress_pct', 'progress_percentage']);
+  if (suppliedProgress != null) return Math.max(0, Math.min(100, Math.round(suppliedProgress)));
   const target = amount(item, ['target_amount', 'funding_target', 'total_trade_requirement', 'amount']);
   const funded = amount(item, ['funded_amount', 'raised_amount', 'current_amount', 'current_funding']);
   return target != null && target > 0 && funded != null
@@ -74,13 +77,6 @@ function durationInDays(item: Record<string, unknown>) {
   if (/^w/.test(unit)) return value * 7;
   if (/^m/.test(unit)) return value * 30;
   return value * 365;
-}
-
-function durationLabel(item: Record<string, unknown>) {
-  const days = amount(item, ['duration_days', 'trade_duration_days', 'cycle_days']);
-  if (days != null) return `${days} days`;
-  const label = first(item, ['trade_cycle', 'estimated_trade_cycle', 'duration', 'term', 'investment_duration']);
-  return label && Number.isFinite(Number(label)) ? `${label} days` : label;
 }
 
 function numericLimit(value: string) {
@@ -185,8 +181,6 @@ export default function Opportunities() {
     setDraftFilters(emptyFilters);
     setAppliedFilters(emptyFilters);
   };
-  const moneyLabel = (value: number | null, currency: string) => value == null ? 'Not provided' : currency ? money(value, currency) : 'Currency not provided';
-
   return <Screen title="Explore Trade Opportunities" subtitle="Import and export opportunities reported by OG Exports">
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <View style={{ flex: 1 }}><Field label="Search" value={search} onChangeText={setSearch} placeholder="Trade ID, commodity or destination" /></View>
@@ -218,67 +212,16 @@ export default function Opportunities() {
     {!query.isLoading && !query.isError && rows.length === 0 ? <EmptyState title="No matching trade opportunities" body={tab === 'Featured' && !activeCriteriaCount ? "OG Exports hasn't marked any listed trades as featured yet. Try another tab to browse current opportunities." : 'Try another category, tab, or filter. This view only shows opportunities and details supplied by OG Exports.'} /> : null}
     {rows.map((item, index) => {
       const id = first(item, ['id', 'project_id'], '');
-      const title = first(item, ['commodity_name', 'commodity', 'title', 'name', 'project_name'], 'Trade details not provided');
-      const tradeId = first(item, ['trade_id', 'trade_code', 'code', 'reference'], 'Trade ID not provided');
       const commodityCategory = categoryFor(item);
       const categoryLabel = commodityCategory === 'Other' ? 'Other Commodities' : commodityCategory === 'Unknown' ? 'Commodity not provided' : commodityCategory;
-      const featured = isFeatured(item);
-      const origin = first(item, ['origin', 'origin_country', 'from_country']);
-      const destination = first(item, ['destination', 'destination_country', 'to_country', 'destination_market']);
-      const route = origin && destination ? `${origin} → ${destination}` : 'Route details not provided';
-      const currency = first(item, ['currency']);
-      const target = amount(item, ['target_amount', 'funding_target', 'total_trade_requirement', 'amount']);
-      const minimum = amount(item, ['minimum_investment', 'min_investment', 'minimum_amount']);
-      const funded = amount(item, ['funded_amount', 'raised_amount', 'current_amount', 'current_funding']);
-      const progress = fundingProgress(item);
-      const targetReturn = first(item, ['target_return', 'projected_return', 'expected_return', 'return_rate', 'roi'], '');
-      const duration = durationLabel(item);
-      const cardDetails = [
-        ['Grade', first(item, ['grade', 'commodity_grade'], '')],
-        ['Quantity', first(item, ['quantity', 'cargo_quantity', 'quantity_tons'], '')],
-        ['Containers', first(item, ['container_count', 'containers_count'], '')],
-        ['Container type', first(item, ['container_type'], '')],
-        ['Incoterm', first(item, ['incoterm', 'trade_term'], '')],
-        ['Destination', destination],
-      ].filter(([, value]) => value);
-      return <Pressable key={id || index} onPress={() => id && router.push({ pathname: '/project/[id]', params: { id } })} disabled={!id}>
-        <Card style={featured ? { borderColor: colors.accent, borderWidth: 1.5 } : undefined}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', letterSpacing: 0.7 }}>{tradeId}</Text><Status value={tradeStatus(item) || 'Not provided'} /></View>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 11 }}>
-            <View style={{ borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: colors.secondary }}><Text style={{ color: colors.foreground, fontSize: 10, fontWeight: '700' }}>{categoryLabel}</Text></View>
-            {featured ? <View style={{ borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: colors.lightGreen }}><Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700' }}>Featured</Text></View> : null}
-            {progress != null ? <View style={{ borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: colors.secondary }}><Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700' }}>{progress}% funded</Text></View> : null}
-          </View>
-          <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', marginTop: 11 }}>{title}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 }}>
-            <Feather name="map-pin" size={12} color={colors.accent} />
-            <Text style={{ color: colors.mutedForeground, fontSize: 12, flex: 1 }}>{route}</Text>
-          </View>
-          {first(item, ['description', 'summary']) ? <Text numberOfLines={2} style={{ color: colors.mutedForeground, lineHeight: 20, marginTop: 6 }}>{first(item, ['description', 'summary'])}</Text> : null}
-          {cardDetails.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
-            {cardDetails.map(([label, value]) => <View key={label} style={{ width: '46%' }}><Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{label}</Text><Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', marginTop: 4 }}>{value}</Text></View>)}
-          </View> : null}
-          {target != null || minimum != null || duration ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
-            {target != null ? <View style={{ flex: 1, minWidth: 130 }}><Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Total trade requirement</Text><Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginTop: 4 }}>{moneyLabel(target, currency)}</Text></View> : null}
-            {minimum != null ? <View style={{ flex: 1, minWidth: 130 }}><Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Minimum investment</Text><Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginTop: 4 }}>{moneyLabel(minimum, currency)}</Text></View> : null}
-            {duration ? <View style={{ flex: 1, minWidth: 130 }}><Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Trade cycle</Text><Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginTop: 4 }}>{duration}</Text></View> : null}
-          </View> : null}
-          {target != null && funded != null && progress != null ? <View style={{ marginTop: 14 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 7 }}><Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Funding progress</Text><Text style={{ color: colors.foreground, fontSize: 10, fontWeight: '700' }}>{moneyLabel(funded, currency)} / {moneyLabel(target, currency)}</Text></View>
-            <View style={{ height: 6, borderRadius: 4, backgroundColor: colors.secondary, overflow: 'hidden' }}><View style={{ width: `${progress}%`, height: 6, backgroundColor: colors.primary }} /></View>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 5 }}>{progress}% funded</Text>
-          </View> : <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 12 }}>Funding progress has not been provided.</Text>}
-          {targetReturn ? <View style={{ marginTop: 13, padding: 11, borderRadius: 12, backgroundColor: colors.secondary }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Projected / target return · not guaranteed</Text>
-            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700', marginTop: 4 }}>{targetReturn}</Text>
-          </View> : null}
-          {riskLevel(item) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 11 }}>Risk information: {riskLevel(item)}</Text> : null}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 15 }}>
-            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>View Trade</Text>
-            <Feather name="arrow-up-right" size={16} color={colors.primary} />
-          </View>
-        </Card>
-      </Pressable>;
+      return <OpportunityCard
+        key={id || index}
+        item={item}
+        categoryLabel={categoryLabel}
+        featured={isFeatured(item)}
+        progress={fundingProgress(item)}
+        onPress={id ? () => router.push({ pathname: '/project/[id]', params: { id } }) : undefined}
+      />;
     })}
 
     <Modal visible={filtersOpen} transparent animationType="slide" onRequestClose={() => setFiltersOpen(false)}>
