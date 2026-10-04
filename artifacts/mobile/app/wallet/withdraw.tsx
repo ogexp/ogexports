@@ -3,7 +3,8 @@ import { Pressable, Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreateInvestorWithdrawal,
-  useGetInvestorProfile,
+  getGetInvestorBankAccountsQueryKey,
+  useGetInvestorBankAccounts,
   useGetInvestorWallet,
   useGetInvestorWithdrawals,
   useSendInvestorWithdrawalOtp,
@@ -18,24 +19,21 @@ const finishedStatuses = new Set(['approved', 'completed']);
 const processingStatuses = new Set(['pending', 'requested', 'processing', 'review', 'in review']);
 
 function verifiedBankAccount(account: Record<string, unknown>) {
-  const flag = first(account, ['is_verified', 'verified']).toLowerCase();
-  const status = first(account, ['verification_status', 'bank_verification_status', 'status']).toLowerCase();
-  const verified = flag === 'true' || flag === '1' || status === 'verified';
+  const status = first(account, ['verification_status']).toLowerCase();
   const hasDestination = Boolean(
     first(account, ['bank_name'])
     && first(account, ['account_holder', 'account_title'])
-    && (first(account, ['account_number']) || first(account, ['iban'])),
+    && first(account, ['masked_account_identifier']),
   );
-  return verified && hasDestination;
+  return status === 'verified' && hasDestination;
 }
 
 function bankKey(account: Record<string, unknown>) {
-  return first(account, ['id', 'account_id', 'iban', 'account_number']);
+  return first(account, ['id', 'account_id']);
 }
 
 function maskAccount(account: Record<string, unknown>) {
-  const value = first(account, ['account_number', 'iban']);
-  return value ? `•••• ${value.slice(-4)}` : 'Destination account not provided';
+  return first(account, ['masked_account_identifier'], 'Destination account not provided');
 }
 
 function WithdrawalProgress({ withdrawal }: { withdrawal: Record<string, unknown> }) {
@@ -89,20 +87,18 @@ export default function Withdraw() {
   const colors = useColors();
   const queryClient = useQueryClient();
   const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token) } });
-  const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: Boolean(token) } });
+  const bankAccountsQuery = useGetInvestorBankAccounts({
+    query: { queryKey: getGetInvestorBankAccountsQueryKey(), enabled: Boolean(token) },
+  });
   const historyQuery = useGetInvestorWithdrawals({}, { query: { queryKey: ['investor-withdrawals'], enabled: Boolean(token) } });
   const create = useCreateInvestorWithdrawal();
   const sendOtp = useSendInvestorWithdrawalOtp();
   const wallet = unwrap(walletQuery.data);
-  const profile = unwrap(profileQuery.data);
   const walletCurrency = first(wallet, ['currency', 'default_currency']).toUpperCase();
   const explicitWithdrawableBalance = readAmount(wallet, ['withdrawable_balance']);
   const availableBalance = explicitWithdrawableBalance ?? readAmount(wallet, ['available_balance']);
-  const rawBankAccounts = list(profile.bank_accounts);
-  const defaultBankAccount = record(profile.default_bank_account);
-  const bankAccounts = [...rawBankAccounts, defaultBankAccount]
-    .filter(account => Boolean(first(account, ['bank_name'])))
-    .filter((account, index, all) => all.findIndex(candidate => bankKey(candidate) === bankKey(account)) === index);
+  const bankAccountData = unwrap(bankAccountsQuery.data);
+  const bankAccounts = list(bankAccountData.bank_accounts);
   const verifiedAccounts = bankAccounts.filter(verifiedBankAccount);
   const defaultVerified = verifiedAccounts.find(account => first(account, ['is_default']).toLowerCase() === 'true')
     ?? verifiedAccounts[0];
@@ -160,23 +156,13 @@ export default function Withdraw() {
       setStage('form');
       return;
     }
-    const bankDetails = {
-      bank_name: first(selectedBank, ['bank_name']),
-      account_holder: first(selectedBank, ['account_holder', 'account_title']),
-      account_number: first(selectedBank, ['account_number']),
-      iban: first(selectedBank, ['iban']),
-      swift: first(selectedBank, ['swift']),
-      branch: first(selectedBank, ['branch']),
-      currency: withdrawalCurrency,
-    };
     try {
       const response = record(await create.mutateAsync({
         data: {
           amount: amountNumber,
           otp: otp.trim(),
           transaction_password: transactionPassword,
-          bank_details: bankDetails,
-          save_bank_details: false,
+          bank_account_id: bankKey(selectedBank),
         },
       }));
       const withdrawal = record(response.data);
@@ -196,7 +182,7 @@ export default function Withdraw() {
 
   return <Screen title="Withdraw" subtitle="Request a payout from your OG Exports wallet">
     {walletQuery.isError ? <ErrorState message="Withdrawable balance could not be loaded." onRetry={() => void walletQuery.refetch()} /> : null}
-    {profileQuery.isError ? <ErrorState message="Bank account details could not be loaded." onRetry={() => void profileQuery.refetch()} /> : null}
+    {bankAccountsQuery.isError ? <ErrorState message="Bank account details could not be loaded." onRetry={() => void bankAccountsQuery.refetch()} /> : null}
     <Card style={{ borderLeftWidth: 3, borderLeftColor: colors.primary }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>WITHDRAWABLE BALANCE</Text>
       <Text style={{ color: colors.foreground, fontSize: 27, fontWeight: '700', marginTop: 7 }}>
@@ -207,8 +193,8 @@ export default function Withdraw() {
         : null}
     </Card>
 
-    {profileQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading saved bank accounts…</Text></Card> : null}
-    {!profileQuery.isLoading && !profileQuery.isError && verifiedAccounts.length === 0
+    {bankAccountsQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading saved bank accounts…</Text></Card> : null}
+    {!bankAccountsQuery.isLoading && !bankAccountsQuery.isError && verifiedAccounts.length === 0
       ? <EmptyState title="No verified bank account available" body="OG Exports has not returned a verified payout account. Add and verify a bank account with OG Exports before requesting a withdrawal." />
       : null}
 

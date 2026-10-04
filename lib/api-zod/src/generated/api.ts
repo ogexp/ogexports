@@ -823,9 +823,111 @@ export const GetInvestorWithdrawalsResponse = zod.record(zod.string(), zod.unkno
 /**
  * @summary Submit a withdrawal request
  */
-export const CreateInvestorWithdrawalBody = zod.record(zod.string(), zod.unknown())
+
+export const createInvestorWithdrawalBodyBankAccountIdMax = 64;
+
+export const createInvestorWithdrawalBodyOtpMin = 6;
+export const createInvestorWithdrawalBodyOtpMax = 6;
+
+
+
+
+export const CreateInvestorWithdrawalBody = zod.object({
+  "amount": zod.number().min(1),
+  "bank_account_id": zod.string().max(createInvestorWithdrawalBodyBankAccountIdMax).nullish().describe('Saved bank account identifier; the server accepts it only when OG Exports currently marks that account verified.'),
+  "otp": zod.string().min(createInvestorWithdrawalBodyOtpMin).max(createInvestorWithdrawalBodyOtpMax),
+  "transaction_password": zod.string().min(1),
+  "note": zod.string().nullish(),
+  "bank_details": zod.record(zod.string(), zod.unknown()).nullish().describe('Legacy client field. The server resolves this only to a saved account that is currently verified.'),
+  "save_bank_details": zod.boolean().nullish()
+})
 
 export const CreateInvestorWithdrawalResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary List masked investor bank accounts and server-owned verification states
+ */
+export const GetInvestorBankAccountsResponse = zod.object({
+  "data": zod.object({
+  "bank_accounts": zod.array(zod.object({
+  "id": zod.string(),
+  "bank_name": zod.string(),
+  "account_holder": zod.string(),
+  "masked_account_identifier": zod.string().nullable(),
+  "currency": zod.string(),
+  "is_default": zod.boolean(),
+  "verification_status": zod.enum(['not_submitted', 'pending', 'verified', 'rejected']),
+  "verification_submitted_at": zod.coerce.date().nullish(),
+  "verification_reviewed_at": zod.coerce.date().nullish(),
+  "verification_notes": zod.string().nullish(),
+  "proof_name": zod.string().nullish(),
+  "has_proof": zod.boolean().optional()
+}))
+})
+})
+
+
+/**
+ * The proof is stored outside the public web directory. Verification state is assigned only by the server after administrator review.
+ * @summary Submit a bank account and private proof document for review
+ */
+export const createInvestorBankAccountBodyBankNameMax = 255;
+
+export const createInvestorBankAccountBodyAccountHolderMax = 255;
+
+export const createInvestorBankAccountBodyAccountNumberMax = 100;
+
+export const createInvestorBankAccountBodyIbanMax = 100;
+
+export const createInvestorBankAccountBodySwiftMax = 50;
+
+export const createInvestorBankAccountBodyBranchMax = 255;
+
+export const createInvestorBankAccountBodyCurrencyMin = 3;
+export const createInvestorBankAccountBodyCurrencyMax = 3;
+
+
+
+export const CreateInvestorBankAccountBody = zod.object({
+  "bank_name": zod.string().min(1).max(createInvestorBankAccountBodyBankNameMax),
+  "account_holder": zod.string().min(1).max(createInvestorBankAccountBodyAccountHolderMax),
+  "account_number": zod.string().max(createInvestorBankAccountBodyAccountNumberMax).nullish(),
+  "iban": zod.string().max(createInvestorBankAccountBodyIbanMax).nullish(),
+  "swift": zod.string().max(createInvestorBankAccountBodySwiftMax).nullish(),
+  "branch": zod.string().max(createInvestorBankAccountBodyBranchMax).nullish(),
+  "currency": zod.string().min(createInvestorBankAccountBodyCurrencyMin).max(createInvestorBankAccountBodyCurrencyMax),
+  "file": zod.instanceof(Blob).describe('PDF or image proof')
+})
+
+export const CreateInvestorBankAccountResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Set a currently verified bank account as the withdrawal default
+ */
+export const SetInvestorDefaultBankAccountParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const SetInvestorDefaultBankAccountResponse = zod.object({
+  "data": zod.object({
+  "bank_accounts": zod.array(zod.object({
+  "id": zod.string(),
+  "bank_name": zod.string(),
+  "account_holder": zod.string(),
+  "masked_account_identifier": zod.string().nullable(),
+  "currency": zod.string(),
+  "is_default": zod.boolean(),
+  "verification_status": zod.enum(['not_submitted', 'pending', 'verified', 'rejected']),
+  "verification_submitted_at": zod.coerce.date().nullish(),
+  "verification_reviewed_at": zod.coerce.date().nullish(),
+  "verification_notes": zod.string().nullish(),
+  "proof_name": zod.string().nullish(),
+  "has_proof": zod.boolean().optional()
+}))
+})
+})
 
 
 /**
@@ -1135,6 +1237,81 @@ export const GetAdminInvestmentProjectsResponse = zod.object({
   "links": zod.record(zod.string(), zod.unknown()).optional(),
   "meta": zod.record(zod.string(), zod.unknown()).optional()
 })
+
+
+/**
+ * @summary List investor bank account proof submissions for admin review
+ */
+export const getAdminInvestorBankAccountsQuerySearchMax = 100;
+
+
+export const getAdminInvestorBankAccountsQueryPerPageMax = 100;
+
+
+
+export const GetAdminInvestorBankAccountsQueryParams = zod.object({
+  "status": zod.enum(['pending', 'verified', 'rejected', 'all']).optional(),
+  "search": zod.coerce.string().max(getAdminInvestorBankAccountsQuerySearchMax).optional(),
+  "page": zod.coerce.number().int().min(1).optional(),
+  "per_page": zod.coerce.number().int().min(1).max(getAdminInvestorBankAccountsQueryPerPageMax).optional()
+})
+
+export const GetAdminInvestorBankAccountsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary View a privately stored investor bank proof document
+ */
+
+
+
+export const GetAdminInvestorBankAccountProofParams = zod.object({
+  "verification": zod.coerce.number().int().min(1)
+})
+
+export const GetAdminInvestorBankAccountProofResponse = zod.unknown()
+
+
+/**
+ * @summary Mark a current pending bank account as verified
+ */
+
+
+
+export const ApproveAdminInvestorBankAccountParams = zod.object({
+  "verification": zod.coerce.number().int().min(1)
+})
+
+export const approveAdminInvestorBankAccountBodyNotesMax = 2000;
+
+
+
+export const ApproveAdminInvestorBankAccountBody = zod.object({
+  "notes": zod.string().max(approveAdminInvestorBankAccountBodyNotesMax).nullish()
+})
+
+export const ApproveAdminInvestorBankAccountResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Reject a pending bank account proof submission with a reason
+ */
+
+
+
+export const RejectAdminInvestorBankAccountParams = zod.object({
+  "verification": zod.coerce.number().int().min(1)
+})
+
+export const rejectAdminInvestorBankAccountBodyNotesMax = 2000;
+
+
+
+export const RejectAdminInvestorBankAccountBody = zod.object({
+  "notes": zod.string().max(rejectAdminInvestorBankAccountBodyNotesMax).nullish()
+})
+
+export const RejectAdminInvestorBankAccountResponse = zod.record(zod.string(), zod.unknown())
 
 
 /**

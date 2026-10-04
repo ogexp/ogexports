@@ -436,9 +436,42 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/JsonObject" }
+            schema: { $ref: "#/components/schemas/InvestorWithdrawalInput" }
       responses:
         "201": { description: Withdrawal created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/bank-accounts:
+    get:
+      operationId: getInvestorBankAccounts
+      tags: [investor]
+      summary: List masked investor bank accounts and server-owned verification states
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Masked bank accounts and current OG Exports review results, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorBankAccountsResponse" } } } }
+    post:
+      operationId: createInvestorBankAccount
+      tags: [investor]
+      summary: Submit a bank account and private proof document for review
+      description: The proof is stored outside the public web directory. Verification state is assigned only by the server after administrator review.
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/InvestorBankAccountInput" }
+      responses:
+        "201": { description: Bank account submitted for admin review, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "422": { description: Invalid account details or proof file, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/bank-accounts/{id}/default:
+    patch:
+      operationId: setInvestorDefaultBankAccount
+      tags: [investor]
+      summary: Set a currently verified bank account as the withdrawal default
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Updated masked bank account list, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorBankAccountsResponse" } } } }
+        "422": { description: Account is not currently verified, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /investor/withdrawals/otp/send:
     post:
       operationId: sendInvestorWithdrawalOtp
@@ -729,6 +762,62 @@ paths:
         "200": { description: Paginated project records from Laravel, content: { application/json: { schema: { $ref: "#/components/schemas/AdminProjectListResponse" } } } }
         "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
         "403": { description: OG Exports administrator access required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /admin/compliance/bank-accounts:
+    get:
+      operationId: getAdminInvestorBankAccounts
+      tags: [admin]
+      summary: List investor bank account proof submissions for admin review
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [pending, verified, rejected, all] } }
+        - { name: search, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        "200": { description: Paginated bank review queue with masked account identifiers, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /admin/compliance/bank-accounts/{verification}/proof:
+    get:
+      operationId: getAdminInvestorBankAccountProof
+      tags: [admin]
+      summary: View a privately stored investor bank proof document
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - { name: verification, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200": { description: Private proof document, content: { application/octet-stream: { schema: { type: string, format: binary } } } }
+        "404": { description: Proof document not found, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /admin/compliance/bank-accounts/{verification}/approve:
+    post:
+      operationId: approveAdminInvestorBankAccount
+      tags: [admin]
+      summary: Mark a current pending bank account as verified
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - { name: verification, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BankAccountReviewInput" }
+      responses:
+        "200": { description: Review decision saved, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "409": { description: Account details changed or submission was already reviewed, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /admin/compliance/bank-accounts/{verification}/reject:
+    post:
+      operationId: rejectAdminInvestorBankAccount
+      tags: [admin]
+      summary: Reject a pending bank account proof submission with a reason
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - { name: verification, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BankAccountReviewInput" }
+      responses:
+        "200": { description: Review decision saved, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "409": { description: Submission was already reviewed, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /admin/projects/{id}/container-tracking:
     get:
       operationId: getAdminProjectContainerTracking
@@ -1198,6 +1287,70 @@ components:
           type: string
           description: Optional country or region.
           maxLength: 80
+    InvestorWithdrawalInput:
+      type: object
+      additionalProperties: true
+      required: [amount, otp, transaction_password]
+      properties:
+        amount: { type: number, minimum: 1 }
+        bank_account_id:
+          type: ["string", "null"]
+          maxLength: 64
+          description: Saved bank account identifier; the server accepts it only when OG Exports currently marks that account verified.
+        otp: { type: string, minLength: 6, maxLength: 6 }
+        transaction_password: { type: string, minLength: 1 }
+        note: { type: ["string", "null"] }
+        bank_details:
+          type: ["object", "null"]
+          additionalProperties: true
+          description: Legacy client field. The server resolves this only to a saved account that is currently verified.
+        save_bank_details: { type: ["boolean", "null"] }
+    InvestorBankAccountInput:
+      type: object
+      additionalProperties: false
+      required: [bank_name, account_holder, currency, file]
+      properties:
+        bank_name: { type: string, minLength: 1, maxLength: 255 }
+        account_holder: { type: string, minLength: 1, maxLength: 255 }
+        account_number: { type: ["string", "null"], maxLength: 100 }
+        iban: { type: ["string", "null"], maxLength: 100 }
+        swift: { type: ["string", "null"], maxLength: 50 }
+        branch: { type: ["string", "null"], maxLength: 255 }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        file: { type: string, format: binary, description: PDF or image proof }
+    InvestorBankAccount:
+      type: object
+      required: [id, bank_name, account_holder, masked_account_identifier, currency, is_default, verification_status]
+      properties:
+        id: { type: string }
+        bank_name: { type: string }
+        account_holder: { type: string }
+        masked_account_identifier: { type: ["string", "null"] }
+        currency: { type: string }
+        is_default: { type: boolean }
+        verification_status:
+          type: string
+          enum: [not_submitted, pending, verified, rejected]
+        verification_submitted_at: { type: ["string", "null"], format: date-time }
+        verification_reviewed_at: { type: ["string", "null"], format: date-time }
+        verification_notes: { type: ["string", "null"] }
+        proof_name: { type: ["string", "null"] }
+        has_proof: { type: boolean }
+    InvestorBankAccountsResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [bank_accounts]
+          properties:
+            bank_accounts:
+              type: array
+              items: { $ref: "#/components/schemas/InvestorBankAccount" }
+    BankAccountReviewInput:
+      type: object
+      properties:
+        notes: { type: ["string", "null"], maxLength: 2000 }
     JsonObject:
       type: object
       additionalProperties: true

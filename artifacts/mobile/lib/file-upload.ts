@@ -21,3 +21,47 @@ export async function uploadInvestorFile(uri: string, name: string, _mimeType: s
   if (typeof path !== 'string' || !path) throw new Error('The server did not return an uploaded file path.');
   return path;
 }
+
+export async function submitInvestorBankAccountProof(
+  uri: string,
+  name: string,
+  origin: string,
+  fields: {
+    bank_name: string;
+    account_holder: string;
+    account_number: string;
+    iban: string;
+    swift: string;
+    branch: string;
+    currency: string;
+  },
+): Promise<Record<string, unknown>> {
+  if (!origin) throw new Error('Set the OG Exports investor server address in Settings before uploading.');
+  const token = await getSavedToken();
+  if (!token) throw new Error('Sign in again before uploading a document.');
+
+  const body = new FormData();
+  body.append('file', new File(uri), name);
+  Object.entries(fields).forEach(([key, value]) => {
+    if (value.trim()) body.append(key, value.trim());
+  });
+
+  const response = await fetch(`${origin.replace(/\/+$/, '')}/api/investor/bank-accounts`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    body,
+  });
+  const result = await response.json() as Record<string, unknown>;
+  if (!response.ok) {
+    const errors = result.errors && typeof result.errors === 'object'
+      ? Object.values(result.errors as Record<string, unknown>).flat().find(value => typeof value === 'string')
+      : null;
+    throw new Error(typeof errors === 'string'
+      ? errors
+      : typeof result.message === 'string'
+        ? result.message
+        : 'The bank account proof could not be submitted.');
+  }
+
+  return result;
+}

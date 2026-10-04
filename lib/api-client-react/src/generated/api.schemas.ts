@@ -461,6 +461,126 @@ export interface InvestorProfileUpdate {
   country?: string;
 }
 
+/**
+ * Legacy client field. The server resolves this only to a saved account that is currently verified.
+ * @nullable
+ */
+export type InvestorWithdrawalInputBankDetails = { [key: string]: unknown } | null;
+
+export interface InvestorWithdrawalInput {
+  /** @minimum 1 */
+  amount: number;
+  /**
+     * Saved bank account identifier; the server accepts it only when OG Exports currently marks that account verified.
+     * @maxLength 64
+     * @nullable
+     */
+  bank_account_id?: string | null;
+  /**
+     * @minLength 6
+     * @maxLength 6
+     */
+  otp: string;
+  /** @minLength 1 */
+  transaction_password: string;
+  /** @nullable */
+  note?: string | null;
+  /**
+     * Legacy client field. The server resolves this only to a saved account that is currently verified.
+     * @nullable
+     */
+  bank_details?: InvestorWithdrawalInputBankDetails;
+  /** @nullable */
+  save_bank_details?: boolean | null;
+  [key: string]: unknown;
+ }
+
+export interface InvestorBankAccountInput {
+  /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  bank_name: string;
+  /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  account_holder: string;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  account_number?: string | null;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  iban?: string | null;
+  /**
+     * @maxLength 50
+     * @nullable
+     */
+  swift?: string | null;
+  /**
+     * @maxLength 255
+     * @nullable
+     */
+  branch?: string | null;
+  /**
+     * @minLength 3
+     * @maxLength 3
+     */
+  currency: string;
+  /** PDF or image proof */
+  file: Blob;
+}
+
+export type InvestorBankAccountVerificationStatus = typeof InvestorBankAccountVerificationStatus[keyof typeof InvestorBankAccountVerificationStatus];
+
+
+export const InvestorBankAccountVerificationStatus = {
+  not_submitted: 'not_submitted',
+  pending: 'pending',
+  verified: 'verified',
+  rejected: 'rejected',
+} as const;
+
+export interface InvestorBankAccount {
+  id: string;
+  bank_name: string;
+  account_holder: string;
+  /** @nullable */
+  masked_account_identifier: string | null;
+  currency: string;
+  is_default: boolean;
+  verification_status: InvestorBankAccountVerificationStatus;
+  /** @nullable */
+  verification_submitted_at?: string | null;
+  /** @nullable */
+  verification_reviewed_at?: string | null;
+  /** @nullable */
+  verification_notes?: string | null;
+  /** @nullable */
+  proof_name?: string | null;
+  has_proof?: boolean;
+}
+
+export type InvestorBankAccountsResponseData = {
+  bank_accounts: InvestorBankAccount[];
+};
+
+export interface InvestorBankAccountsResponse {
+  data: InvestorBankAccountsResponseData;
+}
+
+export interface BankAccountReviewInput {
+  /**
+     * @maxLength 2000
+     * @nullable
+     */
+  notes?: string | null;
+}
+
 export interface JsonObject { [key: string]: unknown }
 
 export type GetInvestorProjectsParams = {
@@ -543,4 +663,31 @@ page?: number;
  */
 per_page?: number;
 };
+
+export type GetAdminInvestorBankAccountsParams = {
+status?: GetAdminInvestorBankAccountsStatus;
+/**
+ * @maxLength 100
+ */
+search?: string;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+per_page?: number;
+};
+
+export type GetAdminInvestorBankAccountsStatus = typeof GetAdminInvestorBankAccountsStatus[keyof typeof GetAdminInvestorBankAccountsStatus];
+
+
+export const GetAdminInvestorBankAccountsStatus = {
+  pending: 'pending',
+  verified: 'verified',
+  rejected: 'rejected',
+  all: 'all',
+} as const;
 

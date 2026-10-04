@@ -6,14 +6,13 @@ use App\Http\Controllers\Api\SecurityController;
 use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\UserProfile;
 use App\Models\Withdrawal;
 use App\Support\ExchangeRateService;
 use App\Support\UserDisplayCurrency;
 use App\Support\WalletReservation;
 use App\Services\NotificationMailer;
+use App\Support\InvestorBankAccountPresenter;
 use App\Support\InvestorBankAccounts;
-use App\Support\InvestorMarket;
 use App\Support\InvestorNotificationTypes;
 use App\Support\AdminNotificationTypes;
 use App\Support\NotifiesAdmins;
@@ -78,6 +77,7 @@ class WithdrawalController extends Controller
     {
         $data = $request->validate([
             'amount' => ['required', 'numeric', 'min:1'],
+            'bank_account_id' => ['nullable', 'string', 'max:64'],
             'bank_details' => ['nullable', 'array'],
             'note' => ['nullable', 'string'],
             'otp' => ['required', 'string', 'size:6'],
@@ -101,34 +101,10 @@ class WithdrawalController extends Controller
         }
 
         $walletCurrency = UserDisplayCurrency::currencyForUser($user);
-        $bankDetails = is_array($data['bank_details'] ?? null) ? $data['bank_details'] : [];
-
-        // Mobile clients may omit bank_details; use the profile default bank account.
-        if ($bankDetails === [] || ! InvestorBankAccounts::isUsable(
-            InvestorBankAccounts::normalizeAccount($bankDetails)
-        )) {
-            $user->loadMissing('profile');
-            $meta = is_array($user->profile?->meta) ? $user->profile->meta : [];
-            $default = InvestorBankAccounts::defaultAccount(
-                InvestorBankAccounts::normalizeFromMeta($meta)
-            );
-
-            if ($default === null) {
-                throw ValidationException::withMessages([
-                    'bank_details' => ['Add a bank account in Settings before withdrawing.'],
-                ]);
-            }
-
-            $bankDetails = [
-                'bank_name' => $default['bank_name'] ?? '',
-                'account_holder' => $default['account_holder'] ?? '',
-                'account_number' => $default['account_number'] ?? '',
-                'iban' => $default['iban'] ?? '',
-                'swift' => $default['swift'] ?? '',
-                'branch' => $default['branch'] ?? '',
-                'currency' => $default['currency'] ?? $walletCurrency,
-            ];
-        }
+        $user->loadMissing('profile');
+        $meta = is_array($user->profile?->meta) ? $user->profile->meta : [];
+        $accounts = InvestorBankAccounts::normalizeFromMeta($meta);
+        $bankDetails = $this->verifiedBankAccountDetails($user, $accounts, $data, $walletCurrency);
 
         $bankDetails['currency'] = $walletCurrency;
         $data['bank_details'] = $bankDetails;
@@ -155,10 +131,6 @@ class WithdrawalController extends Controller
                 $reference,
                 ['withdrawal_id' => $withdrawal->id],
             );
-
-            if ($request->boolean('save_bank_details')) {
-                $this->persistWithdrawBankDetails($user, $data['bank_details']);
-            }
 
             $user->forceFill([
                 'withdraw_otp_code' => null,
@@ -235,42 +207,53 @@ class WithdrawalController extends Controller
     }
 
     /**
-     * @param  array<string, mixed>  $bankDetails
+     * Resolve account details on the server and reject unverified destinations.
+     *
+     * @param  list<array<string, mixed>>  $accounts
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
      */
-    private function persistWithdrawBankDetails(User $user, array $bankDetails): void
+    private function verifiedBankAccountDetails(User $user, array $accounts, array $data, string $currency): array
     {
-        $profile = UserProfile::query()->firstOrCreate(['user_id' => $user->id]);
-        $meta = is_array($profile->meta) ? $profile->meta : [];
+        $account = null;
+        $requestedId = trim((string) ($data['bank_account_id'] ?? ''));
 
-        $accounts = InvestorBankAccounts::normalizeFromMeta($meta);
-        $incoming = [
-            'bank_name' => $bankDetails['bank_name'] ?? $bankDetails['bank'] ?? '',
-            'account_holder' => $bankDetails['account_holder'] ?? '',
-            'account_number' => $bankDetails['account_number'] ?? '',
-            'iban' => $bankDetails['iban'] ?? '',
-            'swift' => $bankDetails['swift'] ?? '',
-            'branch' => $bankDetails['branch'] ?? '',
-            'currency' => $bankDetails['currency'] ?? InvestorMarket::currencyForUser($user),
-        ];
-
-        $accounts = InvestorBankAccounts::upsertAccount($accounts, $incoming);
-
-        // Keep legacy withdraw_bank in sync with the default account for older clients.
-        $default = InvestorBankAccounts::defaultAccount($accounts);
-        if ($default !== null) {
-            $meta['withdraw_bank'] = [
-                'bank_name' => $default['bank_name'] ?? '',
-                'account_holder' => $default['account_holder'] ?? '',
-                'account_number' => $default['account_number'] ?? '',
-                'iban' => $default['iban'] ?? '',
-                'swift' => $default['swift'] ?? '',
-                'branch' => $default['branch'] ?? '',
-                'currency' => $default['currency'] ?? InvestorMarket::currencyForUser($user),
-            ];
+        if ($requestedId !== '') {
+            $account = collect($accounts)->first(
+                fn (array $candidate): bool => (string) $candidate['id'] === $requestedId
+            );
+        } elseif (is_array($data['bank_details'] ?? null)
+            && InvestorBankAccounts::isUsable(InvestorBankAccounts::normalizeAccount($data['bank_details']))) {
+            // Keep compatibility with older clients, but resolve their details to a saved account.
+            $incoming = InvestorBankAccounts::normalizeAccount($data['bank_details']);
+            $account = collect($accounts)->first(
+                fn (array $candidate): bool => InvestorBankAccounts::fingerprint($candidate)
+                    === InvestorBankAccounts::fingerprint($incoming)
+            );
+        } else {
+            $account = collect($accounts)->first(
+                fn (array $candidate): bool => ! empty($candidate['is_default'])
+                    && InvestorBankAccountPresenter::currentVerification($user->id, $candidate)?->status === 'verified'
+            ) ?? collect($accounts)->first(
+                fn (array $candidate): bool => InvestorBankAccountPresenter::currentVerification($user->id, $candidate)?->status === 'verified'
+            );
         }
 
-        $meta['bank_accounts'] = $accounts;
-        $profile->update(['meta' => $meta]);
+        if (! $account || InvestorBankAccountPresenter::currentVerification($user->id, $account)?->status !== 'verified') {
+            throw ValidationException::withMessages([
+                'bank_account_id' => ['Select a bank account currently verified by OG Exports before withdrawing.'],
+            ]);
+        }
+
+        return [
+            'bank_name' => $account['bank_name'],
+            'account_holder' => $account['account_holder'],
+            'account_number' => $account['account_number'],
+            'iban' => $account['iban'],
+            'swift' => $account['swift'],
+            'branch' => $account['branch'],
+            'currency' => $account['currency'] ?: $currency,
+        ];
     }
 
     /**
@@ -285,7 +268,9 @@ class WithdrawalController extends Controller
             'amount' => $withdrawal->amount,
             'amount_usd' => $withdrawal->amount_usd !== null ? (float) $withdrawal->amount_usd : null,
             'exchange_rate' => $withdrawal->exchange_rate !== null ? (float) $withdrawal->exchange_rate : null,
-            'bank_details' => $withdrawal->bank_details,
+            'bank_details' => InvestorBankAccountPresenter::maskBankDetails(
+                is_array($withdrawal->bank_details) ? $withdrawal->bank_details : []
+            ),
             'status' => $withdrawal->status,
             'note' => $withdrawal->note,
             'created_at' => $withdrawal->created_at?->toIso8601String(),

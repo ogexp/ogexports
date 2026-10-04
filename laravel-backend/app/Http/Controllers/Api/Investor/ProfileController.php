@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Schema;
 use App\Support\KycGate;
 use App\Support\MediaStorage;
 use App\Support\AdminNotificationTypes;
+use App\Support\InvestorBankAccountPresenter;
 use App\Support\InvestorBankAccounts;
 use App\Support\NotifiesAdmins;
 use Illuminate\Validation\Rule;
@@ -44,6 +45,9 @@ class ProfileController extends Controller
         $meta = is_array($user->profile?->meta) ? $user->profile->meta : [];
         $kyc = $this->buildKycSteps($user);
         $bankAccounts = InvestorBankAccounts::normalizeFromMeta($meta);
+        $publicBankAccounts = InvestorBankAccountPresenter::presentAll($user->id, $bankAccounts);
+        $defaultBankAccount = collect($publicBankAccounts)->first(fn (array $account): bool => $account['is_default'])
+            ?? ($publicBankAccounts[0] ?? null);
 
         return response()->json([
             'data' => [
@@ -75,10 +79,10 @@ class ProfileController extends Controller
                     'address_line2' => $meta['address_line2'] ?? null,
                 ],
                 'tax' => $meta['tax'] ?? [],
-                'bank' => $meta['bank'] ?? [],
-                'withdraw_bank' => $meta['withdraw_bank'] ?? [],
-                'bank_accounts' => $bankAccounts,
-                'default_bank_account' => InvestorBankAccounts::defaultAccount($bankAccounts),
+                'bank' => $this->publicLegacyBank($meta['bank'] ?? []),
+                'withdraw_bank' => $this->publicLegacyBank($meta['withdraw_bank'] ?? []),
+                'bank_accounts' => $publicBankAccounts,
+                'default_bank_account' => $defaultBankAccount,
                 'risk_profile' => $meta['risk_profile'] ?? 'Balanced',
                 'kyc' => $kyc,
                 'verification_pct' => $this->verificationPct($kyc['steps']),
@@ -405,5 +409,22 @@ class ProfileController extends Controller
         )->count();
 
         return (int) round(($done / count($steps)) * 100);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function publicLegacyBank(mixed $bank): array
+    {
+        if (! is_array($bank)) {
+            return [];
+        }
+
+        $account = InvestorBankAccounts::normalizeAccount($bank);
+        if (! InvestorBankAccounts::isUsable($account)) {
+            return [];
+        }
+
+        return InvestorBankAccountPresenter::presentOne($account);
     }
 }

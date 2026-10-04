@@ -7,3 +7,4 @@
 - [Expo DevTools runtime](expo-devtools-runtime.md) — a missing libglib can break the optional debugger without blocking Metro or the app preview.
 - [OG Exports platform principles](og-exports-platform-principles.md) — make trade traceability, verified documents/status, simple real-trade data, and financial security visible throughout the investor app.
 - [OG Exports phase workflow](og-exports-phase-workflow.md) — implement the investor app one user-provided phase at a time, then verify before moving on.
+- [OpenAPI binary uploads](openapi-binary-validation.md) — enforce upload size limits on the server; generated Zod schemas cannot apply maxLength to Blob fields.

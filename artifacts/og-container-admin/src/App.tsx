@@ -24,6 +24,7 @@ import {
   type ProjectTradeUpdateInput,
 } from '@workspace/api-client-react';
 import { Route, Router, Switch, useLocation } from 'wouter';
+import BankVerificationPage from './BankVerificationPage';
 
 const apiValue = import.meta.env.VITE_LARAVEL_API_BASE_URL as string | undefined;
 let apiOrigin: string | null = null;
@@ -249,7 +250,7 @@ function ProjectsPage({ user, onAuthLost }: { user: unknown; onAuthLost: () => v
     }
   };
   return <div className="shell">
-    <header className="topbar"><Brand/><div className="top-actions"><span className="top-note">{user && typeof user === 'object' && 'email' in user ? String((user as {email: unknown}).email) : 'ADMIN WORKSPACE'}</span><button className="button quiet small" data-testid="button-admin-logout" onClick={handleLogout} disabled={logout.isPending}>{logout.isPending ? 'Signing out…' : 'Sign out'}</button></div></header>
+    <header className="topbar"><Brand/><div className="top-actions"><span className="top-note">{user && typeof user === 'object' && 'email' in user ? String((user as {email: unknown}).email) : 'ADMIN WORKSPACE'}</span><button className="button quiet small" onClick={() => setLocation('/bank-verification')}>Bank verification</button><button className="button quiet small" data-testid="button-admin-logout" onClick={handleLogout} disabled={logout.isPending}>{logout.isPending ? 'Signing out…' : 'Sign out'}</button></div></header>
     <div className="layout">
       <aside className="rail"><div className="rail-kicker">Workspace / 01</div><h2>Container<br/>projects</h2>
         <div className="search-wrap"><span aria-hidden="true">⌕</span><label className="sr-only" htmlFor="project-search">Search container projects</label><input id="project-search" className="search" data-testid="input-project-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search projects"/></div>
@@ -505,6 +506,7 @@ function NotFoundPage() {
 function AppRoutes() {
   const client = useQueryClient();
   const [, setLocation] = useLocation();
+  const csrf = useCsrfRequest();
   const session = useGetInvestorMe({
     request: { credentials: 'include' },
     query: { enabled: Boolean(apiOrigin), queryKey: getGetInvestorMeQueryKey() },
@@ -521,6 +523,7 @@ function AppRoutes() {
   return <Router base={import.meta.env.BASE_URL.replace(/\/$/, '')}><Switch>
     <Route path="/" component={() => <SignInPage apiConfigured={Boolean(apiOrigin)}/>}/>
     <Route path="/projects" component={() => !apiOrigin ? <SignInPage apiConfigured={false}/> : session.isLoading ? <LoadingPage/> : isAdmin ? <ProjectsPage user={session.data} onAuthLost={onAuthLost}/> : <SignInPage apiConfigured/>}/>
+    <Route path="/bank-verification" component={() => !apiOrigin ? <SignInPage apiConfigured={false}/> : session.isLoading ? <LoadingPage/> : isAdmin ? <BankVerificationPage apiOrigin={apiOrigin} user={session.data} request={csrf.request} getCsrf={csrf.getCsrf} onBack={() => setLocation('/projects')} onAuthLost={onAuthLost}/> : <SignInPage apiConfigured/>}/>
     <Route component={NotFoundPage}/>
   </Switch></Router>;
 }

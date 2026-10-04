@@ -277,6 +277,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/profile', [InvestorProfileController::class, 'show']);
         Route::put('/profile', [InvestorProfileController::class, 'update']);
         Route::post('/profile/kyc/upload', [InvestorProfileController::class, 'kycUpload']);
+        Route::get('/bank-accounts', [\App\Http\Controllers\Api\Investor\BankAccountController::class, 'index']);
+        Route::post('/bank-accounts', [\App\Http\Controllers\Api\Investor\BankAccountController::class, 'store']);
+        Route::patch('/bank-accounts/{id}/default', [\App\Http\Controllers\Api\Investor\BankAccountController::class, 'setDefault']);
 
         Route::get('/wallet', [InvestorWalletController::class, 'show']);
         Route::get('/wallet/exchange-rates', [InvestorWalletController::class, 'exchangeRates']);
@@ -518,6 +521,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/compliance/kyc/{id}/reject', [ComplianceController::class, 'kycReject']);
         Route::get('/compliance/kyc/{kycId}/documents/{documentId}/view', [ComplianceController::class, 'kycDocumentView']);
         Route::get('/compliance/kyc/{kycId}/documents/{documentId}/download', [ComplianceController::class, 'kycDocumentDownload']);
+        Route::get('/compliance/bank-accounts', [\App\Http\Controllers\Api\Admin\InvestorBankAccountReviewController::class, 'index']);
+        Route::get('/compliance/bank-accounts/{verification}/proof', [\App\Http\Controllers\Api\Admin\InvestorBankAccountReviewController::class, 'proof']);
+        Route::post('/compliance/bank-accounts/{verification}/approve', [\App\Http\Controllers\Api\Admin\InvestorBankAccountReviewController::class, 'approve']);
+        Route::post('/compliance/bank-accounts/{verification}/reject', [\App\Http\Controllers\Api\Admin\InvestorBankAccountReviewController::class, 'reject']);
         Route::get('/compliance/aml', [ComplianceController::class, 'amlIndex']);
         Route::patch('/compliance/aml/{id}', [ComplianceController::class, 'amlUpdate']);
         Route::get('/compliance/audit-logs', [ComplianceController::class, 'auditLogs']);

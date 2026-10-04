@@ -24,9 +24,11 @@ import type {
   AdminProjectListResponse,
   AdminTwoFactorChallenge,
   AdminTwoFactorResend,
+  BankAccountReviewInput,
   ContainerTracking,
   ContainerTrackingUpdate,
   GetAdminInvestmentProjectsParams,
+  GetAdminInvestorBankAccountsParams,
   GetInvestorDepositsParams,
   GetInvestorInvestmentsParams,
   GetInvestorKycParams,
@@ -34,6 +36,8 @@ import type {
   GetInvestorStatementParams,
   GetInvestorWalletTransactionsParams,
   GetInvestorWithdrawalsParams,
+  InvestorBankAccountInput,
+  InvestorBankAccountsResponse,
   InvestorDashboardResponse,
   InvestorInvestmentDetailResponse,
   InvestorNotificationResponse,
@@ -42,6 +46,7 @@ import type {
   InvestorProjectDetailResponse,
   InvestorPushTokenRegistration,
   InvestorPushTokenRevocation,
+  InvestorWithdrawalInput,
   JsonObject,
   ProjectTradeUpdateInput,
   ProjectTradeUpdateList,
@@ -3226,7 +3231,7 @@ export const getCreateInvestorWithdrawalUrl = () => {
 /**
  * @summary Submit a withdrawal request
  */
-export const createInvestorWithdrawal = async (jsonObject: JsonObject, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const createInvestorWithdrawal = async (investorWithdrawalInput: InvestorWithdrawalInput, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -3247,7 +3252,7 @@ return customFetch<JsonObject>(getCreateInvestorWithdrawalUrl(),
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(jsonObject)
+    body: JSON.stringify(investorWithdrawalInput)
   }
 );}
 
@@ -3285,9 +3290,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateInvestorWithdrawalMutationResult = NonNullable<Awaited<ReturnType<typeof createInvestorWithdrawal>>>
-    export type CreateInvestorWithdrawalMutationBody = BodyType<JsonObject>
+    export type CreateInvestorWithdrawalMutationBody = BodyType<InvestorWithdrawalInput>
     export type CreateInvestorWithdrawalMutationError = ErrorType<unknown>
-    export type CreateInvestorWithdrawalMutationVariables = {data: BodyType<JsonObject>}
+    export type CreateInvestorWithdrawalMutationVariables = {data: BodyType<InvestorWithdrawalInput>}
 
     /**
  * @summary Submit a withdrawal request
@@ -3301,6 +3306,249 @@ export const useCreateInvestorWithdrawal = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateInvestorWithdrawalMutationOptions(options));
+    }
+
+export const getGetInvestorBankAccountsUrl = () => {
+
+
+
+
+  return `/api/investor/bank-accounts`
+}
+
+/**
+ * @summary List masked investor bank accounts and server-owned verification states
+ */
+export const getInvestorBankAccounts = async ( options?: Parameters<typeof customFetch>[1]): Promise<InvestorBankAccountsResponse> => {
+
+  return customFetch<InvestorBankAccountsResponse>(getGetInvestorBankAccountsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInvestorBankAccountsQueryKey = () => {
+    return [
+    `/api/investor/bank-accounts`
+    ] as const;
+    }
+
+
+export const getGetInvestorBankAccountsQueryOptions = <TData = Awaited<ReturnType<typeof getInvestorBankAccounts>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorBankAccounts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInvestorBankAccountsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInvestorBankAccounts>>> = ({ signal }) => getInvestorBankAccounts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInvestorBankAccounts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInvestorBankAccountsQueryResult = NonNullable<Awaited<ReturnType<typeof getInvestorBankAccounts>>>
+export type GetInvestorBankAccountsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List masked investor bank accounts and server-owned verification states
+ */
+
+export function useGetInvestorBankAccounts<TData = Awaited<ReturnType<typeof getInvestorBankAccounts>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorBankAccounts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInvestorBankAccountsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateInvestorBankAccountUrl = () => {
+
+
+
+
+  return `/api/investor/bank-accounts`
+}
+
+/**
+ * The proof is stored outside the public web directory. Verification state is assigned only by the server after administrator review.
+ * @summary Submit a bank account and private proof document for review
+ */
+export const createInvestorBankAccount = async (investorBankAccountInput: InvestorBankAccountInput, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+    const formData = new FormData();
+formData.append(`bank_name`, investorBankAccountInput.bank_name);
+formData.append(`account_holder`, investorBankAccountInput.account_holder);
+if(investorBankAccountInput.account_number !== undefined && investorBankAccountInput.account_number !== null) {
+ formData.append(`account_number`, investorBankAccountInput.account_number);
+ }
+if(investorBankAccountInput.iban !== undefined && investorBankAccountInput.iban !== null) {
+ formData.append(`iban`, investorBankAccountInput.iban);
+ }
+if(investorBankAccountInput.swift !== undefined && investorBankAccountInput.swift !== null) {
+ formData.append(`swift`, investorBankAccountInput.swift);
+ }
+if(investorBankAccountInput.branch !== undefined && investorBankAccountInput.branch !== null) {
+ formData.append(`branch`, investorBankAccountInput.branch);
+ }
+formData.append(`currency`, investorBankAccountInput.currency);
+formData.append(`file`, investorBankAccountInput.file);
+
+  return customFetch<JsonObject>(getCreateInvestorBankAccountUrl(),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+
+
+export const getCreateInvestorBankAccountMutationKey = () => ['createInvestorBankAccount'] as const;
+
+export const getCreateInvestorBankAccountMutationOptions = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createInvestorBankAccount>>, TError,CreateInvestorBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createInvestorBankAccount>>, TError,CreateInvestorBankAccountMutationVariables, TContext> => {
+
+const mutationKey = getCreateInvestorBankAccountMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createInvestorBankAccount>>, CreateInvestorBankAccountMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createInvestorBankAccount(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateInvestorBankAccountMutationResult = NonNullable<Awaited<ReturnType<typeof createInvestorBankAccount>>>
+    export type CreateInvestorBankAccountMutationBody = BodyType<InvestorBankAccountInput>
+    export type CreateInvestorBankAccountMutationError = ErrorType<JsonObject>
+    export type CreateInvestorBankAccountMutationVariables = {data: BodyType<InvestorBankAccountInput>}
+
+    /**
+ * @summary Submit a bank account and private proof document for review
+ */
+export const useCreateInvestorBankAccount = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createInvestorBankAccount>>, TError,CreateInvestorBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createInvestorBankAccount>>,
+        TError,
+        CreateInvestorBankAccountMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateInvestorBankAccountMutationOptions(options));
+    }
+
+export const getSetInvestorDefaultBankAccountUrl = (id: string,) => {
+
+
+
+
+  return `/api/investor/bank-accounts/${id}/default`
+}
+
+/**
+ * @summary Set a currently verified bank account as the withdrawal default
+ */
+export const setInvestorDefaultBankAccount = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<InvestorBankAccountsResponse> => {
+
+  return customFetch<InvestorBankAccountsResponse>(getSetInvestorDefaultBankAccountUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+
+export const getSetInvestorDefaultBankAccountMutationKey = () => ['setInvestorDefaultBankAccount'] as const;
+
+export const getSetInvestorDefaultBankAccountMutationOptions = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setInvestorDefaultBankAccount>>, TError,SetInvestorDefaultBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setInvestorDefaultBankAccount>>, TError,SetInvestorDefaultBankAccountMutationVariables, TContext> => {
+
+const mutationKey = getSetInvestorDefaultBankAccountMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setInvestorDefaultBankAccount>>, SetInvestorDefaultBankAccountMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  setInvestorDefaultBankAccount(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetInvestorDefaultBankAccountMutationResult = NonNullable<Awaited<ReturnType<typeof setInvestorDefaultBankAccount>>>
+
+    export type SetInvestorDefaultBankAccountMutationError = ErrorType<JsonObject>
+    export type SetInvestorDefaultBankAccountMutationVariables = {id: string}
+
+    /**
+ * @summary Set a currently verified bank account as the withdrawal default
+ */
+export const useSetInvestorDefaultBankAccount = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setInvestorDefaultBankAccount>>, TError,SetInvestorDefaultBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setInvestorDefaultBankAccount>>,
+        TError,
+        SetInvestorDefaultBankAccountMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetInvestorDefaultBankAccountMutationOptions(options));
     }
 
 export const getSendInvestorWithdrawalOtpUrl = () => {
@@ -5439,6 +5687,345 @@ export function useGetAdminInvestmentProjects<TData = Awaited<ReturnType<typeof 
 
 
 
+
+export const getGetAdminInvestorBankAccountsUrl = (params?: GetAdminInvestorBankAccountsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/compliance/bank-accounts?${stringifiedParams}` : `/api/admin/compliance/bank-accounts`
+}
+
+/**
+ * @summary List investor bank account proof submissions for admin review
+ */
+export const getAdminInvestorBankAccounts = async (params?: GetAdminInvestorBankAccountsParams, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getGetAdminInvestorBankAccountsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminInvestorBankAccountsQueryKey = (params?: GetAdminInvestorBankAccountsParams,) => {
+    return [
+    `/api/admin/compliance/bank-accounts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminInvestorBankAccountsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminInvestorBankAccounts>>, TError = ErrorType<unknown>>(params?: GetAdminInvestorBankAccountsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInvestorBankAccounts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminInvestorBankAccountsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminInvestorBankAccounts>>> = ({ signal }) => getAdminInvestorBankAccounts(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminInvestorBankAccounts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminInvestorBankAccountsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminInvestorBankAccounts>>>
+export type GetAdminInvestorBankAccountsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List investor bank account proof submissions for admin review
+ */
+
+export function useGetAdminInvestorBankAccounts<TData = Awaited<ReturnType<typeof getAdminInvestorBankAccounts>>, TError = ErrorType<unknown>>(
+ params?: GetAdminInvestorBankAccountsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInvestorBankAccounts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminInvestorBankAccountsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminInvestorBankAccountProofUrl = (verification: number,) => {
+
+
+
+
+  return `/api/admin/compliance/bank-accounts/${verification}/proof`
+}
+
+/**
+ * @summary View a privately stored investor bank proof document
+ */
+export const getAdminInvestorBankAccountProof = async (verification: number, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetAdminInvestorBankAccountProofUrl(verification),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminInvestorBankAccountProofQueryKey = (verification: number,) => {
+    return [
+    `/api/admin/compliance/bank-accounts/${verification}/proof`
+    ] as const;
+    }
+
+
+export const getGetAdminInvestorBankAccountProofQueryOptions = <TData = Awaited<ReturnType<typeof getAdminInvestorBankAccountProof>>, TError = ErrorType<JsonObject>>(verification: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInvestorBankAccountProof>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminInvestorBankAccountProofQueryKey(verification);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminInvestorBankAccountProof>>> = ({ signal }) => getAdminInvestorBankAccountProof(verification, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: verification !== null && verification !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminInvestorBankAccountProof>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminInvestorBankAccountProofQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminInvestorBankAccountProof>>>
+export type GetAdminInvestorBankAccountProofQueryError = ErrorType<JsonObject>
+
+
+/**
+ * @summary View a privately stored investor bank proof document
+ */
+
+export function useGetAdminInvestorBankAccountProof<TData = Awaited<ReturnType<typeof getAdminInvestorBankAccountProof>>, TError = ErrorType<JsonObject>>(
+ verification: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInvestorBankAccountProof>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminInvestorBankAccountProofQueryOptions(verification,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getApproveAdminInvestorBankAccountUrl = (verification: number,) => {
+
+
+
+
+  return `/api/admin/compliance/bank-accounts/${verification}/approve`
+}
+
+/**
+ * @summary Mark a current pending bank account as verified
+ */
+export const approveAdminInvestorBankAccount = async (verification: number,
+    bankAccountReviewInput: BankAccountReviewInput, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<JsonObject>(getApproveAdminInvestorBankAccountUrl(verification),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bankAccountReviewInput)
+  }
+);}
+
+
+
+
+
+export const getApproveAdminInvestorBankAccountMutationKey = () => ['approveAdminInvestorBankAccount'] as const;
+
+export const getApproveAdminInvestorBankAccountMutationOptions = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveAdminInvestorBankAccount>>, TError,ApproveAdminInvestorBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveAdminInvestorBankAccount>>, TError,ApproveAdminInvestorBankAccountMutationVariables, TContext> => {
+
+const mutationKey = getApproveAdminInvestorBankAccountMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveAdminInvestorBankAccount>>, ApproveAdminInvestorBankAccountMutationVariables> = (props) => {
+          const {verification,data} = props ?? {};
+
+          return  approveAdminInvestorBankAccount(verification,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveAdminInvestorBankAccountMutationResult = NonNullable<Awaited<ReturnType<typeof approveAdminInvestorBankAccount>>>
+    export type ApproveAdminInvestorBankAccountMutationBody = BodyType<BankAccountReviewInput>
+    export type ApproveAdminInvestorBankAccountMutationError = ErrorType<JsonObject>
+    export type ApproveAdminInvestorBankAccountMutationVariables = {verification: number;data: BodyType<BankAccountReviewInput>}
+
+    /**
+ * @summary Mark a current pending bank account as verified
+ */
+export const useApproveAdminInvestorBankAccount = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveAdminInvestorBankAccount>>, TError,ApproveAdminInvestorBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveAdminInvestorBankAccount>>,
+        TError,
+        ApproveAdminInvestorBankAccountMutationVariables,
+        TContext
+      > => {
+      return useMutation(getApproveAdminInvestorBankAccountMutationOptions(options));
+    }
+
+export const getRejectAdminInvestorBankAccountUrl = (verification: number,) => {
+
+
+
+
+  return `/api/admin/compliance/bank-accounts/${verification}/reject`
+}
+
+/**
+ * @summary Reject a pending bank account proof submission with a reason
+ */
+export const rejectAdminInvestorBankAccount = async (verification: number,
+    bankAccountReviewInput: BankAccountReviewInput, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<JsonObject>(getRejectAdminInvestorBankAccountUrl(verification),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bankAccountReviewInput)
+  }
+);}
+
+
+
+
+
+export const getRejectAdminInvestorBankAccountMutationKey = () => ['rejectAdminInvestorBankAccount'] as const;
+
+export const getRejectAdminInvestorBankAccountMutationOptions = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectAdminInvestorBankAccount>>, TError,RejectAdminInvestorBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rejectAdminInvestorBankAccount>>, TError,RejectAdminInvestorBankAccountMutationVariables, TContext> => {
+
+const mutationKey = getRejectAdminInvestorBankAccountMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rejectAdminInvestorBankAccount>>, RejectAdminInvestorBankAccountMutationVariables> = (props) => {
+          const {verification,data} = props ?? {};
+
+          return  rejectAdminInvestorBankAccount(verification,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RejectAdminInvestorBankAccountMutationResult = NonNullable<Awaited<ReturnType<typeof rejectAdminInvestorBankAccount>>>
+    export type RejectAdminInvestorBankAccountMutationBody = BodyType<BankAccountReviewInput>
+    export type RejectAdminInvestorBankAccountMutationError = ErrorType<JsonObject>
+    export type RejectAdminInvestorBankAccountMutationVariables = {verification: number;data: BodyType<BankAccountReviewInput>}
+
+    /**
+ * @summary Reject a pending bank account proof submission with a reason
+ */
+export const useRejectAdminInvestorBankAccount = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectAdminInvestorBankAccount>>, TError,RejectAdminInvestorBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rejectAdminInvestorBankAccount>>,
+        TError,
+        RejectAdminInvestorBankAccountMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRejectAdminInvestorBankAccountMutationOptions(options));
+    }
 
 export const getGetAdminProjectContainerTrackingUrl = (id: string,) => {
 
