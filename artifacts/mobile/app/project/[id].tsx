@@ -47,30 +47,34 @@ export default function OpportunityDetail() {
   const origin = first(project, ['origin', 'origin_country', 'from_country'], '');
   const destination = first(project, ['destination', 'destination_country', 'to_country', 'destination_market'], '');
   const routeStops = [
-    ['Origin', origin],
-    ['Port of loading', first(project, ['port_of_loading', 'loading_port'], '')],
-    ['Vessel', first(project, ['vessel_name', 'vessel'], '')],
-    ['Destination port', first(project, ['destination_port', 'port_of_discharge'], '')],
-    ['Buyer', first(project, ['buyer_name', 'buyer'], '')],
-  ].filter(([, value]) => value);
+    { label: 'Origin', value: origin || 'Not provided', icon: 'map-pin' as const },
+    { label: 'Port of loading', value: first(project, ['port_of_loading', 'loading_port'], 'Not provided'), icon: 'anchor' as const },
+    {
+      label: 'Transport',
+      value: first(project, ['transport_mode', 'mode_of_transport', 'transport_type', 'shipping_mode', 'shipping_method'], 'Not provided'),
+      detail: first(project, ['vessel_name', 'vessel']),
+      icon: 'navigation' as const,
+    },
+    { label: 'Destination port', value: first(project, ['destination_port', 'port_of_discharge'], 'Not provided'), icon: 'anchor' as const },
+    { label: 'Buyer', value: first(project, ['buyer_name', 'buyer'], 'Not provided'), icon: 'user' as const },
+  ];
   const cargoDetails: [string, string][] = ([
-    ['Commodity', first(project, ['commodity_name', 'commodity'], '')],
-    ['Grade', first(project, ['grade', 'commodity_grade'], '')],
-    ['Quantity', first(project, ['quantity', 'cargo_quantity', 'quantity_tons'], '')],
-    ['Packaging', first(project, ['packaging', 'package_type'], '')],
-    ['Container type', first(project, ['container_type'], '')],
-    ['Container count', first(project, ['container_count', 'containers_count'], '')],
-    ['Origin', origin],
-    ['Destination', destination],
-  ] as [string, string][]).filter(([, value]) => value);
+    ['Commodity', first(project, ['commodity_name', 'commodity'], 'Not provided')],
+    ['Grade', first(project, ['grade', 'commodity_grade'], 'Not provided')],
+    ['Quantity', first(project, ['quantity', 'cargo_quantity', 'quantity_tons'], 'Not provided')],
+    ['Packaging', first(project, ['packaging', 'package_type'], 'Not provided')],
+    ['Container type', first(project, ['container_type'], 'Not provided')],
+    ['Container count', first(project, ['container_count', 'containers_count'], 'Not provided')],
+    ['Origin', origin || 'Not provided'],
+    ['Destination', destination || 'Not provided'],
+  ] as [string, string][]);
   const commercialDetails: [string, string][] = ([
-    ['Trade term / Incoterm', first(project, ['incoterm', 'trade_term'], '')],
-    ['Estimated trade cycle', first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], '')],
-    ['Shipment date', first(project, ['shipment_date', 'estimated_shipment_date'], '')],
-    ['Estimated arrival', first(project, ['estimated_arrival', 'eta'], '')],
-    ['Destination market', first(project, ['destination_market', 'destination_country'], '')],
-    ['Funding deadline', first(project, ['funding_deadline', 'closing_date', 'deadline'], '')],
-  ] as [string, string][]).filter(([, value]) => value);
+    ['Trade term / Incoterm', first(project, ['incoterm', 'trade_term'], 'Not provided')],
+    ['Estimated trade cycle', first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], 'Not provided')],
+    ['Shipment date', first(project, ['shipment_date', 'estimated_shipment_date'], 'Not provided')],
+    ['Estimated arrival', first(project, ['estimated_arrival', 'eta'], 'Not provided')],
+    ['Destination market', first(project, ['destination_market', 'destination_country'], 'Not provided')],
+  ] as [string, string][]);
   const costBreakdown = record(project.financial_breakdown ?? project.cost_breakdown);
   const financialDetails: [string, number | null][] = ([
     ['Commodity cost', amount(project, ['commodity_cost']) ?? amount(costBreakdown, ['commodity_cost'])],
@@ -82,6 +86,9 @@ export default function OpportunityDetail() {
     ['Other trade costs', amount(project, ['other_trade_costs', 'other_costs']) ?? amount(costBreakdown, ['other_trade_costs', 'other_costs'])],
   ] as [string, number | null][]).filter(([, value]) => value != null);
   const formatTradeMoney = (value: number | null) => value == null ? 'Not provided' : tradeCurrency ? money(value, tradeCurrency) : 'Currency not provided';
+  const projectedReturn = first(project, ['target_return', 'projected_return', 'expected_return', 'return_rate', 'roi']);
+  const projectedDistribution = first(project, ['target_distribution', 'projected_distribution', 'estimated_distribution']);
+  const projectedCycle = first(project, ['projected_cycle', 'expected_timeline']);
   const fundingProgress = target != null && target > 0 && fundedAmount != null
     ? Math.max(0, Math.min(100, Math.round(fundedAmount / target * 100)))
     : null;
@@ -203,30 +210,34 @@ export default function OpportunityDetail() {
 
       <Section title="Global trade route" />
       <Card>
-        {routeStops.length ? routeStops.map(([label, value], index) => <View key={`${label}-${index}`} style={{ flexDirection: 'row', gap: 11, minHeight: index < routeStops.length - 1 ? 51 : 34 }}>
-          <View style={{ width: 15, alignItems: 'center' }}>
-            <View style={{ width: 10, height: 10, borderRadius: 5, marginTop: 4, backgroundColor: index === 0 || index === routeStops.length - 1 ? colors.primary : colors.accent }} />
+        {routeStops.map((stop, index) => <View key={stop.label} style={{ flexDirection: 'row', gap: 11, minHeight: index < routeStops.length - 1 ? 58 : 40 }}>
+          <View style={{ width: 27, alignItems: 'center' }}>
+            <View style={{ width: 25, height: 25, borderRadius: 13, backgroundColor: index === 0 || index === routeStops.length - 1 ? colors.lightGreen : colors.secondary, alignItems: 'center', justifyContent: 'center' }}>
+              <Feather name={stop.icon} size={13} color={index === 0 || index === routeStops.length - 1 ? colors.primary : colors.mutedForeground} />
+            </View>
             {index < routeStops.length - 1 ? <View style={{ width: 1, flex: 1, marginTop: 3, backgroundColor: colors.border }} /> : null}
           </View>
-          <View style={{ flex: 1, paddingBottom: 12 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{label}</Text>
-            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700', marginTop: 3 }}>{value}</Text>
+          <View style={{ flex: 1, paddingBottom: 13 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{stop.label}</Text>
+            <Text style={{ color: stop.value === 'Not provided' ? colors.mutedForeground : colors.foreground, fontSize: 13, fontWeight: '700', marginTop: 3 }}>{stop.value}</Text>
+            {stop.detail ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>Vessel: {stop.detail}</Text> : null}
           </View>
-        </View>) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>Route details have not been provided by OG Exports.</Text>}
+        </View>)}
+        {routeStops.every(stop => stop.value === 'Not provided' && !stop.detail) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 4 }}>OG Exports has not supplied route or transport details for this trade.</Text> : null}
       </Card>
 
       <Section title="Cargo information" />
       <Card>
-        {cargoDetails.length ? cargoDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
-        </View>) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>Cargo specifications have not been provided.</Text>}
+        {cargoDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: value === 'Not provided' ? colors.mutedForeground : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
+        </View>)}
       </Card>
 
       <Section title="Commercial information" />
       <Card>
-        {commercialDetails.length ? commercialDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
-        </View>) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>Commercial details have not been provided.</Text>}
+        {commercialDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: value === 'Not provided' ? colors.mutedForeground : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
+        </View>)}
       </Card>
 
       <Section title="Funding information" />
@@ -249,10 +260,11 @@ export default function OpportunityDetail() {
 
       <Section title="Projected / target information" />
       <Card>
-        {first(project, ['target_return', 'projected_return', 'expected_return', 'return_rate', 'roi']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Target return</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{first(project, ['target_return', 'projected_return', 'expected_return', 'return_rate', 'roi'])}</Text></View> : null}
-        {first(project, ['target_distribution', 'projected_distribution', 'estimated_distribution']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Estimated distribution</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{first(project, ['target_distribution', 'projected_distribution', 'estimated_distribution'])}</Text></View> : null}
-        {first(project, ['estimated_trade_cycle', 'projected_cycle', 'expected_timeline']) ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Expected trade cycle</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{first(project, ['estimated_trade_cycle', 'projected_cycle', 'expected_timeline'])}</Text></View> : null}
-        <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 9 }}>Projected figures are not guaranteed. Investment performance is subject to actual trade performance and applicable risks.</Text>
+        {projectedReturn ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Projected return · not guaranteed</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{projectedReturn}</Text></View> : null}
+        {projectedDistribution ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Estimated distribution · not guaranteed</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{projectedDistribution}</Text></View> : null}
+        {projectedCycle ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Expected trade cycle</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{projectedCycle}</Text></View> : null}
+        {!projectedReturn && !projectedDistribution && !projectedCycle ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>OG Exports has not provided target return, distribution, or projected cycle figures.</Text> : null}
+        <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 9 }}>Projected returns and distributions are estimates, not guarantees. Actual outcomes depend on trade performance and applicable risks.</Text>
       </Card>
       <Card>
         <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginBottom: 10 }}>Trade documents</Text>
