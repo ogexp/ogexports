@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -64,7 +64,10 @@ function durationInDays(item: Record<string, unknown>) {
   if (explicitDays != null) return explicitDays;
   const raw = first(item, ['trade_cycle', 'estimated_trade_cycle', 'duration', 'term', 'investment_duration']).toLowerCase();
   const match = raw.match(/(\d+(?:\.\d+)?)\s*(days?|d|weeks?|wks?|months?|mos?|years?|yrs?)\b/);
-  if (!match) return null;
+  if (!match) {
+    const unitlessValue = Number(raw);
+    return raw.trim() && Number.isFinite(unitlessValue) ? unitlessValue : null;
+  }
   const value = Number(match[1]);
   const unit = match[2];
   if (/^d/.test(unit)) return value;
@@ -76,7 +79,14 @@ function durationInDays(item: Record<string, unknown>) {
 function durationLabel(item: Record<string, unknown>) {
   const days = amount(item, ['duration_days', 'trade_duration_days', 'cycle_days']);
   if (days != null) return `${days} days`;
-  return first(item, ['trade_cycle', 'estimated_trade_cycle', 'duration', 'term', 'investment_duration']);
+  const label = first(item, ['trade_cycle', 'estimated_trade_cycle', 'duration', 'term', 'investment_duration']);
+  return label && Number.isFinite(Number(label)) ? `${label} days` : label;
+}
+
+function numericLimit(value: string) {
+  const normalized = value.replace(/[,\s]/g, '');
+  if (!normalized) return null;
+  return Number(normalized);
 }
 
 function dateValue(item: Record<string, unknown>, keys: string[]) {
@@ -87,6 +97,14 @@ function dateValue(item: Record<string, unknown>, keys: string[]) {
 
 function isFeatured(item: Record<string, unknown>) {
   return ['true', '1', 'yes'].includes(first(item, ['is_featured', 'featured'], '').toLowerCase());
+}
+
+function tradeStatus(item: Record<string, unknown>) {
+  return first(item, ['trade_status', 'project_status', 'status', 'state']);
+}
+
+function riskLevel(item: Record<string, unknown>) {
+  return first(item, ['risk_level', 'risk_rating']);
 }
 
 export default function Opportunities() {
@@ -101,8 +119,8 @@ export default function Opportunities() {
   const [appliedFilters, setAppliedFilters] = useState<MarketplaceFilters>(emptyFilters);
   const query = useGetInvestorProjects({ per_page: 50 }, { query: { queryKey: ['investor-projects', 50], enabled: !!token, staleTime: 60_000 } });
   const sourceRows = list(query.data);
-  const serverStatuses = Array.from(new Set(sourceRows.map(item => first(item, ['status', 'state']).trim()).filter(Boolean)));
-  const serverRiskLevels = Array.from(new Set(sourceRows.map(item => first(item, ['risk_level', 'risk_rating']).trim()).filter(Boolean)));
+  const serverStatuses = Array.from(new Set(sourceRows.map(item => tradeStatus(item).trim()).filter(Boolean)));
+  const serverRiskLevels = Array.from(new Set(sourceRows.map(item => riskLevel(item).trim()).filter(Boolean)));
   const statusOptions = ['Any', ...serverStatuses.sort((a, b) => a.localeCompare(b))];
   const riskOptions = ['Any', ...Array.from(new Set(['Low', 'Medium', 'High', ...serverRiskLevels])).sort((a, b) => {
     if (a === 'Any') return -1;
@@ -118,22 +136,22 @@ export default function Opportunities() {
       first(item, ['origin', 'origin_country', 'from_country']),
       first(item, ['destination', 'destination_country', 'to_country', 'destination_market']),
       first(item, ['description', 'summary']),
-      first(item, ['risk_level', 'risk_rating']),
-      first(item, ['status', 'state']),
+      riskLevel(item),
+      tradeStatus(item),
       first(item, ['incoterm', 'trade_term']),
     ].join(' ').toLowerCase();
     if (normalizedSearch && !searchable.includes(normalizedSearch)) return false;
     if (category !== 'All' && categoryFor(item) !== category) return false;
 
     const minimum = amount(item, ['minimum_investment', 'min_investment', 'minimum_amount']);
-    const maxMinimum = Number(appliedFilters.maxMinimum);
-    if (Number.isFinite(maxMinimum) && maxMinimum > 0 && (minimum == null || minimum > maxMinimum)) return false;
+    const maxMinimum = numericLimit(appliedFilters.maxMinimum);
+    if (maxMinimum != null && (!Number.isFinite(maxMinimum) || maxMinimum < 0 || minimum == null || minimum > maxMinimum)) return false;
     const tradeDurationDays = durationInDays(item);
-    const maxDuration = Number(appliedFilters.maxDurationDays);
-    if (Number.isFinite(maxDuration) && maxDuration > 0 && (tradeDurationDays == null || tradeDurationDays > maxDuration)) return false;
+    const maxDuration = numericLimit(appliedFilters.maxDurationDays);
+    if (maxDuration != null && (!Number.isFinite(maxDuration) || maxDuration < 0 || tradeDurationDays == null || tradeDurationDays > maxDuration)) return false;
     if (appliedFilters.destination && !first(item, ['destination', 'destination_country', 'to_country', 'destination_market']).toLowerCase().includes(appliedFilters.destination.trim().toLowerCase())) return false;
-    if (appliedFilters.risk !== 'Any' && !first(item, ['risk_level', 'risk_rating']).toLowerCase().includes(appliedFilters.risk.toLowerCase())) return false;
-    if (appliedFilters.status && !first(item, ['status', 'state']).toLowerCase().includes(appliedFilters.status.trim().toLowerCase())) return false;
+    if (appliedFilters.risk !== 'Any' && !riskLevel(item).toLowerCase().includes(appliedFilters.risk.toLowerCase())) return false;
+    if (appliedFilters.status && tradeStatus(item).trim().toLowerCase() !== appliedFilters.status.trim().toLowerCase()) return false;
 
     const progress = fundingProgress(item);
     if (appliedFilters.funding === 'Under 50%' && (progress == null || progress >= 50)) return false;
@@ -175,26 +193,36 @@ export default function Opportunities() {
       <Pressable testID="marketplace-open-filters" accessibilityRole="button" accessibilityLabel="Open opportunity filters" onPress={() => setFiltersOpen(true)}
         style={{ minHeight: 46, marginTop: 5, borderRadius: 13, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
         <Feather name="sliders" size={15} color={colors.primary} />
-        <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>Filter{activeFilterCount ? ` · ${activeFilterCount}` : ''}</Text>
+        <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>Filter{activeCriteriaCount ? ` · ${activeCriteriaCount}` : ''}</Text>
       </Pressable>
     </View>
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 13 }}>
-      {categories.map(item => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: category === item }} onPress={() => setCategory(item)} style={{ borderRadius: 20, paddingVertical: 8, paddingHorizontal: 13, backgroundColor: category === item ? colors.primary : colors.secondary }}>
-        <Text style={{ color: category === item ? colors.primaryForeground : colors.foreground, fontWeight: '600', fontSize: 12 }}>{item === 'Other' ? 'Other Commodities' : item}</Text>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 10, marginBottom: 15 }}>
+      {categories.map(item => <Pressable key={item.value} testID={`marketplace-category-${item.value.toLowerCase()}`} accessibilityRole="button" accessibilityState={{ selected: category === item.value }} onPress={() => setCategory(item.value)} style={{ borderRadius: 20, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: category === item.value ? colors.primary : colors.secondary }}>
+        <Text style={{ color: category === item.value ? colors.primaryForeground : colors.foreground, fontWeight: '600', fontSize: 12 }}>{item.label}</Text>
       </Pressable>)}
-    </View>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7, marginBottom: 14 }}>
-      {opportunityTabs.map(item => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: tab === item }} onPress={() => setTab(item)} style={{ borderRadius: 20, paddingVertical: 8, paddingHorizontal: 13, backgroundColor: tab === item ? colors.lightGreen : 'transparent', borderWidth: 1, borderColor: tab === item ? colors.primary : colors.border }}>
+    </ScrollView>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7, marginBottom: 11 }}>
+      {opportunityTabs.map(item => <Pressable key={item} testID={`marketplace-tab-${item.toLowerCase().replace(/\s+/g, '-')}`} accessibilityRole="button" accessibilityState={{ selected: tab === item }} onPress={() => setTab(item)} style={{ borderRadius: 20, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: tab === item ? colors.lightGreen : 'transparent', borderWidth: 1, borderColor: tab === item ? colors.primary : colors.border }}>
         <Text style={{ color: tab === item ? colors.primary : colors.mutedForeground, fontWeight: '700', fontSize: 11 }}>{item}</Text>
       </Pressable>)}
     </ScrollView>
+    {!query.isLoading && !query.isError ? <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+      <Text accessibilityLiveRegion="polite" style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '600' }}>{rows.length} {rows.length === 1 ? 'trade opportunity' : 'trade opportunities'}</Text>
+      {activeCriteriaCount > 0 ? <Pressable accessibilityRole="button" onPress={resetCriteria} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, paddingLeft: 8 }}>
+        <Feather name="x-circle" size={13} color={colors.primary} />
+        <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>Clear selection</Text>
+      </Pressable> : null}
+    </View> : null}
     {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading trade opportunities…</Text></Card> : null}
     {query.isError ? <ErrorState message="Trade opportunities could not be loaded from OG Exports." onRetry={() => void query.refetch()} /> : null}
-    {!query.isLoading && !query.isError && rows.length === 0 ? <EmptyState title="No matching trade opportunities" body="Try another category or filter. This view only shows opportunities with matching information supplied by OG Exports." /> : null}
+    {!query.isLoading && !query.isError && rows.length === 0 ? <EmptyState title="No matching trade opportunities" body={tab === 'Featured' && !activeCriteriaCount ? "OG Exports hasn't marked any listed trades as featured yet. Try another tab to browse current opportunities." : 'Try another category, tab, or filter. This view only shows opportunities and details supplied by OG Exports.'} /> : null}
     {rows.map((item, index) => {
       const id = first(item, ['id', 'project_id'], '');
       const title = first(item, ['commodity_name', 'commodity', 'title', 'name', 'project_name'], 'Trade details not provided');
       const tradeId = first(item, ['trade_id', 'trade_code', 'code', 'reference'], 'Trade ID not provided');
+      const commodityCategory = categoryFor(item);
+      const categoryLabel = commodityCategory === 'Other' ? 'Other Commodities' : commodityCategory === 'Unknown' ? 'Commodity not provided' : commodityCategory;
+      const featured = isFeatured(item);
       const origin = first(item, ['origin', 'origin_country', 'from_country']);
       const destination = first(item, ['destination', 'destination_country', 'to_country', 'destination_market']);
       const route = origin && destination ? `${origin} → ${destination}` : 'Route details not provided';
@@ -204,7 +232,7 @@ export default function Opportunities() {
       const funded = amount(item, ['funded_amount', 'raised_amount', 'current_amount', 'current_funding']);
       const progress = fundingProgress(item);
       const targetReturn = first(item, ['target_return', 'projected_return', 'expected_return', 'return_rate', 'roi'], '');
-      const duration = first(item, ['trade_cycle', 'estimated_trade_cycle', 'duration', 'term', 'investment_duration'], '');
+      const duration = durationLabel(item);
       const cardDetails = [
         ['Grade', first(item, ['grade', 'commodity_grade'], '')],
         ['Quantity', first(item, ['quantity', 'cargo_quantity', 'quantity_tons'], '')],
@@ -214,10 +242,18 @@ export default function Opportunities() {
         ['Destination', destination],
       ].filter(([, value]) => value);
       return <Pressable key={id || index} onPress={() => id && router.push({ pathname: '/project/[id]', params: { id } })} disabled={!id}>
-        <Card>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', letterSpacing: 0.7 }}>{tradeId}</Text><Status value={first(item, ['status', 'state'], 'Not provided')} /></View>
-          <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', marginTop: 10 }}>{title}</Text>
-          <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 6 }}>{route}</Text>
+        <Card style={featured ? { borderColor: colors.accent, borderWidth: 1.5 } : undefined}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', letterSpacing: 0.7 }}>{tradeId}</Text><Status value={tradeStatus(item) || 'Not provided'} /></View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 11 }}>
+            <View style={{ borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: colors.secondary }}><Text style={{ color: colors.foreground, fontSize: 10, fontWeight: '700' }}>{categoryLabel}</Text></View>
+            {featured ? <View style={{ borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: colors.lightGreen }}><Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700' }}>Featured</Text></View> : null}
+            {progress != null ? <View style={{ borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: colors.secondary }}><Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700' }}>{progress}% funded</Text></View> : null}
+          </View>
+          <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', marginTop: 11 }}>{title}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 }}>
+            <Feather name="map-pin" size={12} color={colors.accent} />
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, flex: 1 }}>{route}</Text>
+          </View>
           {first(item, ['description', 'summary']) ? <Text numberOfLines={2} style={{ color: colors.mutedForeground, lineHeight: 20, marginTop: 6 }}>{first(item, ['description', 'summary'])}</Text> : null}
           {cardDetails.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
             {cardDetails.map(([label, value]) => <View key={label} style={{ width: '46%' }}><Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{label}</Text><Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', marginTop: 4 }}>{value}</Text></View>)}
@@ -236,7 +272,7 @@ export default function Opportunities() {
             <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Projected / target return · not guaranteed</Text>
             <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700', marginTop: 4 }}>{targetReturn}</Text>
           </View> : null}
-          {first(item, ['risk_level', 'risk_rating']) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 11 }}>Risk information: {first(item, ['risk_level', 'risk_rating'])}</Text> : null}
+          {riskLevel(item) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 11 }}>Risk information: {riskLevel(item)}</Text> : null}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 15 }}>
             <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>View Trade</Text>
             <Feather name="arrow-up-right" size={16} color={colors.primary} />
@@ -248,31 +284,40 @@ export default function Opportunities() {
     <Modal visible={filtersOpen} transparent animationType="slide" onRequestClose={() => setFiltersOpen(false)}>
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(10,20,16,0.38)' }}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close filters" onPress={() => setFiltersOpen(false)} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
-        <View style={{ maxHeight: '88%', borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 26, backgroundColor: colors.background }}>
+        <View style={{ maxHeight: '90%', borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: 20, paddingTop: 18, paddingBottom: Math.max(insets.bottom, 18), backgroundColor: colors.background }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <Text style={{ color: colors.foreground, fontSize: 19, fontWeight: '700' }}>Filter opportunities</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Close filters" onPress={() => setFiltersOpen(false)}><Feather name="x" size={22} color={colors.mutedForeground} /></Pressable>
           </View>
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Field label="Minimum investment up to" value={draftFilters.maxMinimum} onChangeText={value => setDraftFilters(current => ({ ...current, maxMinimum: value }))} placeholder="Amount in opportunity currency" keyboardType="decimal-pad" />
-            <Field label="Maximum trade duration (days)" value={draftFilters.maxDurationDays} onChangeText={value => setDraftFilters(current => ({ ...current, maxDurationDays: value }))} placeholder="e.g. 120" keyboardType="numeric" />
+          <KeyboardAwareScrollViewCompat style={{ flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 8 }} bottomOffset={26} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <Field label="Minimum investment cap" value={draftFilters.maxMinimum} onChangeText={value => setDraftFilters(current => ({ ...current, maxMinimum: value.replace(/[^\d.,]/g, '') }))} placeholder="e.g. 5000" keyboardType="decimal-pad" />
+            <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: -8, marginBottom: 13 }}>Shows trades at or below this entry amount. Values use each trade’s listed currency; no conversion is applied.</Text>
+            <Field label="Maximum trade duration (days)" value={draftFilters.maxDurationDays} onChangeText={value => setDraftFilters(current => ({ ...current, maxDurationDays: value.replace(/[^\d.,]/g, '') }))} placeholder="e.g. 120" keyboardType="numeric" />
             <Field label="Destination" value={draftFilters.destination} onChangeText={value => setDraftFilters(current => ({ ...current, destination: value }))} placeholder="Country or market" />
-            <Field label="Trade status" value={draftFilters.status} onChangeText={value => setDraftFilters(current => ({ ...current, status: value }))} placeholder="Match status text" />
-            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginTop: 6, marginBottom: 8 }}>Risk level</Text>
+            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginTop: 4, marginBottom: 8 }}>Risk level</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 15 }}>
-              {['Any', 'Low', 'Medium', 'High'].map(item => <Pressable key={item} onPress={() => setDraftFilters(current => ({ ...current, risk: item }))} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: draftFilters.risk === item ? colors.primary : colors.secondary }}>
+              {riskOptions.map(item => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: draftFilters.risk === item }} onPress={() => setDraftFilters(current => ({ ...current, risk: item }))} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: draftFilters.risk === item ? colors.primary : colors.secondary }}>
                 <Text style={{ color: draftFilters.risk === item ? colors.primaryForeground : colors.foreground, fontSize: 11, fontWeight: '600' }}>{item}</Text>
               </Pressable>)}
             </View>
+            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginBottom: 8 }}>Trade status</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 15 }}>
+              {statusOptions.map(item => {
+                const selected = item === 'Any' ? !draftFilters.status : draftFilters.status === item;
+                return <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => setDraftFilters(current => ({ ...current, status: item === 'Any' ? '' : item }))} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: selected ? colors.primary : colors.secondary }}>
+                  <Text style={{ color: selected ? colors.primaryForeground : colors.foreground, fontSize: 11, fontWeight: '600' }}>{item === 'Any' ? 'Any status' : item}</Text>
+                </Pressable>;
+              })}
+            </View>
             <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginBottom: 8 }}>Funding progress</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 15 }}>
-              {['Any', 'Under 50%', '50–79%', '80–99%', 'Fully funded'].map(item => <Pressable key={item} onPress={() => setDraftFilters(current => ({ ...current, funding: item }))} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: draftFilters.funding === item ? colors.primary : colors.secondary }}>
+              {['Any', 'Under 50%', '50–79%', '80–99%', 'Fully funded'].map(item => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: draftFilters.funding === item }} onPress={() => setDraftFilters(current => ({ ...current, funding: item }))} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: draftFilters.funding === item ? colors.primary : colors.secondary }}>
                 <Text style={{ color: draftFilters.funding === item ? colors.primaryForeground : colors.foreground, fontSize: 11, fontWeight: '600' }}>{item}</Text>
               </Pressable>)}
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollViewCompat>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-            <Pressable accessibilityRole="button" onPress={() => { setDraftFilters(emptyFilters); setAppliedFilters(emptyFilters); setFiltersOpen(false); }} style={{ flex: 1, minHeight: 46, borderRadius: 13, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
+            <Pressable accessibilityRole="button" onPress={() => { resetCriteria(); setFiltersOpen(false); }} style={{ flex: 1, minHeight: 46, borderRadius: 13, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>Clear all</Text>
             </Pressable>
             <Pressable testID="marketplace-apply-filters" accessibilityRole="button" onPress={() => { setAppliedFilters(draftFilters); setFiltersOpen(false); }} style={{ flex: 1.4, minHeight: 46, borderRadius: 13, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
