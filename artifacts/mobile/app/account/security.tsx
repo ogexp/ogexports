@@ -19,7 +19,7 @@ import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { saveAppPin, verifyAppPin } from '@/lib/app-pin';
-import { authenticateWithBiometrics, getBiometricInfo } from '@/lib/biometrics';
+import { authenticateWithBiometrics, getBiometricInfo, type BiometricInfo } from '@/lib/biometrics';
 
 function displayDate(value: unknown) {
   if (typeof value !== 'string' || !value) return 'Date unavailable';
@@ -87,13 +87,27 @@ export default function Security() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [biometricName, setBiometricName] = useState('biometrics');
+  const [biometricInfo, setBiometricInfo] = useState<BiometricInfo | null>(null);
+  const [biometricChecking, setBiometricChecking] = useState(true);
+  const [biometricError, setBiometricError] = useState('');
+  const [biometricNotice, setBiometricNotice] = useState('');
+
+  async function refreshBiometricInfo() {
+    setBiometricChecking(true);
+    try {
+      const info = await getBiometricInfo();
+      setBiometricInfo(info);
+      setBiometricName(info.name);
+    } catch (err) {
+      const reason = messageOf(err);
+      setBiometricInfo({ available: false, name: 'biometrics', reason: `The app could not check biometrics: ${reason}` });
+    } finally {
+      setBiometricChecking(false);
+    }
+  }
 
   useEffect(() => {
-    let active = true;
-    void getBiometricInfo()
-      .then(info => { if (active) setBiometricName(info.name); })
-      .catch(() => undefined);
-    return () => { active = false; };
+    void refreshBiometricInfo();
   }, []);
 
   function refreshSecurity() {
@@ -156,14 +170,23 @@ export default function Security() {
 
   async function verifyOnDevice(): Promise<string> {
     const info = await getBiometricInfo();
+    setBiometricInfo(info);
     setBiometricName(info.name);
-    if (!info.available) throw new Error(`Set up ${info.name} on this device before enabling biometric sign-in.`);
+    if (!info.available) throw new Error(info.reason ?? `Set up ${info.name} on this device before enabling biometric sign-in.`);
     const result = await authenticateWithBiometrics(`Confirm ${info.name} sign-in`);
     if (!result.success) {
       if (['user_cancel', 'app_cancel', 'system_cancel'].includes(result.error)) {
         throw new Error('Verification cancelled. No security settings were changed.');
       }
-      throw new Error(`${info.name} verification failed. No security settings were changed.`);
+      const authErrorMessages: Record<string, string> = {
+        not_available: `${info.name} authentication is not available in this app session. Open the installed mobile app and try again.`,
+        not_enrolled: `No ${info.name} is enrolled on this device. Set it up in device settings and try again.`,
+        lockout: `${info.name} is temporarily locked. Unlock your device with its passcode, then try again.`,
+        lockout_permanent: `${info.name} is locked on this device. Unlock it with your device passcode, then try again.`,
+        passcode_not_set: 'Set a device passcode before enabling biometric sign-in.',
+        authentication_failed: `${info.name} did not verify. Try again; no security settings were changed.`,
+      };
+      throw new Error(authErrorMessages[result.error] ?? `${info.name} verification failed (${result.error}). No security settings were changed.`);
     }
     return info.name;
   }
@@ -171,6 +194,8 @@ export default function Security() {
   async function toggleBiometrics() {
     setError('');
     setNotice('');
+    setBiometricError('');
+    setBiometricNotice('');
     setBusy(true);
     try {
       let verifiedName = biometricName;
@@ -183,9 +208,13 @@ export default function Security() {
         if (info.available) verifiedName = await verifyOnDevice();
       }
       await setBiometricEnabled(!biometricEnabled);
-      setNotice(biometricEnabled ? `${verifiedName} sign-in disabled on this device.` : `${verifiedName} sign-in enabled on this device.`);
+      const message = biometricEnabled
+        ? `${verifiedName} sign-in disabled on this device.`
+        : `${verifiedName} sign-in enabled on this device.`;
+      setBiometricNotice(message);
+      await refreshBiometricInfo();
     } catch (err) {
-      setError(messageOf(err));
+      setBiometricError(messageOf(err));
     } finally {
       setBusy(false);
     }
@@ -364,9 +393,39 @@ export default function Security() {
       <Text style={{ color: colors.mutedForeground, marginTop: 6, lineHeight: 19, fontSize: 12 }}>
         {Platform.OS === 'web'
           ? 'Manage biometric sign-in in the mobile app on a device with Face ID or fingerprint support.'
-          : `${biometricName} verifies on this device only. When enabled, it unlocks your saved account session; your password is never stored.`}
+          : biometricChecking
+            ? 'Checking this device’s biometric capability…'
+            : biometricInfo?.available
+              ? `${biometricName} is ready on this device. When enabled, it unlocks your saved account session; your password is never stored.`
+              : biometricInfo?.reason ?? 'Biometric availability could not be confirmed on this device.'}
       </Text>
-      {Platform.OS !== 'web' ? <View style={{ marginTop: 14 }}><Action title={biometricEnabled ? `Turn off ${biometricName} sign-in` : `Enable ${biometricName} sign-in`} icon="unlock" secondary={biometricEnabled} loading={busy} onPress={() => void toggleBiometrics()} /></View> : null}
+      {biometricError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginTop: 10, fontSize: 12, lineHeight: 18 }}>{biometricError}</Text> : null}
+      {biometricNotice ? <Text style={{ color: colors.primary, marginTop: 10, fontSize: 12, lineHeight: 18 }}>{biometricNotice}</Text> : null}
+      {Platform.OS !== 'web' ? <>
+        <View style={{ marginTop: 14 }}>
+          <Action
+            title={biometricEnabled
+              ? `Turn off ${biometricName} sign-in`
+              : biometricChecking
+                ? 'Checking biometric availability…'
+                : biometricInfo?.available
+                  ? `Enable ${biometricName} sign-in`
+                  : 'Biometric sign-in unavailable'}
+            icon="unlock"
+            secondary={biometricEnabled}
+            loading={busy || biometricChecking}
+            disabled={!biometricEnabled && (!biometricInfo?.available || biometricChecking)}
+            onPress={() => void toggleBiometrics()}
+          />
+        </View>
+        {!biometricEnabled && biometricInfo && !biometricInfo.available ? <Pressable
+          disabled={busy || biometricChecking}
+          onPress={() => { setBiometricError(''); void refreshBiometricInfo(); }}
+          style={{ alignSelf: 'center', marginTop: 12, padding: 6, opacity: busy || biometricChecking ? 0.5 : 1 }}
+        >
+          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Check again</Text>
+        </Pressable> : null}
+      </> : null}
     </Card>
 
     <Section title="Password & transaction security" />
