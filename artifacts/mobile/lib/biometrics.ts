@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { isRunningInExpoGo } from 'expo';
 import * as LocalAuthentication from 'expo-local-authentication';
 
 export type BiometricInfo = {
@@ -27,7 +28,11 @@ export async function getBiometricInfo(): Promise<BiometricInfo> {
     const hasFaceRecognition = types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
     const hasFingerprint = types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
     const hasIrisRecognition = types.includes(LocalAuthentication.AuthenticationType.IRIS);
-    const name = hasFaceRecognition
+    const hasStrongAndroidBiometrics = Platform.OS === 'android'
+      && securityLevel === LocalAuthentication.SecurityLevel.BIOMETRIC_STRONG;
+    const name = hasStrongAndroidBiometrics && hasFingerprint
+      ? 'fingerprint'
+      : hasFaceRecognition
       ? Platform.OS === 'ios' ? 'Face ID' : 'face recognition'
       : hasFingerprint
         ? Platform.OS === 'ios' ? 'Touch ID' : 'fingerprint'
@@ -35,6 +40,13 @@ export async function getBiometricInfo(): Promise<BiometricInfo> {
           ? 'iris recognition'
           : 'biometrics';
 
+    if (Platform.OS === 'ios' && isRunningInExpoGo() && name === 'Face ID') {
+      return {
+        available: false,
+        name,
+        reason: 'Face ID needs the installed OG Exports app with its Face ID permission. It cannot be enabled in Expo Go.',
+      };
+    }
     if (!hardware || types.length === 0) {
       return { available: false, name, reason: 'This device does not provide biometric hardware supported by the app.' };
     }

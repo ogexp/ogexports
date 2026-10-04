@@ -89,7 +89,7 @@ export default function Login() {
       const info = await getBiometricInfo();
       setBiometricInfo(info);
       if (!info.available) {
-        setError(`Set up ${info.name} on this device, or sign in with your account password.`);
+        setError(`${info.reason ?? `Set up ${info.name} on this device.`} You can also sign in with your account password.`);
         return;
       }
       const result = await authenticateWithBiometrics('Verify your identity to sign in to OG Exports');
