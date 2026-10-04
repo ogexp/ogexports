@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Feather, FontAwesome } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Alert, Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
-import { Action, Card } from '@/components/InvestorUI';
+import { Action } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
 import { messageOf } from '@/lib/data';
 import { useInvestorRegister } from '@workspace/api-client-react';
@@ -255,20 +255,6 @@ export default function Register() {
         />
       </View>
 
-      <View style={s.socialSeparator}>
-        <View style={[s.separatorLine, { backgroundColor: colors.border }]} />
-        <Text style={[s.separatorText, { color: colors.mutedForeground }]}>or continue with</Text>
-        <View style={[s.separatorLine, { backgroundColor: colors.border }]} />
-      </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Facebook sign-in is not configured"
-        onPress={() => Alert.alert('Facebook sign-in unavailable', 'Facebook sign-in is not configured for OG Exports yet.')}
-        style={({ pressed }) => [s.facebookButton, { borderColor: colors.border, backgroundColor: colors.card, opacity: pressed ? 0.75 : 1 }]}
-      >
-        <FontAwesome name="facebook" size={19} color={colors.primary} />
-        <Text style={[s.facebookText, { color: colors.foreground }]}>Facebook</Text>
-      </Pressable>
       <View style={s.footer}>
         <Text style={[s.footerText, { color: colors.mutedForeground }]}>Already have an account?</Text>
         <Pressable accessibilityRole="link" onPress={() => router.replace('/(auth)/login')}>
@@ -281,10 +267,10 @@ export default function Register() {
 
 const s = StyleSheet.create({
   container: { flexGrow: 1, paddingHorizontal: 28 },
-  topBar: { minHeight: 128, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  topBar: { minHeight: 150, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   backButton: { position: 'absolute', left: 0, top: 0, width: 42, height: 46, alignItems: 'flex-start', justifyContent: 'center', zIndex: 1 },
   brand: { alignItems: 'center', justifyContent: 'center', gap: 2 },
-  brandLogo: { width: 82, height: 60, marginBottom: 2 },
+  brandLogo: { width: 112, height: 82, marginBottom: 2 },
   brandName: { fontSize: 19, fontWeight: '700', letterSpacing: -0.3 },
   brandTagline: { fontSize: 9, fontWeight: '700', letterSpacing: 2.5, marginTop: 3 },
   intro: { alignItems: 'center', marginBottom: 22 },
@@ -299,11 +285,6 @@ const s = StyleSheet.create({
   visibilityButton: { padding: 5 },
   errorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 14 },
   errorText: { flex: 1, fontSize: 12, lineHeight: 18 },
-  socialSeparator: { flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 22, marginBottom: 17 },
-  separatorLine: { height: 1, flex: 1 },
-  separatorText: { fontSize: 13 },
-  facebookButton: { minHeight: 50, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10 },
-  facebookText: { fontSize: 14, fontWeight: '600' },
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 25 },
   footerText: { fontSize: 13 },
   footerLink: { fontSize: 13, fontWeight: '700' },
