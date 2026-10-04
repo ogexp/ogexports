@@ -6,6 +6,7 @@ import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 
 function NativeLayout() {
@@ -28,12 +29,29 @@ function NativeLayout() {
 
 function ClassicLayout() {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === 'web';
   return (
     <Tabs screenOptions={{
       headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.mutedForeground,
-      tabBarStyle: { position: 'absolute', backgroundColor: isWeb ? colors.background : 'transparent', borderTopWidth: isWeb ? 1 : 0, borderTopColor: colors.border, elevation: 0, ...(isWeb ? { height: 84 } : {}) },
-      tabBarBackground: () => Platform.OS === 'ios' ? <BlurView intensity={85} tint="light" style={StyleSheet.absoluteFill} /> : isWeb ? <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]} /> : null,
+      tabBarStyle: {
+        position: 'absolute', left: 14, right: 14, bottom: isWeb ? 0 : Math.max(insets.bottom, 10),
+        height: isWeb ? 84 : 70, paddingTop: 4, paddingBottom: isWeb ? 34 : 0,
+        backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0,
+      },
+      tabBarItemStyle: { paddingTop: isWeb ? 2 : 0 },
+      tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: 1 },
+      tabBarBackground: () => (
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          {Platform.OS === 'ios' ? <BlurView intensity={85} tint="light" style={[StyleSheet.absoluteFill, { bottom: isWeb ? 34 : 0 }]} /> : null}
+          <View style={{
+            position: 'absolute', left: 0, right: 0, top: 0, bottom: isWeb ? 34 : 0,
+            backgroundColor: isWeb ? colors.card : 'rgba(255,255,255,0.94)',
+            borderWidth: 1, borderColor: colors.border, borderRadius: 30,
+            ...(isWeb ? { boxShadow: `0 -6px 20px ${colors.shadow}` } : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 12 }),
+          }} />
+        </View>
+      ),
     }}>
       {([
         ['index', 'Dashboard', 'home', 'house'],
