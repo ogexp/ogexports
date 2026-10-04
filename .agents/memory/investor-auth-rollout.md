@@ -1,10 +1,12 @@
 ---
-name: Investor OTP rollout
-description: The product decision to defer OTP from the OG Exports login and registration experience.
+name: Investor email authentication and profile rollout
+description: Product rules for investor email codes, email-only sign-in, and optional phone profile details.
 ---
 
-Keep OTP out of login and registration for now; add it in the final app-update pass.
+Use email verification codes during registration, email codes for password recovery, and email-based 2FA when enabled. Password sign-in is email-only.
 
-**Why:** the user explicitly deferred OTP until the end.
+Mobile number and country are optional profile details collected after account creation. Mobile remains unverified; do not add SMS or phone-number sign-in unless the user asks.
 
-**How to apply:** Keep login password-only and registration non-OTP until the user asks to add the deferred OTP flow.
+**Why:** the user moved phone and country collection out of account creation and chose email as the only sign-in and verification channel.
+
+**How to apply:** Keep registration limited to name, email, and password. Edit mobile/country under profile details; send verification, recovery, and optional 2FA codes to email.

@@ -9,7 +9,7 @@ import * as zod from 'zod';
 
 
 /**
- * @summary Sign in with an email address or mobile number and password
+ * @summary Sign in with an email address and password
  */
 export const InvestorMobileLoginBody = zod.record(zod.string(), zod.unknown())
 
@@ -87,7 +87,20 @@ export const GetInvestorMeResponse = zod.record(zod.string(), zod.unknown())
 /**
  * @summary Update signed-in user profile
  */
-export const UpdateInvestorMeBody = zod.record(zod.string(), zod.unknown())
+export const updateInvestorMeBodyNameMin = 2;
+export const updateInvestorMeBodyNameMax = 120;
+
+export const updateInvestorMeBodyMobileMax = 32;
+
+export const updateInvestorMeBodyCountryMax = 80;
+
+
+
+export const UpdateInvestorMeBody = zod.object({
+  "name": zod.string().min(updateInvestorMeBodyNameMin).max(updateInvestorMeBodyNameMax),
+  "mobile": zod.string().max(updateInvestorMeBodyMobileMax).optional().describe('Optional mobile number with country calling code. This number is not verified by SMS.'),
+  "country": zod.string().max(updateInvestorMeBodyCountryMax).optional().describe('Optional country or region.')
+})
 
 export const UpdateInvestorMeResponse = zod.record(zod.string(), zod.unknown())
 

@@ -32,6 +32,24 @@ export interface InvestorPushTokenRevocation {
   expo_push_token: string;
 }
 
+export interface InvestorProfileUpdate {
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  name: string;
+  /**
+     * Optional mobile number with country calling code. This number is not verified by SMS.
+     * @maxLength 32
+     */
+  mobile?: string;
+  /**
+     * Optional country or region.
+     * @maxLength 80
+     */
+  country?: string;
+}
+
 export interface JsonObject { [key: string]: unknown }
 
 export type GetInvestorProjectsParams = {

@@ -22,6 +22,7 @@ type AuthValue = {
   setAppPinEnabled: (enabled: boolean) => Promise<void>;
   unlockApp: () => void;
   acceptSession: (token: string, user: Json) => Promise<void>;
+  updateUser: (user: Json) => Promise<void>;
   signOut: () => Promise<void>;
   updateOrigin: (value: string) => Promise<void>;
 };
@@ -89,6 +90,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAppUnlocked(true);
     setChallenge(null);
   };
+  const updateUser = async (nextUser: Json) => {
+    if (!token) throw new Error('Sign in before updating profile details.');
+    await saveSession(token, nextUser);
+    setUser(nextUser);
+  };
   const signOut = async () => {
     await clearSession();
     if (Platform.OS !== 'web') await removeAppPin();
@@ -128,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ready, token, user, apiOrigin, challenge, setChallenge,
       onboardingComplete, completeOnboarding, biometricEnabled, appPinEnabled, appUnlocked,
       setBiometricEnabled, setAppPinEnabled, unlockApp,
-      acceptSession, signOut, updateOrigin,
+       acceptSession, updateUser, signOut, updateOrigin,
     }}>
       {children}
     </AuthContext.Provider>

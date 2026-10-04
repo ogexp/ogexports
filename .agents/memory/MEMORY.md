@@ -1,7 +1,7 @@
 - [OG Exports API contract](investor-api-contract.md) — server-only financial values; investor API omits phone verification and withdrawal fee/net fields.
 - [OG Exports mobile visual direction](og-exports-visual-direction.md) — premium light/emerald UI, four investor tabs, and Profile via the top-right avatar.
 - [API origin configuration](api-origin-configuration.md) — keep the API address off the login screen; use app environment or existing Settings configuration.
-- [Investor OTP rollout](investor-auth-rollout.md) — keep OTP out of login and registration until the final app-update pass.
+- [Investor email auth & profile](investor-auth-rollout.md) — email codes cover signup verification, recovery, and optional 2FA; mobile/country stay profile-only.
 - [Investor push delivery](investor-push-delivery.md) — use Expo Push with explicit opt-in; live delivery requires the real Expo project ID and business-event source.
 - [OG Exports platform principles](og-exports-platform-principles.md) — make trade traceability, verified documents/status, simple real-trade data, and financial security visible throughout the investor app.
 - [OG Exports phase workflow](og-exports-phase-workflow.md) — implement the investor app one user-provided phase at a time, then verify before moving on.

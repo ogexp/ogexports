@@ -14,12 +14,13 @@ import {
   useRevokeInvestorPushToken,
   useResetInvestorTransactionPassword,
   useSetInvestorTransactionPassword,
+  useUpdateInvestorMe,
   useUpdateInvestorPassword,
   useUpdateInvestorProfile,
 } from '@workspace/api-client-react';
 import { Action, Card, Field, Screen } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
-import { first, list, messageOf, record, unwrap } from '@/lib/data';
+import { first, list, messageOf, record, unwrap, type Json } from '@/lib/data';
 import { validOrigin } from '@/lib/api-config';
 import { useColors } from '@/hooks/useColors';
 
@@ -27,7 +28,7 @@ const pushEnabledKey = (userId: string) => `og-investor-push-enabled:${userId}`;
 const pushTokenKey = (userId: string) => `og-investor-push-token:${userId}`;
 
 export default function Settings() {
-  const { token, user, apiOrigin, updateOrigin, signOut } = useAuth();
+  const { token, user, apiOrigin, updateOrigin, updateUser, signOut } = useAuth();
   const colors = useColors();
   const queryClient = useQueryClient();
   const userId = first(record(user), ['id']);
@@ -37,6 +38,7 @@ export default function Settings() {
     query: { queryKey: ['investor-transaction-password-status'], enabled: !!token },
   });
   const updateProfile = useUpdateInvestorProfile();
+  const updateMe = useUpdateInvestorMe();
   const updatePassword = useUpdateInvestorPassword();
   const setTransactionPassword = useSetInvestorTransactionPassword();
   const resetTransactionPassword = useResetInvestorTransactionPassword();
@@ -46,8 +48,6 @@ export default function Settings() {
   const profile = unwrap(profileQuery.data);
   const wallet = unwrap(walletQuery.data);
   const walletCurrency = first(wallet, ['currency', 'default_currency']);
-  const personal = record(profile.personal);
-  const address = record(profile.address);
   const savedAccount = record(profile.default_bank_account);
   const profileAccounts = list(profile.bank_accounts);
   const transactionPasswordStatus = unwrap(transactionPasswordQuery.data);
@@ -83,9 +83,6 @@ export default function Settings() {
   useEffect(() => {
     setServer(apiOrigin);
     if (profileQuery.data) {
-      setName(first(personal, ['name']));
-      setPhone(first(personal, ['phone']));
-      setCountry(first(address, ['country']));
       setBankName(first(savedAccount, ['bank_name']));
       setAccountHolder(first(savedAccount, ['account_holder']));
       setAccountNumber(first(savedAccount, ['account_number']));
@@ -95,6 +92,13 @@ export default function Settings() {
       setBankCurrency(first(savedAccount, ['currency']));
     }
   }, [apiOrigin, profileQuery.data]);
+
+  useEffect(() => {
+    const account = record(user);
+    setName(first(account, ['name']));
+    setPhone(first(account, ['mobile']));
+    setCountry(first(account, ['country']));
+  }, [user]);
 
   useEffect(() => {
     let active = true;
@@ -225,9 +229,13 @@ export default function Settings() {
       return;
     }
     try {
-      const request: Parameters<typeof updateProfile.mutateAsync>[0] = {
-        data: { name, phone, country },
-      };
+      const saved = record(await updateMe.mutateAsync({
+        data: { name: name.trim(), mobile: phone.trim(), country: country.trim() },
+      }));
+      const savedUser = record(saved.user);
+      if (!first(savedUser, ['id'])) throw new Error('The server did not return the updated profile.');
+      await updateUser(savedUser as Json);
+
       if (hasBankInput) {
         const id = first(savedAccount, ['id'], 'mobile-default');
         const bankAccounts = [
@@ -246,10 +254,15 @@ export default function Settings() {
             is_default: true,
           },
         ];
-        request.data = { ...request.data, bank_accounts: bankAccounts };
+        const request: Parameters<typeof updateProfile.mutateAsync>[0] = {
+          data: { name: name.trim(), phone: phone.trim(), country: country.trim(), bank_accounts: bankAccounts },
+        };
+        await updateProfile.mutateAsync(request);
       }
-      await updateProfile.mutateAsync(request);
-      Alert.alert('Profile updated', 'Your profile and payout details have been saved.');
+      Alert.alert(
+        'Profile updated',
+        hasBankInput ? 'Your profile and payout details have been saved.' : 'Your profile details have been saved.',
+      );
       void profileQuery.refetch();
     } catch (err) { setError(messageOf(err)); }
   }
@@ -341,10 +354,10 @@ export default function Settings() {
   const transactionPasswordBusy = setTransactionPassword.isPending || resetTransactionPassword.isPending;
   return <Screen title="Settings" subtitle="Profile, payout details, security and server connection">
     <Card>
-      <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Profile</Text>
+      <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Profile details</Text>
       <Field label="Full name" value={name} onChangeText={setName} placeholder="Your name" />
-      <Field label="Phone" value={phone} onChangeText={setPhone} placeholder="Phone number" keyboardType="phone-pad" />
-      <Field label="Country" value={country} onChangeText={setCountry} placeholder="Country of residence" />
+      <Field label="Mobile number" value={phone} onChangeText={setPhone} placeholder="+92 300 1234567" keyboardType="phone-pad" />
+      <Field label="Country / region" value={country} onChangeText={setCountry} placeholder="Country of residence" />
       <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 15, marginBottom: 10 }}>Default payout bank account</Text>
       <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>These details are used for withdrawals. You can also enter different details for a single withdrawal.</Text>
       <Field label="Bank name" value={bankName} onChangeText={setBankName} placeholder="Bank name" />
@@ -354,7 +367,7 @@ export default function Settings() {
       <Field label="SWIFT / BIC (optional)" value={swift} onChangeText={setSwift} placeholder="SWIFT / BIC" autoCapitalize="characters" />
       <Field label="Branch (optional)" value={branch} onChangeText={setBranch} placeholder="Branch" />
       <Field label="Account currency (optional)" value={bankCurrency} onChangeText={setBankCurrency} placeholder="Currency code" autoCapitalize="characters" />
-      <Action title="Save profile and payout details" icon="save" loading={updateProfile.isPending} onPress={() => void saveProfile()} />
+      <Action title="Save profile and payout details" icon="save" loading={updateMe.isPending || updateProfile.isPending} onPress={() => void saveProfile()} />
     </Card>
 
     <Card>

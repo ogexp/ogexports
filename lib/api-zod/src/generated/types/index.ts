@@ -12,6 +12,7 @@ export * from './getInvestorKycParams';
 export * from './getInvestorProjectsParams';
 export * from './getInvestorWalletTransactionsParams';
 export * from './getInvestorWithdrawalsParams';
+export * from './investorProfileUpdate';
 export * from './investorPushTokenRegistration';
 export * from './investorPushTokenRegistrationPlatform';
 export * from './investorPushTokenRevocation';

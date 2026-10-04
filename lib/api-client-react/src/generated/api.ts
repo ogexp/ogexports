@@ -26,6 +26,7 @@ import type {
   GetInvestorProjectsParams,
   GetInvestorWalletTransactionsParams,
   GetInvestorWithdrawalsParams,
+  InvestorProfileUpdate,
   InvestorPushTokenRegistration,
   InvestorPushTokenRevocation,
   JsonObject
@@ -67,7 +68,7 @@ export const getInvestorMobileLoginUrl = () => {
 }
 
 /**
- * @summary Sign in with an email address or mobile number and password
+ * @summary Sign in with an email address and password
  */
 export const investorMobileLogin = async (jsonObject: JsonObject, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
 
@@ -133,7 +134,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type InvestorMobileLoginMutationVariables = {data: BodyType<JsonObject>}
 
     /**
- * @summary Sign in with an email address or mobile number and password
+ * @summary Sign in with an email address and password
  */
 export const useInvestorMobileLogin = <TError = ErrorType<JsonObject>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof investorMobileLogin>>, TError,InvestorMobileLoginMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -924,7 +925,7 @@ export const getUpdateInvestorMeUrl = () => {
 /**
  * @summary Update signed-in user profile
  */
-export const updateInvestorMe = async (jsonObject: JsonObject, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const updateInvestorMe = async (investorProfileUpdate: InvestorProfileUpdate, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -945,7 +946,7 @@ return customFetch<JsonObject>(getUpdateInvestorMeUrl(),
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(jsonObject)
+    body: JSON.stringify(investorProfileUpdate)
   }
 );}
 
@@ -983,9 +984,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateInvestorMeMutationResult = NonNullable<Awaited<ReturnType<typeof updateInvestorMe>>>
-    export type UpdateInvestorMeMutationBody = BodyType<JsonObject>
+    export type UpdateInvestorMeMutationBody = BodyType<InvestorProfileUpdate>
     export type UpdateInvestorMeMutationError = ErrorType<unknown>
-    export type UpdateInvestorMeMutationVariables = {data: BodyType<JsonObject>}
+    export type UpdateInvestorMeMutationVariables = {data: BodyType<InvestorProfileUpdate>}
 
     /**
  * @summary Update signed-in user profile

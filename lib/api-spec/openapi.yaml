@@ -140,7 +140,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/JsonObject" }
+            schema: { $ref: "#/components/schemas/InvestorProfileUpdate" }
       responses:
         "200": { description: Updated user, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /me/password:
@@ -654,6 +654,22 @@ components:
           minLength: 20
           maxLength: 256
           pattern: "^Expo(nent)?PushToken\\[[A-Za-z0-9._-]+\\]$"
+    InvestorProfileUpdate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 120
+        mobile:
+          type: string
+          description: Optional mobile number with country calling code. This number is not verified by SMS.
+          maxLength: 32
+        country:
+          type: string
+          description: Optional country or region.
+          maxLength: 80
     JsonObject:
       type: object
       additionalProperties: true

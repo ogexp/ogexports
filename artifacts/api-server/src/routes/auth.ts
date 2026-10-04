@@ -19,6 +19,7 @@ import {
   issueChallenge,
   issuePasswordResetChallenge,
   normalizeEmail,
+  normalizeMobile,
   publicInvestorUser,
   revokeSessionFromAuthorization,
   verifyChallenge,

@@ -10,7 +10,7 @@ export const requireInvestorSession: RequestHandler = async (req, res, next) => 
   try {
     const session = await findInvestorSessionFromAuthorization(req.header("authorization"));
     if (!session) {
-      res.status(401).json({ message: "Sign in to manage push notifications." });
+      res.status(401).json({ message: "Sign in to manage account settings." });
       return;
     }
     res.locals.investorSession = session satisfies InvestorSessionContext;
