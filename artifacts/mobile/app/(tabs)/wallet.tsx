@@ -23,10 +23,10 @@ export default function Wallet() {
   const withdrawableBalance = amount(inner, ['withdrawable_balance', 'withdrawable_amount']);
   const rows = list(transactions.data);
   return <Screen title="Wallet" subtitle="Balances, deposits and withdrawals">
-    <Card style={{ backgroundColor: colors.primary, borderColor: colors.primary, padding: 20 }}>
-      <Text style={{ color: colors.primaryForeground, opacity: 0.8, fontSize: 12 }}>AVAILABLE BALANCE</Text>
-      <Text style={{ color: colors.primaryForeground, fontSize: 32, fontWeight: '700', marginTop: 8 }}>{wallet.isLoading ? '…' : balance != null && currency ? money(balance, currency) : '—'}</Text>
-      <Text style={{ color: colors.primaryForeground, opacity: 0.8, fontSize: 12, marginTop: 8 }}>{currency ? `${currency} wallet` : 'Account currency unavailable'}</Text>
+    <Card style={{ borderLeftWidth: 3, borderLeftColor: colors.primary, padding: 20 }}>
+      <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.7 }}>AVAILABLE BALANCE</Text>
+      <Text style={{ color: colors.foreground, fontSize: 32, fontWeight: '700', marginTop: 8 }}>{wallet.isLoading ? '…' : balance != null && currency ? money(balance, currency) : '—'}</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 8 }}>{currency ? `${currency} wallet` : 'Account currency unavailable'}</Text>
     </Card>
     <Section title="Balance breakdown" />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>

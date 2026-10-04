@@ -143,7 +143,7 @@ export default function Register() {
         <View style={s.brand}>
           <Image source={require('../../assets/images/og-logo.png')} resizeMode="contain" style={s.brandLogo} />
           <Text style={[s.brandName, { color: colors.primary }]}>OG Exports</Text>
-          <Text style={[s.brandTagline, { color: colors.accent }]}>GLOBAL TRADE. SMART INVESTMENT.</Text>
+          <Text style={[s.brandTagline, { color: colors.accent }]}>GLOBAL TRADE. DIGITAL INVESTMENT.</Text>
         </View>
       </View>
 

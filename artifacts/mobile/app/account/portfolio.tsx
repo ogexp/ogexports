@@ -39,17 +39,17 @@ export default function Portfolio() {
     return groups;
   }, {}));
   return <Screen title="Portfolio" subtitle="Your investment positions in one place">
-    <Card style={{ backgroundColor: colors.primary, borderColor: colors.primary }}>
-      <Text style={{ color: colors.primaryForeground, opacity: 0.8, fontSize: 12 }}>TOTAL INVESTED</Text>
-      <Text style={{ color: colors.primaryForeground, fontSize: 29, fontWeight: '700', marginTop: 7 }}>{dashboardQuery.isLoading ? '…' : totalInvested != null && currency ? money(totalInvested, currency) : '—'}</Text>
-      <View style={{ height: 1, backgroundColor: colors.primaryForeground, opacity: 0.2, marginVertical: 15 }} />
+    <Card style={{ borderLeftWidth: 3, borderLeftColor: colors.primary }}>
+      <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.7 }}>TOTAL INVESTED</Text>
+      <Text style={{ color: colors.foreground, fontSize: 29, fontWeight: '700', marginTop: 7 }}>{dashboardQuery.isLoading ? '…' : totalInvested != null && currency ? money(totalInvested, currency) : '—'}</Text>
+      <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 15 }} />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <View style={{ minWidth: 120, flex: 1 }}><Text style={{ color: colors.primaryForeground, opacity: 0.8, fontSize: 11 }}>Latest recorded value</Text><Text style={{ color: colors.primaryForeground, fontSize: 16, fontWeight: '700', marginTop: 5 }}>{latestValue != null && currency ? money(latestValue, currency) : '—'}</Text></View>
-        <View style={{ minWidth: 120, flex: 1 }}><Text style={{ color: colors.primaryForeground, opacity: 0.8, fontSize: 11 }}>Available balance</Text><Text style={{ color: colors.primaryForeground, fontSize: 16, fontWeight: '700', marginTop: 5 }}>{availableBalance != null && currency ? money(availableBalance, currency) : '—'}</Text></View>
+        <View style={{ minWidth: 120, flex: 1 }}><Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Latest recorded value</Text><Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginTop: 5 }}>{latestValue != null && currency ? money(latestValue, currency) : '—'}</Text></View>
+        <View style={{ minWidth: 120, flex: 1 }}><Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Available balance</Text><Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginTop: 5 }}>{availableBalance != null && currency ? money(availableBalance, currency) : '—'}</Text></View>
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 13 }}>
-        <View style={{ flex: 1 }}><Text style={{ color: colors.primaryForeground, opacity: 0.8, fontSize: 11 }}>Profit earned</Text><Text style={{ color: colors.primaryForeground, fontSize: 15, fontWeight: '700', marginTop: 5 }}>{profit != null && currency ? money(profit, currency) : '—'}</Text></View>
-        <View style={{ alignItems: 'flex-end', flex: 1 }}><Text style={{ color: colors.primaryForeground, opacity: 0.8, fontSize: 11 }}>Lifetime ROI</Text><Text style={{ color: colors.accent, fontSize: 15, fontWeight: '700', marginTop: 5 }}>{roi == null ? '—' : `${roi.toFixed(2)}%`}</Text></View>
+        <View style={{ flex: 1 }}><Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Profit earned</Text><Text style={{ color: colors.statusSuccess, fontSize: 15, fontWeight: '700', marginTop: 5 }}>{profit != null && currency ? money(profit, currency) : '—'}</Text></View>
+        <View style={{ alignItems: 'flex-end', flex: 1 }}><Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Lifetime ROI</Text><Text style={{ color: colors.statusSuccess, fontSize: 15, fontWeight: '700', marginTop: 5 }}>{roi == null ? '—' : `${roi.toFixed(2)}%`}</Text></View>
       </View>
     </Card>
     {dashboardQuery.isError ? <ErrorState message="Portfolio summary could not be loaded from the investor server." onRetry={() => void dashboardQuery.refetch()} /> : null}

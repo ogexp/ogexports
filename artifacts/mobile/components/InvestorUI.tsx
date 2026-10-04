@@ -16,7 +16,7 @@ export function Screen({ title, subtitle, children, action }: { title: string; s
       contentContainerStyle={{ paddingTop: Platform.OS === 'web' ? 67 : insets.top + 10, paddingBottom: Platform.OS === 'web' ? 110 : insets.bottom + 104, paddingHorizontal: 20 }}>
       <View style={s.header}>
         <View style={{ flex: 1 }}>
-           <Text style={[s.title, { color: colors.primary }]}>{title}</Text>
+           <Text style={[s.title, { color: colors.foreground }]}>{title}</Text>
           {subtitle ? <Text style={[s.subtitle, { color: colors.mutedForeground }]}>{subtitle}</Text> : null}
         </View>
         {action}
@@ -37,7 +37,7 @@ export function Card({ children, style }: { children: React.ReactNode; style?: o
 export function Action({ title, onPress, icon, secondary = false, disabled = false, loading = false }: { title: string; onPress: () => void; icon?: IconName; secondary?: boolean; disabled?: boolean; loading?: boolean }) {
   const colors = useColors();
   const buttonSurface = secondary
-    ? { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.primary }
+    ? { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }
     : { backgroundColor: colors.primary, borderWidth: 1, borderColor: colors.primary };
   return (
     <Pressable accessibilityRole="button" onPress={onPress} disabled={disabled || loading}
@@ -73,7 +73,7 @@ export function Field({ label, value, onChangeText, placeholder, secureTextEntry
 
 export function Section({ title, right }: { title: string; right?: React.ReactNode }) {
   const colors = useColors();
-  return <View style={s.section}><Text style={[s.sectionTitle, { color: colors.primary }]}>{title}</Text>{right}</View>;
+  return <View style={s.section}><Text style={[s.sectionTitle, { color: colors.foreground }]}>{title}</Text>{right}</View>;
 }
 
 export function Row({ label, value, icon, onPress }: { label: string; value?: string; icon?: IconName; onPress?: () => void }) {
@@ -110,11 +110,11 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 },
   title: { fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.6 },
   subtitle: { fontSize: 14, lineHeight: 21, marginTop: 5 },
-  card: { borderRadius: 22, borderWidth: 1, padding: 16, marginBottom: 14 },
-  button: { minHeight: 52, borderRadius: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+  card: { borderRadius: 18, borderWidth: 1, padding: 16, marginBottom: 14 },
+  button: { minHeight: 50, borderRadius: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   buttonText: { fontWeight: '700', fontSize: 14 },
   label: { fontSize: 12, fontWeight: '700' },
-  input: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, minHeight: 48, fontSize: 14 },
+  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, minHeight: 48, fontSize: 14 },
   section: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11, marginTop: 10 },
   sectionTitle: { fontSize: 16, fontWeight: '700', letterSpacing: -0.15 },
   row: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 11, borderBottomWidth: StyleSheet.hairlineWidth },
