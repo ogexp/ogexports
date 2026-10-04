@@ -29,21 +29,7 @@ export default function PositionDetail() {
   const investmentId = first(row, ['investment_id', 'reference', 'id'], notProvided);
   const status = first(row, ['status', 'state'], notProvided);
   const containerNumber = first(row, ['container_number', 'container_name'], first(container, ['container_number', 'number', 'name'], notProvided));
-  const timelineSources = [
-    row.trade_timeline, row.timeline, row.updates,
-    project.trade_timeline, project.timeline, project.updates,
-    trade.trade_timeline, trade.timeline, trade.updates,
-  ];
-  const suppliedTimeline = timelineSources.map(value => list(value)).find(events => events.length > 0) ?? [];
-  const journeyTimeline: Json[] = Object.entries(record(container.container_journey)).flatMap(([stage, rawStage]) => {
-    const stageData = record(rawStage);
-    const eventStatus = first(stageData, ['status']);
-    const date = first(stageData, ['date', 'updated_at', 'created_at']);
-    const description = first(stageData, ['details', 'description', 'message', 'note']);
-    if (!eventStatus && !date && !description) return [];
-    return [{ stage, status: eventStatus, date, description }];
-  });
-  const timeline = [...suppliedTimeline, ...journeyTimeline];
+  const timeline = list(project.trade_updates);
   const documents = list(project.documents ?? row.documents ?? trade.documents);
   const investedUsd = amount(row, ['amount', 'investment_amount', 'principal']);
   const investedPkr = amount(row, ['amount_pkr']);
@@ -197,7 +183,7 @@ export default function PositionDetail() {
       </View>
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 12, marginBottom: 4 }}>Projected performance is not guaranteed. Actual results depend on trade performance and applicable risks.</Text>
 
-      <TradeTimeline events={timeline} title="Timeline" />
+      <TradeTimeline events={timeline} apiOrigin={apiOrigin} title="Trade updates" />
 
       <Section title="Documents" />
       {documents.length ? <Card>

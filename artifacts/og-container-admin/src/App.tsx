@@ -6,18 +6,22 @@ import {
   useAdminSessionLogout,
   useAdminSessionTwoFactorResend,
   useAdminSessionTwoFactorVerify,
+  useCreateAdminProjectTradeUpdate,
   useGetAdminInvestmentProjects,
   useGetAdminProjectContainerTracking,
+  useGetAdminProjectTradeUpdates,
   useGetInvestorMe,
   useUpdateAdminProjectContainerTracking,
   getGetAdminInvestmentProjectsQueryKey,
   getGetAdminProjectContainerTrackingQueryKey,
+  getGetAdminProjectTradeUpdatesQueryKey,
   getGetInvestorMeQueryKey,
   getInvestorMe,
   type ContainerTrackingUpdate,
   type JourneyStage,
   type JourneyStageUpdate,
   type AdminInvestmentProjectSummary,
+  type ProjectTradeUpdateInput,
 } from '@workspace/api-client-react';
 import { Route, Router, Switch, useLocation } from 'wouter';
 
@@ -378,7 +382,119 @@ function TrackingEditor({ projectId, project, onAuthLost }: { projectId: string;
         </div>
       </section>
     </form>
+    <TradeUpdatesPanel projectId={projectId} onAuthLost={onAuthLost} />
   </div>;
+}
+
+function TradeUpdatesPanel({ projectId, onAuthLost }: { projectId: string; onAuthLost: () => void }) {
+  const client = useQueryClient();
+  const csrf = useCsrfRequest();
+  const updates = useGetAdminProjectTradeUpdates(projectId, {
+    request: { credentials: 'include' },
+    query: { enabled: Boolean(apiOrigin), queryKey: getGetAdminProjectTradeUpdatesQueryKey(projectId) },
+  });
+  const create = useCreateAdminProjectTradeUpdate({ request: csrf.request });
+  const [status, setStatus] = useState('');
+  const [description, setDescription] = useState('');
+  const [occurredAt, setOccurredAt] = useState('');
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const [savedAt, setSavedAt] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (errorStatus(updates.error) === 401 || errorStatus(updates.error) === 403) onAuthLost();
+  }, [updates.error, onAuthLost]);
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSavedAt('');
+    setSaveError('');
+
+    const date = new Date(occurredAt);
+    if (Number.isNaN(date.getTime())) {
+      setSaveError('Enter a valid date and time for this reported event.');
+      return;
+    }
+    if (attachment && attachment.size > 10 * 1024 * 1024) {
+      setSaveError('The supporting file must be 10 MB or smaller.');
+      return;
+    }
+
+    const data: ProjectTradeUpdateInput = {
+      status: status.trim(),
+      description: description.trim(),
+      occurred_at: date.toISOString(),
+    };
+    if (attachment) data.attachment = attachment;
+
+    try {
+      await csrf.getCsrf();
+      const response = await create.mutateAsync({ id: projectId, data });
+      await client.invalidateQueries({ queryKey: getGetAdminProjectTradeUpdatesQueryKey(projectId) });
+      await updates.refetch();
+      setStatus('');
+      setDescription('');
+      setOccurredAt('');
+      setAttachment(null);
+      if (fileInput.current) fileInput.current.value = '';
+      setSavedAt(response.data.occurred_at);
+    } catch (error) {
+      if (errorStatus(error) === 401 || errorStatus(error) === 403) onAuthLost();
+      setSaveError(errorMessage(error));
+    }
+  };
+
+  const entries = updates.data?.data ?? [];
+  return <section className="record-panel">
+    <div className="panel-heading">
+      <div><h2>Trade update feed</h2><div className="panel-caption">Append event details confirmed by OG Exports. Each update keeps its own event time.</div></div>
+      <span className="report-badge"><i aria-hidden="true"/>OG EXPORTS-REPORTED</span>
+    </div>
+    <div className="panel-content">
+      {savedAt && <div className="success-strip" role="status"><strong>Trade update published.</strong> Server response event time: {formatServerDate(savedAt)}.</div>}
+      {saveError && <div className="alert-strip" role="alert"><strong>Could not publish update.</strong> {saveError}</div>}
+      <form onSubmit={submit}>
+        <div className="grid-fields update-fields">
+          <div className="field">
+            <label htmlFor="trade-update-status">Status</label>
+            <input id="trade-update-status" data-testid="input-trade-update-status" required maxLength={120} value={status} onChange={(event) => setStatus(event.target.value)} placeholder="Enter the reported status"/>
+          </div>
+          <div className="field">
+            <label htmlFor="trade-update-time">Event date and time · as confirmed by OG Exports</label>
+            <input id="trade-update-time" data-testid="input-trade-update-time" type="datetime-local" required value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)}/>
+          </div>
+          <div className="field wide">
+            <label htmlFor="trade-update-description">Description</label>
+            <textarea id="trade-update-description" data-testid="input-trade-update-description" required maxLength={5000} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe what OG Exports has confirmed"/>
+          </div>
+          <div className="field wide">
+            <label htmlFor="trade-update-attachment">Supporting document or image · optional</label>
+            <input ref={fileInput} id="trade-update-attachment" data-testid="input-trade-update-attachment" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => setAttachment(event.currentTarget.files?.[0] ?? null)}/>
+          </div>
+        </div>
+        <div className="action-row">
+          <span className="save-status">Updates are added to the feed and are not overwritten by later events.</span>
+          <button className="button primary" data-testid="button-publish-trade-update" type="submit" disabled={!apiOrigin || create.isPending}>{create.isPending ? 'Publishing…' : 'Publish trade update'}</button>
+        </div>
+      </form>
+
+      <div className="update-history">
+        <div className="update-history-head">
+          <h3>Published updates</h3>
+          {updates.isFetching ? <span className="timestamp">Refreshing…</span> : null}
+        </div>
+        {updates.isLoading ? <div className="loading" aria-label="Loading trade updates"><div className="skeleton"/></div> :
+          updates.error ? <div className="alert-strip" role="alert">{errorMessage(updates.error)} <button className="link-button" onClick={() => void updates.refetch()}>Retry</button></div> :
+          entries.length === 0 ? <div className="rail-empty">No trade updates have been published for this project.</div> :
+          <div className="update-list">{entries.map((entry) => <article key={entry.id}>
+            <div className="update-list-heading"><strong>{entry.status}</strong><time>{formatServerDate(entry.occurred_at)}</time></div>
+            <p>{entry.description}</p>
+            {entry.attachment_name ? <div className="update-attachment">Supporting file · {entry.attachment_name}</div> : null}
+          </article>)}</div>}
+      </div>
+    </div>
+  </section>;
 }
 
 function NotFoundPage() {

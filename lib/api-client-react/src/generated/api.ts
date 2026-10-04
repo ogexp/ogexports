@@ -35,11 +35,16 @@ import type {
   GetInvestorWalletTransactionsParams,
   GetInvestorWithdrawalsParams,
   InvestorDashboardResponse,
+  InvestorNotificationResponse,
+  InvestorNotificationsResponse,
   InvestorProfileUpdate,
   InvestorProjectDetailResponse,
   InvestorPushTokenRegistration,
   InvestorPushTokenRevocation,
-  JsonObject
+  JsonObject,
+  ProjectTradeUpdateInput,
+  ProjectTradeUpdateList,
+  ProjectTradeUpdateResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -4133,9 +4138,9 @@ export const getGetInvestorNotificationsUrl = () => {
 /**
  * @summary List investor notifications
  */
-export const getInvestorNotifications = async ( options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const getInvestorNotifications = async ( options?: Parameters<typeof customFetch>[1]): Promise<InvestorNotificationsResponse> => {
 
-  return customFetch<JsonObject>(getGetInvestorNotificationsUrl(),
+  return customFetch<InvestorNotificationsResponse>(getGetInvestorNotificationsUrl(),
   {
     ...options,
     method: 'GET'
@@ -4537,9 +4542,9 @@ export const getMarkInvestorNotificationReadUrl = (id: string,) => {
 /**
  * @summary Mark an investor notification as read
  */
-export const markInvestorNotificationRead = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const markInvestorNotificationRead = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<InvestorNotificationResponse> => {
 
-  return customFetch<JsonObject>(getMarkInvestorNotificationReadUrl(id),
+  return customFetch<InvestorNotificationResponse>(getMarkInvestorNotificationReadUrl(id),
   {
     ...options,
     method: 'POST'
@@ -5601,4 +5606,246 @@ export const useUpdateAdminProjectContainerTracking = <TError = ErrorType<JsonOb
       > => {
       return useMutation(getUpdateAdminProjectContainerTrackingMutationOptions(options));
     }
+
+export const getGetAdminProjectTradeUpdatesUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/projects/${id}/updates`
+}
+
+/**
+ * @summary List reported trade updates for an investment project
+ */
+export const getAdminProjectTradeUpdates = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<ProjectTradeUpdateList> => {
+
+  return customFetch<ProjectTradeUpdateList>(getGetAdminProjectTradeUpdatesUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminProjectTradeUpdatesQueryKey = (id: string,) => {
+    return [
+    `/api/admin/projects/${id}/updates`
+    ] as const;
+    }
+
+
+export const getGetAdminProjectTradeUpdatesQueryOptions = <TData = Awaited<ReturnType<typeof getAdminProjectTradeUpdates>>, TError = ErrorType<JsonObject>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminProjectTradeUpdates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminProjectTradeUpdatesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminProjectTradeUpdates>>> = ({ signal }) => getAdminProjectTradeUpdates(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminProjectTradeUpdates>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminProjectTradeUpdatesQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminProjectTradeUpdates>>>
+export type GetAdminProjectTradeUpdatesQueryError = ErrorType<JsonObject>
+
+
+/**
+ * @summary List reported trade updates for an investment project
+ */
+
+export function useGetAdminProjectTradeUpdates<TData = Awaited<ReturnType<typeof getAdminProjectTradeUpdates>>, TError = ErrorType<JsonObject>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminProjectTradeUpdates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminProjectTradeUpdatesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAdminProjectTradeUpdateUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/projects/${id}/updates`
+}
+
+/**
+ * Appends a project update with its administrator-supplied event time, status, description, and optional PDF or image attachment.
+ * @summary Publish an OG Exports-reported trade update
+ */
+export const createAdminProjectTradeUpdate = async (id: string,
+    projectTradeUpdateInput: ProjectTradeUpdateInput, options?: Parameters<typeof customFetch>[1]): Promise<ProjectTradeUpdateResponse> => {
+    const formData = new FormData();
+formData.append(`status`, projectTradeUpdateInput.status);
+formData.append(`description`, projectTradeUpdateInput.description);
+formData.append(`occurred_at`, projectTradeUpdateInput.occurred_at);
+if(projectTradeUpdateInput.attachment !== undefined) {
+ formData.append(`attachment`, projectTradeUpdateInput.attachment);
+ }
+
+  return customFetch<ProjectTradeUpdateResponse>(getCreateAdminProjectTradeUpdateUrl(id),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+
+
+export const getCreateAdminProjectTradeUpdateMutationKey = () => ['createAdminProjectTradeUpdate'] as const;
+
+export const getCreateAdminProjectTradeUpdateMutationOptions = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminProjectTradeUpdate>>, TError,CreateAdminProjectTradeUpdateMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminProjectTradeUpdate>>, TError,CreateAdminProjectTradeUpdateMutationVariables, TContext> => {
+
+const mutationKey = getCreateAdminProjectTradeUpdateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminProjectTradeUpdate>>, CreateAdminProjectTradeUpdateMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createAdminProjectTradeUpdate(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminProjectTradeUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminProjectTradeUpdate>>>
+    export type CreateAdminProjectTradeUpdateMutationBody = BodyType<ProjectTradeUpdateInput>
+    export type CreateAdminProjectTradeUpdateMutationError = ErrorType<JsonObject>
+    export type CreateAdminProjectTradeUpdateMutationVariables = {id: string;data: BodyType<ProjectTradeUpdateInput>}
+
+    /**
+ * @summary Publish an OG Exports-reported trade update
+ */
+export const useCreateAdminProjectTradeUpdate = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminProjectTradeUpdate>>, TError,CreateAdminProjectTradeUpdateMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminProjectTradeUpdate>>,
+        TError,
+        CreateAdminProjectTradeUpdateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateAdminProjectTradeUpdateMutationOptions(options));
+    }
+
+export const getDownloadInvestorProjectTradeUpdateAttachmentUrl = (id: string,
+    updateId: string,) => {
+
+
+
+
+  return `/api/investor/projects/${id}/updates/${updateId}/attachment`
+}
+
+/**
+ * @summary Download a supporting file for a trade update
+ */
+export const downloadInvestorProjectTradeUpdateAttachment = async (id: string,
+    updateId: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadInvestorProjectTradeUpdateAttachmentUrl(id,updateId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadInvestorProjectTradeUpdateAttachmentQueryKey = (id: string,
+    updateId: string,) => {
+    return [
+    `/api/investor/projects/${id}/updates/${updateId}/attachment`
+    ] as const;
+    }
+
+
+export const getDownloadInvestorProjectTradeUpdateAttachmentQueryOptions = <TData = Awaited<ReturnType<typeof downloadInvestorProjectTradeUpdateAttachment>>, TError = ErrorType<JsonObject>>(id: string,
+    updateId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadInvestorProjectTradeUpdateAttachment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadInvestorProjectTradeUpdateAttachmentQueryKey(id,updateId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadInvestorProjectTradeUpdateAttachment>>> = ({ signal }) => downloadInvestorProjectTradeUpdateAttachment(id,updateId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && updateId !== null && updateId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadInvestorProjectTradeUpdateAttachment>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadInvestorProjectTradeUpdateAttachmentQueryResult = NonNullable<Awaited<ReturnType<typeof downloadInvestorProjectTradeUpdateAttachment>>>
+export type DownloadInvestorProjectTradeUpdateAttachmentQueryError = ErrorType<JsonObject>
+
+
+/**
+ * @summary Download a supporting file for a trade update
+ */
+
+export function useDownloadInvestorProjectTradeUpdateAttachment<TData = Awaited<ReturnType<typeof downloadInvestorProjectTradeUpdateAttachment>>, TError = ErrorType<JsonObject>>(
+ id: string,
+    updateId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadInvestorProjectTradeUpdateAttachment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadInvestorProjectTradeUpdateAttachmentQueryOptions(id,updateId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

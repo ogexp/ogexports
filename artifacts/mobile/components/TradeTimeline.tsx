@@ -1,83 +1,142 @@
-import React from 'react';
-import { Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { Card, Section, Status } from '@/components/InvestorUI';
-import { first, type Json } from '@/lib/data';
+import { first, messageOf, type Json } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
+import { shareInvestorFile } from '@/lib/file-download';
 
-const stages = [
-  { label: 'Investment Confirmation', aliases: ['investmentconfirmation', 'investmentconfirmed', 'investmentapproved'] },
-  { label: 'Trade Execution', aliases: ['tradeexecution', 'tradeexecuted', 'cargoprocurement', 'procurement', 'cargoprepared', 'prepared'] },
-  { label: 'Shipment', aliases: ['shipment', 'shipped', 'shipping', 'origin', 'port', 'vessel', 'containerstuffed', 'stuffed', 'customsclearance', 'customscleared', 'portdeparture', 'departedport', 'intransit', 'transit'] },
-  { label: 'Delivery', aliases: ['delivery', 'delivered', 'destination', 'destinationarrival', 'arrivedatdestination', 'buyer', 'buyerdelivery', 'deliveredtobuyer'] },
-  { label: 'Settlement', aliases: ['settlement', 'settled'] },
-  { label: 'Distribution', aliases: ['distribution', 'distributed'] },
-] as const;
-
-const stageLabels = new Map<string, string>();
-for (const stage of stages) {
-  for (const alias of [stage.label, ...stage.aliases]) stageLabels.set(normalize(alias), stage.label);
+function updateTime(event: Json): number | null {
+  const value = first(event, ['occurred_at']);
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
-function normalize(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+function formatDateTime(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value || 'Date and time not provided by OG Exports';
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(parsed);
 }
 
-function stageName(event: Json) {
-  return first(event, ['stage', 'milestone', 'step', 'event_type', 'event', 'title', 'name', 'label']);
-}
-
-function eventStatus(event: Json) {
-  return first(event, ['status', 'state', 'milestone_status', 'completion_status'], 'Status not provided by OG Exports');
-}
-
-export function TradeTimeline({ events, title = 'Timeline' }: { events: Json[]; title?: string }) {
+export function TradeTimeline({
+  events,
+  apiOrigin,
+  title = 'Trade updates',
+}: {
+  events: Json[];
+  apiOrigin?: string | null;
+  title?: string;
+}) {
   const colors = useColors();
-  const stageEvents = stages.map(stage => ({
-    ...stage,
-    events: events.filter(item => stageLabels.get(normalize(stageName(item))) === stage.label),
-  }));
-  const unmatchedEvents = events.filter(event => !stageLabels.has(normalize(stageName(event))));
+  const [attachmentBusy, setAttachmentBusy] = useState('');
+  const [attachmentError, setAttachmentError] = useState<{ key: string; message: string } | null>(null);
+  const orderedEvents = events
+    .map((event, index) => ({ event, index, time: updateTime(event) }))
+    .sort((left, right) => {
+      if (left.time == null && right.time == null) return left.index - right.index;
+      if (left.time == null) return 1;
+      if (right.time == null) return -1;
+      return left.time - right.time || left.index - right.index;
+    });
+
+  async function openAttachment(event: Json, key: string) {
+    setAttachmentError(null);
+    setAttachmentBusy(key);
+    try {
+      const url = first(event, ['attachment_url']);
+      if (!url) throw new Error('This update has no supporting file.');
+      if (!apiOrigin) throw new Error('Set the OG Exports investor server address in Settings before opening this file.');
+
+      const resolved = new URL(url, apiOrigin);
+      if (resolved.origin !== new URL(apiOrigin).origin) {
+        throw new Error('For your security, update files must be hosted by the OG Exports investor server.');
+      }
+
+      const name = first(event, ['attachment_name'], 'trade-update-file');
+      const mimeType = first(event, ['attachment_mime'], 'application/octet-stream');
+      const extension = name.includes('.') ? name.split('.').pop() ?? 'bin' : 'bin';
+      await shareInvestorFile(resolved.href, name, apiOrigin, mimeType, extension);
+    } catch (error) {
+      setAttachmentError({ key, message: messageOf(error) });
+    } finally {
+      setAttachmentBusy('');
+    }
+  }
 
   return <>
     <Section title={title} />
     <Card>
-      {stageEvents.map((stage, index) => {
-        return <View key={stage.label} style={{ flexDirection: 'row', gap: 12, minHeight: index < stageEvents.length - 1 ? 67 : 52 }}>
-          <View style={{ width: 20, alignItems: 'center' }}>
-            <View style={{ width: 17, height: 17, borderRadius: 9, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border }} />
-            {index < stageEvents.length - 1 ? <View style={{ width: 1, flex: 1, marginTop: 3, backgroundColor: colors.border }} /> : null}
+      {orderedEvents.length === 0 ? (
+        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19 }}>
+          OG Exports has not published any trade updates for this project yet.
+        </Text>
+      ) : orderedEvents.map(({ event, index }) => {
+        const key = first(event, ['id', 'event_id'], String(index));
+        const status = first(event, ['status'], 'Status not provided by OG Exports');
+        const description = first(event, ['description']);
+        const rawDateTime = first(event, ['occurred_at']);
+        const attachmentUrl = first(event, ['attachment_url']);
+        const attachmentName = first(event, ['attachment_name'], 'Supporting file');
+        const attachmentMime = first(event, ['attachment_mime']);
+        const isImage = attachmentMime.toLowerCase().startsWith('image/');
+
+        return <View
+          key={key}
+          testID={`trade-update-${key}`}
+          style={{
+            paddingVertical: 13,
+            borderBottomWidth: index < orderedEvents.length - 1 ? 1 : 0,
+            borderBottomColor: colors.border,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+            <View style={{ flex: 1, flexDirection: 'row', gap: 7, alignItems: 'center' }}>
+              <Feather name="clock" size={13} color={colors.mutedForeground} />
+              <Text style={{ color: colors.mutedForeground, fontSize: 11, flexShrink: 1 }}>
+                {formatDateTime(rawDateTime)}
+              </Text>
+            </View>
+            <Status value={status} />
           </View>
-          <View style={{ flex: 1, paddingBottom: 14 }}>
-            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700' }}>{stage.label}</Text>
-            {stage.events.length ? stage.events.map((event, eventIndex) => {
-              const label = stageName(event);
-              const description = first(event, ['description', 'details', 'message', 'note']);
-              const date = first(event, ['date', 'updated_at', 'created_at', 'timestamp']);
-              return <View key={`${stage.label}-${first(event, ['id', 'event_id'], String(eventIndex))}`} style={{ marginTop: 8, padding: 10, borderRadius: 12, backgroundColor: colors.secondary }}>
-                {label && normalize(label) !== normalize(stage.label) ? <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '600', marginBottom: 5 }}>{label}</Text> : null}
-                <Status value={eventStatus(event)} />
-                {description ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 5 }}>{description}</Text> : null}
-                {date ? <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 4 }}>{date}</Text> : null}
-              </View>;
-            }) : <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 5 }}>Status not provided by OG Exports</Text>}
-          </View>
+          <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 19, marginTop: 8 }}>
+            {description || 'Description not provided by OG Exports'}
+          </Text>
+          {attachmentUrl ? <Pressable
+            testID={`trade-update-attachment-${key}`}
+            accessibilityRole="button"
+            accessibilityLabel={`${isImage ? 'Open image' : 'Open document'}: ${attachmentName}`}
+            onPress={() => void openAttachment(event, key)}
+            disabled={attachmentBusy === key}
+            style={{
+              minHeight: 42,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              marginTop: 10,
+              paddingHorizontal: 11,
+              borderRadius: 10,
+              backgroundColor: colors.secondary,
+            }}
+          >
+            <Feather name={isImage ? 'image' : 'file-text'} size={15} color={colors.primary} />
+            <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 11, fontWeight: '600', flex: 1 }}>
+              {attachmentBusy === key ? 'Preparing file…' : attachmentName}
+            </Text>
+            <Feather name="arrow-down-circle" size={16} color={colors.primary} />
+          </Pressable> : null}
+          {attachmentError?.key === key && attachmentBusy === '' ? (
+            <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 11, marginTop: 6 }}>
+              {attachmentError.message}
+            </Text>
+          ) : null}
         </View>;
       })}
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 3 }}>
-        Stage statuses, descriptions, and dates are reported by OG Exports. No progress is inferred by the app.
+      <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 16, marginTop: 8 }}>
+        Update times, statuses, descriptions, and supporting files are provided by OG Exports.
       </Text>
-      {unmatchedEvents.length ? <>
-        <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 13 }} />
-        <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginBottom: 4 }}>Other updates</Text>
-        {unmatchedEvents.map((event, index) => <View key={first(event, ['id', 'event_id'], String(index))} style={{ paddingVertical: 9, borderBottomWidth: index < unmatchedEvents.length - 1 ? 1 : 0, borderBottomColor: colors.border }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <Text style={{ color: colors.foreground, fontWeight: '600', flex: 1 }}>{stageName(event) || 'Trade update'}</Text>
-            <Status value={eventStatus(event)} />
-          </View>
-          {first(event, ['description', 'details', 'message', 'note']) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 4 }}>{first(event, ['description', 'details', 'message', 'note'])}</Text> : null}
-          {first(event, ['date', 'updated_at', 'created_at', 'timestamp']) ? <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 4 }}>{first(event, ['date', 'updated_at', 'created_at', 'timestamp'])}</Text> : null}
-        </View>)}
-      </> : null}
     </Card>
   </>;
 }

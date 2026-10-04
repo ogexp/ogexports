@@ -62,7 +62,7 @@ export default function OpportunityDetail() {
   const currency = first(project, ['currency']);
   const walletCurrency = first(wallet, ['currency']);
   const documents = list(project.documents);
-  const timeline = list(project.trade_timeline ?? project.timeline ?? project.updates);
+  const timeline = list(project.trade_updates);
   const tradeId = first(project, ['trade_id', 'trade_code', 'code', 'reference'], 'Not provided');
   const tradeCurrency = first(project, ['currency']);
   const origin = first(project, ['origin', 'origin_country', 'from_country'], '');
@@ -348,7 +348,7 @@ export default function OpportunityDetail() {
         <Action title="Invest Now" icon="arrow-right" onPress={() => { setError(''); setStage('amount'); }} />
       </Card> : null}
 
-      <TradeTimeline events={timeline} />
+      <TradeTimeline events={timeline} apiOrigin={apiOrigin} title="Trade updates" />
 
       <Section title="Global trade route" />
       <Card>

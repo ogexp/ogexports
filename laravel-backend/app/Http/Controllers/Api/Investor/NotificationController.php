@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Investor;
 use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
+use App\Support\InvestorNotificationPrefMap;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,6 +19,10 @@ class NotificationController extends Controller
             ->where('user_id', $request->user()->id)
             ->latest('created_at')
             ->paginate($this->perPage($request));
+
+        $items->getCollection()->transform(
+            fn (AppNotification $notification) => $this->notificationPayload($notification)
+        );
 
         return response()->json($items);
     }
@@ -40,7 +45,7 @@ class NotificationController extends Controller
 
         $notification->update(['read_at' => now()]);
 
-        return response()->json(['data' => $notification->fresh()]);
+        return response()->json(['data' => $this->notificationPayload($notification->fresh())]);
     }
 
     public function markAllRead(Request $request): JsonResponse
@@ -51,5 +56,15 @@ class NotificationController extends Controller
             ->update(['read_at' => now()]);
 
         return response()->json(['message' => 'All notifications marked as read.']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function notificationPayload(AppNotification $notification): array
+    {
+        return array_merge($notification->toArray(), [
+            'category' => InvestorNotificationPrefMap::categoryForType($notification->type),
+        ]);
     }
 }

@@ -9,6 +9,7 @@ use App\Http\Resources\InvestmentResource;
 use App\Models\Investment;
 use App\Models\InvestmentProject;
 use App\Models\InvestmentProjectDocument;
+use App\Models\InvestmentProjectTradeUpdate;
 use App\Support\ContainerProjectStatus;
 use App\Support\InvestmentCapacity;
 use App\Support\InvestorMarket;
@@ -77,7 +78,11 @@ class ProjectController extends Controller
     {
         return new InvestmentProjectResource(
             InvestmentProject::query()
-                ->with(['documents', 'containerTracking'])
+                ->with([
+                    'documents',
+                    'containerTracking',
+                    'tradeUpdates' => fn ($query) => $query->orderBy('occurred_at')->orderBy('id'),
+                ])
                 ->whereIn('status', ContainerProjectStatus::allVisibleStatuses())
                 ->findOrFail($id)
         );
@@ -99,6 +104,24 @@ class ProjectController extends Controller
         $filename = $doc->original_name ?: ($doc->title.($ext ? '.'.$ext : ''));
 
         return MediaStorage::download($doc->path, $filename);
+    }
+
+    public function downloadTradeUpdateAttachment(int $id, int $updateId): StreamedResponse
+    {
+        $project = InvestmentProject::query()
+            ->whereIn('status', ContainerProjectStatus::allVisibleStatuses())
+            ->findOrFail($id);
+
+        $update = InvestmentProjectTradeUpdate::query()
+            ->where('investment_project_id', $project->id)
+            ->findOrFail($updateId);
+
+        abort_unless($update->attachment_path && MediaStorage::exists($update->attachment_path), 404, 'File not found.');
+
+        return MediaStorage::download(
+            $update->attachment_path,
+            $update->attachment_name ?: basename($update->attachment_path),
+        );
     }
 
     public function invest(Request $request, int $id): JsonResponse
@@ -220,7 +243,11 @@ class ProjectController extends Controller
     {
         $investment = Investment::query()
             ->where('investor_id', $request->user()->id)
-            ->with(['project.documents', 'project.containerTracking'])
+            ->with([
+                'project.documents',
+                'project.containerTracking',
+                'project.tradeUpdates' => fn ($query) => $query->orderBy('occurred_at')->orderBy('id'),
+            ])
             ->findOrFail($id);
 
         return response()->json([

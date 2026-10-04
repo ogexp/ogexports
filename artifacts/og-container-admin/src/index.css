@@ -91,6 +91,16 @@ button:disabled { cursor: not-allowed; opacity: .56; }
 .timestamp strong { color:#425b51; font-weight:500; }
 .action-row { display:flex; align-items:center; justify-content:space-between; gap:16px; padding-top:17px; }
 .save-status { color:#777f7c; font-size:11px; }
+.update-history { margin-top:27px; padding-top:21px; border-top:1px solid #e6e0d6; }
+.update-history-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+.update-history-head h3 { margin:0; color:#293d49; font:700 13px var(--app-font-serif); }
+.update-list article { padding:13px 0; border-bottom:1px solid #e6e0d6; }
+.update-list article:last-child { border-bottom:0; }
+.update-list-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
+.update-list-heading strong { color:#293d49; font-size:12px; }
+.update-list-heading time { color:#7b807b; font:10px var(--app-font-mono); text-align:right; }
+.update-list p { margin:7px 0 0; color:#68736f; font-size:12px; line-height:1.55; }
+.update-attachment { margin-top:8px; color:#496a59; font:10px var(--app-font-mono); overflow-wrap:anywhere; }
 .success-strip,.alert-strip { margin-bottom:18px; padding:12px 15px; border-radius:7px; font-size:12px; line-height:1.5; }
 .success-strip { background:#e8eee7; border:1px solid #c7d7c7; color:#45624d; }
 .alert-strip { background:#f5e9e5; border:1px solid #e7c7bb; color:#8a3e2c; }

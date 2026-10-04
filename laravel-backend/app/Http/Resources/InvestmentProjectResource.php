@@ -64,6 +64,10 @@ class InvestmentProjectResource extends JsonResource
                 $this->relationLoaded('containerTracking') && $this->containerTracking !== null,
                 fn () => (new ContainerTrackingResource($this->containerTracking))->resolve($request)
             ),
+            'trade_updates' => $this->when(
+                $this->relationLoaded('tradeUpdates'),
+                fn () => InvestmentProjectTradeUpdateResource::collection($this->tradeUpdates)->resolve($request)
+            ),
             'documents' => $this->when(
                 $this->relationLoaded('documents'),
                 fn () => $this->documents->map(function ($doc) {

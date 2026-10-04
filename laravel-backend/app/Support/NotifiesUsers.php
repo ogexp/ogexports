@@ -94,7 +94,15 @@ class NotifiesUsers
         }
 
         $prefKey = InvestorNotificationPrefMap::prefKeyForType($type);
-        if ($prefKey !== null && array_key_exists($prefKey, $prefs) && ! $prefs[$prefKey]) {
+        if (array_key_exists($prefKey, $prefs) && $prefs[$prefKey] === false) {
+            return false;
+        }
+
+        $legacyPrefKey = InvestorNotificationPrefMap::legacyPrefKeyForType($type);
+        if (! array_key_exists($prefKey, $prefs)
+            && $legacyPrefKey !== null
+            && array_key_exists($legacyPrefKey, $prefs)
+            && $prefs[$legacyPrefKey] === false) {
             return false;
         }
 

@@ -15,6 +15,12 @@ Use server-provided trade identifiers, shipment details, documents, and statuses
 
 Timeline stage names may be shown as the standard visual sequence, but each stage's status, description, and date must be supplied by the backend/admin system. Show unavailable when a stage update is missing; never infer progress from stage order, dates, or a trade-level status.
 
+Project/trade update feeds are separate append-only event records, not reconstructions of the standard journey stages. Each event's status, description, event time, and optional attachment must be explicitly supplied by OG Exports; leave the feed empty until an update is published. Require admins to enter the event time instead of defaulting it from the device clock.
+
+**Why:** the user requires project updates to be authoritative and forbids invented update history, dates, or shipment claims.
+
+**How to apply:** use persisted backend/admin events for the feed, preserve each event as published, and show an honest empty state when none exist.
+
 When no carrier/shipping API is integrated, label only a backend-supplied timestamp as “Last Updated” and clearly state that live tracking is not connected. Never simulate a live position or use the device clock as a tracking update.
 
 **Why:** the user explicitly requires “Never fake live tracking.”

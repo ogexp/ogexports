@@ -5,6 +5,50 @@
  * OG Exports investor and administrator API, generated from the Laravel API contract
  * OpenAPI spec version: 1.0.0
  */
+export interface ProjectTradeUpdate {
+  id: number;
+  status: string;
+  description: string;
+  occurred_at: string;
+  /** @nullable */
+  attachment_url: string | null;
+  /** @nullable */
+  attachment_name: string | null;
+  /** @nullable */
+  attachment_mime: string | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  attachment_size_bytes: number | null;
+  /** @nullable */
+  created_at?: string | null;
+}
+
+export interface ProjectTradeUpdateInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  status: string;
+  /**
+     * @minLength 1
+     * @maxLength 5000
+     */
+  description: string;
+  occurred_at: string;
+  /** Optional PDF, JPEG, PNG, or WebP file up to 10 MB. */
+  attachment?: Blob;
+}
+
+export interface ProjectTradeUpdateList {
+  data: ProjectTradeUpdate[];
+}
+
+export interface ProjectTradeUpdateResponse {
+  data: ProjectTradeUpdate;
+}
+
 export interface AdminLoginCredentials {
   email: string;
   /** @minLength 1 */
@@ -243,10 +287,24 @@ export interface ContainerTrackingUpdate {
 }
 
 /**
- * Opportunity or investment detail fields with a typed container record when available.
+ * Associated project record included with a portfolio position.
+ */
+export type InvestorProjectDetailProject = {
+  container?: ContainerTracking;
+  /** Persisted events explicitly published by OG Exports for this position's project. */
+  trade_updates?: ProjectTradeUpdate[];
+  [key: string]: unknown;
+ };
+
+/**
+ * Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.
  */
 export interface InvestorProjectDetail {
   container?: ContainerTracking;
+  /** Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded. */
+  trade_updates?: ProjectTradeUpdate[];
+  /** Associated project record included with a portfolio position. */
+  project?: InvestorProjectDetailProject;
   [key: string]: unknown;
  }
 
@@ -289,6 +347,58 @@ export interface InvestorDashboardData {
 
 export interface InvestorDashboardResponse {
   data: InvestorDashboardData;
+  [key: string]: unknown;
+ }
+
+export type InvestorNotificationCategory = typeof InvestorNotificationCategory[keyof typeof InvestorNotificationCategory];
+
+
+export const InvestorNotificationCategory = {
+  Trade: 'Trade',
+  Investment: 'Investment',
+  Wallet: 'Wallet',
+  KYC: 'KYC',
+  Security: 'Security',
+  Account: 'Account',
+} as const;
+
+/**
+ * @nullable
+ */
+export type InvestorNotificationData = { [key: string]: unknown } | null;
+
+export interface InvestorNotification {
+  id: number;
+  type: string;
+  category: InvestorNotificationCategory;
+  title: string;
+  /** @nullable */
+  body?: string | null;
+  /** @nullable */
+  data?: InvestorNotificationData;
+  /** @nullable */
+  read_at?: string | null;
+  created_at: string;
+  [key: string]: unknown;
+ }
+
+export interface InvestorNotificationResponse {
+  data: InvestorNotification;
+  [key: string]: unknown;
+ }
+
+export type InvestorNotificationsResponseLinksItem = { [key: string]: unknown };
+
+export type InvestorNotificationsResponseMeta = { [key: string]: unknown };
+
+export interface InvestorNotificationsResponse {
+  data: InvestorNotification[];
+  current_page?: number;
+  last_page?: number;
+  per_page?: number;
+  total?: number;
+  links?: InvestorNotificationsResponseLinksItem[];
+  meta?: InvestorNotificationsResponseMeta;
   [key: string]: unknown;
  }
 

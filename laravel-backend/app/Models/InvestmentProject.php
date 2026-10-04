@@ -89,4 +89,9 @@ class InvestmentProject extends Model
     {
         return $this->hasOne(InvestmentProjectContainerTracking::class, 'investment_project_id');
     }
+
+    public function tradeUpdates(): HasMany
+    {
+        return $this->hasMany(InvestmentProjectTradeUpdate::class, 'investment_project_id');
+    }
 }

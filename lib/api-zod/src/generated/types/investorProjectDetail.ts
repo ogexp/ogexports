@@ -6,11 +6,17 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ContainerTracking } from './containerTracking';
+import type { InvestorProjectDetailProject } from './investorProjectDetailProject';
+import type { ProjectTradeUpdate } from './projectTradeUpdate';
 
 /**
- * Opportunity or investment detail fields with a typed container record when available.
+ * Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.
  */
 export interface InvestorProjectDetail {
   container?: ContainerTracking;
+  /** Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded. */
+  trade_updates?: ProjectTradeUpdate[];
+  /** Associated project record included with a portfolio position. */
+  project?: InvestorProjectDetailProject;
   [key: string]: unknown;
  }

@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\Admin\InvestmentController as AdminInvestmentContro
 use App\Http\Controllers\Api\Admin\ProjectInvestmentController as AdminProjectInvestmentController;
 use App\Http\Controllers\Api\Admin\InvestmentProjectDocumentController as AdminInvestmentProjectDocumentController;
 use App\Http\Controllers\Api\Admin\InvestmentProjectContainerTrackingController;
+use App\Http\Controllers\Api\Admin\InvestmentProjectTradeUpdateController;
 use App\Http\Controllers\Api\Admin\MessageController as AdminMessageController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
@@ -286,6 +287,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/facility-content/{type}', [InvestorFacilityContentController::class, 'show']);
         Route::get('/projects/{id}', [InvestorProjectController::class, 'show']);
         Route::get('/projects/{id}/documents/{documentId}/download', [InvestorProjectController::class, 'downloadDocument']);
+        Route::get('/projects/{id}/updates/{updateId}/attachment', [InvestorProjectController::class, 'downloadTradeUpdateAttachment']);
         Route::post('/projects/{id}/invest', [InvestorProjectController::class, 'invest']);
         Route::get('/investments', [InvestorProjectController::class, 'myInvestments']);
         Route::get('/investments/{id}', [InvestorProjectController::class, 'showInvestment']);
@@ -478,6 +480,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('investment_module')->group(function () {
             Route::get('/projects/{id}/container-tracking', [InvestmentProjectContainerTrackingController::class, 'show']);
             Route::patch('/projects/{id}/container-tracking', [InvestmentProjectContainerTrackingController::class, 'update']);
+        Route::get('/projects/{id}/updates', [InvestmentProjectTradeUpdateController::class, 'index']);
+        Route::post('/projects/{id}/updates', [InvestmentProjectTradeUpdateController::class, 'store']);
 
             Route::get('/investment-projects', [AdminInvestmentController::class, 'index']);
             Route::get('/investment-projects/active', [AdminInvestmentController::class, 'activeProjects']);

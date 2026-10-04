@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Linking, Platform, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,6 +23,11 @@ import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap, type Json } from '@/lib/data';
 import { validOrigin } from '@/lib/api-config';
 import { useColors } from '@/hooks/useColors';
+import {
+  NOTIFICATION_CATEGORIES,
+  isNotificationPreferenceEnabled,
+  type NotificationCategoryKey,
+} from '@/lib/notification-categories';
 
 const pushEnabledKey = (userId: string) => `og-investor-push-enabled:${userId}`;
 const pushTokenKey = (userId: string) => `og-investor-push-token:${userId}`;
@@ -73,6 +78,9 @@ export default function Settings() {
   const [newTransactionPassword, setNewTransactionPassword] = useState('');
   const [confirmTransactionPassword, setConfirmTransactionPassword] = useState('');
   const [error, setError] = useState('');
+  const [notificationPrefs, setNotificationPrefs] = useState<Record<string, unknown>>({});
+  const [notificationPreferenceError, setNotificationPreferenceError] = useState('');
+  const [savingNotificationPreference, setSavingNotificationPreference] = useState<NotificationCategoryKey | null>(null);
   const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushError, setPushError] = useState('');
@@ -90,6 +98,7 @@ export default function Settings() {
       setSwift(first(savedAccount, ['swift']));
       setBranch(first(savedAccount, ['branch']));
       setBankCurrency(first(savedAccount, ['currency']));
+      setNotificationPrefs(record(profile.notification_prefs));
     }
   }, [apiOrigin, profileQuery.data]);
 
@@ -218,6 +227,23 @@ export default function Settings() {
       setPushError(messageOf(pushRevocationError));
     } finally {
       setPushBusy(false);
+    }
+  }
+
+  async function saveNotificationPreference(category: NotificationCategoryKey, enabled: boolean) {
+    setNotificationPreferenceError('');
+    setSavingNotificationPreference(category);
+    const nextPreferences = { ...notificationPrefs, [category]: enabled };
+    try {
+      await updateProfile.mutateAsync({
+        data: { notification_prefs: nextPreferences },
+      });
+      setNotificationPrefs(nextPreferences);
+      void profileQuery.refetch();
+    } catch (preferenceError) {
+      setNotificationPreferenceError(messageOf(preferenceError));
+    } finally {
+      setSavingNotificationPreference(null);
     }
   }
 
@@ -381,6 +407,55 @@ export default function Settings() {
         <Text style={{ color: colors.foreground, fontWeight: '600' }}>{walletQuery.isLoading ? 'Loading…' : walletCurrency || 'Not available'}</Text>
       </View>
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 5 }}>This app is currently in English. Amounts use the wallet currency returned by OG Exports; the investor API does not provide a selectable mobile display-currency setting.</Text>
+    </Card>
+
+    <Card>
+      <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 6 }}>In-app alert preferences</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 10 }}>
+        Choose which category alerts you receive in-app. This affects new alerts only; email and device push preferences are separate.
+      </Text>
+      {profileQuery.isLoading
+        ? <Text style={{ color: colors.mutedForeground, fontSize: 12, paddingVertical: 8 }}>Loading preferences…</Text>
+        : null}
+      {profileQuery.isError
+        ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, paddingVertical: 8 }}>Notification preferences could not be loaded. Retry Settings before changing them.</Text>
+        : null}
+      {notificationPreferenceError
+        ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginBottom: 8 }}>{notificationPreferenceError}</Text>
+        : null}
+      {NOTIFICATION_CATEGORIES.map((category, index) => {
+        const enabled = isNotificationPreferenceEnabled(notificationPrefs, category.key);
+        const isSaving = savingNotificationPreference === category.key;
+        return <Pressable
+          key={category.key}
+          testID={`notification-preference-${category.key}`}
+          accessibilityRole="switch"
+          accessibilityLabel={`${category.label} notifications`}
+          accessibilityState={{ checked: enabled, disabled: profileQuery.isLoading || profileQuery.isError || updateProfile.isPending }}
+          disabled={profileQuery.isLoading || profileQuery.isError || updateProfile.isPending}
+          onPress={() => void saveNotificationPreference(category.key, !enabled)}
+          style={{
+            minHeight: 58,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            paddingVertical: 10,
+            borderBottomWidth: index === NOTIFICATION_CATEGORIES.length - 1 ? 0 : 1,
+            borderBottomColor: colors.border,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '600' }}>{category.label}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{category.description}</Text>
+          </View>
+          <View style={{ minWidth: 48, alignItems: 'flex-end' }}>
+            <Text style={{ color: enabled ? colors.primary : colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>
+              {isSaving ? 'Saving…' : enabled ? 'On' : 'Off'}
+            </Text>
+          </View>
+        </Pressable>;
+      })}
     </Card>
 
     <Card>

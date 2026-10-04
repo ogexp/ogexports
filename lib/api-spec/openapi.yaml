@@ -553,7 +553,7 @@ paths:
       summary: List investor notifications
       security: [{ BearerAuth: [] }]
       responses:
-        "200": { description: Notifications, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "200": { description: Notifications with server-classified categories, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorNotificationsResponse" } } } }
   /investor/push-tokens/register:
     post:
       operationId: registerInvestorPushToken
@@ -608,7 +608,7 @@ paths:
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Update result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "200": { description: Notification marked as read, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorNotificationResponse" } } } }
   /conversations/with-admin:
     get:
       operationId: getInvestorAdminConversation
@@ -762,8 +762,97 @@ paths:
         "403": { description: OG Exports administrator access required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
         "404": { description: Project not found, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
         "422": { description: Invalid container record or journey stage, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /admin/projects/{id}/updates:
+    get:
+      operationId: getAdminProjectTradeUpdates
+      tags: [admin]
+      summary: List reported trade updates for an investment project
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Chronological OG Exports-reported updates, content: { application/json: { schema: { $ref: "#/components/schemas/ProjectTradeUpdateList" } } } }
+        "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "403": { description: OG Exports administrator access required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "404": { description: Project not found, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+    post:
+      operationId: createAdminProjectTradeUpdate
+      tags: [admin]
+      summary: Publish an OG Exports-reported trade update
+      description: Appends a project update with its administrator-supplied event time, status, description, and optional PDF or image attachment.
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/ProjectTradeUpdateInput" }
+      responses:
+        "201": { description: Published update, content: { application/json: { schema: { $ref: "#/components/schemas/ProjectTradeUpdateResponse" } } } }
+        "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "403": { description: OG Exports administrator access required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "404": { description: Project not found, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "422": { description: Invalid update or attachment, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/projects/{id}/updates/{updateId}/attachment:
+    get:
+      operationId: downloadInvestorProjectTradeUpdateAttachment
+      tags: [investor]
+      summary: Download a supporting file for a trade update
+      security: [{ InvestorBearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: updateId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Supporting PDF or image
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "404": { description: "Project, update, or attachment not found", content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
 components:
   schemas:
+    ProjectTradeUpdate:
+      type: object
+      additionalProperties: false
+      required: [id, status, description, occurred_at, attachment_url, attachment_name, attachment_mime, attachment_size_bytes]
+      properties:
+        id: { type: integer }
+        status: { type: string }
+        description: { type: string }
+        occurred_at: { type: string, format: date-time }
+        attachment_url: { type: ["string", "null"] }
+        attachment_name: { type: ["string", "null"] }
+        attachment_mime: { type: ["string", "null"] }
+        attachment_size_bytes: { type: ["integer", "null"], minimum: 0 }
+        created_at: { type: ["string", "null"], format: date-time }
+    ProjectTradeUpdateInput:
+      type: object
+      additionalProperties: false
+      required: [status, description, occurred_at]
+      properties:
+        status: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, minLength: 1, maxLength: 5000 }
+        occurred_at: { type: string, format: date-time }
+        attachment:
+          type: string
+          format: binary
+          description: Optional PDF, JPEG, PNG, or WebP file up to 10 MB.
+    ProjectTradeUpdateList:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/ProjectTradeUpdate" }
+    ProjectTradeUpdateResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/ProjectTradeUpdate" }
     AdminLoginCredentials:
       type: object
       additionalProperties: false
@@ -950,11 +1039,28 @@ components:
           $ref: "#/components/schemas/ContainerJourneyUpdate"
     InvestorProjectDetail:
       type: object
-      description: Opportunity or investment detail fields with a typed container record when available.
+      description: Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.
       additionalProperties: true
       properties:
         container:
           $ref: "#/components/schemas/ContainerTracking"
+        trade_updates:
+          type: array
+          description: Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded.
+          items:
+            $ref: "#/components/schemas/ProjectTradeUpdate"
+        project:
+          type: object
+          description: Associated project record included with a portfolio position.
+          additionalProperties: true
+          properties:
+            container:
+              $ref: "#/components/schemas/ContainerTracking"
+            trade_updates:
+              type: array
+              description: Persisted events explicitly published by OG Exports for this position's project.
+              items:
+                $ref: "#/components/schemas/ProjectTradeUpdate"
     InvestorProjectDetailEnvelope:
       type: object
       description: Laravel resource response wrapper.
@@ -1007,6 +1113,42 @@ components:
       properties:
         data:
           $ref: "#/components/schemas/InvestorDashboardData"
+    InvestorNotification:
+      type: object
+      additionalProperties: true
+      required: [id, type, category, title, created_at]
+      properties:
+        id: { type: integer }
+        type: { type: string }
+        category:
+          type: string
+          enum: [Trade, Investment, Wallet, KYC, Security, Account]
+        title: { type: string }
+        body: { type: ["string", "null"] }
+        data: { type: ["object", "null"], additionalProperties: true }
+        read_at: { type: ["string", "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+    InvestorNotificationResponse:
+      type: object
+      additionalProperties: true
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/InvestorNotification"
+    InvestorNotificationsResponse:
+      type: object
+      additionalProperties: true
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/InvestorNotification" }
+        current_page: { type: integer }
+        last_page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+        links: { type: array, items: { type: object, additionalProperties: true } }
+        meta: { type: object, additionalProperties: true }
     InvestorPushTokenRegistration:
       type: object
       required: [expo_push_token, platform]
