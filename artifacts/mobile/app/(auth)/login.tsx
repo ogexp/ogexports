@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
-import { Action, Card, Field, Screen } from '@/components/InvestorUI';
+import { Action, Card, Field } from '@/components/InvestorUI';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,11 +11,9 @@ export default function Login() {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
   function submit() {
-    setError('');
     setNotice('Login is not connected yet. Your credentials were not sent.');
   }
 
@@ -30,7 +28,6 @@ export default function Login() {
       <Card>
         <Field label="Email address" value={email} onChangeText={value => { setEmail(value); setNotice(''); }} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" />
         <Field label="Password" value={password} onChangeText={value => { setPassword(value); setNotice(''); }} placeholder="Enter your password" secureTextEntry autoCapitalize="none" />
-        {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 14, lineHeight: 20 }}>{error}</Text> : null}
         {notice ? <Text style={{ color: colors.mutedForeground, marginBottom: 14, lineHeight: 20 }}>{notice}</Text> : null}
         <Action title="Sign in" icon="lock" disabled={!email.trim() || !password} onPress={submit} />
         <Pressable onPress={() => router.push('/(auth)/forgot-password')} style={{ alignSelf: 'center', padding: 14 }}><Text style={{ color: colors.primary, fontWeight: '600' }}>Forgot password?</Text></Pressable>

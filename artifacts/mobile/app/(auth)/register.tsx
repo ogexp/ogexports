@@ -142,7 +142,7 @@ export default function Register() {
         <Text style={[s.eyebrow, { color: colors.tint }]}>INVESTOR ACCESS</Text>
         <Text style={[s.title, { color: colors.primary }]}>Create your account</Text>
         <Text style={[s.subtitle, { color: colors.mutedForeground }]}>
-          Start with your email. You’ll verify it in the next step.
+          Enter your details to prepare your account. Nothing will be sent until signup is connected.
         </Text>
       </View>
 
