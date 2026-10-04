@@ -18,12 +18,14 @@ export function PortfolioHistoryCard({
   loading = false,
   defaultRange = '1M',
   compact = false,
+  hideValues = false,
 }: {
   points: unknown;
   currency: string;
   loading?: boolean;
   defaultRange?: Range;
   compact?: boolean;
+  hideValues?: boolean;
 }) {
   const colors = useColors();
   const [range, setRange] = useState<Range>(defaultRange);
@@ -59,7 +61,7 @@ export function PortfolioHistoryCard({
   return <Card>
     <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
       <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700' }}>Portfolio value</Text><Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>History reported by OG Exports</Text></View>
-      {chartPoints.length ? <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>{currency ? money(chartPoints[chartPoints.length - 1].value, currency) : '—'}</Text> : null}
+      {chartPoints.length ? <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>{hideValues ? '••••••' : currency ? money(chartPoints[chartPoints.length - 1].value, currency) : '—'}</Text> : null}
     </View>
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 15, marginBottom: 7 }}>
       {ranges.map(item => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: range === item }} onPress={() => setRange(item)} style={{ paddingHorizontal: 11, paddingVertical: 7, borderRadius: 18, backgroundColor: range === item ? colors.primary : colors.secondary }}>
