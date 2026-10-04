@@ -20,7 +20,7 @@ export default function Account() {
   return <Screen title="Your profile" subtitle="Account details, verification and preferences">
     {profileQuery.isError ? <ErrorState message="Account details could not be refreshed." onRetry={() => void profileQuery.refetch()} /> : null}
     <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-      <View style={{ width: 50, height: 50, borderRadius: 18, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: colors.accentForeground, fontWeight: '700', fontSize: 17 }}>{initials}</Text></View>
+      <View style={{ width: 50, height: 50, borderRadius: 18, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: colors.primary, fontWeight: '700', fontSize: 17 }}>{initials}</Text></View>
       <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700' }}>{first(account, ['name'], 'Investor')}</Text><Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 12 }}>{first(account, ['email'], '')}</Text></View>
       <Pressable onPress={() => open('/account/settings')}><Feather name="edit-3" size={18} color={colors.primary} /></Pressable>
     </Card>

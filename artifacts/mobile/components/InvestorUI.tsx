@@ -16,7 +16,7 @@ export function Screen({ title, subtitle, children, action }: { title: string; s
       contentContainerStyle={{ paddingTop: Platform.OS === 'web' ? 67 : insets.top + 10, paddingBottom: Platform.OS === 'web' ? 110 : insets.bottom + 104, paddingHorizontal: 20 }}>
       <View style={s.header}>
         <View style={{ flex: 1 }}>
-          <Text style={[s.title, { color: colors.foreground }]}>{title}</Text>
+           <Text style={[s.title, { color: colors.primary }]}>{title}</Text>
           {subtitle ? <Text style={[s.subtitle, { color: colors.mutedForeground }]}>{subtitle}</Text> : null}
         </View>
         {action}
@@ -28,16 +28,22 @@ export function Screen({ title, subtitle, children, action }: { title: string; s
 
 export function Card({ children, style }: { children: React.ReactNode; style?: object }) {
   const colors = useColors();
-  return <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.border }, style]}>{children}</View>;
+  const cardShadow = Platform.OS === 'web'
+    ? { boxShadow: `0 6px 20px ${colors.shadow}` }
+    : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 };
+  return <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }, cardShadow, style]}>{children}</View>;
 }
 
 export function Action({ title, onPress, icon, secondary = false, disabled = false, loading = false }: { title: string; onPress: () => void; icon?: IconName; secondary?: boolean; disabled?: boolean; loading?: boolean }) {
   const colors = useColors();
+  const buttonSurface = secondary
+    ? { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.primary }
+    : { backgroundColor: colors.primary, borderWidth: 1, borderColor: colors.primary };
   return (
     <Pressable accessibilityRole="button" onPress={onPress} disabled={disabled || loading}
-      style={({ pressed }) => [s.button, { backgroundColor: secondary ? colors.secondary : colors.primary, opacity: disabled ? 0.48 : pressed ? 0.84 : 1 }]}>
-      {loading ? <ActivityIndicator color={secondary ? colors.foreground : colors.primaryForeground} /> : icon ? <Feather name={icon} size={16} color={secondary ? colors.foreground : colors.primaryForeground} /> : null}
-      <Text style={[s.buttonText, { color: secondary ? colors.foreground : colors.primaryForeground }]}>{title}</Text>
+      style={({ pressed }) => [s.button, buttonSurface, { opacity: disabled ? 0.48 : pressed ? 0.84 : 1 }]}>
+      {loading ? <ActivityIndicator color={secondary ? colors.primary : colors.primaryForeground} /> : icon ? <Feather name={icon} size={16} color={secondary ? colors.primary : colors.primaryForeground} /> : null}
+      <Text style={[s.buttonText, { color: secondary ? colors.primary : colors.primaryForeground }]}>{title}</Text>
     </Pressable>
   );
 }
@@ -58,14 +64,14 @@ export function Field({ label, value, onChangeText, placeholder, secureTextEntry
 
 export function Section({ title, right }: { title: string; right?: React.ReactNode }) {
   const colors = useColors();
-  return <View style={s.section}><Text style={[s.sectionTitle, { color: colors.foreground }]}>{title}</Text>{right}</View>;
+  return <View style={s.section}><Text style={[s.sectionTitle, { color: colors.primary }]}>{title}</Text>{right}</View>;
 }
 
 export function Row({ label, value, icon, onPress }: { label: string; value?: string; icon?: IconName; onPress?: () => void }) {
   const colors = useColors();
   const content = (
     <>
-      {icon ? <View style={[s.rowIcon, { backgroundColor: colors.secondary }]}><Feather name={icon} size={16} color={colors.primary} /></View> : null}
+      {icon ? <View style={[s.rowIcon, { backgroundColor: colors.lightGreen }]}><Feather name={icon} size={16} color={colors.primary} /></View> : null}
       <Text style={[s.rowLabel, { color: colors.foreground }]}>{label}</Text>
       {value ? <Text style={[s.rowValue, { color: colors.mutedForeground }]}>{value}</Text> : null}
       <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
@@ -95,15 +101,15 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 },
   title: { fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.6 },
   subtitle: { fontSize: 14, lineHeight: 21, marginTop: 5 },
-  card: { borderRadius: 20, borderWidth: 1, padding: 16, marginBottom: 14 },
-  button: { minHeight: 48, borderRadius: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+  card: { borderRadius: 22, borderWidth: 1, padding: 16, marginBottom: 14 },
+  button: { minHeight: 52, borderRadius: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   buttonText: { fontWeight: '700', fontSize: 14 },
   label: { fontSize: 12, fontWeight: '700' },
-  input: { borderWidth: 1, borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, minHeight: 48, fontSize: 14 },
+  input: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, minHeight: 48, fontSize: 14 },
   section: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11, marginTop: 10 },
-  sectionTitle: { fontSize: 16, fontWeight: '700' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', letterSpacing: -0.15 },
   row: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 11, borderBottomWidth: StyleSheet.hairlineWidth },
-  rowIcon: { width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  rowIcon: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   rowLabel: { flex: 1, fontSize: 14, fontWeight: '600' },
   rowValue: { fontSize: 12 },
   status: { alignSelf: 'flex-start', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },

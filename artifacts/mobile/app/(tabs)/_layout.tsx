@@ -9,8 +9,14 @@ import { SymbolView } from 'expo-symbols';
 import { useColors } from '@/hooks/useColors';
 
 function NativeLayout() {
+  const colors = useColors();
   return (
-    <NativeTabs>
+    <NativeTabs
+      tintColor={colors.primary}
+      iconColor={{ default: colors.mutedForeground, selected: colors.primary }}
+      labelStyle={{ default: { color: colors.mutedForeground }, selected: { color: colors.primary, fontWeight: '700' } }}
+      backgroundColor={colors.card}
+    >
       <NativeTabs.Trigger name="index"><NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} /><NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="opportunities"><NativeTabs.Trigger.Icon sf={{ default: 'chart.line.uptrend.xyaxis', selected: 'chart.line.uptrend.xyaxis' }} /><NativeTabs.Trigger.Label>Invest</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="trade"><NativeTabs.Trigger.Icon sf={{ default: 'arrow.left.arrow.right', selected: 'arrow.left.arrow.right' }} /><NativeTabs.Trigger.Label>Trade</NativeTabs.Trigger.Label></NativeTabs.Trigger>
