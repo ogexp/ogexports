@@ -234,8 +234,7 @@ it('lets an investor download an update attachment only through the authenticate
 
         $download = $this->actingAs($this->investor)
             ->get("/api/investor/projects/{$this->project->id}/updates/{$update->id}/attachment");
-        $download->assertOk();
-        expect($download->getContent())->not->toBeEmpty();
+        $download->assertOk()->assertDownload('bill-of-lading.pdf');
     } finally {
         if (MediaStorage::exists($update->attachment_path)) {
             MediaStorage::delete($update->attachment_path);

@@ -25,7 +25,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class ProjectController extends Controller
 {
@@ -88,7 +88,7 @@ class ProjectController extends Controller
         );
     }
 
-    public function downloadDocument(int $id, int $documentId): StreamedResponse
+    public function downloadDocument(int $id, int $documentId): Response
     {
         InvestmentProject::query()
             ->whereIn('status', ContainerProjectStatus::allVisibleStatuses())
@@ -106,7 +106,7 @@ class ProjectController extends Controller
         return MediaStorage::download($doc->path, $filename);
     }
 
-    public function downloadTradeUpdateAttachment(int $id, int $updateId): StreamedResponse
+    public function downloadTradeUpdateAttachment(int $id, int $updateId): Response
     {
         $project = InvestmentProject::query()
             ->whereIn('status', ContainerProjectStatus::allVisibleStatuses())
