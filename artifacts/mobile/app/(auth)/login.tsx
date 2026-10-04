@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Image, Platform, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { Action, Card, Field } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
@@ -12,7 +13,7 @@ import { resolvePostAuthHref } from '@/lib/post-auth-route';
 import { authenticateWithBiometrics, getBiometricInfo, type BiometricInfo } from '@/lib/biometrics';
 
 export default function Login() {
-  const { apiOrigin, token, user, biometricEnabled, acceptSession, setChallenge, unlockApp } = useAuth();
+  const { apiOrigin, token, biometricEnabled, acceptSession, setChallenge, unlockApp } = useAuth();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -24,8 +25,6 @@ export default function Login() {
   const [biometricInfo, setBiometricInfo] = useState<BiometricInfo | null>(null);
   const [biometricBusy, setBiometricBusy] = useState(false);
   const hasSavedBiometricSession = Platform.OS !== 'web' && !!token && biometricEnabled;
-  const savedName = first(record(user), ['name'], 'Saved investor account');
-  const savedEmail = first(record(user), ['email']);
 
   useEffect(() => {
     let active = true;
@@ -118,42 +117,40 @@ export default function Login() {
         <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 5 }}>Sign in to your investor account.</Text>
       </View>
       <Card>
-        {hasSavedBiometricSession ? <View style={{ marginBottom: 15, padding: 13, borderRadius: 14, backgroundColor: colors.lightGreen }}>
-          <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>SAVED SECURE SESSION</Text>
-          <Text style={{ color: colors.foreground, fontWeight: '700', marginTop: 5 }}>{savedName}</Text>
-          {savedEmail ? <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 3 }}>{savedEmail}</Text> : null}
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 7, marginBottom: 10 }}>
-            Biometric verification unlocks the session stored securely on this device. Your account password is not stored.
-          </Text>
-          <Action
-            title={biometricInfo?.available ? `Continue with ${biometricInfo.name}` : 'Checking biometric availability…'}
-            icon="unlock"
-            loading={biometricBusy}
-            disabled={!biometricInfo?.available}
-            onPress={() => void signInWithBiometrics()}
-          />
-          {biometricInfo && !biometricInfo.available ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 8 }}>
-            {`Set up Face ID, Touch ID or fingerprint unlock on this device, or continue with your password below.`}
-          </Text> : null}
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, textAlign: 'center', marginTop: 11 }}>Or use your account password</Text>
-        </View> : null}
-        {!hasSavedBiometricSession ? <View style={{ marginBottom: 15, padding: 13, borderRadius: 14, backgroundColor: colors.secondary }}>
-          <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>Face ID / fingerprint sign-in</Text>
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 5 }}>
-            {Platform.OS === 'web'
-              ? 'Biometric sign-in works only in the installed iOS or Android app, not in the browser preview.'
-              : token
-                ? 'Turn it on in Profile → Security & devices. Biometrics unlock a saved session on this device.'
-                : 'Sign in with your password first, then enable it in Profile → Security & devices. A full sign-out clears the saved session, so biometrics cannot replace a fresh password sign-in.'}
-          </Text>
-          {Platform.OS !== 'web' && token ? <Pressable onPress={() => router.push('/account/security')} style={{ alignSelf: 'flex-start', paddingTop: 9 }}>
-            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Open Security & devices</Text>
-          </Pressable> : null}
-        </View> : null}
         <Field label="Email address" value={email} onChangeText={value => { setEmail(value); setError(''); }} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" />
         <Field label="Password" value={password} onChangeText={value => { setPassword(value); setError(''); }} placeholder="Enter your password" secureTextEntry autoCapitalize="none" />
         {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 14, lineHeight: 20 }}>{error}</Text> : null}
         <Action title="Sign in securely" icon="lock" loading={login.isPending} disabled={!email.trim() || !password} onPress={() => void submit()} />
+        {hasSavedBiometricSession ? <Pressable
+          testID="biometric-sign-in"
+          accessibilityRole="button"
+          accessibilityLabel={biometricInfo?.available ? `Continue with ${biometricInfo.name}` : 'Continue with device biometrics'}
+          accessibilityHint="Verifies your identity and unlocks the saved account session on this device."
+          disabled={biometricBusy || login.isPending}
+          onPress={() => void signInWithBiometrics()}
+          style={({ pressed }) => ({
+            alignSelf: 'center',
+            width: 52,
+            height: 52,
+            borderRadius: 26,
+            marginTop: 12,
+            marginBottom: 2,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: biometricInfo?.available ? colors.lightGreen : colors.secondary,
+            borderColor: colors.border,
+            borderWidth: 1,
+            opacity: biometricBusy || login.isPending ? 0.55 : pressed ? 0.78 : 1,
+          })}
+        >
+          {biometricBusy
+            ? <ActivityIndicator color={colors.primary} />
+            : <MaterialCommunityIcons
+                name={biometricInfo?.name.toLowerCase().includes('fingerprint') || biometricInfo?.name === 'Touch ID' ? 'fingerprint' : 'face-recognition'}
+                size={28}
+                color={biometricInfo?.available ? colors.primary : colors.mutedForeground}
+              />}
+        </Pressable> : null}
         <Pressable onPress={() => router.push('/(auth)/forgot-password')} style={{ alignSelf: 'center', padding: 14 }}><Text style={{ color: colors.primary, fontWeight: '600' }}>Forgot password?</Text></Pressable>
       </Card>
       <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 5 }}>
