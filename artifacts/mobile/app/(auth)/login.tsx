@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { Action, Card, Field } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
@@ -8,9 +8,11 @@ import { messageOf, record } from '@/lib/data';
 import { useInvestorMobileLogin } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { resolvePostAuthHref } from '@/lib/post-auth-route';
 
 export default function Login() {
   const { apiOrigin, acceptSession } = useAuth();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const login = useInvestorMobileLogin();
@@ -29,7 +31,7 @@ export default function Login() {
       const user = record(result.user);
       if (typeof result.token !== 'string') throw new Error('The server response did not include a session token.');
       await acceptSession(result.token, user);
-      router.replace('/(tabs)');
+      router.replace(resolvePostAuthHref(returnTo));
     } catch (err) {
       setError(messageOf(err));
     }

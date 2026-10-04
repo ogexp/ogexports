@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { router, Stack, useSegments } from 'expo-router';
+import { router, Stack, useGlobalSearchParams, usePathname, useSegments } from 'expo-router';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Inter_400Regular,
@@ -13,8 +14,12 @@ import {
   useFonts,
 } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
+import type { NotificationResponse } from 'expo-notifications';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { serializeRouteState } from '@/lib/post-auth-route';
+import { notificationHref } from '@/lib/notification-routing';
+import { record } from '@/lib/data';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -25,13 +30,51 @@ function RootLayoutNav() {
   const { ready, token, appUnlocked } = useAuth();
   const colors = useColors();
   const segments = useSegments();
+  const pathname = usePathname();
+  const routeParams = useGlobalSearchParams();
+  const returnTo = serializeRouteState(pathname, routeParams);
 
   useEffect(() => {
-    if (!ready || token) return;
+    if (Platform.OS === 'web') return;
+    let active = true;
+    let subscription: { remove: () => void } | undefined;
+    const handledResponses = new Set<string>();
+    const handleResponse = (notificationsApi: typeof import('expo-notifications'), response: NotificationResponse) => {
+      if (!active) return;
+      const request = response.notification.request;
+      const responseKey = `${request.identifier}:${response.actionIdentifier}`;
+      if (handledResponses.has(responseKey)) return;
+      handledResponses.add(responseKey);
+      if (handledResponses.size > 10) handledResponses.clear();
+      void notificationsApi.clearLastNotificationResponseAsync();
+      const data = record(request.content.data);
+      router.push(notificationHref(data) ?? '/account/notifications');
+    };
+    void import('expo-notifications').then(notificationsApi => {
+      if (!active) return;
+      subscription = notificationsApi.addNotificationResponseReceivedListener(response => handleResponse(notificationsApi, response));
+      return notificationsApi.getLastNotificationResponseAsync().then(response => {
+        if (response) handleResponse(notificationsApi, response);
+      });
+    }).catch(() => undefined);
+    return () => {
+      active = false;
+      subscription?.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
     const firstSegment = String(segments[0] ?? '');
     const publicSegments = new Set(['', 'index', 'onboarding', '(auth)']);
-    if (!publicSegments.has(firstSegment)) router.replace('/(auth)/login');
-  }, [ready, token, segments]);
+    if (token && !appUnlocked && firstSegment !== 'lock') {
+      router.replace({ pathname: '/lock', params: { returnTo } });
+      return;
+    }
+    if (!token && !publicSegments.has(firstSegment)) {
+      router.replace({ pathname: '/(auth)/login', params: { returnTo } });
+    }
+  }, [ready, token, appUnlocked, segments, returnTo]);
 
   if (token && !appUnlocked) {
     return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>

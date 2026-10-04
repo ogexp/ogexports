@@ -173,6 +173,13 @@ export default function InvestorHome() {
       ))}
     </View>
 
+    <Pressable testID="home-open-search" accessibilityRole="button" accessibilityLabel="Search trades, investments and transactions" onPress={() => router.push('/search')}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 11, minHeight: 52, paddingHorizontal: 15, marginBottom: 7, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, opacity: pressed ? 0.78 : 1 })}>
+      <Feather name="search" size={17} color={colors.primary} />
+      <Text style={{ flex: 1, color: colors.mutedForeground, fontSize: 12 }}>Search trades, investments or transactions</Text>
+      <Feather name="arrow-right" size={15} color={colors.mutedForeground} />
+    </Pressable>
+
     {dashboard.isError ? <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 4, paddingVertical: 5 }}>
       <Text style={{ flex: 1, color: colors.mutedForeground, fontSize: 11 }}>Portfolio data is unavailable.</Text>
       <Pressable accessibilityRole="button" onPress={() => void dashboard.refetch()}><Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>Try again</Text></Pressable>
@@ -261,7 +268,11 @@ export default function InvestorHome() {
         const kind = first(item, ['description', 'title', 'type', 'transaction_type'], 'Wallet activity');
         const date = first(item, ['created_at', 'date'], 'Date unavailable');
         const rowAmount = amount(item, ['amount', 'total']);
-        return <Pressable key={first(item, ['id', 'reference'], `${group.label}-${index}`)} accessibilityRole="button" accessibilityLabel={`View ${kind}`} onPress={() => router.push('/account/transactions')}
+        const transactionId = first(item, ['id', 'transaction_id', 'reference']);
+        return <Pressable key={transactionId || `${group.label}-${index}`} accessibilityRole="button" accessibilityLabel={`View ${kind}`} onPress={() => router.push({
+          pathname: '/account/transactions',
+          params: { tab: 'Wallet', search: transactionId || kind, selected: transactionId },
+        })}
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, opacity: pressed ? 0.78 : 1 })}>
           <View style={{ width: 40, height: 40, borderRadius: 22, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
             <Feather name={activityIcon(item)} size={17} color={colors.primary} />

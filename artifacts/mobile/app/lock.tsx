@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Image, Platform, Text, View } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Action, Card } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { resolvePostAuthHref } from '@/lib/post-auth-route';
 
 export default function AppLock() {
   const { unlockApp } = useAuth();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const colors = useColors();
   const [available, setAvailable] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -34,7 +36,7 @@ export default function AppLock() {
       });
       if (result.success) {
         unlockApp();
-        router.replace('/(tabs)');
+        router.replace(resolvePostAuthHref(returnTo));
       } else if (result.error === 'user_fallback') {
         router.replace('/(auth)/login');
       } else {
@@ -67,7 +69,7 @@ export default function AppLock() {
         {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 14 }}>{error}</Text> : null}
         {Platform.OS !== 'web' && available ? <Action title="Unlock securely" icon="lock" loading={busy} onPress={() => void authenticate()} /> : null}
         <View style={{ marginTop: available && Platform.OS !== 'web' ? 10 : 0 }}>
-          <Action title={available && Platform.OS !== 'web' ? 'Use password instead' : 'Sign in with password'} icon="log-in" secondary={available && Platform.OS !== 'web'} onPress={() => router.replace('/(auth)/login')} />
+          <Action title={available && Platform.OS !== 'web' ? 'Use password instead' : 'Sign in with password'} icon="log-in" secondary={available && Platform.OS !== 'web'} onPress={() => router.replace({ pathname: '/(auth)/login', params: { returnTo } })} />
         </View>
       </Card>
     </View>

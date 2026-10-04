@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useGetInvestorInvestments, useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, Field, Screen } from '@/components/InvestorUI';
 import { amount, first, list, money, unwrap } from '@/lib/data';
@@ -22,10 +22,11 @@ function DetailLine({ label, value }: { label: string; value: string }) {
 export default function Transactions() {
   const { token } = useAuth();
   const colors = useColors();
-  const [tab, setTab] = useState<ActivityTab>('Wallet');
+  const params = useLocalSearchParams<{ search?: string; tab?: string; selected?: string }>();
+  const [tab, setTab] = useState<ActivityTab>(params.tab === 'Investments' ? 'Investments' : 'Wallet');
   const [filter, setFilter] = useState<TransactionFilter>('All');
-  const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState('');
+  const [search, setSearch] = useState(typeof params.search === 'string' ? params.search : '');
+  const [selectedId, setSelectedId] = useState(typeof params.selected === 'string' ? params.selected : '');
   const transactionsQuery = useGetInvestorWalletTransactions({ page: 1, per_page: 100 }, {
     query: { queryKey: ['investor-wallet-transactions', 1, 100], enabled: !!token, staleTime: 20_000 },
   });
