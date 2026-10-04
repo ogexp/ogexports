@@ -51,7 +51,7 @@ function arcPath(startAngle: number, endAngle: number) {
 export function AllocationDonut({ title, subtitle, data, currency, missingAmounts = 0, note }: Props) {
   const colors = useColors();
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const palette = [colors.primary, colors.accent, colors.statusPending, colors.destructive, colors.secondaryForeground];
+  const palette = [colors.primary, colors.accent, colors.statusPending, colors.secondaryForeground, colors.mutedForeground];
   const slices = data.filter(item => Number.isFinite(item.value) && item.value > 0);
   const total = slices.reduce((sum, item) => sum + item.value, 0);
   const selected = slices[Math.min(selectedIndex, Math.max(0, slices.length - 1))];

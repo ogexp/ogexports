@@ -103,6 +103,7 @@ function RootLayoutNav() {
       <Stack.Screen name="account/notifications" options={{ title: 'Notifications' }} />
       <Stack.Screen name="account/messages" options={{ title: 'Support' }} />
       <Stack.Screen name="account/settings" options={{ title: 'Settings' }} />
+      <Stack.Screen name="account/analytics" options={{ title: 'Trade Analytics' }} />
     </Stack>
   );
 }

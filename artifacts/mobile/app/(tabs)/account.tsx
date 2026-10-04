@@ -32,6 +32,7 @@ export default function Account() {
       <Row label="Bank Accounts" icon="credit-card" onPress={() => open('/account/settings')} />
       <Row label="Transaction History" icon="list" onPress={() => open('/account/transactions')} />
       <Row label="Investment Statements" icon="file-text" onPress={() => open('/account/reports')} />
+      <Row label="Trade Analytics" icon="pie-chart" onPress={() => open('/account/analytics')} />
       <Row label="Security & 2FA" icon="lock" onPress={() => open('/account/security')} />
       <Row label="Notifications" icon="bell" onPress={() => open('/account/notifications')} />
       <Row label="Settings" icon="settings" onPress={() => open('/account/settings')} />
