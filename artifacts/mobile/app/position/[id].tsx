@@ -45,12 +45,12 @@ export default function PositionDetail() {
     ['Trade cycle', first(row, ['trade_cycle', 'estimated_trade_cycle', 'duration'], first(trade, ['trade_cycle', 'estimated_trade_cycle', 'duration'], 'Not provided'))],
     ['Distribution status', first(row, ['distribution_status', 'payout_status'], 'Not provided')],
   ];
-  const tradeDetails: [string, string][] = [
+  const tradeDetails: [string, string][] = ([
     ['Commodity', first(row, ['commodity_name', 'commodity'], first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(row, ['project_name', 'title'], '')))],
     ['Quantity', first(row, ['quantity', 'cargo_quantity', 'quantity_tons'], first(trade, ['quantity', 'cargo_quantity', 'quantity_tons'], ''))],
     ['Trade status', first(row, ['trade_status', 'shipment_status'], first(trade, ['trade_status', 'shipment_status', 'status'], ''))],
-  ].filter(([, value]) => value.trim() && !/^not provided$/i.test(value.trim()));
-  const trackingDetails: [string, string][] = [
+  ] as [string, string][]).filter(([, value]) => value.trim() && !/^not provided$/i.test(value.trim()));
+  const trackingDetails: [string, string][] = ([
     ['Bill of lading', first(row, ['bill_of_lading_number', 'bill_of_lading'], first(container, ['bill_of_lading_number', 'bill_of_lading', 'bl_number'], ''))],
     ['Vessel', first(row, ['vessel_name'], first(container, ['vessel_name', 'vessel'], ''))],
     ['Port of loading', first(row, ['port_of_loading', 'loading_port'], first(container, ['port_of_loading', 'loading_port'], ''))],
@@ -58,7 +58,7 @@ export default function PositionDetail() {
     ['ETD', first(row, ['etd', 'departure_date'], first(container, ['etd', 'departure_date'], ''))],
     ['ETA', first(row, ['eta', 'estimated_arrival'], first(container, ['eta', 'estimated_arrival'], ''))],
     ['Latest update', first(row, ['latest_update', 'last_updated'], first(container, ['latest_update', 'last_updated', 'updated_at'], ''))],
-  ].filter(([, value]) => value.trim() && !/^not provided$/i.test(value.trim()));
+  ] as [string, string][]).filter(([, value]) => value.trim() && !/^not provided$/i.test(value.trim()));
 
   return <Screen title={first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(row, ['project_name', 'title', 'name'], 'Investment details'))} subtitle="Investment details">
     {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading position…</Text></Card> : null}
