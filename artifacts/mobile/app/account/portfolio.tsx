@@ -26,6 +26,18 @@ export default function Portfolio() {
   const latestValue = historyPoints.length ? amount(historyPoints[historyPoints.length - 1], ['value']) : null;
   const availableBalance = amount(wallet, ['available_balance', 'balance', 'available']);
   const pendingInvestments = rows.filter(item => /pending|processing|review/i.test(first(item, ['status', 'state']))).length;
+  const allocation = Object.values(rows.reduce<Record<string, { label: string; currency: string; count: number; total: number; complete: boolean }>>((groups, item) => {
+    const label = first(item, ['project_type', 'type', 'category'], 'Unclassified');
+    const rowCurrency = first(item, ['currency'], currency);
+    const key = `${label}::${rowCurrency}`;
+    const bucket = groups[key] ?? { label, currency: rowCurrency, count: 0, total: 0, complete: Boolean(rowCurrency) };
+    const value = amount(item, ['amount', 'investment_amount', 'principal']);
+    bucket.count += 1;
+    if (value == null || !rowCurrency) bucket.complete = false;
+    else bucket.total += value;
+    groups[key] = bucket;
+    return groups;
+  }, {}));
   return <Screen title="Portfolio" subtitle="Your investment positions in one place">
     <Card style={{ backgroundColor: colors.primary, borderColor: colors.primary }}>
       <Text style={{ color: colors.primaryForeground, opacity: 0.8, fontSize: 12 }}>TOTAL INVESTED</Text>
@@ -41,17 +53,32 @@ export default function Portfolio() {
       </View>
     </Card>
     {dashboardQuery.isError ? <ErrorState message="Portfolio summary could not be loaded from the investor server." onRetry={() => void dashboardQuery.refetch()} /> : null}
+    <Card style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Pending investments</Text>
+      <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>{positionsQuery.isLoading ? '…' : positionsQuery.isError ? '—' : pendingInvestments}</Text>
+    </Card>
+    {!positionsQuery.isLoading && !positionsQuery.isError && allocation.length ? <Card>
+      <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginBottom: 8 }}>Investment allocation</Text>
+      {allocation.map((item, index) => <View key={`${item.label}-${item.currency}-${index}`} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9, borderTopWidth: index ? 1 : 0, borderColor: colors.border }}>
+        <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontWeight: '600' }}>{item.label}</Text><Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{item.count} {item.count === 1 ? 'position' : 'positions'}</Text></View>
+        <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', alignSelf: 'center' }}>{item.complete ? money(item.total, item.currency) : 'Amount unavailable'}</Text>
+      </View>)}
+    </Card> : null}
     <PortfolioHistoryCard points={series.points} currency={currency} loading={dashboardQuery.isLoading} defaultRange="3M" />
     <Pressable onPress={() => router.push('/account/transactions')}><Text style={{ color: colors.primary, fontWeight: '700', paddingVertical: 4 }}>View transaction history →</Text></Pressable>
     {positionsQuery.isError ? <ErrorState message="Portfolio positions could not be loaded." onRetry={() => void positionsQuery.refetch()} /> : null}
     {!positionsQuery.isLoading && !positionsQuery.isError && rows.length === 0 ? <EmptyState title="Your portfolio is waiting" body="When you invest in an opportunity, its progress will appear here." /> : null}
     {rows.map((item, index) => {
       const id = first(item, ['id', 'investment_id'], '');
+        const performance = amount(item, ['profit_earned', 'return_earned', 'profit', 'return_amount']);
+        const investedAt = first(item, ['investment_date', 'created_at', 'date']);
       return <Pressable key={id || index} disabled={!id} onPress={() => router.push({ pathname: '/position/[id]', params: { id } })}>
         <Card>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}><Text numberOfLines={1} style={{ flex: 1, color: colors.foreground, fontSize: 15, fontWeight: '700' }}>{first(item, ['project_name', 'title', 'name'], 'Investment')}</Text><Status value={first(item, ['status', 'state'], '—')} /></View>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 7 }}>{first(item, ['type', 'category'], 'OG Exports')}</Text>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 15 }}><Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Invested</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{money(amount(item, ['amount', 'investment_amount', 'principal']), first(item, ['currency'], currency))}</Text></View>
+            {investedAt ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 7 }}>Date: {investedAt}</Text> : null}
+            {performance != null ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}><Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Performance</Text><Text style={{ color: colors.foreground, fontWeight: '700' }}>{money(performance, first(item, ['currency'], currency))}</Text></View> : null}
         </Card>
       </Pressable>;
     })}

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Pressable, Text, View } from 'react-native';
+import { Animated, Image, Platform, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,18 +10,18 @@ import { useColors } from '@/hooks/useColors';
 const slides = [
   {
     icon: 'globe' as const,
-    title: 'Invest in global agriculture',
-    body: 'Follow live opportunities, commodities, locations and project status from OG Exports.',
+    title: 'Invest in Real Trade',
+    body: 'Access carefully structured opportunities connected to real-world commodities and trade.',
   },
   {
-    icon: 'briefcase' as const,
-    title: 'Choose with clarity',
-    body: 'Review each opportunity’s available terms and confirm your investment before submitting.',
+    icon: 'pie-chart' as const,
+    title: 'Track Your Portfolio',
+    body: 'Monitor investments, balances, transactions and performance from one place.',
   },
   {
-    icon: 'bar-chart-2' as const,
-    title: 'Track your account',
-    body: 'See your wallet activity, investments and account updates using values from your investor account.',
+    icon: 'shield' as const,
+    title: 'Built Around Trust',
+    body: 'Secure account verification, transparent investment information and professional reporting.',
   },
 ];
 
@@ -38,8 +38,8 @@ export default function Onboarding() {
     opacity.setValue(0);
     translateY.setValue(12);
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 260, useNativeDriver: true }),
-      Animated.timing(translateY, { toValue: 0, duration: 260, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 260, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(translateY, { toValue: 0, duration: 260, useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [step, opacity, translateY]);
 
@@ -57,7 +57,7 @@ export default function Onboarding() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, paddingHorizontal: 22 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 10 }}>
         <Image source={require('../assets/images/icon.png')} style={{ width: 36, height: 36, borderRadius: 10 }} />
-        <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 16 }}>OG Exports</Text>
+        <View><Text style={{ color: colors.primary, fontWeight: '700', fontSize: 16 }}>OG Exports</Text><Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 1 }}>Global Trade. Smart Investment.</Text></View>
       </View>
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <Animated.View style={{ opacity, transform: [{ translateY }] }}>

@@ -197,7 +197,7 @@ export default function Withdraw() {
     {!historyQuery.isLoading && !historyQuery.isError && withdrawals.length === 0 ? <EmptyState title="No withdrawals yet" body="Your payout requests will appear here with their review status." /> : null}
     {withdrawals.map((item, index) => <Card key={first(item, ['id', 'reference'], String(index))} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
       <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(item, ['reference', 'withdraw_id'], 'Withdrawal request')}</Text><Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>{first(item, ['amount'], '—')} {first(item, ['currency'], currency)} · {first(item, ['created_at', 'date'], '')}</Text></View>
-      <Status value={first(item, ['status'], 'Pending')} />
+      <Status value={first(item, ['status'], 'Not provided')} />
     </Card>)}
   </Screen>;
 }

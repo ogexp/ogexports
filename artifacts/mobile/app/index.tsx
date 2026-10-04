@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Image, Text, View } from 'react-native';
+import { Animated, Image, Platform, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -12,8 +12,8 @@ export default function Entry() {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 520, useNativeDriver: true }),
-      Animated.spring(scale, { toValue: 1, damping: 16, stiffness: 130, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 520, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.spring(scale, { toValue: 1, damping: 16, stiffness: 130, useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [opacity, scale]);
 

@@ -81,7 +81,7 @@ export default function Reports() {
             <Text style={{ color: colors.primary, fontWeight: '700' }}>{first(item, ['format', 'type'], 'PDF').toUpperCase().slice(0, 4)}</Text>
           </View>
           <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontWeight: '700' }}>{name}</Text><Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>{first(item, ['date_label', 'created_at', 'date'], '')}</Text></View>
-          <Status value={first(item, ['status', 'state'], 'Ready')} />
+          <Status value={first(item, ['status', 'state'], 'Not provided')} />
         </View>
         <Pressable accessibilityRole="button" onPress={() => void download(item)} disabled={downloadId === first(item, ['id'])} style={{ paddingVertical: 8 }}>
           <Text style={{ color: colors.primary, fontWeight: '700' }}>{downloadId === first(item, ['id']) ? 'Preparing file…' : 'Download report'}</Text>

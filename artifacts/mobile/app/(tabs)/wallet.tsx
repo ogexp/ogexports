@@ -34,6 +34,8 @@ export default function Wallet() {
     </View>
     {wallet.isError ? <ErrorState message="Wallet balance could not be loaded." onRetry={() => void wallet.refetch()} /> : null}
     <View style={{ flexDirection: 'row', gap: 10 }}><View style={{ flex: 1 }}><Action title="Add funds" icon="plus" onPress={() => router.push('/wallet/deposit')} /></View><View style={{ flex: 1 }}><Action title="Withdraw" icon="arrow-up-right" secondary onPress={() => router.push('/wallet/withdraw')} /></View></View>
+    <Action title="Transfer unavailable" icon="repeat" secondary disabled onPress={() => undefined} />
+    <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: -8, marginBottom: 10 }}>Wallet-to-wallet transfers are not supported by the current investor API.</Text>
     <Section title="Recent activity" right={<Pressable onPress={() => void transactions.refetch()}><Feather name="refresh-cw" size={15} color={colors.primary} /></Pressable>} />
     {transactions.isError ? <ErrorState message="Wallet activity could not be loaded." onRetry={() => void transactions.refetch()} /> : null}
     {!transactions.isLoading && !transactions.isError && rows.length === 0 ? <EmptyState title="No transactions yet" body="Your deposits, withdrawals and investment activity will appear here." /> : null}

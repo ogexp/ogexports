@@ -23,6 +23,8 @@ export default function InvestorHome() {
   const total = amount(summary, ['total_investment', 'total_investment_usd', 'portfolio_value']);
   const active = amount(summary, ['active_investment', 'active_investment_usd']);
   const profit = amount(summary, ['total_profit_earned', 'total_profit_earned_usd', 'profit']);
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const openProjects = list(projects.data);
   const quickActions = [
     { title: 'Add funds', icon: 'plus-circle' as const, onPress: () => router.push('/wallet/deposit') },
@@ -32,7 +34,7 @@ export default function InvestorHome() {
   ];
 
   return (
-    <Screen title={`Good to see you, ${name.split(' ')[0]}`} subtitle="Your OG Exports investor overview" action={<View style={{ flexDirection: 'row', gap: 15, alignItems: 'center' }}>
+    <Screen title={`${greeting}, ${name.split(' ')[0]}`} subtitle="Your OG Exports investor overview" action={<View style={{ flexDirection: 'row', gap: 15, alignItems: 'center' }}>
       <Pressable accessibilityRole="button" accessibilityLabel="Open notifications" onPress={() => router.push('/account/notifications')}><Feather name="bell" size={19} color={colors.primary} /></Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="Open profile" onPress={() => router.push('/(tabs)/account')}><Feather name="user" size={19} color={colors.primary} /></Pressable>
     </View>}>
@@ -68,7 +70,7 @@ export default function InvestorHome() {
         {openProjects.map((item, index) => {
           const id = first(item, ['id', 'project_id'], '');
           const title = first(item, ['title', 'name', 'project_name'], 'Investment opportunity');
-          const status = first(item, ['status', 'state'], 'Open');
+          const status = first(item, ['status', 'state'], 'Not provided');
           const target = amount(item, ['target_amount', 'funding_target', 'amount']);
           return <Pressable key={id || index} disabled={!id} onPress={() => router.push({ pathname: '/project/[id]', params: { id } })}>
             <Card style={{ width: 270, minHeight: 112 }}>
