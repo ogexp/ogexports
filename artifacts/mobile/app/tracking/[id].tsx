@@ -8,6 +8,7 @@ import {
   type ContainerTracking,
 } from '@workspace/api-client-react';
 import { Card, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
+import { first, record } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -41,14 +42,15 @@ function statusKind(status: string): 'completed' | 'in-progress' | 'other' {
   return 'other';
 }
 
-function getJourney(container?: ContainerTracking): JourneyStep[] {
+function getJourney(container?: Record<string, unknown>): JourneyStep[] {
+  const journey = record(container?.container_journey);
   return JOURNEY_LABELS.map(label => {
-    const stage = container?.container_journey[JOURNEY_KEYS[label]];
+    const stage = record(journey[JOURNEY_KEYS[label]]);
     return {
       label,
-      status: stage?.status ?? '',
-      date: stage?.date ?? '',
-      detail: stage?.details ?? '',
+      status: first(stage, ['status']),
+      date: first(stage, ['date']),
+      detail: first(stage, ['details']),
     };
   });
 }
@@ -71,10 +73,11 @@ export default function ContainerTracking() {
   const projectQuery = useGetInvestorProject(id, { query: { queryKey: ['investor-project', id], enabled: Boolean(id && token && isProject) } });
   const positionQuery = useGetInvestorInvestment(id, { query: { queryKey: ['investor-position', id], enabled: Boolean(id && token && !isProject) } });
   const query = isProject ? projectQuery : positionQuery;
-  const project = projectQuery.data?.data;
-  const positionProject = positionQuery.data?.data.project;
-  const container = isProject ? project?.container : positionProject?.container;
-  const read = (value?: string | null) => value?.trim() || 'Unavailable';
+  const project = record(projectQuery.data?.data);
+  const position = record(record(positionQuery.data).data);
+  const positionProject = record(position.project);
+  const container = record(isProject ? project.container : positionProject.container);
+  const read = (value: unknown) => typeof value === 'string' ? value.trim() || 'Unavailable' : typeof value === 'number' ? String(value) : 'Unavailable';
 
   const containerNumber = read(container?.container_number);
   const billOfLading = read(container?.bill_of_lading_number);
