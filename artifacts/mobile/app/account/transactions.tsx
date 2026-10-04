@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useGetInvestorInvestments, useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, Field, Screen } from '@/components/InvestorUI';
-import { amount, first, list, money, unwrap } from '@/lib/data';
+import { amount, first, list, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -27,8 +27,9 @@ export default function Transactions() {
   const [filter, setFilter] = useState<TransactionFilter>('All');
   const [search, setSearch] = useState(typeof params.search === 'string' ? params.search : '');
   const [selectedId, setSelectedId] = useState(typeof params.selected === 'string' ? params.selected : '');
-  const transactionsQuery = useGetInvestorWalletTransactions({ page: 1, per_page: 100 }, {
-    query: { queryKey: ['investor-wallet-transactions', 1, 100], enabled: !!token, staleTime: 20_000 },
+  const [walletPage, setWalletPage] = useState(1);
+  const transactionsQuery = useGetInvestorWalletTransactions({ page: walletPage, per_page: 100 }, {
+    query: { queryKey: ['investor-wallet-transactions', walletPage, 100], enabled: !!token, staleTime: 20_000 },
   });
   const investmentsQuery = useGetInvestorInvestments({ per_page: 50 }, {
     query: { queryKey: ['investor-positions', 50], enabled: !!token, staleTime: 30_000 },
@@ -37,6 +38,10 @@ export default function Transactions() {
   const wallet = unwrap(walletQuery.data);
   const currency = first(wallet, ['currency']);
   const transactions = list(transactionsQuery.data);
+  const transactionEnvelope = record(transactionsQuery.data);
+  const transactionMeta = record(transactionEnvelope.meta);
+  const lastWalletPage = amount(transactionMeta, ['last_page']) ?? amount(transactionEnvelope, ['last_page']);
+  const hasNextWalletPage = lastWalletPage != null ? walletPage < lastWalletPage : transactions.length === 100;
   const investments = list(investmentsQuery.data);
   const rows = (tab === 'Wallet' ? transactions : investments).filter(item => {
     if (tab === 'Investments' || filter === 'All') return true;
@@ -126,5 +131,16 @@ export default function Transactions() {
         </Card>
       </Pressable>;
     })}
+    {tab === 'Wallet' && !transactionsQuery.isError ? <View style={{ marginTop: 10 }}>
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 10 }}>Page {walletPage}{lastWalletPage != null ? ` of ${lastWalletPage}` : ''} · Filters and search apply to this page.</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+        <Pressable accessibilityRole="button" disabled={walletPage === 1 || transactionsQuery.isLoading} onPress={() => { setWalletPage(page => page - 1); setSelectedId(''); }} style={{ padding: 12, borderRadius: 12, backgroundColor: colors.secondary, opacity: walletPage === 1 || transactionsQuery.isLoading ? 0.45 : 1 }}>
+          <Text style={{ color: colors.primary, fontWeight: '700' }}>Previous</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" disabled={!hasNextWalletPage || transactionsQuery.isLoading} onPress={() => { setWalletPage(page => page + 1); setSelectedId(''); }} style={{ padding: 12, borderRadius: 12, backgroundColor: colors.secondary, opacity: !hasNextWalletPage || transactionsQuery.isLoading ? 0.45 : 1 }}>
+          <Text style={{ color: colors.primary, fontWeight: '700' }}>Next</Text>
+        </Pressable>
+      </View>
+    </View> : null}
   </Screen>;
 }

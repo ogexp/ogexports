@@ -67,7 +67,7 @@ export default function Wallet() {
   const transactionsEnvelope = record(transactions.data);
   const nestedTransactionsEnvelope = record(transactionsEnvelope.data);
   const transactionsMeta = record(transactionsEnvelope.meta ?? nestedTransactionsEnvelope.meta);
-  const totalTransactions = amount(transactionsMeta, ['total']);
+  const totalTransactions = amount(transactionsMeta, ['total']) ?? amount(transactionsEnvelope, ['total']);
   const hasMoreTransactions = !transactions.isLoading && !transactions.isError
     && (totalTransactions != null ? totalTransactions > ledger.length : ledger.length >= pageSize);
 
@@ -179,7 +179,7 @@ export default function Wallet() {
       </Card>;
     })}
     {hasMoreTransactions ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 2 }}>
-      Showing the latest {ledger.length} of {totalTransactions} transactions. Choose View All for the full history.
+      Categories above use the latest {ledger.length}{totalTransactions != null ? ` of ${totalTransactions}` : ''} transactions. Choose View All to browse older records.
     </Text> : null}
     {!transactions.isLoading && !transactions.isError ? <Action title="View All Transactions" icon="list" secondary onPress={() => router.push('/account/transactions')} /> : null}
   </Screen>;
