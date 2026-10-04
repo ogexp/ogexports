@@ -1,0 +1,609 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
+use App\Models\User;
+use App\Support\AuditsActions;
+use App\Support\AuthFlowLogger;
+use App\Support\InvestmentModule;
+use App\Support\SupplierModule;
+use App\Support\UserAgentParser;
+use App\Services\AuthOtpService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+
+class SecurityController extends Controller
+{
+    public function sessions(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+        $currentId = $request->hasSession() ? $request->session()->getId() : null;
+
+        $rows = DB::table('sessions')
+            ->where('user_id', $userId)
+            ->orderByDesc('last_activity')
+            ->limit(50)
+            ->get();
+
+        $data = $rows->map(function ($row) use ($currentId) {
+            $ua = (string) ($row->user_agent ?? '');
+
+            return [
+                'id' => $row->id,
+                'ip' => $row->ip_address,
+                'user_agent' => $ua,
+                'device' => $this->parseDevice($ua),
+                'last_activity' => $row->last_activity
+                    ? date('c', (int) $row->last_activity)
+                    : null,
+                'last_activity_human' => $row->last_activity
+                    ? \Carbon\Carbon::createFromTimestamp((int) $row->last_activity)->diffForHumans()
+                    : null,
+                'is_current' => $currentId && hash_equals((string) $currentId, (string) $row->id),
+            ];
+        });
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function destroySession(Request $request, string $id): JsonResponse
+    {
+        $userId = $request->user()->id;
+        $currentId = $request->hasSession() ? $request->session()->getId() : null;
+
+        if ($currentId && hash_equals((string) $currentId, $id)) {
+            throw ValidationException::withMessages([
+                'session' => ['Cannot revoke the current session. Use logout instead.'],
+            ]);
+        }
+
+        $deleted = DB::table('sessions')
+            ->where('user_id', $userId)
+            ->where('id', $id)
+            ->delete();
+
+        if (! $deleted) {
+            abort(404, 'Session not found.');
+        }
+
+        AuditsActions::log('session.revoked', 'security', $request->user(), ['session_id' => $id]);
+
+        return response()->json(['message' => 'Session revoked.']);
+    }
+
+    public function destroyOtherSessions(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+        $currentId = $request->hasSession() ? $request->session()->getId() : null;
+
+        $q = DB::table('sessions')->where('user_id', $userId);
+        if ($currentId) {
+            $q->where('id', '!=', $currentId);
+        }
+        $count = $q->delete();
+
+        AuditsActions::log('session.revoked_others', 'security', $request->user(), ['count' => $count]);
+
+        return response()->json(['message' => 'Other sessions revoked.', 'count' => $count]);
+    }
+
+    public function auditLogs(Request $request): JsonResponse
+    {
+        $logs = AuditLog::query()
+            ->where('user_id', $request->user()->id)
+            ->latest('created_at')
+            ->limit(100)
+            ->get()
+            ->map(fn (AuditLog $log) => [
+                'id' => $log->id,
+                'action' => $log->action,
+                'module' => $log->module,
+                'ip' => $log->ip,
+                'meta' => $log->meta,
+                'created_at' => $log->created_at?->toIso8601String(),
+                'time' => $log->created_at?->format('M j, Y — H:i'),
+            ]);
+
+        return response()->json(['data' => $logs]);
+    }
+
+    public function twoFactorStatus(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'data' => [
+                'enabled' => (bool) $user->two_factor_enabled,
+                'confirmed_at' => $user->two_factor_confirmed_at?->toIso8601String(),
+            ],
+        ]);
+    }
+
+    public function twoFactorEnable(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'password' => ['required', 'string'],
+        ]);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! Hash::check($data['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['Password is incorrect.'],
+            ]);
+        }
+
+        $code = (string) random_int(100000, 999999);
+        $user->forceFill([
+            'two_factor_code' => Hash::make($code),
+            'two_factor_code_expires_at' => now()->addMinutes(10),
+        ])->save();
+
+        $emailSent = $this->sendCodeEmail($user, $code);
+
+        AuthFlowLogger::logOtpGenerated(
+            '2fa_enable',
+            'enable',
+            $user,
+            $code,
+            $emailSent,
+            $user->id,
+            10,
+        );
+
+        AuditsActions::log('2fa.enable_requested', 'security', $user);
+
+        return response()->json([
+            'message' => 'Verification code sent to your email.',
+            'data' => ['email' => $this->maskEmail($user->email)],
+        ]);
+    }
+
+    public function twoFactorConfirm(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'code' => ['required', 'string', 'size:6'],
+        ]);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! $user->two_factor_code || ! $user->two_factor_code_expires_at || $user->two_factor_code_expires_at->isPast()) {
+            throw ValidationException::withMessages([
+                'code' => ['Code expired. Request a new one.'],
+            ]);
+        }
+
+        if (! Hash::check($data['code'], $user->two_factor_code)) {
+            throw ValidationException::withMessages([
+                'code' => ['Invalid verification code.'],
+            ]);
+        }
+
+        $user->forceFill([
+            'two_factor_enabled' => true,
+            'two_factor_confirmed_at' => now(),
+            'two_factor_code' => null,
+            'two_factor_code_expires_at' => null,
+        ])->save();
+
+        AuditsActions::log('2fa.enabled', 'security', $user);
+
+        return response()->json(['message' => 'Two-factor authentication enabled.']);
+    }
+
+    public function twoFactorDisable(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'password' => ['required', 'string'],
+        ]);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! Hash::check($data['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['Password is incorrect.'],
+            ]);
+        }
+
+        $user->forceFill([
+            'two_factor_enabled' => false,
+            'two_factor_confirmed_at' => null,
+            'two_factor_code' => null,
+            'two_factor_code_expires_at' => null,
+            'two_factor_login_token' => null,
+        ])->save();
+
+        AuditsActions::log('2fa.disabled', 'security', $user);
+
+        return response()->json(['message' => 'Two-factor authentication disabled.']);
+    }
+
+    public function twoFactorVerifyLogin(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'token' => ['required', 'string'],
+            'code' => ['required', 'string', 'size:6'],
+        ]);
+
+        $user = User::query()->where('two_factor_login_token', $data['token'])->first();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'code' => ['Invalid or expired login challenge.'],
+            ]);
+        }
+
+        if (! $user->two_factor_code || ! $user->two_factor_code_expires_at || $user->two_factor_code_expires_at->isPast()) {
+            throw ValidationException::withMessages([
+                'code' => ['Code expired. Please log in again.'],
+            ]);
+        }
+
+        if (! Hash::check($data['code'], $user->two_factor_code)) {
+            throw ValidationException::withMessages([
+                'code' => ['Invalid verification code.'],
+            ]);
+        }
+
+        if ($user->hasRole('supplier') && ! SupplierModule::enabled()) {
+            $user->forceFill([
+                'two_factor_code' => null,
+                'two_factor_code_expires_at' => null,
+                'two_factor_login_token' => null,
+            ])->save();
+
+            throw ValidationException::withMessages([
+                'code' => [SupplierModule::disabledMessage()],
+            ]);
+        }
+
+        if ($user->hasRole('investor') && ! InvestmentModule::enabled()) {
+            $user->forceFill([
+                'two_factor_code' => null,
+                'two_factor_code_expires_at' => null,
+                'two_factor_login_token' => null,
+            ])->save();
+
+            throw ValidationException::withMessages([
+                'code' => [InvestmentModule::disabledMessage()],
+            ]);
+        }
+
+        $user->forceFill([
+            'two_factor_code' => null,
+            'two_factor_code_expires_at' => null,
+            'two_factor_login_token' => null,
+            'last_seen_at' => now(),
+        ])->save();
+
+        \Illuminate\Support\Facades\Auth::guard('web')->login($user, $request->boolean('remember'));
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
+
+        $userAgent = (string) $request->userAgent();
+        AuditsActions::log('login.2fa_success', 'security', $user, [
+            'user_agent' => $userAgent,
+            'device' => UserAgentParser::parseDevice($userAgent),
+        ]);
+
+        return response()->json([
+            'message' => 'Logged in successfully.',
+            'user' => new \App\Http\Resources\UserResource($user->load(['profile', 'roles'])),
+            'redirect' => $user->dashboardPath(),
+        ]);
+    }
+
+    /**
+     * Mobile 2FA verify — completes login challenge and returns a Sanctum token.
+     */
+    public function twoFactorVerifyLoginMobile(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'token' => ['required', 'string'],
+            'code' => ['required', 'string', 'size:6'],
+            'device_name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $user = User::query()->where('two_factor_login_token', $data['token'])->first();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'code' => ['Invalid or expired login challenge.'],
+            ]);
+        }
+
+        if (! $user->two_factor_code || ! $user->two_factor_code_expires_at || $user->two_factor_code_expires_at->isPast()) {
+            throw ValidationException::withMessages([
+                'code' => ['Code expired. Please log in again.'],
+            ]);
+        }
+
+        if (! Hash::check($data['code'], $user->two_factor_code)) {
+            throw ValidationException::withMessages([
+                'code' => ['Invalid verification code.'],
+            ]);
+        }
+
+        if ($user->hasRole('supplier') && ! SupplierModule::enabled()) {
+            $user->forceFill([
+                'two_factor_code' => null,
+                'two_factor_code_expires_at' => null,
+                'two_factor_login_token' => null,
+            ])->save();
+
+            throw ValidationException::withMessages([
+                'code' => [SupplierModule::disabledMessage()],
+            ]);
+        }
+
+        if ($user->hasRole('investor') && ! InvestmentModule::enabled()) {
+            $user->forceFill([
+                'two_factor_code' => null,
+                'two_factor_code_expires_at' => null,
+                'two_factor_login_token' => null,
+            ])->save();
+
+            throw ValidationException::withMessages([
+                'code' => [InvestmentModule::disabledMessage()],
+            ]);
+        }
+
+        $user->forceFill([
+            'two_factor_code' => null,
+            'two_factor_code_expires_at' => null,
+            'two_factor_login_token' => null,
+            'last_seen_at' => now(),
+        ])->save();
+
+        $deviceName = $data['device_name'] ?? 'mobile';
+        $plainToken = $user->createToken($deviceName)->plainTextToken;
+
+        $userAgent = (string) $request->userAgent();
+        AuditsActions::log('login.2fa_success', 'security', $user, [
+            'user_agent' => $userAgent,
+            'device' => UserAgentParser::parseDevice($userAgent),
+            'channel' => 'mobile',
+        ]);
+
+        return response()->json([
+            'message' => 'Logged in successfully.',
+            'user' => new \App\Http\Resources\UserResource($user->load(['profile', 'roles'])),
+            'token' => $plainToken,
+            'token_type' => 'Bearer',
+            'redirect' => $user->dashboardPath(),
+        ]);
+    }
+
+    public function twoFactorResend(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'token' => ['required', 'string'],
+        ]);
+
+        $user = User::query()->where('two_factor_login_token', $data['token'])->first();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'token' => ['Invalid or expired login challenge. Please sign in again.'],
+            ]);
+        }
+
+        $resendKey = 'otp_resend:2fa_login:'.$user->id;
+        if (\Illuminate\Support\Facades\Cache::has($resendKey)) {
+            $seconds = \Illuminate\Support\Facades\Cache::get($resendKey);
+            throw ValidationException::withMessages([
+                'token' => ["Please wait {$seconds} seconds before requesting a new code."],
+            ]);
+        }
+
+        $code = AuthOtpService::generateOtpCode();
+        $user->forceFill([
+            'two_factor_code' => Hash::make($code),
+            'two_factor_code_expires_at' => now()->addMinutes(10),
+        ])->save();
+
+        $emailSent = $this->sendCodeEmail($user, $code);
+
+        AuthFlowLogger::logOtpGenerated(
+            '2fa_login',
+            'resend',
+            $user,
+            $code,
+            $emailSent,
+            $user->id,
+            10,
+        );
+
+        AuthFlowLogger::info('auth.2fa.resend', [
+            'email' => $user->email,
+            'user_id' => $user->id,
+            'email_sent' => $emailSent,
+        ]);
+
+        \Illuminate\Support\Facades\Cache::put(
+            $resendKey,
+            AuthOtpService::RESEND_COOLDOWN_SECONDS,
+            now()->addSeconds(AuthOtpService::RESEND_COOLDOWN_SECONDS),
+        );
+
+        return response()->json(array_merge([
+            'message' => 'A new verification code has been sent to your email.',
+            'email' => $this->maskEmail($user->email),
+        ], AuthOtpService::devOtpResponse()));
+    }
+
+    private function sendCodeEmail(User $user, string $code): bool
+    {
+        try {
+            Mail::raw(
+                "Your OG Exports verification code is: {$code}\n\nThis code expires in 10 minutes.",
+                function ($message) use ($user) {
+                    $message->to($user->email)
+                        ->subject('OG Exports — Verification Code');
+                }
+            );
+
+            AuthFlowLogger::info('auth.2fa.email_sent', [
+                'email' => $user->email,
+                'user_id' => $user->id,
+            ]);
+
+            return true;
+        } catch (\Throwable $e) {
+            report($e);
+
+            AuthFlowLogger::error('auth.2fa.email_failed', [
+                'email' => $user->email,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    private function maskEmail(string $email): string
+    {
+        [$local, $domain] = array_pad(explode('@', $email, 2), 2, '');
+        $visible = substr($local, 0, 2);
+
+        return $visible.str_repeat('*', max(strlen($local) - 2, 1)).'@'.$domain;
+    }
+
+    private function parseDevice(string $ua): string
+    {
+        return UserAgentParser::parseDevice($ua);
+    }
+
+    public static function beginLoginChallenge(User $user): array
+    {
+        $code = AuthOtpService::generateOtpCode();
+        $token = Str::random(40);
+
+        $user->forceFill([
+            'two_factor_code' => Hash::make($code),
+            'two_factor_code_expires_at' => now()->addMinutes(10),
+            'two_factor_login_token' => $token,
+        ])->save();
+
+        $ctrl = new self;
+        $emailSent = $ctrl->sendCodeEmail($user, $code);
+
+        AuthFlowLogger::logOtpGenerated(
+            '2fa_login',
+            'login',
+            $user,
+            $code,
+            $emailSent,
+            $user->id,
+            10,
+        );
+
+        AuthFlowLogger::info('auth.2fa.challenge_started', [
+            'email' => $user->email,
+            'user_id' => $user->id,
+            'context' => 'login',
+            'email_sent' => $emailSent,
+        ]);
+
+        return array_merge([
+            'requires_2fa' => true,
+            'token' => $token,
+            'email' => $ctrl->maskEmail($user->email),
+            'message' => 'Enter the verification code sent to your email.',
+        ], AuthOtpService::devOtpResponse());
+    }
+
+    public function transactionPasswordStatus(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        return response()->json([
+            'data' => [
+                'set' => filled($user->transaction_password),
+                'set_at' => $user->transaction_password_set_at?->toIso8601String(),
+            ],
+        ]);
+    }
+
+    public function transactionPasswordSet(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'password' => ['required', 'string'],
+            'transaction_password' => ['required', 'string', 'min:6', 'max:100'],
+            'transaction_password_confirmation' => ['required', 'same:transaction_password'],
+        ]);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! Hash::check($data['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['Login password is incorrect.'],
+            ]);
+        }
+
+        $user->forceFill([
+            'transaction_password' => $data['transaction_password'],
+            'transaction_password_set_at' => now(),
+        ])->save();
+
+        AuditsActions::log('transaction_password.set', 'security', $user);
+
+        return response()->json(['message' => 'Transaction password set successfully.']);
+    }
+
+    public function transactionPasswordReset(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'password' => ['required', 'string'],
+            'transaction_password' => ['required', 'string', 'min:6', 'max:100'],
+            'transaction_password_confirmation' => ['required', 'same:transaction_password'],
+        ]);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! Hash::check($data['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['Login password is incorrect.'],
+            ]);
+        }
+
+        $user->forceFill([
+            'transaction_password' => $data['transaction_password'],
+            'transaction_password_set_at' => now(),
+        ])->save();
+
+        AuditsActions::log('transaction_password.reset', 'security', $user);
+
+        return response()->json(['message' => 'Transaction password updated successfully.']);
+    }
+
+    public static function verifyTransactionPassword(User $user, string $password): void
+    {
+        if (! filled($user->transaction_password)) {
+            throw ValidationException::withMessages([
+                'transaction_password' => ['Transaction password is not set. Please set it in Settings before withdrawing.'],
+            ]);
+        }
+
+        if (! Hash::check($password, $user->transaction_password)) {
+            throw ValidationException::withMessages([
+                'transaction_password' => ['Transaction password is incorrect.'],
+            ]);
+        }
+    }
+}

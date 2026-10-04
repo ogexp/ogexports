@@ -1,0 +1,19 @@
+﻿Report,"Portfolio Report"
+Investor,"Investor Alpha"
+Email,lulu80@example.net
+"Generated At","04 Oct 2026 16:28"
+"Start Date",
+"End Date",
+
+Summary
+"Total Invested","$2,000.00"
+"Total Profit Earned",$0.00
+"Lifetime ROI %",0.00
+"Investments Count",1
+
+Investments
+Reference,Project,Type,Status,Amount,Profit,"ROI %","Invested At"
+INV-PKR-USD-ONLY,"PKR USD Only Container",container,active,"$2,000.00",$200.00,10.00,2026-10-02
+
+"Profit Distributions"
+Project,"Invested Amount","Profit Amount","ROI %","Distributed At"

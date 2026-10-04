@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class CrmLead extends Model
+{
+    protected $fillable = [
+        'name',
+        'country',
+        'value',
+        'product',
+        'contact',
+        'email',
+        'stage',
+        'owner_id',
+    ];
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(CrmActivity::class, 'lead_id');
+    }
+}

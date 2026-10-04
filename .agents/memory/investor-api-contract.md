@@ -12,3 +12,9 @@ The mobile app's investor data API is the existing Laravel service. The workspac
 **Why:** The user confirmed that the existing Laravel API remains authoritative for this product; a second local store would be disconnected from the data the investor app reads.
 
 **How to apply:** Use API fields as supplied, including zero. When a required field is absent, show an unavailable state instead of a fallback or calculation. Keep chart history, opportunities, transactions, payout dates/amounts, fees, currencies, and verification states API-only. Add fields and admin operations to the Laravel OpenAPI contract when its implementation repository is unavailable, and state when that server-side work remains external.
+
+Before treating the Laravel implementation as unavailable, inspect `attached_assets` for source archives. If provided, extract the backend into a dedicated project directory without unpacking `.env` files, logs, or uploaded user data.
+
+**Why:** the Laravel source had already been supplied as an archive, but a root-only search missed it and led to an unnecessary request for the same source.
+
+**How to apply:** When PHP source is absent from the workspace root, check attached ZIP archives before asking the user to provide the backend again; never inspect uploaded `.env` contents.
