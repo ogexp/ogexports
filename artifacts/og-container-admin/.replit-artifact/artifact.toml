@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/container-admin/"
+title = "OG Exports Container Admin"
+description = "An administrator-only web interface for publishing OG Exports-reported container identifiers, dates, trade status, and journey-stage updates through the existing Laravel API."
+version = "1.0.0"
+id = "artifacts/og-container-admin"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/container-admin/" ]
+localPort = 22552
+
+[services.development]
+run = "pnpm --filter @workspace/og-container-admin run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/og-container-admin", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/og-container-admin/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22552"
+BASE_PATH = "/container-admin/"

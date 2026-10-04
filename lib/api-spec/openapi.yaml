@@ -3,7 +3,7 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 1.0.0
-  description: OG Exports investor mobile API, generated from the Laravel mobile API contract
+  description: OG Exports investor and administrator API, generated from the Laravel API contract
 servers:
   - url: /api
     description: Base API path
@@ -633,6 +633,74 @@ paths:
             schema: { $ref: "#/components/schemas/JsonObject" }
       responses:
         "201": { description: Ticket created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /auth/login:
+    post:
+      operationId: adminSessionLogin
+      tags: [auth]
+      summary: Sign in through the Laravel web session flow
+      description: Establishes the existing Laravel session cookie. Browser clients must first request /sanctum/csrf-cookie and send its XSRF token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminLoginCredentials" }
+      responses:
+        "200": { description: Signed-in user or required two-factor challenge, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "403": { description: Account requires verification, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "422": { description: Invalid credentials or validation error, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /auth/2fa/verify:
+    post:
+      operationId: adminSessionTwoFactorVerify
+      tags: [auth]
+      summary: Complete a Laravel web-session two-factor challenge
+      description: Completes the existing email-code challenge and establishes the Laravel session cookie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminTwoFactorChallenge" }
+      responses:
+        "200": { description: Signed-in user, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "422": { description: Invalid or expired code, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /auth/2fa/resend:
+    post:
+      operationId: adminSessionTwoFactorResend
+      tags: [auth]
+      summary: Resend a Laravel web-session two-factor code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminTwoFactorResend" }
+      responses:
+        "200": { description: Code delivery result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "422": { description: Invalid login challenge, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /auth/logout:
+    post:
+      operationId: adminSessionLogout
+      tags: [auth]
+      summary: End the Laravel web session
+      description: Logs out of the existing Laravel admin session and invalidates its session cookie.
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Logged out, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /admin/investment-projects:
+    get:
+      operationId: getAdminInvestmentProjects
+      tags: [admin]
+      summary: List investment projects for container tracking administration
+      description: Only authenticated OG Exports administrators can access this project list. Filter by type=container to show container trades.
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - { name: type, in: query, schema: { type: string } }
+        - { name: search, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        "200": { description: Paginated project records from Laravel, content: { application/json: { schema: { $ref: "#/components/schemas/AdminProjectListResponse" } } } }
+        "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "403": { description: OG Exports administrator access required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /admin/projects/{id}/container-tracking:
     get:
       operationId: getAdminProjectContainerTracking
@@ -668,6 +736,54 @@ paths:
         "422": { description: Invalid container record or journey stage, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
 components:
   schemas:
+    AdminLoginCredentials:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 1 }
+        remember: { type: boolean }
+    AdminTwoFactorChallenge:
+      type: object
+      additionalProperties: false
+      required: [token, code]
+      properties:
+        token: { type: string, minLength: 1 }
+        code: { type: string, minLength: 6, maxLength: 6 }
+        remember: { type: boolean }
+    AdminTwoFactorResend:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token: { type: string, minLength: 1 }
+    AdminInvestmentProjectSummary:
+      type: object
+      additionalProperties: true
+      required: [id, title]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        reference: { type: ["string", "null"] }
+        type: { type: ["string", "null"] }
+        status: { type: ["string", "null"] }
+        commodity: { type: ["string", "null"] }
+        origin: { type: ["string", "null"] }
+        destination: { type: ["string", "null"] }
+        vessel: { type: ["string", "null"] }
+        etd: { type: ["string", "null"] }
+        eta: { type: ["string", "null"] }
+    AdminProjectListResponse:
+      type: object
+      additionalProperties: true
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/AdminInvestmentProjectSummary" }
+        links: { type: object, additionalProperties: true }
+        meta: { type: object, additionalProperties: true }
     JourneyStage:
       type: object
       description: An OG Exports-reported journey stage. Null values mean the information has not been reported.
