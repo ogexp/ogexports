@@ -387,20 +387,25 @@ export default function Security() {
       </>}
     </Card>
 
-    <Section title={biometricName === 'Face ID' || biometricName === 'Touch ID' ? `${biometricName} sign-in` : 'Biometric sign-in'} />
+    <Section title={biometricName === 'Face ID' ? 'Face ID' : 'Biometric'} />
     <Card>
-      <Text style={{ color: colors.foreground, fontWeight: '700' }}>{biometricEnabled ? 'Enabled on this device' : 'Not enabled'}</Text>
-      <Text style={{ color: colors.mutedForeground, marginTop: 6, lineHeight: 19, fontSize: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.foreground, fontWeight: '700' }}>{biometricName}</Text>
+          <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 12 }}>
+            {biometricEnabled ? 'Enabled on this device' : 'Not enabled'}
+          </Text>
+        </View>
+        <Status value={biometricEnabled ? 'Enabled' : 'Not enabled'} />
+      </View>
+      <Text style={{ color: colors.mutedForeground, marginTop: 10, lineHeight: 18, fontSize: 12 }}>
         {Platform.OS === 'web'
-          ? 'Manage biometric sign-in in the mobile app on a device with Face ID or fingerprint support.'
+          ? 'Use the installed mobile app to open your device’s biometric prompt.'
           : biometricChecking
-            ? 'Checking this device’s biometric capability…'
+            ? 'Checking Face ID or fingerprint…'
             : biometricInfo?.available
-              ? `${biometricName} is ready on this device. When enabled, it unlocks your saved account session; your password is never stored.`
+              ? `${biometricName} is ready. Tap Biometric to open the phone’s verification prompt.`
               : biometricInfo?.reason ?? 'Biometric availability could not be confirmed on this device.'}
-      </Text>
-      <Text style={{ color: colors.mutedForeground, marginTop: 8, lineHeight: 18, fontSize: 12 }}>
-        This one setting controls biometric app unlock and the Face ID / fingerprint sign-in option. The sign-in option needs a saved session on this device; after a full sign-out, use your account password.
       </Text>
       {biometricError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginTop: 10, fontSize: 12, lineHeight: 18 }}>{biometricError}</Text> : null}
       {biometricNotice ? <Text style={{ color: colors.primary, marginTop: 10, fontSize: 12, lineHeight: 18 }}>{biometricNotice}</Text> : null}
@@ -408,26 +413,16 @@ export default function Security() {
         <View style={{ marginTop: 14 }}>
           <Action
             title={biometricEnabled
-              ? `Turn off ${biometricName} sign-in`
-              : biometricChecking
-                ? 'Checking biometric availability…'
-                : biometricInfo?.available
-                  ? `Enable ${biometricName} sign-in`
-                  : 'Biometric sign-in unavailable'}
+              ? 'Turn off biometric'
+              : 'Biometric'}
             icon="unlock"
             secondary={biometricEnabled}
             loading={busy || biometricChecking}
-            disabled={!biometricEnabled && (!biometricInfo?.available || biometricChecking)}
+            disabled={biometricChecking}
+            testID="security-biometric-action"
             onPress={() => void toggleBiometrics()}
           />
         </View>
-        {!biometricEnabled && biometricInfo && !biometricInfo.available ? <Pressable
-          disabled={busy || biometricChecking}
-          onPress={() => { setBiometricError(''); void refreshBiometricInfo(); }}
-          style={{ alignSelf: 'center', marginTop: 12, padding: 6, opacity: busy || biometricChecking ? 0.5 : 1 }}
-        >
-          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Check again</Text>
-        </Pressable> : null}
       </> : null}
     </Card>
 

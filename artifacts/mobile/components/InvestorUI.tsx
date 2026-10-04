@@ -34,13 +34,13 @@ export function Card({ children, style }: { children: React.ReactNode; style?: o
   return <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }, cardShadow, style]}>{children}</View>;
 }
 
-export function Action({ title, onPress, icon, secondary = false, disabled = false, loading = false }: { title: string; onPress: () => void; icon?: IconName; secondary?: boolean; disabled?: boolean; loading?: boolean }) {
+export function Action({ title, onPress, icon, secondary = false, disabled = false, loading = false, testID }: { title: string; onPress: () => void; icon?: IconName; secondary?: boolean; disabled?: boolean; loading?: boolean; testID?: string }) {
   const colors = useColors();
   const buttonSurface = secondary
     ? { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }
     : { backgroundColor: colors.primary, borderWidth: 1, borderColor: colors.primary };
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} disabled={disabled || loading}
+    <Pressable accessibilityRole="button" testID={testID} onPress={onPress} disabled={disabled || loading}
       style={({ pressed }) => [s.button, buttonSurface, { opacity: disabled ? 0.48 : pressed ? 0.84 : 1 }]}>
       {loading ? <ActivityIndicator color={secondary ? colors.primary : colors.primaryForeground} /> : icon ? <Feather name={icon} size={16} color={secondary ? colors.primary : colors.primaryForeground} /> : null}
       <Text style={[s.buttonText, { color: secondary ? colors.primary : colors.primaryForeground }]}>{title}</Text>
