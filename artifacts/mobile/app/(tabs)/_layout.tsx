@@ -17,9 +17,9 @@ function NativeLayout() {
       labelStyle={{ default: { color: colors.mutedForeground }, selected: { color: colors.primary, fontWeight: '700' } }}
       backgroundColor={colors.card}
     >
-      <NativeTabs.Trigger name="index"><NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} /><NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label></NativeTabs.Trigger>
-      <NativeTabs.Trigger name="opportunities"><NativeTabs.Trigger.Icon sf={{ default: 'chart.line.uptrend.xyaxis', selected: 'chart.line.uptrend.xyaxis' }} /><NativeTabs.Trigger.Label>Invest</NativeTabs.Trigger.Label></NativeTabs.Trigger>
-      <NativeTabs.Trigger name="trade"><NativeTabs.Trigger.Icon sf={{ default: 'arrow.left.arrow.right', selected: 'arrow.left.arrow.right' }} /><NativeTabs.Trigger.Label>Trade</NativeTabs.Trigger.Label></NativeTabs.Trigger>
+      <NativeTabs.Trigger name="index"><NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} /><NativeTabs.Trigger.Label>Dashboard</NativeTabs.Trigger.Label></NativeTabs.Trigger>
+      <NativeTabs.Trigger name="opportunities"><NativeTabs.Trigger.Icon sf={{ default: 'chart.line.uptrend.xyaxis', selected: 'chart.line.uptrend.xyaxis' }} /><NativeTabs.Trigger.Label>Opportunities</NativeTabs.Trigger.Label></NativeTabs.Trigger>
+      <NativeTabs.Trigger name="portfolio"><NativeTabs.Trigger.Icon sf={{ default: 'chart.pie', selected: 'chart.pie.fill' }} /><NativeTabs.Trigger.Label>Portfolio</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="wallet"><NativeTabs.Trigger.Icon sf={{ default: 'wallet.pass', selected: 'wallet.pass.fill' }} /><NativeTabs.Trigger.Label>Wallet</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="account"><NativeTabs.Trigger.Icon sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }} /><NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label></NativeTabs.Trigger>
     </NativeTabs>
@@ -36,14 +36,15 @@ function ClassicLayout() {
       tabBarBackground: () => Platform.OS === 'ios' ? <BlurView intensity={85} tint="light" style={StyleSheet.absoluteFill} /> : isWeb ? <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]} /> : null,
     }}>
       {([
-        ['index', 'Home', 'home', 'house'],
-        ['opportunities', 'Invest', 'trending-up', 'chart.line.uptrend.xyaxis'],
-        ['trade', 'Trade', 'repeat', 'arrow.left.arrow.right'],
+        ['index', 'Dashboard', 'home', 'house'],
+        ['opportunities', 'Opportunities', 'trending-up', 'chart.line.uptrend.xyaxis'],
+        ['portfolio', 'Portfolio', 'pie-chart', 'chart.pie'],
         ['wallet', 'Wallet', 'credit-card', 'wallet.pass'],
         ['account', 'Profile', 'user', 'person.crop.circle'],
       ] as const).map(([name, title, feather, symbol]) => (
         <Tabs.Screen key={name} name={name} options={{ title, tabBarIcon: ({ color }) => Platform.OS === 'ios' ? <SymbolView name={symbol} tintColor={color} size={21} /> : <Feather name={feather} size={20} color={color} /> }} />
       ))}
+      <Tabs.Screen name="trade" options={{ href: null }} />
     </Tabs>
   );
 }
