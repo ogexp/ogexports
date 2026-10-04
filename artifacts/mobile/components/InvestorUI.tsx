@@ -52,12 +52,21 @@ export function Field({ label, value, onChangeText, placeholder, secureTextEntry
   label: string; value: string; onChangeText: (value: string) => void; placeholder?: string; secureTextEntry?: boolean; keyboardType?: 'default' | 'email-address' | 'numeric' | 'decimal-pad' | 'phone-pad'; autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters'; multiline?: boolean;
 }) {
   const colors = useColors();
+  const [focused, setFocused] = React.useState(false);
   return (
     <View style={{ gap: 7, marginBottom: 14 }}>
       <Text style={[s.label, { color: colors.foreground }]}>{label}</Text>
       <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.mutedForeground}
         secureTextEntry={secureTextEntry} keyboardType={keyboardType} autoCapitalize={autoCapitalize} multiline={multiline}
-        style={[s.input, { backgroundColor: colors.card, borderColor: colors.input, color: colors.foreground }, multiline ? { minHeight: 92, textAlignVertical: 'top' } : null]} />
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        selectionColor={colors.primary} underlineColorAndroid={focused ? colors.primary : colors.input}
+        style={[s.input, {
+          backgroundColor: colors.card,
+          borderColor: focused ? colors.primary : colors.input,
+          borderWidth: focused ? 1.5 : 1,
+          color: colors.foreground,
+          outlineWidth: 0,
+        }, multiline ? { minHeight: 92, textAlignVertical: 'top' } : null]} />
     </View>
   );
 }

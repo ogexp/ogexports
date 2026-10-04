@@ -70,7 +70,8 @@ function RegisterField({
           textContentType={textContentType}
           secureTextEntry={secureTextEntry}
           selectionColor={colors.primary}
-          style={[s.input, { color: colors.foreground }]}
+          underlineColorAndroid="transparent"
+          style={[s.input, { color: colors.foreground, outlineWidth: 0 }]}
         />
         {trailing}
       </View>
@@ -126,7 +127,7 @@ export default function Register() {
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom + 24;
   return (
     <KeyboardAwareScrollViewCompat
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: colors.secondary }}
       contentContainerStyle={[s.container, { paddingTop: topInset, paddingBottom: bottomInset }]}
       bottomOffset={72}
       keyboardShouldPersistTaps="handled"
