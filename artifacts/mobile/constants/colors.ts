@@ -28,6 +28,7 @@ const colors = {
     mutedForeground: '#64716A',
     lightGreen: '#EAF4EF',
     glow: 'rgba(76, 175, 80, 0.12)',
+    logoBackground: '#000000',
     accent: '#C6A969',
     accentForeground: '#1F2933',
     statusSuccessBackground: '#EAF4EF',
