@@ -26,6 +26,8 @@ import type {
   GetInvestorProjectsParams,
   GetInvestorWalletTransactionsParams,
   GetInvestorWithdrawalsParams,
+  InvestorPushTokenRegistration,
+  InvestorPushTokenRevocation,
   JsonObject
 } from './api.schemas';
 
@@ -3936,6 +3938,182 @@ export function useGetInvestorNotifications<TData = Awaited<ReturnType<typeof ge
 
 
 
+
+export const getRegisterInvestorPushTokenUrl = () => {
+
+
+
+
+  return `/api/investor/push-tokens/register`
+}
+
+/**
+ * @summary Register a push token for the signed-in device
+ */
+export const registerInvestorPushToken = async (investorPushTokenRegistration: InvestorPushTokenRegistration, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<JsonObject>(getRegisterInvestorPushTokenUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(investorPushTokenRegistration)
+  }
+);}
+
+
+
+
+
+export const getRegisterInvestorPushTokenMutationKey = () => ['registerInvestorPushToken'] as const;
+
+export const getRegisterInvestorPushTokenMutationOptions = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerInvestorPushToken>>, TError,RegisterInvestorPushTokenMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof registerInvestorPushToken>>, TError,RegisterInvestorPushTokenMutationVariables, TContext> => {
+
+const mutationKey = getRegisterInvestorPushTokenMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerInvestorPushToken>>, RegisterInvestorPushTokenMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  registerInvestorPushToken(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegisterInvestorPushTokenMutationResult = NonNullable<Awaited<ReturnType<typeof registerInvestorPushToken>>>
+    export type RegisterInvestorPushTokenMutationBody = BodyType<InvestorPushTokenRegistration>
+    export type RegisterInvestorPushTokenMutationError = ErrorType<JsonObject>
+    export type RegisterInvestorPushTokenMutationVariables = {data: BodyType<InvestorPushTokenRegistration>}
+
+    /**
+ * @summary Register a push token for the signed-in device
+ */
+export const useRegisterInvestorPushToken = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerInvestorPushToken>>, TError,RegisterInvestorPushTokenMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof registerInvestorPushToken>>,
+        TError,
+        RegisterInvestorPushTokenMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRegisterInvestorPushTokenMutationOptions(options));
+    }
+
+export const getRevokeInvestorPushTokenUrl = () => {
+
+
+
+
+  return `/api/investor/push-tokens/revoke`
+}
+
+/**
+ * @summary Disable push delivery for the signed-in device
+ */
+export const revokeInvestorPushToken = async (investorPushTokenRevocation: InvestorPushTokenRevocation, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<JsonObject>(getRevokeInvestorPushTokenUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(investorPushTokenRevocation)
+  }
+);}
+
+
+
+
+
+export const getRevokeInvestorPushTokenMutationKey = () => ['revokeInvestorPushToken'] as const;
+
+export const getRevokeInvestorPushTokenMutationOptions = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeInvestorPushToken>>, TError,RevokeInvestorPushTokenMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeInvestorPushToken>>, TError,RevokeInvestorPushTokenMutationVariables, TContext> => {
+
+const mutationKey = getRevokeInvestorPushTokenMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeInvestorPushToken>>, RevokeInvestorPushTokenMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  revokeInvestorPushToken(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeInvestorPushTokenMutationResult = NonNullable<Awaited<ReturnType<typeof revokeInvestorPushToken>>>
+    export type RevokeInvestorPushTokenMutationBody = BodyType<InvestorPushTokenRevocation>
+    export type RevokeInvestorPushTokenMutationError = ErrorType<JsonObject>
+    export type RevokeInvestorPushTokenMutationVariables = {data: BodyType<InvestorPushTokenRevocation>}
+
+    /**
+ * @summary Disable push delivery for the signed-in device
+ */
+export const useRevokeInvestorPushToken = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeInvestorPushToken>>, TError,RevokeInvestorPushTokenMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeInvestorPushToken>>,
+        TError,
+        RevokeInvestorPushTokenMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRevokeInvestorPushTokenMutationOptions(options));
+    }
 
 export const getGetInvestorUnreadNotificationCountUrl = () => {
 

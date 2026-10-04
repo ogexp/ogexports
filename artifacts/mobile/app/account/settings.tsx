@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 import {
   useGetInvestorProfile,
   useGetInvestorWallet,
   useGetInvestorTransactionPasswordStatus,
   useInvestorMobileLogout,
+  useRegisterInvestorPushToken,
+  useRevokeInvestorPushToken,
   useResetInvestorTransactionPassword,
   useSetInvestorTransactionPassword,
   useUpdateInvestorPassword,
@@ -18,10 +23,14 @@ import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { validOrigin } from '@/lib/api-config';
 import { useColors } from '@/hooks/useColors';
 
+const pushEnabledKey = (userId: string) => `og-investor-push-enabled:${userId}`;
+const pushTokenKey = (userId: string) => `og-investor-push-token:${userId}`;
+
 export default function Settings() {
-  const { token, apiOrigin, updateOrigin, signOut } = useAuth();
+  const { token, user, apiOrigin, updateOrigin, signOut } = useAuth();
   const colors = useColors();
   const queryClient = useQueryClient();
+  const userId = first(record(user), ['id']);
   const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: !!token } });
   const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: !!token, staleTime: 30_000 } });
   const transactionPasswordQuery = useGetInvestorTransactionPasswordStatus({
@@ -32,6 +41,8 @@ export default function Settings() {
   const setTransactionPassword = useSetInvestorTransactionPassword();
   const resetTransactionPassword = useResetInvestorTransactionPassword();
   const logout = useInvestorMobileLogout();
+  const registerPushToken = useRegisterInvestorPushToken();
+  const revokePushToken = useRevokeInvestorPushToken();
   const profile = unwrap(profileQuery.data);
   const wallet = unwrap(walletQuery.data);
   const walletCurrency = first(wallet, ['currency', 'default_currency']);
@@ -62,6 +73,12 @@ export default function Settings() {
   const [newTransactionPassword, setNewTransactionPassword] = useState('');
   const [confirmTransactionPassword, setConfirmTransactionPassword] = useState('');
   const [error, setError] = useState('');
+  const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState('');
+  const expoProjectId = Constants.easConfig?.projectId
+    ?? Constants.expoConfig?.extra?.eas?.projectId
+    ?? '';
 
   useEffect(() => {
     setServer(apiOrigin);
@@ -78,6 +95,127 @@ export default function Settings() {
       setBankCurrency(first(savedAccount, ['currency']));
     }
   }, [apiOrigin, profileQuery.data]);
+
+  useEffect(() => {
+    let active = true;
+    setPushEnabled(null);
+    setPushError('');
+    if (!userId) {
+      setPushEnabled(false);
+      return () => { active = false; };
+    }
+    void AsyncStorage.getItem(pushEnabledKey(userId))
+      .then(value => { if (active) setPushEnabled(value === 'enabled'); })
+      .catch(() => { if (active) setPushEnabled(false); });
+    return () => { active = false; };
+  }, [userId]);
+
+  async function enablePushNotifications() {
+    setPushError('');
+    if (Platform.OS === 'web') {
+      setPushError('Push notifications can only be enabled on an iOS or Android device.');
+      return;
+    }
+    if (!expoProjectId) {
+      setPushError('Push notifications are not configured for this app build yet. Device permission was not requested.');
+      return;
+    }
+    if (!userId) {
+      setPushError('Sign in again before enabling push notifications.');
+      return;
+    }
+
+    setPushBusy(true);
+    try {
+      const notifications = await import('expo-notifications');
+      if (Platform.OS === 'android') {
+        await notifications.setNotificationChannelAsync('default', {
+          name: 'Default',
+          importance: notifications.AndroidImportance.DEFAULT,
+        });
+      }
+
+      let permission = await notifications.getPermissionsAsync();
+      if (!permission.granted) permission = await notifications.requestPermissionsAsync();
+      if (!permission.granted) {
+        if (permission.status === 'denied' && !permission.canAskAgain) {
+          Alert.alert(
+            'Notifications are blocked',
+            'Allow notifications in your device settings to enable investor updates.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Open Settings',
+                onPress: () => {
+                  if (Platform.OS !== 'web') {
+                    void Linking.openSettings().catch(() => {
+                      setPushError('Device settings could not be opened. Enable notifications from system settings.');
+                    });
+                  }
+                },
+              },
+            ],
+          );
+        }
+        return;
+      }
+
+      const devicePushToken = (await notifications.getExpoPushTokenAsync({
+        projectId: expoProjectId,
+      })).data;
+      const secureKey = pushTokenKey(userId);
+      await SecureStore.setItemAsync(secureKey, devicePushToken);
+      try {
+        await registerPushToken.mutateAsync({
+          data: {
+            expo_push_token: devicePushToken,
+            platform: Platform.OS === 'ios' ? 'ios' : 'android',
+          },
+        });
+        await AsyncStorage.setItem(pushEnabledKey(userId), 'enabled');
+      } catch (registrationError) {
+        try {
+          await revokePushToken.mutateAsync({ data: { expo_push_token: devicePushToken } });
+        } catch {
+          // A failed registration may already have been revoked by the server.
+        }
+        await SecureStore.deleteItemAsync(secureKey).catch(() => undefined);
+        throw registrationError;
+      }
+      setPushEnabled(true);
+      Alert.alert('Notifications enabled', 'This device is registered for investor push updates.');
+    } catch (pushRegistrationError) {
+      setPushError(messageOf(pushRegistrationError));
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function disablePushNotifications() {
+    setPushError('');
+    if (!userId) {
+      setPushError('Sign in again before changing push notification settings.');
+      return;
+    }
+    setPushBusy(true);
+    try {
+      const secureKey = pushTokenKey(userId);
+      const devicePushToken = await SecureStore.getItemAsync(secureKey);
+      if (!devicePushToken) {
+        throw new Error('This device has no saved push token to revoke. Sign out and back in, then enable notifications again.');
+      }
+      await revokePushToken.mutateAsync({ data: { expo_push_token: devicePushToken } });
+      await Promise.all([
+        SecureStore.deleteItemAsync(secureKey),
+        AsyncStorage.removeItem(pushEnabledKey(userId)),
+      ]);
+      setPushEnabled(false);
+    } catch (pushRevocationError) {
+      setPushError(messageOf(pushRevocationError));
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   async function saveProfile() {
     setError('');
@@ -180,6 +318,20 @@ export default function Settings() {
   }
 
   async function signOutNow() {
+    if (userId) {
+      try {
+        const devicePushToken = await SecureStore.getItemAsync(pushTokenKey(userId));
+        if (devicePushToken) {
+          await revokePushToken.mutateAsync({ data: { expo_push_token: devicePushToken } });
+        }
+      } catch {
+        // Session revocation still prevents the server from selecting this device for future pushes.
+      }
+      await Promise.all([
+        SecureStore.deleteItemAsync(pushTokenKey(userId)),
+        AsyncStorage.removeItem(pushEnabledKey(userId)),
+      ]).catch(() => undefined);
+    }
     try { await logout.mutateAsync(); } catch { /* Removing the local token still signs this device out. */ }
     queryClient.clear();
     await signOut();
@@ -216,6 +368,29 @@ export default function Settings() {
         <Text style={{ color: colors.foreground, fontWeight: '600' }}>{walletQuery.isLoading ? 'Loading…' : walletCurrency || 'Not available'}</Text>
       </View>
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 5 }}>This app is currently in English. Amounts use the wallet currency returned by OG Exports; the investor API does not provide a selectable mobile display-currency setting.</Text>
+    </Card>
+
+    <Card>
+      <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 6 }}>Push notifications</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>
+        {pushEnabled === null
+          ? 'Checking this device…'
+          : pushEnabled
+            ? 'This device is registered for investor updates. Turning this off revokes its server registration.'
+            : 'Optional investor updates. Device permission is requested only after you choose to enable them.'}
+      </Text>
+      {!expoProjectId && !pushEnabled
+        ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>Push setup is waiting for this app’s Expo project ID. Permission will not be requested until that is configured.</Text>
+        : null}
+      {pushError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginBottom: 10 }}>{pushError}</Text> : null}
+      <Action
+        title={pushEnabled ? 'Turn off push notifications' : 'Enable push notifications'}
+        icon={pushEnabled ? 'bell-off' : 'bell'}
+        secondary={!pushEnabled}
+        loading={pushBusy}
+        disabled={pushEnabled === null || (!pushEnabled && (!expoProjectId || Platform.OS === 'web'))}
+        onPress={() => void (pushEnabled ? disablePushNotifications() : enablePushNotifications())}
+      />
     </Card>
 
     <Card>

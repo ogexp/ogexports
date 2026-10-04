@@ -5,6 +5,33 @@
  * OG Exports investor mobile API, generated from the Laravel mobile API contract
  * OpenAPI spec version: 1.0.0
  */
+export type InvestorPushTokenRegistrationPlatform = typeof InvestorPushTokenRegistrationPlatform[keyof typeof InvestorPushTokenRegistrationPlatform];
+
+
+export const InvestorPushTokenRegistrationPlatform = {
+  ios: 'ios',
+  android: 'android',
+} as const;
+
+export interface InvestorPushTokenRegistration {
+  /**
+     * @minLength 20
+     * @maxLength 256
+     * @pattern ^Expo(nent)?PushToken\[[A-Za-z0-9._-]+\]$
+     */
+  expo_push_token: string;
+  platform: InvestorPushTokenRegistrationPlatform;
+}
+
+export interface InvestorPushTokenRevocation {
+  /**
+     * @minLength 20
+     * @maxLength 256
+     * @pattern ^Expo(nent)?PushToken\[[A-Za-z0-9._-]+\]$
+     */
+  expo_push_token: string;
+}
+
 export interface JsonObject { [key: string]: unknown }
 
 export type GetInvestorProjectsParams = {

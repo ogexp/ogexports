@@ -510,6 +510,35 @@ paths:
       security: [{ BearerAuth: [] }]
       responses:
         "200": { description: Notifications, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/push-tokens/register:
+    post:
+      operationId: registerInvestorPushToken
+      tags: [communication]
+      summary: Register a push token for the signed-in device
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvestorPushTokenRegistration" }
+      responses:
+        "200": { description: Push token registered, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "422": { description: Invalid push token, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/push-tokens/revoke:
+    post:
+      operationId: revokeInvestorPushToken
+      tags: [communication]
+      summary: Disable push delivery for the signed-in device
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvestorPushTokenRevocation" }
+      responses:
+        "200": { description: Push token revoked, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /investor/notifications/unread-count:
     get:
       operationId: getInvestorUnreadNotificationCount
@@ -590,6 +619,27 @@ paths:
         "201": { description: Ticket created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
 components:
   schemas:
+    InvestorPushTokenRegistration:
+      type: object
+      required: [expo_push_token, platform]
+      properties:
+        expo_push_token:
+          type: string
+          minLength: 20
+          maxLength: 256
+          pattern: "^Expo(nent)?PushToken\\[[A-Za-z0-9._-]+\\]$"
+        platform:
+          type: string
+          enum: [ios, android]
+    InvestorPushTokenRevocation:
+      type: object
+      required: [expo_push_token]
+      properties:
+        expo_push_token:
+          type: string
+          minLength: 20
+          maxLength: 256
+          pattern: "^Expo(nent)?PushToken\\[[A-Za-z0-9._-]+\\]$"
     JsonObject:
       type: object
       additionalProperties: true

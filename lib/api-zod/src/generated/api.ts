@@ -383,6 +383,41 @@ export const GetInvestorNotificationsResponse = zod.record(zod.string(), zod.unk
 
 
 /**
+ * @summary Register a push token for the signed-in device
+ */
+export const registerInvestorPushTokenBodyExpoPushTokenMin = 20;
+export const registerInvestorPushTokenBodyExpoPushTokenMax = 256;
+
+
+export const registerInvestorPushTokenBodyExpoPushTokenRegExp = new RegExp('^Expo(nent)?PushToken\\[[A-Za-z0-9._-]+\\]$');
+
+
+export const RegisterInvestorPushTokenBody = zod.object({
+  "expo_push_token": zod.string().min(registerInvestorPushTokenBodyExpoPushTokenMin).max(registerInvestorPushTokenBodyExpoPushTokenMax).regex(registerInvestorPushTokenBodyExpoPushTokenRegExp),
+  "platform": zod.enum(['ios', 'android'])
+})
+
+export const RegisterInvestorPushTokenResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Disable push delivery for the signed-in device
+ */
+export const revokeInvestorPushTokenBodyExpoPushTokenMin = 20;
+export const revokeInvestorPushTokenBodyExpoPushTokenMax = 256;
+
+
+export const revokeInvestorPushTokenBodyExpoPushTokenRegExp = new RegExp('^Expo(nent)?PushToken\\[[A-Za-z0-9._-]+\\]$');
+
+
+export const RevokeInvestorPushTokenBody = zod.object({
+  "expo_push_token": zod.string().min(revokeInvestorPushTokenBodyExpoPushTokenMin).max(revokeInvestorPushTokenBodyExpoPushTokenMax).regex(revokeInvestorPushTokenBodyExpoPushTokenRegExp)
+})
+
+export const RevokeInvestorPushTokenResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary Get unread notification count
  */
 export const GetInvestorUnreadNotificationCountResponse = zod.record(zod.string(), zod.unknown())

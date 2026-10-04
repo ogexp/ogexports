@@ -152,6 +152,23 @@ export async function createInvestorSession(
   return token;
 }
 
+export async function findInvestorSessionFromAuthorization(
+  header: string | undefined,
+): Promise<{ id: string; userId: string } | null> {
+  const match = /^Bearer\s+([A-Za-z0-9_-]+)$/i.exec(header ?? "");
+  if (!match) return null;
+  const tokenHash = createHash("sha256").update(match[1]).digest("hex");
+  const [session] = await db.select({
+    id: investorSessions.id,
+    userId: investorSessions.userId,
+  }).from(investorSessions).where(and(
+    eq(investorSessions.tokenHash, tokenHash),
+    isNull(investorSessions.revokedAt),
+    gt(investorSessions.expiresAt, new Date()),
+  )).limit(1);
+  return session ?? null;
+}
+
 export async function revokeSessionFromAuthorization(header: string | undefined): Promise<void> {
   const match = /^Bearer\s+([A-Za-z0-9_-]+)$/i.exec(header ?? "");
   if (!match) return;
