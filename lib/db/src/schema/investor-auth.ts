@@ -1,10 +1,11 @@
-import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const investorUsers = pgTable("investor_users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  mobile: text("mobile").unique(),
+  mobile: text("mobile"),
   country: text("country"),
   accountType: text("account_type").notNull().default("investor"),
   passwordHash: text("password_hash").notNull(),
@@ -13,7 +14,11 @@ export const investorUsers = pgTable("investor_users", {
   emailTwoFactorEnabled: boolean("email_two_factor_enabled").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, table => [
+  index("investor_users_mobile_idx").on(table.mobile),
+  // Legacy users may not have a mobile number; only populated values must be unique.
+  uniqueIndex("investor_users_mobile_unique").on(table.mobile).where(sql`${table.mobile} IS NOT NULL`),
+]);
 
 export const investorSessions = pgTable("investor_sessions", {
   id: text("id").primaryKey(),

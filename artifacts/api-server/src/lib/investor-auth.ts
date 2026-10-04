@@ -45,22 +45,6 @@ export function normalizeMobile(mobile: string): string {
   return /^\+[1-9]\d{6,14}$/.test(compact) ? compact : "";
 }
 
-export async function findInvestorUserByIdentifier(identifier: string): Promise<InvestorUser | null> {
-  const value = identifier.trim();
-  if (value.includes("@")) {
-    const [user] = await db.select().from(investorUsers)
-      .where(eq(investorUsers.email, normalizeEmail(value)))
-      .limit(1);
-    return user ?? null;
-  }
-  const mobile = normalizeMobile(value);
-  if (!mobile) return null;
-  const [user] = await db.select().from(investorUsers)
-    .where(eq(investorUsers.mobile, mobile))
-    .limit(1);
-  return user ?? null;
-}
-
 export class AuthEmailDeliveryError extends Error {
   constructor() {
     super("Email delivery is unavailable.");

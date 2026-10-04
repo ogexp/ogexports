@@ -19,7 +19,6 @@ import {
   issueChallenge,
   issuePasswordResetChallenge,
   normalizeEmail,
-  normalizeMobile,
   publicInvestorUser,
   revokeSessionFromAuthorization,
   verifyChallenge,
@@ -93,16 +92,12 @@ router.post(["/auth/register", "/auth/registers/pre"], async (req, res) => {
   const body = bodyOf(req);
   const name = stringValue(body.name);
   const email = normalizeEmail(stringValue(body.email));
-  const mobile = normalizeMobile(stringValue(body.mobile ?? body.phone));
-  const country = stringValue(body.country);
   const password = typeof body.password === "string" ? body.password : "";
   const passwordConfirmation = typeof body.password_confirmation === "string" ? body.password_confirmation : "";
   const accountType = stringValue(body.account_type);
 
   if (name.length < 2 || name.length > 120) return validationError(res, "Enter your full name.");
   if (!validEmail(email)) return validationError(res, "Enter a valid email address.");
-  if (!mobile) return validationError(res, "Enter a mobile number with its country code, such as +923001234567.");
-  if (country.length < 2 || country.length > 80) return validationError(res, "Enter your country or region.");
   if (password.length < 8 || password.length > 128) return validationError(res, "Password must be between 8 and 128 characters.");
   if (password !== passwordConfirmation) return validationError(res, "The password and confirmation do not match.");
   if (accountType !== "investor") return validationError(res, "Only investor accounts can be created here.");
@@ -112,16 +107,11 @@ router.post(["/auth/register", "/auth/registers/pre"], async (req, res) => {
     const [existingEmail] = await db.select({ id: investorUsers.id }).from(investorUsers)
       .where(eq(investorUsers.email, email)).limit(1);
     if (existingEmail) return validationError(res, "An account with this email already exists.");
-    const [existingMobile] = await db.select({ id: investorUsers.id }).from(investorUsers)
-      .where(eq(investorUsers.mobile, mobile)).limit(1);
-    if (existingMobile) return validationError(res, "An account with this mobile number already exists.");
 
     const [user] = await db.insert(investorUsers).values({
       id: randomUUID(),
       name,
       email,
-      mobile,
-      country,
       accountType: "investor",
       passwordHash: await hashPassword(password),
     }).returning();
@@ -348,6 +338,60 @@ router.post("/auth/reset-password", async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     authError(res, error, "The password could not be updated. Try again.");
+  }
+});
+
+router.get("/me", requireInvestorSession, async (_req, res) => {
+  const current = authenticatedSession(res);
+  try {
+    const [user] = await db.select().from(investorUsers)
+      .where(eq(investorUsers.id, current.userId))
+      .limit(1);
+    if (!user) {
+      res.status(404).json({ message: "The investor account was not found." });
+      return;
+    }
+    res.json({ data: publicInvestorUser(user) });
+  } catch {
+    res.status(500).json({ message: "Your profile details could not be loaded." });
+  }
+});
+
+router.put("/me", requireInvestorSession, async (req, res) => {
+  const current = authenticatedSession(res);
+  const body = bodyOf(req);
+  const name = stringValue(body.name);
+  const enteredMobile = stringValue(body.mobile ?? body.phone);
+  const mobile = enteredMobile ? normalizeMobile(enteredMobile) : null;
+  const country = stringValue(body.country);
+  if (name.length < 2 || name.length > 120) return validationError(res, "Enter your full name.");
+  if (enteredMobile && !mobile) return validationError(res, "Enter a mobile number with its country code, such as +923001234567.");
+  if (country.length > 80) return validationError(res, "Country or region must be 80 characters or fewer.");
+
+  try {
+    if (mobile) {
+      const [existingMobile] = await db.select({ id: investorUsers.id }).from(investorUsers)
+        .where(and(eq(investorUsers.mobile, mobile), ne(investorUsers.id, current.userId)))
+        .limit(1);
+      if (existingMobile) return validationError(res, "That mobile number is already associated with another account.");
+    }
+    const [user] = await db.update(investorUsers)
+      .set({
+        name,
+        mobile,
+        country: country || null,
+        phoneVerifiedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(investorUsers.id, current.userId))
+      .returning();
+    if (!user) {
+      res.status(404).json({ message: "The investor account was not found." });
+      return;
+    }
+    res.json({ success: true, user: publicInvestorUser(user) });
+  } catch {
+    res.status(500).json({ message: "Your profile details could not be saved." });
   }
 });
 
