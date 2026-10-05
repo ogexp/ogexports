@@ -191,6 +191,8 @@ export function OpenInvestmentsListing() {
                         <FundingProgress
                           raised={c.currentFunding}
                           target={c.targetFunding}
+                          fundingPercentage={c.fundingPercentage}
+                          remainingAmount={c.remainingAmount}
                           currency={c.currency}
                           variant="compact"
                         />
@@ -266,6 +268,8 @@ export function OpenInvestmentsListing() {
                       <FundingProgress
                         raised={p.currentFunding}
                         target={p.fundingTarget}
+                        fundingPercentage={p.fundingPercentage}
+                        remainingAmount={p.remainingAmount}
                         currency={p.currency}
                         variant="compact"
                         className="pt-2"

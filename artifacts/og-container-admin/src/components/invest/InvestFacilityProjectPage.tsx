@@ -743,7 +743,6 @@ export function InvestFacilityProjectPage({ config }: InvestFacilityProjectPageP
           initialAmount={selectedProject.minInvestment}
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
-          pendingReserved={selectedProject.pendingReserved}
           remainingAmount={selectedProject.remainingAmount}
           isFull={selectedProject.isFull}
           redirectTo="/invest/dashboard"

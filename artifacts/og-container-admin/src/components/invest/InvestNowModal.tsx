@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast"
 import { CheckCircle2, ChevronRight, ShieldCheck, Wallet, Loader2, AlertCircle } from "lucide-react"
 import { ContainerInvestment, LongTermProject } from "@/data/investments"
 import { api, ApiError } from "@/lib/api"
-import { getFundingMetrics } from "@/lib/funding-metrics"
 import { formatInvestorProjectAmount } from "@/lib/invest-format"
 
 interface InvestNowModalProps {
@@ -16,8 +15,7 @@ interface InvestNowModalProps {
   initialAmount: number
   isOpen: boolean
   onClose: () => void
-  onSuccess?: () => void
-  pendingReserved?: number | null
+  onSuccess?: (result: Record<string, any>) => void
   remainingAmount?: number | null
   isFull?: boolean
   redirectTo?: string
@@ -31,17 +29,21 @@ export function InvestNowModal({
   isOpen,
   onClose,
   onSuccess,
-  pendingReserved,
   remainingAmount,
   isFull = false,
-  redirectTo = "/invest/containers",
+  redirectTo = "/invest/dashboard",
 }: InvestNowModalProps) {
   const { toast } = useToast()
   const [, setLocation] = useLocation()
   const [step, setStep] = useState(0)
   const [amount, setAmount] = useState(initialAmount > 0 ? initialAmount.toString() : "")
-  const [agreed, setAgreed] = useState(false)
-  const [investId, setInvestId] = useState("")
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [riskAcknowledged, setRiskAcknowledged] = useState(false)
+  const [confirmation, setConfirmation] = useState<{
+    reference: string | null
+    status: string | null
+    message: string
+  } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [walletCurrency, setWalletCurrency] = useState("")
@@ -50,15 +52,10 @@ export function InvestNowModal({
   const isProject = "category" in investment
   const itemName = isProject ? investment.name : investment.commodity
   const returnPct = investment.expectedReturnPct
-  const raised = investment.currentFunding
-  const target = isProject ? investment.fundingTarget : investment.targetFunding
   const termProvided = isProject
-    ? investment.investmentPeriodMonths != null
+    ? investment.investmentPeriodDays != null || investment.investmentPeriodMonths != null
     : investment.investmentPeriodDays != null
-  const metrics = raised != null && target != null && target > 0 && pendingReserved != null
-    ? getFundingMetrics(raised, target, pendingReserved)
-    : null
-  const remaining = remainingAmount ?? metrics?.remaining ?? null
+  const remaining = remainingAmount ?? null
   const full = isFull === true || (remaining != null && remaining <= 0)
   const termsProvided = Boolean(investment.currency)
     && investment.minInvestment != null
@@ -81,8 +78,9 @@ export function InvestNowModal({
       : investment.minInvestment != null
         ? String(investment.minInvestment)
         : "")
-    setAgreed(false)
-    setInvestId("")
+    setTermsAccepted(false)
+    setRiskAcknowledged(false)
+    setConfirmation(null)
     setWalletBalance(null)
     setWalletCurrency("")
     setWalletLoading(true)
@@ -124,20 +122,28 @@ export function InvestNowModal({
   })()
 
   const handleSubmit = async () => {
-    if (amountError) return
+    if (amountError || !termsAccepted || !riskAcknowledged) return
     setSubmitting(true)
     try {
       const res: any = await api.post(`/api/investor/projects/${investment.id}/invest`, { amount: value })
-      const data = res?.data ?? res
-      const ref = data?.reference || (data?.id ? `OGEXP-${data.id}` : "submitted")
-      setInvestId(String(ref))
+      const body = res && typeof res === "object" ? res : {}
+      const record = body?.data && typeof body.data === "object" ? body.data : body
+      const reference = typeof record?.reference === "string" && record.reference.trim()
+        ? record.reference.trim()
+        : null
+      const status = typeof record?.status === "string" && record.status.trim()
+        ? record.status.trim()
+        : null
+      const message = typeof body?.message === "string" && body.message.trim()
+        ? body.message.trim()
+        : "The investor service accepted the request."
+      setConfirmation({ reference, status, message })
+      setStep(3)
       toast({
-        title: "Investment request submitted",
-        description: `Reference ${ref}.`,
+        title: "Investment confirmed",
+        description: reference ? `Server reference: ${reference}` : message,
       })
-      onSuccess?.()
-      onClose()
-      window.setTimeout(() => setLocation(redirectTo), 1200)
+      onSuccess?.(body)
     } catch (e: any) {
       const msg =
         e instanceof ApiError
@@ -187,7 +193,9 @@ export function InvestNowModal({
                   <div className="text-xs text-muted-foreground mb-1">Term</div>
                   <div className="font-semibold">
                     {isProject
-                      ? (investment.investmentPeriodMonths == null ? "Not provided" : `${investment.investmentPeriodMonths} Months`)
+                      ? investment.investmentPeriodDays != null
+                        ? `${investment.investmentPeriodDays} Days`
+                        : (investment.investmentPeriodMonths == null ? "Not provided" : `${investment.investmentPeriodMonths} Months`)
                       : (investment.investmentPeriodDays == null ? "Not provided" : `${investment.investmentPeriodDays} Days`)}
                   </div>
                 </div>
@@ -257,11 +265,19 @@ export function InvestNowModal({
                 <p>2. <strong>Returns:</strong> Any published rate is an estimate, not a guarantee. If no rate is shown, consult the signed project terms.</p>
                 <p>3. <strong>Settlement:</strong> Amounts and timing are determined by the final project records and agreement.</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(!!checked)} />
-                <label htmlFor="terms" className="text-sm font-medium leading-none">
-                  I agree to the Investment Agreement and understand the risks.
-                </label>
+              <div className="space-y-3">
+                <div className="flex items-start space-x-2">
+                  <Checkbox id="terms" checked={termsAccepted} onCheckedChange={(checked) => setTermsAccepted(!!checked)} />
+                  <label htmlFor="terms" className="text-sm font-medium leading-snug">
+                    I agree to the investment terms for this opportunity.
+                  </label>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <Checkbox id="risk" checked={riskAcknowledged} onCheckedChange={(checked) => setRiskAcknowledged(!!checked)} />
+                  <label htmlFor="risk" className="text-sm font-medium leading-snug">
+                    I understand that capital is at risk and returns are not guaranteed.
+                  </label>
+                </div>
               </div>
             </div>
           )}
@@ -271,13 +287,20 @@ export function InvestNowModal({
               <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-8 h-8 text-emerald-500" />
               </div>
-              <h3 className="text-xl font-heading font-bold">Request Submitted</h3>
+              <h3 className="text-xl font-heading font-bold">Investment Confirmed</h3>
               <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-                Your request was accepted by the investor service. Check your investor records for its current status.
+                {confirmation?.message || "The investor service accepted the investment."}
               </p>
-              <div className="inline-block bg-muted/50 rounded-lg px-4 py-2 font-mono text-sm border border-border/50">
-                Ref: {investId}
-              </div>
+              {confirmation?.reference && (
+                <div className="inline-block bg-muted/50 rounded-lg px-4 py-2 font-mono text-sm border border-border/50">
+                  Reference: {confirmation.reference}
+                </div>
+              )}
+              {confirmation?.status && (
+                <p className="text-xs text-muted-foreground">
+                  Server status: <span className="font-medium capitalize">{confirmation.status.replaceAll("_", " ")}</span>
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -299,7 +322,7 @@ export function InvestNowModal({
                 </Button>
               )}
               {step === 2 && (
-                <Button onClick={() => void handleSubmit()} disabled={!agreed || submitting || !!amountError}>
+                <Button onClick={() => void handleSubmit()} disabled={!termsAccepted || !riskAcknowledged || submitting || !!amountError}>
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
                   Confirm Invest
                 </Button>
@@ -307,7 +330,10 @@ export function InvestNowModal({
             </div>
           )}
           {step === 3 && (
-            <Button onClick={onClose} className="w-full">Done</Button>
+            <div className="flex w-full gap-2">
+              <Button variant="outline" onClick={onClose} className="flex-1">Done</Button>
+              <Button onClick={() => { setLocation(redirectTo); onClose() }} className="flex-1">View dashboard</Button>
+            </div>
           )}
         </DialogFooter>
       </DialogContent>

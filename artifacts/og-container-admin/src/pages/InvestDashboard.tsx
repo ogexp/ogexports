@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { notify } from "@/lib/notify"
 import { useCurrency } from "@/lib/use-currency"
 import { formatInvestorLedgerAmount } from "@/lib/format-investor-ledger"
@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts"
 import {
@@ -18,7 +18,7 @@ import {
   ArrowUpRight, ArrowDownRight, AlertCircle, Activity, ShieldCheck,
   Ship, AlertTriangle, X, Loader2
 } from "lucide-react"
-import { api } from "@/lib/api"
+import { api, resolveMediaUrl, toStoredMediaPath } from "@/lib/api"
 import { paymentStatusLabel, paymentStatusBadgeClass } from "@/lib/deposit-statuses"
 import { investmentStatusLabel, investmentStatusBadgeClass } from "@/lib/investment-statuses"
 import { containerProjectStatusLabel, isContainerProjectInvestable } from "@/lib/container-project-statuses"
@@ -27,8 +27,8 @@ import { kycDashboardBadge } from "@/lib/kyc-badge"
 import { InvestorKycRequiredBanner } from "@/components/invest/InvestorKycGate"
 import { RecentAlertsCard } from "@/components/portal/RecentAlertsCard"
 import { ContainerOpportunityCard } from "@/components/invest/ContainerOpportunityCard"
-import { loadInvestProjects } from "@/lib/admin-data"
 import { adminToContainer } from "@/lib/invest-mappers"
+import { fetchInvestorOpportunities } from "@/lib/investor-opportunities"
 
 const RANGE_OPTIONS = ["7D", "30D", "90D", "1Y", "Lifetime"] as const
 type RangeOption = (typeof RANGE_OPTIONS)[number]
@@ -219,116 +219,26 @@ function rangeCutoff(range: RangeOption): Date | null {
   return d
 }
 
-function toDateKey(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${y}-${m}-${day}`
-}
-
-function formatChartDateLabel(d: Date): string {
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
-}
-
 function filterPortfolioByRange(points: PortfolioPoint[], range: RangeOption): Array<{ date: string; value: number; profit: number }> {
-  if (!points.length) return []
   const cutoff = rangeCutoff(range)
 
-  const filtered = cutoff
-    ? points.filter(p => new Date(p.date) >= cutoff)
-    : points
+  return points.flatMap(point => {
+    if (!point.date) return []
+    const date = new Date(point.date)
+    if (Number.isNaN(date.getTime()) || (cutoff && date < cutoff)) return []
 
-  // Carry forward last known value from before the window so short ranges aren't a single spike.
-  let carryValue = 0
-  let carryProfit = 0
-  if (cutoff && filtered.length < points.length) {
-    const prior = [...points]
-      .filter(p => new Date(p.date) < cutoff)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    const lastPrior = prior[prior.length - 1]
-    if (lastPrior) {
-      carryValue = Number(lastPrior.value) || 0
-      carryProfit = Number(lastPrior.profit) || 0
+    const value = Number(point.value)
+    const profit = Number(point.profit)
+    if (point.value == null || point.profit == null || !Number.isFinite(value) || !Number.isFinite(profit)) {
+      return []
     }
-  }
 
-  let source: Array<PortfolioPoint | { date: string; date_label: string; value: number; profit: number }> =
-    filtered.length ? filtered : points.slice(-1)
-
-  // Ensure at least 2 points so Recharts Area does not draw a misleading ramp from y=0.
-  if (source.length === 1) {
-    const only = source[0]
-    const onlyDate = new Date(only.date)
-    const start = cutoff ? new Date(cutoff) : (() => {
-      const d = new Date(onlyDate)
-      d.setDate(d.getDate() - 1)
-      return d
-    })()
-    const startValue = cutoff ? carryValue : 0
-    const startProfit = cutoff ? carryProfit : 0
-    if (start.getTime() < onlyDate.getTime() || startValue !== (Number(only.value) || 0)) {
-      source = [
-        {
-          date: toDateKey(start),
-          date_label: formatChartDateLabel(start),
-          value: startValue,
-          profit: startProfit,
-        },
-        only,
-      ]
-    } else {
-      const dayBefore = new Date(onlyDate)
-      dayBefore.setDate(dayBefore.getDate() - 1)
-      source = [
-        {
-          date: toDateKey(dayBefore),
-          date_label: formatChartDateLabel(dayBefore),
-          value: 0,
-          profit: 0,
-        },
-        only,
-      ]
-    }
-  } else if (cutoff && filtered.length > 0) {
-    const first = filtered[0]
-    const firstDate = new Date(first.date)
-    if (firstDate > cutoff) {
-      source = [
-        {
-          date: toDateKey(cutoff),
-          date_label: formatChartDateLabel(cutoff),
-          value: carryValue,
-          profit: carryProfit,
-        },
-        ...filtered,
-      ]
-    }
-  }
-
-  return source.map(p => ({
-    date: ("date_label" in p && p.date_label) ? p.date_label : p.date,
-    value: Number(p.value) || 0,
-    profit: Number(p.profit) || 0,
-  }))
-}
-
-/** When API series is empty but KPIs show investment, synthesize a minimal 2-point series. */
-function synthesizePortfolioChart(
-  totalInvestment: number,
-  range: RangeOption,
-): Array<{ date: string; value: number; profit: number }> {
-  if (totalInvestment <= 0) return []
-  const end = new Date()
-  end.setHours(0, 0, 0, 0)
-  const start = rangeCutoff(range) ?? (() => {
-    const d = new Date(end)
-    d.setDate(d.getDate() - 1)
-    return d
-  })()
-  return [
-    { date: formatChartDateLabel(start), value: 0, profit: 0 },
-    { date: formatChartDateLabel(end), value: totalInvestment, profit: 0 },
-  ]
+    return [{
+      date: point.date_label || point.date,
+      value,
+      profit,
+    }]
+  })
 }
 
 function n(value: unknown): number {
@@ -344,9 +254,8 @@ export default function InvestDashboard() {
   const { user } = useLocalAuth()
   const [, setLocation] = useLocation()
   const c = useCurrency()
-  const [investAvatar, setInvestAvatar] = useState<string>(() => {
-    try { return localStorage.getItem("og-avatar-investor") || "" } catch { return "" }
-  })
+  const queryClient = useQueryClient()
+  const [avatarSaving, setAvatarSaving] = useState(false)
   const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set())
 
   const { data: dashPayload, isLoading, isError } = useQuery({
@@ -356,7 +265,7 @@ export default function InvestDashboard() {
 
   const { data: opportunityProjects = [] } = useQuery({
     queryKey: ["investor", "projects", "dashboard-opportunities"],
-    queryFn: () => loadInvestProjects({ context: "investor" }),
+    queryFn: () => fetchInvestorOpportunities("investor"),
   })
 
   const dash = dashPayload?.data
@@ -402,11 +311,10 @@ export default function InvestDashboard() {
   }
 
   const portfolioPoints = dash?.portfolio_series?.points || []
-  const chartData = useMemo(() => {
-    const filtered = filterPortfolioByRange(portfolioPoints, range)
-    if (filtered.length > 0) return filtered
-    return synthesizePortfolioChart(summary.total_investment, range)
-  }, [portfolioPoints, range, summary.total_investment])
+  const chartData = useMemo(
+    () => filterPortfolioByRange(portfolioPoints, range),
+    [portfolioPoints, range],
+  )
   const benchmarkPoints = dash?.benchmark_series?.points || []
   const nextDistribution = dash?.next_distribution_available ? dash.next_distribution : null
   const profitMonthly = dash?.profit_monthly || []
@@ -439,19 +347,33 @@ export default function InvestDashboard() {
   const displayName = dash?.user?.name || user?.fullName || "Investor"
   const firstName = displayName.split(" ")[0] || "Investor"
   const companyLabel = dash?.user?.company_name || user?.companyName || "Investor Account"
-  const avatarSrc = investAvatar || dash?.user?.avatar_url || user?.avatarUrl || ""
+  const avatarSrc = resolveMediaUrl(dash?.user?.avatar_url || user?.avatarUrl || "")
 
-  function handleAvatarFile(file?: File) {
+  async function handleAvatarFile(file?: File) {
     if (!file) return
-    if (file.size > 2 * 1024 * 1024) { notify.error("File too large", "Photo must be under 2 MB."); return }
-    const reader = new FileReader()
-    reader.onload = e => {
-      const url = e.target?.result as string
-      setInvestAvatar(url)
-      localStorage.setItem("og-avatar-investor", url)
-      window.dispatchEvent(new Event("storage"))
+    if (!file.type.startsWith("image/")) {
+      notify.error("Invalid file", "Choose an image file.")
+      return
     }
-    reader.readAsDataURL(file)
+    if (file.size > 2 * 1024 * 1024) { notify.error("File too large", "Photo must be under 2 MB."); return }
+    setAvatarSaving(true)
+    try {
+      const form = new FormData()
+      form.append("file", file)
+      form.append("folder", "profile")
+      const upload: any = await api.upload("/api/uploads", form)
+      const uploadedPath = upload?.data?.path || upload?.data?.url || upload?.path || upload?.url
+      const avatarPath = toStoredMediaPath(uploadedPath)
+      if (!avatarPath) throw new Error("The uploaded photo path was not returned.")
+      await api.put("/api/investor/profile", { avatar_url: avatarPath })
+      await queryClient.invalidateQueries({ queryKey: ["investor", "dashboard"] })
+      notify.success("Profile photo updated")
+    } catch (error: any) {
+      notify.error("Could not update profile photo", error?.message || "The investor service could not save this photo.")
+    } finally {
+      setAvatarSaving(false)
+      if (avatarInputRef.current) avatarInputRef.current.value = ""
+    }
   }
 
   function formatInvestmentTotal(walletAmount: number, usdAmount: number) {
@@ -537,7 +459,7 @@ export default function InvestDashboard() {
         {/* Welcome banner */}
         <div className="rounded-2xl bg-gradient-to-r from-primary via-primary/90 to-emerald-700 p-6 text-primary-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="relative shrink-0 group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
+            <div className={`relative shrink-0 group ${avatarSaving ? "cursor-wait" : "cursor-pointer"}`} onClick={() => !avatarSaving && avatarInputRef.current?.click()}>
               <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/20 bg-white/10 flex items-center justify-center text-xl font-bold text-primary-foreground">
                 {avatarSrc
                   ? <img src={avatarSrc} alt="Profile" className="w-full h-full object-cover" />
@@ -547,7 +469,18 @@ export default function InvestDashboard() {
               <div className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
               </div>
-              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={e => handleAvatarFile(e.target.files?.[0])} />
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={avatarSaving}
+                onChange={e => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ""
+                  void handleAvatarFile(file)
+                }}
+              />
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
@@ -737,13 +670,7 @@ export default function InvestDashboard() {
               <EmptyState />
             ) : (
               <ResponsiveContainer width="100%" height={260}>
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 8, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
+                <LineChart data={chartData} margin={{ top: 10, right: 10, left: 8, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                   <YAxis
@@ -762,9 +689,9 @@ export default function InvestDashboard() {
                       name === "profit" ? "Cumulative Profit" : "Portfolio Value",
                     ]}
                   />
-                  <Area type="stepAfter" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2.5} fill="url(#portfolioGrad)" name="value" />
+                  <Line type="stepAfter" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2.5} name="value" dot={chartData.length === 1} />
                   <Line type="stepAfter" dataKey="profit" stroke="#D4A012" strokeWidth={2} fill="none" strokeDasharray="4 2" name="profit" dot={false} />
-                </AreaChart>
+                </LineChart>
               </ResponsiveContainer>
             )}
           </CardContent>

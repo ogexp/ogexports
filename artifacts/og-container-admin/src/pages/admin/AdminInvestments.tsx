@@ -358,8 +358,8 @@ export default function AdminInvestments({
     const project = projects.find(item => item.id === projectId)
     if (!project) return
     setSelectedProjectId(projectId)
-    if (!activeSection) {
-      setActiveTab(project.type === "container" ? "containers" : project.type)
+    if (!activeSection && (project.type === "container" || ["produce", "plant", "ricemill", "feed"].includes(project.type))) {
+      setActiveTab(project.type === "container" ? "containers" : project.type as InvestmentSectionType)
     }
   }, [projects, activeSection])
 

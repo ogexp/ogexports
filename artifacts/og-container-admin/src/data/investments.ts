@@ -8,6 +8,7 @@ export interface ContainerInvestment {
   fundingDeadlineDate: string; // ISO date
   minInvestment: number | null; maxInvestment: number | null;
   currentFunding: number | null; targetFunding: number | null; totalInvestors: number | null;
+  fundingPercentage?: number | null; remainingAmount?: number | null;
   totalAmountInvested: number | null;
   expectedReturnPct: number | null; investmentPeriodDays: number | null;
   status: 'open' | 'funded' | 'shipping' | 'completed';
@@ -148,10 +149,12 @@ export const CONTAINER_INVESTMENTS: ContainerInvestment[] = [
 
 export interface LongTermProject {
   id: string | number; slug: string; name: string;
-  category: 'fresh-produce' | 'processing' | 'cold-storage' | 'infrastructure';
+  category: 'fresh-produce' | 'processing' | 'feed' | 'rice-mill' | 'cold-storage' | 'domestic-trading' | 'infrastructure';
   shortDescription: string; fullDescription: string;
   fundingTarget: number | null; currentFunding: number | null; minInvestment: number | null; maxInvestment: number | null;
   investmentPeriodMonths: number | null; expectedReturnPct: number | null; // annual
+  investmentPeriodDays?: number | null;
+  fundingPercentage?: number | null; remainingAmount?: number | null;
   expectedCompletionDate: string;
   riskLevel?: 'low' | 'medium' | 'high'; status: 'open' | 'funded' | 'in-progress' | 'completed';
   totalInvestors: number | null; imageUrls: string[];

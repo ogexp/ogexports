@@ -362,7 +362,7 @@ export type AdminFacilityProjectStatus =
   | "closed"
 
 export interface AdminInvestProject {
-  id: string; title: string; reference?: string; type: "container" | "produce" | "plant" | "ricemill" | "feed"
+  id: string; title: string; reference?: string; type: "container" | "produce" | "plant" | "ricemill" | "feed" | "cold_storage" | "domestic_trading"
   /** Export vs Import for container projects */
   tradeDirection?: "export" | "import"
   target: number; raised: number; investors: number
@@ -389,6 +389,7 @@ export interface AdminInvestProject {
   documents?: AdminInvestProjectDocument[]
   pendingReserved?: number
   pendingCount?: number
+  fundingPercentage?: number
   remainingAmount?: number
   isFull?: boolean
   slotsRemaining?: number
@@ -1343,7 +1344,9 @@ export function mapInvestProject(p: any): AdminInvestProject {
   const currency = rawCurrency == null ? "" : String(rawCurrency).trim().toUpperCase()
   const typeRaw = String(p.type || "container").toLowerCase()
   const type: AdminInvestProject["type"] =
-    typeRaw === "ricemill" || typeRaw.includes("rice_mill") ? "ricemill"
+    typeRaw === "cold_storage" || typeRaw.includes("cold_storage") ? "cold_storage"
+      : typeRaw === "domestic_trading" || typeRaw.includes("domestic_trading") ? "domestic_trading"
+        : typeRaw === "ricemill" || typeRaw.includes("rice_mill") ? "ricemill"
       : typeRaw === "feed" || typeRaw.includes("feed_mill") ? "feed"
         : typeRaw.includes("produce") || typeRaw === "fp" ? "produce"
           : typeRaw.includes("plant") || typeRaw === "pp" ? "plant"
@@ -1418,6 +1421,7 @@ export function mapInvestProject(p: any): AdminInvestProject {
     meta: p.meta && typeof p.meta === "object" ? p.meta : undefined,
     pendingReserved: p.pending_reserved != null ? Number(p.pending_reserved) : undefined,
     pendingCount: p.pending_count != null ? Number(p.pending_count) : undefined,
+    fundingPercentage: asAvailableNumber(p.funding_percentage ?? p.fundingPercentage),
     remainingAmount: p.remaining_amount != null ? Number(p.remaining_amount) : undefined,
     isFull: Boolean(p.is_full),
     slotsRemaining: p.slots_remaining != null ? Number(p.slots_remaining) : undefined,

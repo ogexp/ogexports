@@ -12,7 +12,7 @@ import { useSafeAuth } from "@/lib/use-safe-auth"
 import { ImpersonationBanner } from "@/components/ImpersonationBanner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { api } from "@/lib/api"
+import { api, resolveMediaUrl } from "@/lib/api"
 import { kycTopBarBadge } from "@/lib/kyc-badge"
 import { usePlatformSettings } from "@/hooks/usePlatformSettings"
 import { NotificationBellDropdown } from "@/components/portal/NotificationBellDropdown"
@@ -78,7 +78,7 @@ export function InvestPortalLayout({ children, title, subtitle }: InvestPortalLa
 
   const { data: dashPayload, refetch: refetchDash } = useQuery({
     queryKey: ["investor", "dashboard"],
-    queryFn: () => api.get<{ data: { kyc_status?: string | null; kyc_approved?: boolean } }>("/api/investor/dashboard"),
+    queryFn: () => api.get<{ data: { kyc_status?: string | null; kyc_approved?: boolean; user?: { avatar_url?: string | null } } }>("/api/investor/dashboard"),
     enabled: !!isSignedIn,
   })
   const kycTopBar = kycTopBarBadge(dashPayload?.data?.kyc_status)
@@ -189,14 +189,7 @@ export function InvestPortalLayout({ children, title, subtitle }: InvestPortalLa
     ? displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
     : "IN"
 
-  const [investAvatar, setInvestAvatar] = useState<string>(() => {
-    try { return localStorage.getItem("og-avatar-investor") || "" } catch { return "" }
-  })
-  useEffect(() => {
-    const onStorage = () => setInvestAvatar(localStorage.getItem("og-avatar-investor") || "")
-    window.addEventListener("storage", onStorage)
-    return () => window.removeEventListener("storage", onStorage)
-  }, [])
+  const investAvatar = resolveMediaUrl(dashPayload?.data?.user?.avatar_url || "")
 
   async function handleLogout() {
     if (impersonating && stopImpersonating) {

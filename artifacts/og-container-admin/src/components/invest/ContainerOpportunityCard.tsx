@@ -55,6 +55,8 @@ export function ContainerOpportunityCard({
           <FundingProgress
             raised={c.currentFunding}
             target={c.targetFunding}
+            fundingPercentage={c.fundingPercentage}
+            remainingAmount={c.remainingAmount}
             currency={c.currency}
             variant="compact"
           />

@@ -36,6 +36,8 @@ export function adminToContainer(p: AdminInvestProject): ContainerInvestment {
     minInvestment: p.minInvestment ?? null, maxInvestment: p.maxInvestment ?? null,
     currentFunding: p.raisedAmountAvailable === false ? null : p.raised,
     targetFunding: p.targetAmountAvailable === false ? null : p.target,
+    fundingPercentage: p.fundingPercentage ?? null,
+    remainingAmount: p.remainingAmount ?? null,
     totalInvestors: p.investorCountAvailable === false ? null : p.investors,
     totalAmountInvested: p.raisedAmountAvailable === false ? null : p.raised,
     expectedReturnPct: p.expectedReturnPct ?? null,
@@ -65,11 +67,16 @@ export function adminToLongTerm(p: AdminInvestProject): LongTermProject {
     cancelled: "completed",
     completed: "completed",
   }
-  const category: LongTermProject["category"] =
-    p.type === "plant" ? "processing" : "fresh-produce"
-  const months = p.investmentPeriodDays != null
-    ? Math.max(1, Math.round(p.investmentPeriodDays / 30))
-    : null
+  const categoryByType: Record<AdminInvestProject["type"], LongTermProject["category"]> = {
+    container: "infrastructure",
+    produce: "fresh-produce",
+    plant: "processing",
+    feed: "feed",
+    ricemill: "rice-mill",
+    cold_storage: "cold-storage",
+    domestic_trading: "domestic-trading",
+  }
+  const category = categoryByType[p.type]
 
   return {
     id: p.id,
@@ -80,9 +87,12 @@ export function adminToLongTerm(p: AdminInvestProject): LongTermProject {
     fullDescription: p.description || `${p.title} — co-invest with OG Exports.`,
     fundingTarget: p.targetAmountAvailable === false ? null : p.target,
     currentFunding: p.raisedAmountAvailable === false ? null : p.raised,
+    fundingPercentage: p.fundingPercentage ?? null,
+    remainingAmount: p.remainingAmount ?? null,
     minInvestment: p.minInvestment ?? null,
     maxInvestment: p.maxInvestment ?? null,
-    investmentPeriodMonths: months,
+    investmentPeriodMonths: null,
+    investmentPeriodDays: p.investmentPeriodDays ?? null,
     expectedReturnPct: p.expectedReturnPct ?? null,
     expectedCompletionDate: p.completion || "",
     riskLevel: p.riskLevel,

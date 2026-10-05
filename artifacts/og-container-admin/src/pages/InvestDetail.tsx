@@ -14,13 +14,12 @@ import { ArrowLeft, Ship, TrendingUp, Calendar, Lock, CheckCircle2, FileText, Al
 import { InvestNowModal } from "@/components/invest/InvestNowModal"
 import { InvestorKycGate, InvestorKycRequiredBanner } from "@/components/invest/InvestorKycGate"
 import { api, downloadAuthenticatedFile } from "@/lib/api"
-import { getInvestProjects, loadInvestProjects, mapInvestProject, type AdminInvestProject, type AdminInvestProjectDocument } from "@/lib/admin-data"
+import { mapInvestProject, type AdminInvestProject, type AdminInvestProjectDocument } from "@/lib/admin-data"
 import {
   containerProjectStatusLabel,
   isContainerProjectInvestable,
 } from "@/lib/container-project-statuses"
 import { adminToContainer, adminToLongTerm } from "@/lib/invest-mappers"
-import { getFundingMetrics } from "@/lib/funding-metrics"
 import { Badge } from "@/components/ui/badge"
 import { formatInvestorProjectAmount } from "@/lib/invest-format"
 
@@ -41,6 +40,8 @@ export default function InvestDetail() {
   const [modalOpen, setModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [project, setProject] = useState<AdminInvestProject | null>(null)
+  const [loadFailure, setLoadFailure] = useState<"not-found" | "unavailable" | null>(null)
+  const [retryVersion, setRetryVersion] = useState(0)
   const [imageFailed, setImageFailed] = useState(false)
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [walletCurrency, setWalletCurrency] = useState("")
@@ -49,31 +50,32 @@ export default function InvestDetail() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      if (!slug) return
-      setLoading(true)
-
-      // Prefer live API detail (includes documents)
-      if (/^\d+$/.test(slug)) {
-        try {
-          const res: any = await api.get(`/api/investments/${slug}`)
-          const data = res?.data ?? res
-          if (!cancelled && data) {
-            setProject(mapApiToAdmin(data))
-            setLoading(false)
-            return
-          }
-        } catch { /* fall through to cache */ }
-      }
-
-      await loadInvestProjects({ context: isInvestor ? "investor" : "public" })
-      const cached = getInvestProjects().find(p => p.id === slug)
-      if (!cancelled) {
-        setProject(cached || null)
+      if (!slug) {
+        setProject(null)
+        setLoadFailure("not-found")
         setLoading(false)
+        return
+      }
+      setLoading(true)
+      setProject(null)
+      setLoadFailure(null)
+      try {
+        const response: any = await api.get(`/api/investor/projects/${encodeURIComponent(slug)}`)
+        const envelope = response?.data ?? response
+        const record = envelope?.data ?? envelope
+        if (!record || record.id == null) throw new Error("The project response was incomplete.")
+        if (!cancelled) setProject(mapApiToAdmin(record))
+      } catch (error: any) {
+        if (!cancelled) {
+          setProject(null)
+          setLoadFailure(error?.status === 404 ? "not-found" : "unavailable")
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
       }
     })()
     return () => { cancelled = true }
-  }, [slug, isInvestor])
+  }, [slug, isInvestor, retryVersion])
 
   useEffect(() => {
     setImageFailed(false)
@@ -125,16 +127,26 @@ export default function InvestDetail() {
 
   if (!project) {
     return (
-      <InvestPortalLayout title="Investment Detail" subtitle="Opportunity not found">
+      <InvestPortalLayout
+        title="Investment Detail"
+        subtitle={loadFailure === "not-found" ? "Opportunity not found" : "Unable to load opportunity"}
+      >
         <div className="py-16 text-center space-y-4">
-          <p className="text-xl font-medium text-muted-foreground">Investment not found.</p>
+          <p className="text-xl font-medium text-muted-foreground">
+            {loadFailure === "not-found"
+              ? "This opportunity is not available."
+              : "The investor service could not load this opportunity. No cached project details are shown."}
+          </p>
+          {loadFailure !== "not-found" && (
+            <Button variant="outline" onClick={() => setRetryVersion(version => version + 1)}>Retry</Button>
+          )}
           <Link href="/invest/opportunities"><Button variant="outline">Back to Investments</Button></Link>
         </div>
       </InvestPortalLayout>
     )
   }
 
-  const isProject = project.type === "produce" || project.type === "plant"
+  const isProject = project.type !== "container"
   const container = !isProject ? adminToContainer(project) : null
   const longTerm = isProject ? adminToLongTerm(project) : null
   const inv = (container || longTerm)!
@@ -144,14 +156,11 @@ export default function InvestDetail() {
   const target = isProject ? longTerm!.fundingTarget : container!.targetFunding
   const current = inv.currentFunding
   const pendingReserved = project.pendingReserved ?? null
-  const capacityRemaining = project.remainingAmount
-    ?? (current != null && target != null && pendingReserved != null
-      ? getFundingMetrics(current, target, pendingReserved).remaining
-      : null)
+  const capacityRemaining = project.remainingAmount ?? null
   const capacityFull = project.isFull === true
     || (capacityRemaining != null && capacityRemaining <= 0)
   const hasTerm = isProject
-    ? longTerm!.investmentPeriodMonths != null
+    ? longTerm!.investmentPeriodDays != null || longTerm!.investmentPeriodMonths != null
     : container!.investmentPeriodDays != null
   const termsReady = Boolean(inv.currency) && inv.minInvestment != null && hasTerm
   const walletCurrencyMatches = Boolean(
@@ -193,7 +202,11 @@ export default function InvestDetail() {
     setModalOpen(true)
   }
 
-  const typeLabel = isProject ? "Long-Term Project" : "Container Export"
+  const typeLabel = isProject
+    ? (longTerm!.category === "fresh-produce" ? "Fresh Produce"
+      : longTerm!.category === "processing" ? "Processing Project"
+        : longTerm!.category.replace("-", " "))
+    : "Container Export"
   const layoutSubtitle = container
     ? `${typeLabel}${projectReference ? ` · ${projectReference}` : ""} · ${containerProjectStatusLabel(project.status)}`
     : projectReference ? `${typeLabel} · ${projectReference}` : typeLabel
@@ -404,7 +417,11 @@ export default function InvestDetail() {
                 <li>Capital is at risk. Returns are not guaranteed and depend on successful trade execution.</li>
                 <li>
                   {hasTerm
-                    ? `Investment term: ${isProject ? `${longTerm!.investmentPeriodMonths} months` : `${container!.investmentPeriodDays} days`}.`
+                    ? `Investment term: ${isProject
+                      ? longTerm!.investmentPeriodDays != null
+                        ? `${longTerm!.investmentPeriodDays} days`
+                        : `${longTerm!.investmentPeriodMonths} months`
+                      : `${container!.investmentPeriodDays} days`}.`
                     : "Investment term is not provided in the current project record."}
                 </li>
                 <li>Returns are subject to currency fluctuations and final settlement deductions.</li>
@@ -418,6 +435,8 @@ export default function InvestDetail() {
                 <FundingProgress
                   raised={current}
                   target={target}
+                  fundingPercentage={project.fundingPercentage}
+                  remainingAmount={capacityRemaining}
                   currency={inv.currency}
                   variant="detailed"
                   investors={inv.totalInvestors}
@@ -449,7 +468,9 @@ export default function InvestDetail() {
                   <div>
                     <div className="font-heading font-bold text-2xl text-foreground">
                       {isProject
-                        ? (longTerm!.investmentPeriodMonths == null ? "Not provided" : `${longTerm!.investmentPeriodMonths}mo`)
+                        ? longTerm!.investmentPeriodDays != null
+                          ? `${longTerm!.investmentPeriodDays}d`
+                          : (longTerm!.investmentPeriodMonths == null ? "Not provided" : `${longTerm!.investmentPeriodMonths}mo`)
                         : (container!.investmentPeriodDays == null ? "Not provided" : `${container!.investmentPeriodDays}d`)}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">Investment term</div>
@@ -549,15 +570,31 @@ export default function InvestDetail() {
           initialAmount={Number(amount)}
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
-          pendingReserved={pendingReserved}
           remainingAmount={capacityRemaining}
           isFull={capacityFull}
-          onSuccess={async () => {
-            try {
-              const res: any = await api.get(`/api/investments/${project.id}`)
-              const data = res?.data ?? res
-              if (data) setProject(mapApiToAdmin(data))
-            } catch { /* ignore */ }
+          onSuccess={(result) => {
+            const capacity = result?.capacity
+            const rawRemaining = capacity?.remaining_amount
+            const parsedRemaining = rawRemaining == null || String(rawRemaining).trim() === ""
+              ? null
+              : Number(rawRemaining)
+            const remaining = parsedRemaining != null && Number.isFinite(parsedRemaining)
+              ? parsedRemaining
+              : null
+            const rawPending = capacity?.pending_reserved
+            const parsedPending = rawPending == null || String(rawPending).trim() === ""
+              ? null
+              : Number(rawPending)
+            const pendingReserved = parsedPending != null && Number.isFinite(parsedPending)
+              ? parsedPending
+              : null
+
+            setProject((currentProject) => currentProject ? {
+              ...currentProject,
+              remainingAmount: remaining,
+              pendingReserved,
+              isFull: capacity?.is_full === true || (remaining != null && remaining <= 0),
+            } : currentProject)
           }}
         />
       )}
