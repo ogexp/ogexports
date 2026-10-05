@@ -345,30 +345,38 @@ export default function InvestorHome() {
         <Pressable key={action.title} testID={`home-action-${index}`} accessibilityRole="button" accessibilityLabel={action.title} onPress={action.onPress}
           style={({ pressed }) => ({
             flex: isPrimary ? 1 : 0,
-            width: isPrimary ? undefined : 46,
-            height: 46,
-            borderRadius: 23,
-            flexDirection: 'row',
+            width: isPrimary ? undefined : 58,
+            minHeight: isPrimary ? 46 : 66,
+            borderRadius: isPrimary ? 23 : 16,
+            flexDirection: isPrimary ? 'row' : 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: isPrimary ? 7 : 0,
-            paddingHorizontal: isPrimary ? 12 : 0,
-            backgroundColor: isPrimary ? colors.balanceCardEnd : colors.balanceCardStart,
+            gap: isPrimary ? 6 : 4,
+            paddingHorizontal: isPrimary ? 8 : 0,
+            backgroundColor: isPrimary ? colors.balanceCardEnd : 'transparent',
             opacity: pressed ? 0.8 : 1,
           })}>
-          <Feather name={action.icon} size={isPrimary ? 16 : 18} color={colors.balanceCardText} />
-          {isPrimary ? <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, fontSize: 12, fontWeight: '700' }}>{action.shortTitle}</Text> : null}
+          <View style={{
+            width: isPrimary ? undefined : 40,
+            height: isPrimary ? undefined : 40,
+            borderRadius: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: isPrimary ? 'transparent' : colors.balanceCardStart,
+          }}>
+            <Feather name={action.icon} size={isPrimary ? 16 : 17} color={colors.balanceCardText} />
+          </View>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{
+            color: isPrimary ? colors.balanceCardText : colors.foreground,
+            fontSize: isPrimary ? 11 : 9,
+            lineHeight: 11,
+            fontWeight: '700',
+            textAlign: 'center',
+          }}>{action.shortTitle}</Text>
         </Pressable>
         );
       })}
     </View>
-
-    <Pressable testID="home-open-search" accessibilityRole="button" accessibilityLabel="Search trades, investments and transactions" onPress={() => router.push('/search')}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 11, minHeight: 54, paddingHorizontal: 16, marginBottom: 6, borderRadius: 17, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, opacity: pressed ? 0.78 : 1 })}>
-      <Feather name="search" size={17} color={colors.primary} />
-      <Text style={{ flex: 1, color: colors.mutedForeground, fontSize: 13 }}>Search trades, investments or transactions</Text>
-      <Feather name="arrow-right" size={15} color={colors.mutedForeground} />
-    </Pressable>
 
     {dashboard.isError ? <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 4, paddingVertical: 5 }}>
       <Text style={{ flex: 1, color: colors.mutedForeground, fontSize: 11 }}>Portfolio data is unavailable.</Text>
