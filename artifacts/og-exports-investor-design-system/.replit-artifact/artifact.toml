@@ -1,0 +1,19 @@
+kind = "design-system"
+previewPath = "/og-exports-investor-design-system/"
+title = "OG Exports Investor Design System"
+description = "A shared component library and living style guide for the OG Exports investor app, built from its existing emerald visual language, Inter typography, and accessible mobile interaction patterns."
+version = "1.0.0"
+id = "artifacts/og-exports-investor-design-system"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/og-exports-investor-design-system/" ]
+localPort = 24742
+
+[services.development]
+run = "pnpm --filter @workspace/og-exports-investor-design-system run dev"
+
+[services.env]
+PORT = "24742"
+BASE_PATH = "/og-exports-investor-design-system/"
