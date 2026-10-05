@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import {
@@ -26,6 +27,25 @@ function categorizeInvestmentStatus(status: string): PortfolioTab | null {
 
 function supplied(value: string, fallback = '—') {
   return value || fallback;
+}
+
+function reportedDate(value: string) {
+  if (!value || value === '—') return 'Not reported';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(parsed);
+}
+
+function InvestmentMetric({ label, value, color }: { label: string; value: string; color: string }) {
+  return <View style={{ width: '50%', paddingTop: 13, paddingRight: 10 }}>
+    <Text style={{ color, fontSize: 10, lineHeight: 15 }}>{label}</Text>
+    <Text style={{ color, fontSize: 13, lineHeight: 19, fontWeight: '700', marginTop: 3 }}>{value}</Text>
+  </View>;
 }
 
 export default function Portfolio() {
@@ -59,14 +79,19 @@ export default function Portfolio() {
   const pendingDistribution = amount(summary, ['pending_distribution']);
   const availableBalance = amount(wallet, ['available_balance', 'balance', 'available'])
     ?? amount(summary, ['available_balance']);
+  const dashboardInvestments = list(dashboard.my_investments);
   const assignedRows = rows.map((item, index) => {
     const trade = record(item.trade ?? item.project ?? item.trade_details);
     const container = record(item.container ?? item.container_details ?? trade.container ?? trade.container_details);
     const investmentStatus = first(item, ['investment_status', 'status', 'state']);
+    const dashboardInvestment = record(dashboardInvestments.find(
+      investment => first(investment, ['id']) === first(item, ['investment_id', 'id']),
+    ));
     return {
       item,
       trade,
       container,
+      dashboardInvestment,
       investmentStatus,
       category: categorizeInvestmentStatus(investmentStatus),
       key: first(item, ['investment_id', 'id'], `investment-${index}`),
@@ -76,87 +101,155 @@ export default function Portfolio() {
   const uncategorizedRows = assignedRows.filter(row => row.category == null);
 
   const renderInvestment = (entry: typeof assignedRows[number]) => {
-    const { item, trade, container } = entry;
+    const { item, trade, container, dashboardInvestment } = entry;
     const serverId = first(item, ['investment_id', 'id']);
     const tradeId = first(item, ['trade_id', 'trade_code'], first(trade, ['trade_id', 'trade_code', 'project_code', 'code']));
     const commodity = first(item, ['commodity_name', 'commodity'], first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(item, ['project_name', 'title'])));
     const origin = first(item, ['origin', 'origin_country', 'from_country'], first(trade, ['origin', 'origin_country', 'from_country', 'country_of_origin']));
     const destination = first(item, ['destination', 'destination_country', 'to_country'], first(trade, ['destination', 'destination_country', 'to_country', 'destination_market']));
-    const investmentCurrency = first(item, ['amount_currency', 'currency'], first(trade, ['currency']));
+    const investmentCurrency = first(trade, ['currency'], first(item, ['amount_currency', 'currency']));
     const investedAmount = amount(item, ['amount', 'investment_amount', 'principal']);
+    const investedPkr = amount(item, ['amount_pkr']);
+    const meta = record(trade.meta ?? item.meta);
+    const containerNumber = first(container, ['container_number'], first(item, ['container_number', 'container_no'], first(trade, ['container_number', 'container_no'], first(meta, ['container_number', 'container_no', 'containerNumber']))));
+    const containerType = first(trade, ['container_type', 'container_size'], first(item, ['container_type', 'container_size']));
+    const vessel = first(container, ['vessel_name', 'vessel'], first(trade, ['vessel_name', 'vessel'], first(item, ['vessel_name', 'vessel'])));
+    const voyage = first(container, ['voyage_number', 'voyage'], first(trade, ['voyage_number', 'voyage'], first(item, ['voyage_number', 'voyage'], first(meta, ['voyage_number', 'voyage']))));
+    const vesselAndVoyage = vessel !== '—' && voyage !== '—' ? `${vessel} · ${voyage}` : vessel !== '—' ? vessel : voyage;
+    const loadingPort = first(container, ['port_of_loading'], first(trade, ['port_of_loading'], first(item, ['port_of_loading'])));
+    const dischargePort = first(container, ['destination_port', 'port_of_discharge'], first(trade, ['port_of_discharge', 'destination_port'], first(item, ['destination_port', 'port_of_discharge'])));
+    const route = loadingPort !== '—' || dischargePort !== '—'
+      ? `${loadingPort} → ${dischargePort}`
+      : origin || destination ? `${origin || '—'} → ${destination || '—'}` : 'Not reported';
     const tradeStatus = first(item, ['trade_status', 'shipment_status'], first(trade, ['trade_status', 'shipment_status', 'status']));
     const containerStatus = first(item, ['container_status'], first(
       container,
       ['status', 'current_status', 'shipment_status', 'trade_status'],
       first(trade, ['container_status', 'shipment_status'], first(item, ['shipment_status'])),
     ));
-    const progress = amount(item, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage'])
+    const periodProgress = record(item.investment_period_progress);
+    const daysElapsed = amount(periodProgress, ['days_elapsed']) ?? amount(dashboardInvestment, ['days_elapsed']);
+    const totalDays = amount(periodProgress, ['total_days']) ?? amount(dashboardInvestment, ['total_days']);
+    const daysRemaining = amount(periodProgress, ['days_remaining'])
+      ?? amount(dashboardInvestment, ['days_remaining'])
+      ?? (daysElapsed != null && totalDays != null ? Math.max(0, totalDays - daysElapsed) : null);
+    const progress = amount(periodProgress, ['progress_percent'])
+      ?? amount(item, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage'])
       ?? amount(trade, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage']);
     const boundedProgress = progress == null ? null : Math.max(0, Math.min(100, progress));
-    const targetAmount = amount(item, [
-      'projected_return_amount', 'estimated_return_amount', 'target_return_amount',
-      'projected_distribution', 'estimated_distribution',
-    ]) ?? amount(trade, [
-      'projected_return_amount', 'estimated_return_amount', 'target_return_amount',
-      'projected_distribution', 'estimated_distribution',
-    ]);
-    const targetPercent = amount(item, ['projected_return_percentage', 'estimated_return_percentage', 'target_return_percentage', 'expected_return_pct'])
-      ?? amount(trade, ['projected_return_percentage', 'estimated_return_percentage', 'target_return_percentage', 'expected_return_pct']);
-    const route = origin || destination
-      ? `${origin || '—'} → ${destination || '—'}`
-      : '—';
-    const amountLabel = money(investedAmount, investmentCurrency || 'USD');
-    const targetLabel = targetAmount != null
-      ? money(targetAmount, investmentCurrency || 'USD')
-      : targetPercent != null ? `${targetPercent.toFixed(2)}%` : '—';
+    const amountLabel = [
+      investedAmount != null ? money(investedAmount, investmentCurrency || 'USD') : null,
+      investedPkr != null ? money(investedPkr, 'PKR') : null,
+    ].filter(Boolean).join(' · ') || money(null, investmentCurrency || 'USD');
+    const expectedProfit = amount(item, ['expected_profit']) ?? amount(dashboardInvestment, ['expected_profit']);
+    const roi = amount(dashboardInvestment, ['roi'])
+      ?? amount(item, ['roi', 'expected_return_pct'])
+      ?? amount(trade, ['expected_return_pct']);
+    const roiLabel = first(trade, ['roi_label'], first(item, ['roi_label']));
+    const roiText = roi != null ? `${roi.toFixed(2)}%` : supplied(roiLabel, 'Not reported');
+    const payoutDate = first(item, ['next_payout_date', 'payout_date', 'next_distribution_date'], first(trade, ['next_payout_date', 'payout_date', 'next_distribution_date']));
+    const distribution = record(item.profit_distribution ?? item.distribution);
+    const totalReturn = amount(item, ['total_return', 'total_return_amount'])
+      ?? amount(distribution, ['total_return']);
+    const payoutCurrency = first(trade, ['currency'], investmentCurrency || 'USD');
+    const investmentDate = first(item, ['invested_at', 'invest_date', 'investment_date', 'created_at'], first(dashboardInvestment, ['invest_date']));
+    const etd = first(container, ['etd'], first(trade, ['etd', 'departure_date'], first(item, ['etd', 'departure_date'])));
+    const eta = first(container, ['eta'], first(trade, ['eta', 'arrival_date'], first(item, ['eta', 'arrival_date'])));
+    const currentStage = first(item, ['current_stage'], first(trade, ['current_project_stage']));
+    const progressLabel = periodProgress.total_days != null
+      ? `Investment period${daysElapsed != null && totalDays != null ? ` · ${daysElapsed} of ${totalDays} days` : ''}`
+      : 'Trade progress, as reported';
 
-    return <Card key={entry.key} style={{ padding: 18, borderRadius: 20 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>
-            {tradeId ? `Trade #${tradeId.replace(/^Trade\s*#\s*/i, '')}` : '—'}
-          </Text>
-          <Text style={{ color: colors.foreground, fontSize: 18, lineHeight: 23, fontWeight: '700', marginTop: 6 }}>
-            {supplied(commodity, '—')}
-          </Text>
-          <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 6 }}>{route}</Text>
+    return <Card key={entry.key} style={{ padding: 0, borderRadius: 20, overflow: 'hidden', borderColor: colors.border }}>
+      <View style={{ paddingHorizontal: 17, paddingTop: 16, paddingBottom: 15, backgroundColor: colors.lightGreen }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}>
+            <Feather name="package" size={14} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700', letterSpacing: 0.9 }}>CONTAINER INVESTMENT</Text>
+          </View>
+          <Status value={supplied(entry.investmentStatus)} />
         </View>
-        <Status value={supplied(entry.investmentStatus)} />
+        <Text style={{ color: colors.foreground, fontSize: 19, lineHeight: 24, fontWeight: '700', marginTop: 11 }}>
+          {supplied(commodity, 'Investment position')}
+        </Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>
+          {tradeId !== '—' ? `Trade ${tradeId.replace(/^Trade\s*#\s*/i, '')}` : 'Trade reference not reported'}
+        </Text>
       </View>
 
-      <View style={{ marginTop: 15, paddingTop: 13, borderTopWidth: 1, borderTopColor: colors.border }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Investment amount</Text>
-            <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700', marginTop: 4 }}>{amountLabel}</Text>
+      <View style={{ paddingHorizontal: 17, paddingTop: 14, paddingBottom: 16 }}>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={{ flex: 1, minWidth: 0, padding: 11, borderRadius: 12, backgroundColor: colors.secondary }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Container ID · size</Text>
+            <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, lineHeight: 17, fontWeight: '700', marginTop: 4 }}>
+              {containerNumber !== '—' && containerType !== '—' ? `${containerNumber} · ${containerType}` : containerNumber !== '—' ? containerNumber : containerType !== '—' ? containerType : 'Not reported'}
+            </Text>
           </View>
-          <View style={{ flex: 1, alignItems: 'flex-end' }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Target distribution</Text>
-            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700', textAlign: 'right', marginTop: 5 }}>{targetLabel}</Text>
-          </View>
-        </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 13 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10, letterSpacing: 0.4 }}>TRADE STATUS</Text>
-            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', marginTop: 5 }}>{supplied(tradeStatus)}</Text>
-          </View>
-          <View style={{ flex: 1, alignItems: 'flex-end' }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10, letterSpacing: 0.4 }}>CONTAINER STATUS</Text>
-            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right', marginTop: 5 }}>{supplied(containerStatus)}</Text>
+          <View style={{ flex: 1, minWidth: 0, padding: 11, borderRadius: 12, backgroundColor: colors.secondary }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Vessel · voyage</Text>
+            <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, lineHeight: 17, fontWeight: '700', marginTop: 4 }}>
+              {supplied(vesselAndVoyage, 'Not reported')}
+            </Text>
           </View>
         </View>
-        {boundedProgress != null ? <View style={{ marginTop: 14 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Trade progress, as reported</Text>
-            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>{boundedProgress}%</Text>
+
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 14 }}>
+          <Feather name="map-pin" size={14} color={colors.primary} style={{ marginTop: 2 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Shipment route</Text>
+            <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 18, fontWeight: '600', marginTop: 3 }}>{route}</Text>
           </View>
-          <View style={{ height: 6, borderRadius: 4, backgroundColor: colors.secondary, overflow: 'hidden' }}>
-            <View style={{ width: `${boundedProgress}%`, height: 6, borderRadius: 4, backgroundColor: colors.primary }} />
+        </View>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 13, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Invested</Text>
+            <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '600', marginTop: 4 }}>{reportedDate(investmentDate)}</Text>
           </View>
-        </View> : <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 13 }}>
-          Trade progress: 0.00%.
-        </Text>}
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>ETD</Text>
+            <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '600', marginTop: 4 }}>{reportedDate(etd)}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>ETA</Text>
+            <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '600', marginTop: 4 }}>{reportedDate(eta)}</Text>
+          </View>
+        </View>
+
+        <View style={{ marginTop: 15, paddingTop: 13, borderTopWidth: 1, borderTopColor: colors.border }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginBottom: 7 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, flex: 1 }}>{progressLabel}</Text>
+            {boundedProgress != null ? <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>{boundedProgress.toFixed(1)}%</Text> : null}
+          </View>
+          {boundedProgress != null
+            ? <View style={{ height: 6, borderRadius: 4, backgroundColor: colors.secondary, overflow: 'hidden' }}>
+              <View style={{ width: `${boundedProgress}%`, height: 6, borderRadius: 4, backgroundColor: colors.primary }} />
+            </View>
+            : <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Progress has not been reported.</Text>}
+          {currentStage !== '—' ? <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 7 }}>Current milestone: {currentStage}</Text> : null}
+        </View>
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 14, paddingTop: 2, borderTopWidth: 1, borderTopColor: colors.border }}>
+          <InvestmentMetric label="Amount invested" value={amountLabel} color={colors.foreground} />
+          <InvestmentMetric label="Expected profit" value={money(expectedProfit, 'USD')} color={colors.primary} />
+          <InvestmentMetric label="ROI" value={roiText} color={colors.foreground} />
+          <InvestmentMetric label="Days remaining" value={daysRemaining != null ? `${daysRemaining} days` : 'Not reported'} color={colors.foreground} />
+          <InvestmentMetric label="Next payout date" value={reportedDate(payoutDate)} color={colors.foreground} />
+          <InvestmentMetric label="Total return recorded" value={money(totalReturn, payoutCurrency)} color={colors.foreground} />
+        </View>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 10, letterSpacing: 0.35 }}>TRADE STATUS</Text>
+            <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '600', marginTop: 4 }}>{supplied(tradeStatus, 'Not reported')}</Text>
+          </View>
+          <View style={{ flex: 1, alignItems: 'flex-end' }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 10, letterSpacing: 0.35 }}>CONTAINER STATUS</Text>
+            <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '600', textAlign: 'right', marginTop: 4 }}>{supplied(containerStatus, 'Not reported')}</Text>
+          </View>
+        </View>
       </View>
+
       <Pressable
         testID={`portfolio-view-details-${entry.key}`}
         accessibilityRole="button"
@@ -164,13 +257,12 @@ export default function Portfolio() {
         disabled={!serverId}
         onPress={() => router.push({ pathname: '/position/[id]', params: { id: serverId } })}
         style={({ pressed }) => ({
-          minHeight: 44, borderRadius: 12, backgroundColor: serverId ? colors.lightGreen : colors.secondary,
-          alignItems: 'center', justifyContent: 'center', marginTop: 15, opacity: pressed ? 0.78 : 1,
+          minHeight: 48, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.card,
+          flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.78 : 1,
         })}
       >
-        <Text style={{ color: serverId ? colors.primary : colors.mutedForeground, fontSize: 13, fontWeight: '700' }}>
-          View Details
-        </Text>
+        <Text style={{ color: serverId ? colors.primary : colors.mutedForeground, fontSize: 13, fontWeight: '700' }}>View shipment & investment details</Text>
+        <Feather name="arrow-right" size={15} color={serverId ? colors.primary : colors.mutedForeground} />
       </Pressable>
     </Card>;
   };

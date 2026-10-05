@@ -82,6 +82,14 @@ it('filters my investments by project_type container', function () {
         'invested_at' => now()->subDay(),
         'approved_at' => now()->subDay(),
     ]);
+    $this->containerProject->containerTracking()->create([
+        'container_number' => 'OGXU1234567',
+        'vessel_name' => 'Reported Vessel',
+        'port_of_loading' => 'Port Qasim',
+        'destination_port' => 'Jebel Ali',
+        'container_journey' => [],
+        'tracking_updated_at' => now(),
+    ]);
 
     Investment::query()->create([
         'project_id' => $this->plantProject->id,
@@ -105,7 +113,9 @@ it('filters my investments by project_type container', function () {
         ->and($data[0]['project']['status'])->toBe('in_transit')
         ->and($data[0]['project']['vessel'])->toBe('Test Vessel')
         ->and($data[0]['project']['etd'])->toBe('2026-07-20')
-        ->and($data[0]['project']['eta'])->toBe('2026-07-28');
+        ->and($data[0]['project']['eta'])->toBe('2026-07-28')
+        ->and($data[0]['project']['container']['container_number'])->toBe('OGXU1234567')
+        ->and($data[0]['project']['container']['vessel_name'])->toBe('Reported Vessel');
 });
 
 it('orders my investments by invested_at descending', function () {

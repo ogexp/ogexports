@@ -1,0 +1,26 @@
+:root {
+  --og-background: hsl(48 24% 96%);
+  --og-foreground: hsl(164 17% 19%);
+  --og-card: hsl(48 30% 99%);
+  --og-primary: hsl(153 34% 29%);
+  --og-primary-foreground: hsl(48 24% 97%);
+  --og-secondary: hsl(45 21% 92%);
+  --og-muted: hsl(159 9% 45%);
+  --og-border: hsl(42 13% 86%);
+  --og-accent: hsl(39 39% 56%);
+  --og-success-bg: hsl(147 30% 91%);
+  --og-radius: 12px;
+}
+
+.investor-container-preview,
+.investor-container-preview * {
+  box-sizing: border-box;
+}
+
+.investor-container-preview {
+  min-height: 100vh;
+  background: var(--og-background);
+  color: var(--og-foreground);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}

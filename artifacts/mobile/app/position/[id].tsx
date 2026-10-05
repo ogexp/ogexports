@@ -26,11 +26,15 @@ export default function PositionDetail() {
   const project = record(row.project ?? row.trade ?? row.trade_details);
   const trade = record(row.trade ?? row.project ?? row.trade_details);
   const container = record(row.container ?? row.container_details ?? project.container ?? project.container_details ?? trade.container ?? trade.container_details);
+  const projectMeta = record(project.meta ?? trade.meta ?? row.meta);
   const currency = first(row, ['currency', 'amount_currency'], first(project, ['currency'], first(trade, ['currency'])));
   const tradeId = first(row, ['trade_id', 'trade_code'], first(trade, ['trade_id', 'trade_code', 'project_code', 'code', 'reference'], first(project, ['trade_id', 'trade_code', 'project_code', 'code', 'reference'], notProvided)));
   const investmentId = first(row, ['investment_id', 'reference', 'id'], notProvided);
   const status = first(row, ['status', 'state'], notProvided);
-  const containerNumber = first(row, ['container_number', 'container_name'], first(container, ['container_number', 'number', 'name'], notProvided));
+  const containerNumber = first(row, ['container_number', 'container_name'], first(container, ['container_number', 'number', 'name'], first(projectMeta, ['container_number', 'container_no', 'containerNumber'], notProvided)));
+  const vesselName = first(row, ['vessel_name', 'vessel'], first(container, ['vessel_name', 'vessel'], first(project, ['vessel'], first(trade, ['vessel'], notProvided))));
+  const voyage = first(row, ['voyage_number', 'voyage'], first(container, ['voyage_number', 'voyage'], first(projectMeta, ['voyage_number', 'voyage'], notProvided)));
+  const vesselAndVoyage = [vesselName, voyage].filter(value => value !== notProvided).join(' · ') || notProvided;
   const timeline = list(project.trade_updates);
   const stageUpdates = list(project.stage_updates);
   const investmentPeriodProgress = record(row.investment_period_progress);
@@ -57,36 +61,58 @@ export default function PositionDetail() {
     ?? amount(trade, ['actual_return_amount', 'actual_distribution_amount', 'returned_amount', 'amount_returned', 'distributed_amount']);
   const actualProfitUsd = amount(row, ['profit_amount']);
   const actualProfitPkr = amount(row, ['profit_amount_pkr']);
+  const totalReturn = amount(row, ['total_return', 'total_return_amount'])
+    ?? amount(record(row.profit_distribution ?? row.distribution), ['total_return']);
   const actualPerformance: [string, string][] = [];
   if (actualProfitUsd != null) actualPerformance.push([`Profit recorded (${displayCurrencyCode('USD')})`, money(actualProfitUsd, 'USD')]);
   if (actualProfitPkr != null) actualPerformance.push([`Profit recorded (${displayCurrencyCode('PKR')})`, money(actualProfitPkr, 'PKR')]);
   if (!actualPerformance.length) actualPerformance.push([`Profit recorded (${displayCurrencyCode('USD')})`, money(null, 'USD')]);
   if (actualReturn != null) actualPerformance.push(['Returned or distributed amount', amountText(actualReturn)]);
+  if (totalReturn != null) actualPerformance.push(['Total return recorded', amountText(totalReturn)]);
 
+  const expectedPayoutDate = first(row, ['next_payout_date', 'payout_date', 'next_distribution_date'], first(project, ['next_payout_date', 'payout_date', 'next_distribution_date'], first(trade, ['next_payout_date', 'payout_date', 'next_distribution_date'], notProvided)));
+  const reportedRoi = amount(row, ['roi', 'expected_return_pct'])
+    ?? amount(project, ['expected_return_pct'])
+    ?? amount(trade, ['expected_return_pct']);
+  const reportedExpectedProfit = amount(row, ['expected_profit'])
+    ?? amount(project, ['expected_profit'])
+    ?? amount(trade, ['expected_profit']);
   const investmentDetails: [string, string][] = [
     ['Investment ID', investmentId],
     ['Trade ID', tradeId],
     ['Investment Date', first(row, ['investment_date', 'invested_at', 'created_at', 'date'], notProvided)],
     ['Amount Invested', investedAmountText],
+    ['Expected profit', reportedExpectedProfit != null ? amountText(reportedExpectedProfit) : notProvided],
+    ['ROI', reportedRoi != null ? `${reportedRoi.toFixed(2)}%` : first(project, ['roi_label'], first(trade, ['roi_label'], notProvided))],
+    ['Next payout date', expectedPayoutDate],
     ['Current Status', status],
     ['Trade Cycle', tradeCycle || (tradeCycleDays ? `${tradeCycleDays} days` : notProvided)],
     ['Distribution status', first(row, ['distribution_status', 'payout_status'], first(project, ['distribution_status', 'payout_status'], first(trade, ['distribution_status', 'payout_status'], notProvided)))],
   ];
   const tradeDetails: [string, string][] = [
     ['Commodity', first(row, ['commodity_name', 'commodity'], first(project, ['commodity_name', 'commodity', 'title', 'name'], first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(row, ['project_name', 'title'], notProvided))))],
-    ['Quantity', first(row, ['quantity', 'cargo_quantity', 'quantity_tons'], first(project, ['quantity', 'cargo_quantity', 'quantity_tons'], first(trade, ['quantity', 'cargo_quantity', 'quantity_tons'], notProvided)))],
-    ['Container number/name', containerNumber],
+    ['Container ID', containerNumber],
     ['Destination', first(row, ['destination', 'destination_country', 'to_country'], first(project, ['destination', 'destination_country', 'to_country', 'destination_market'], first(trade, ['destination', 'destination_country', 'to_country', 'destination_market'], notProvided)))],
     ['Trade status', first(row, ['trade_status', 'shipment_status'], first(project, ['trade_status', 'shipment_status', 'status'], first(trade, ['trade_status', 'shipment_status', 'status'], notProvided)))],
   ];
+  const loadingPort = first(row, ['port_of_loading', 'loading_port'], first(container, ['port_of_loading', 'loading_port'], first(project, ['port_of_loading'], first(trade, ['port_of_loading'], notProvided))));
+  const destinationPort = first(row, ['destination_port'], first(container, ['destination_port', 'port_of_discharge'], first(project, ['port_of_discharge', 'destination_port'], first(trade, ['port_of_discharge', 'destination_port'], notProvided))));
+  const route = loadingPort !== notProvided || destinationPort !== notProvided
+    ? `${loadingPort} → ${destinationPort}`
+    : notProvided;
+  const containerType = first(project, ['container_type', 'container_size'], first(trade, ['container_type', 'container_size'], notProvided));
+  const shippingLine = first(row, ['shipping_line'], first(project, ['shipping_line'], first(trade, ['shipping_line'], notProvided)));
   const trackingDetails: [string, string][] = ([
     ['Bill of lading', first(row, ['bill_of_lading_number', 'bill_of_lading'], first(container, ['bill_of_lading_number', 'bill_of_lading', 'bl_number'], ''))],
-    ['Vessel', first(row, ['vessel_name'], first(container, ['vessel_name', 'vessel'], ''))],
-    ['Port of loading', first(row, ['port_of_loading', 'loading_port'], first(container, ['port_of_loading', 'loading_port'], ''))],
-    ['Destination port', first(row, ['destination_port'], first(container, ['destination_port', 'port_of_discharge'], ''))],
-    ['ETD', first(row, ['etd', 'departure_date'], first(container, ['etd', 'departure_date'], ''))],
-    ['ETA', first(row, ['eta', 'estimated_arrival'], first(container, ['eta', 'estimated_arrival'], ''))],
-    ['Latest update', first(row, ['latest_update', 'last_updated'], first(container, ['latest_update', 'last_updated', 'updated_at'], ''))],
+    ['Container size', containerType],
+    ['Vessel / voyage', vesselAndVoyage],
+    ['Shipping line', shippingLine],
+    ['Route', route],
+    ['Port of loading', loadingPort],
+    ['Destination port', destinationPort],
+    ['ETD', first(row, ['etd', 'departure_date'], first(container, ['etd', 'departure_date'], first(project, ['etd'], first(trade, ['etd'], ''))))],
+    ['ETA', first(row, ['eta', 'estimated_arrival'], first(container, ['eta', 'estimated_arrival'], first(project, ['eta'], first(trade, ['eta'], ''))))],
+    ['Latest update', first(row, ['latest_update', 'latest_tracking_update', 'last_updated'], first(container, ['latest_update', 'latest_tracking_update', 'last_updated', 'updated_at'], ''))],
   ] as [string, string][]).filter(([, value]) => value.trim() && value.trim() !== '—');
 
   async function downloadDocument(document: Json, key: string) {

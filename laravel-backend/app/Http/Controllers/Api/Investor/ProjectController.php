@@ -210,7 +210,7 @@ class ProjectController extends Controller
     {
         $query = Investment::query()
             ->where('investor_id', $request->user()->id)
-            ->with('project');
+            ->with('project.containerTracking');
 
         if ($projectType = $request->input('project_type')) {
             $query->whereHas('project', fn ($q) => $q->where('type', $projectType));
