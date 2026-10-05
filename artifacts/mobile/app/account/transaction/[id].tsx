@@ -8,7 +8,7 @@ import { amount, first, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
-const unavailable = 'Not provided by OG Exports';
+const unavailable = '—';
 
 function formatDateTime(value: string) {
   if (!value) return unavailable;
@@ -44,9 +44,7 @@ export default function TransactionDetails() {
   const title = first(transaction, ['description', 'title'], first(transaction, ['type', 'transaction_type'], 'Transaction'));
   const currency = first(transaction, ['currency'], first(meta, ['currency', 'wallet_currency']));
   const reportedAmount = amount(transaction, ['amount']);
-  const amountLabel = reportedAmount != null && currency
-    ? money(reportedAmount, currency, { preserveSource: true })
-    : unavailable;
+  const amountLabel = money(reportedAmount, currency || 'USD', { preserveSource: true });
   const status = first(transaction, ['status', 'state'], unavailable);
 
   return <Screen title="Transaction details" subtitle="Transaction information reported by OG Exports">

@@ -26,7 +26,7 @@ function isEnabled(value: string) {
 
 function DepositProgress({ deposit }: { deposit: Record<string, unknown> }) {
   const colors = useColors();
-  const rawStatus = first(deposit, ['review_status', 'status'], 'Not provided');
+  const rawStatus = first(deposit, ['review_status', 'status'], '—');
   const status = rawStatus.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
   const approved = completedStatuses.has(status);
   const inReview = reviewStatuses.has(status);
@@ -66,7 +66,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   const colors = useColors();
   return <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 7 }}>
     <Text style={{ color: colors.mutedForeground, fontSize: 11, flex: 0.8 }}>{label}</Text>
-    <Text selectable style={{ color: colors.foreground, fontSize: 11, fontWeight: '600', textAlign: 'right', flex: 1.2 }}>{value || 'Not provided by OG Exports'}</Text>
+    <Text selectable style={{ color: colors.foreground, fontSize: 11, fontWeight: '600', textAlign: 'right', flex: 1.2 }}>{value || '—'}</Text>
   </View>;
 }
 
@@ -180,11 +180,11 @@ export default function Deposit() {
     } catch (err) { setError(messageOf(err)); }
   }
 
-  return <Screen title="Add funds" subtitle={`Bank transfer to your OG Exports wallet · ${paymentCurrency || 'Currency unavailable'}`}>
+  return <Screen title="Add funds" subtitle={`Bank transfer to your OG Exports wallet · ${paymentCurrency || 'USD'}`}>
     {stage === 'form' ? <>
       <Section title="1 · Amount" />
       <Card>
-        <Field label={`Deposit amount (${paymentCurrency || 'currency unavailable'})`} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
+        <Field label={`Deposit amount (${paymentCurrency || 'USD'})`} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
       </Card>
 
       <Section title="2 · Payment Method" />
@@ -205,7 +205,7 @@ export default function Deposit() {
       {banksQuery.isError ? <ErrorState message="OG Exports payment accounts could not be loaded." error={banksQuery.error} onRetry={() => void banksQuery.refetch()} /> : null}
       {banksQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading payment instructions…</Text></Card> : null}
       {!banksQuery.isLoading && !banksQuery.isError && banks.length === 0
-        ? <EmptyState title="Payment instructions unavailable" body="OG Exports has not provided an active receiving account. You cannot submit a transfer request until instructions are available." />
+        ? <EmptyState title="Payment instructions unavailable" body="Deposits are currently unavailable. Contact OG Exports to confirm the receiving account." />
         : null}
       {banks.length ? <Card>
         <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 7 }}>Select a receiving account</Text>
@@ -217,17 +217,17 @@ export default function Deposit() {
               <Text style={{ color: selected ? colors.primary : colors.foreground, fontWeight: '700', flex: 1 }}>{first(item, ['bank_name', 'name'], 'Bank account')}</Text>
               {selected ? <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700' }}>SELECTED</Text> : null}
             </View>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{first(item, ['account_title', 'account_holder', 'account_name'], 'Account title not provided')}{first(item, ['currency']) ? ` · ${first(item, ['currency']).toUpperCase()}` : ''}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{first(item, ['account_title', 'account_holder', 'account_name'], '—')}{first(item, ['currency']) ? ` · ${first(item, ['currency']).toUpperCase()}` : ''}</Text>
           </Pressable>;
         })}
         {selectedBank ? <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 2 }}>
           <DetailRow label="Account number" value={first(selectedBank, ['account_number'])} />
           <DetailRow label="IBAN" value={first(selectedBank, ['iban'])} />
           <DetailRow label="SWIFT / BIC" value={first(selectedBank, ['swift'])} />
-          <DetailRow label="Payment currency" value={first(selectedBank, ['currency']).toUpperCase() || walletCurrency || 'Not provided by OG Exports'} />
+          <DetailRow label="Payment currency" value={first(selectedBank, ['currency']).toUpperCase() || walletCurrency || 'USD'} />
           {first(selectedBank, ['instructions']) ? <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 19, marginTop: 7 }}>{first(selectedBank, ['instructions'])}</Text> : null}
           {first(selectedBank, ['notes']) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 6 }}>{first(selectedBank, ['notes'])}</Text> : null}
-          {!first(selectedBank, ['instructions', 'notes']) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 6 }}>Additional payment instructions were not provided by OG Exports.</Text> : null}
+          {!first(selectedBank, ['instructions', 'notes']) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 6 }}>Contact OG Exports support before sending a transfer.</Text> : null}
         </View> : null}
       </Card> : null}
 
@@ -264,7 +264,7 @@ export default function Deposit() {
 
     {stage === 'review' ? <Card>
       <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Review deposit</Text>
-      <DetailRow label="Amount" value={paymentCurrency ? moneyInSourceCurrency(Number(amount), paymentCurrency) : 'Currency unavailable'} />
+      <DetailRow label="Amount" value={moneyInSourceCurrency(Number(amount), paymentCurrency || 'USD')} />
       <DetailRow label="Payment method" value="Bank transfer" />
       <DetailRow label="Receiving bank" value={first(selectedBank ?? {}, ['bank_name', 'name'])} />
       <DetailRow label="Account number / IBAN" value={first(selectedBank ?? {}, ['account_number', 'iban'])} />
@@ -283,10 +283,10 @@ export default function Deposit() {
       {notice ? <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>{notice}</Text> : null}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9, marginTop: 6 }}>
         <Text style={{ color: colors.mutedForeground }}>Server status</Text>
-        <Status value={first(confirmation, ['review_status_label', 'status'], 'Not provided')} />
+        <Status value={first(confirmation, ['review_status_label', 'status'], '—')} />
       </View>
       <DetailRow label="Deposit reference" value={first(confirmation, ['reference', 'deposit_reference'])} />
-      {readAmount(confirmation, ['amount']) != null && confirmationCurrency ? <DetailRow label="Amount" value={moneyInSourceCurrency(readAmount(confirmation, ['amount']), confirmationCurrency)} /> : null}
+      <DetailRow label="Amount" value={moneyInSourceCurrency(readAmount(confirmation, ['amount']), confirmationCurrency || 'USD')} />
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 8 }}>A submitted request is not yet a wallet credit. Follow the server status below.</Text>
       <DepositProgress deposit={confirmation} />
       <View style={{ marginTop: 14 }}><Action title="Record another deposit" secondary onPress={() => { setConfirmation(null); setSelectedDepositId(''); setNotice(''); setError(''); setStage('form'); }} /></View>
@@ -314,9 +314,9 @@ export default function Deposit() {
         <Card style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderColor: selected ? colors.primary : colors.border }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(item, ['reference', 'deposit_reference'], 'Deposit request')}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{first(item, ['amount'], '—')} {first(item, ['currency'], walletCurrency)} · {first(item, ['created_at', 'date'], 'Date not provided')}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{moneyInSourceCurrency(readAmount(item, ['amount']), first(item, ['currency'], walletCurrency || 'USD'))} · {first(item, ['created_at', 'date'], '—')}</Text>
           </View>
-          <Status value={first(item, ['review_status_label', 'status'], 'Not provided')} />
+          <Status value={first(item, ['review_status_label', 'status'], '—')} />
         </Card>
       </Pressable>;
     })}

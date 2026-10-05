@@ -34,25 +34,27 @@ function bankKey(account: Record<string, unknown>) {
 }
 
 function maskAccount(account: Record<string, unknown>) {
-  return first(account, ['masked_account_identifier'], 'Destination account not provided');
+  return first(account, ['masked_account_identifier'], '—');
 }
 
 function WithdrawalProgress({ withdrawal }: { withdrawal: Record<string, unknown> }) {
   const colors = useColors();
-  const rawStatus = first(withdrawal, ['status', 'withdrawal_status'], 'Not provided');
+  const rawStatus = first(withdrawal, ['status', 'withdrawal_status'], '—');
   const status = rawStatus.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
   const finished = finishedStatuses.has(status);
   const processing = processingStatuses.has(status);
   const stopped = ['rejected', 'cancelled', 'canceled'].includes(status);
   const completedCount = finished ? 4 : stopped ? (status === 'rejected' ? 2 : 1) : processing ? 1 : status === 'submitted' ? 0 : 0;
   const activeIndex = finished || stopped ? -1 : processing ? 1 : status === 'submitted' ? 0 : -1;
-  const explanation = finished
-    ? 'OG Exports records the withdrawal approval and its completed wallet transaction together.'
-    : processing
-      ? 'The withdrawal request is with OG Exports for processing. Follow the server status for updates.'
-      : stopped
-        ? `OG Exports reports this request as ${rawStatus}. Later steps are not shown as complete.`
-        : `OG Exports reports ${rawStatus}. Later steps are not inferred.`;
+  const explanation = rawStatus === '—'
+    ? 'Withdrawal status details will appear here when available.'
+    : finished
+      ? 'OG Exports records the withdrawal approval and its completed wallet transaction together.'
+      : processing
+        ? 'The withdrawal request is with OG Exports for processing. Follow the server status for updates.'
+        : stopped
+          ? `OG Exports reports this request as ${rawStatus}. Later steps are not shown as complete.`
+          : `OG Exports reports ${rawStatus}. Later steps are not inferred.`;
 
   return <Card style={{ marginTop: 12 }}>
     <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>Withdrawal progress</Text>
@@ -79,7 +81,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   const colors = useColors();
   return <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
     <Text style={{ color: colors.mutedForeground, fontSize: 12, flex: 0.9 }}>{label}</Text>
-    <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right', flex: 1.1 }}>{value || 'Not provided by OG Exports'}</Text>
+    <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right', flex: 1.1 }}>{value || '—'}</Text>
   </View>;
 }
 
@@ -187,7 +189,7 @@ export default function Withdraw() {
     <Card style={{ borderLeftWidth: 3, borderLeftColor: colors.primary }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>WITHDRAWABLE BALANCE</Text>
       <Text style={{ color: colors.foreground, fontSize: 27, fontWeight: '700', marginTop: 7 }}>
-        {walletQuery.isLoading ? 'Loading…' : availableBalance != null && withdrawalCurrency ? moneyInSourceCurrency(availableBalance, withdrawalCurrency) : 'Unavailable'}
+        {walletQuery.isLoading ? 'Loading…' : walletQuery.isError && availableBalance == null ? 'Unavailable' : moneyInSourceCurrency(availableBalance, withdrawalCurrency || 'USD')}
       </Text>
       {explicitWithdrawableBalance == null && availableBalance != null
         ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 6 }}>OG Exports does not return a separate withdrawable total; requests are reserved from the reported available balance.</Text>
@@ -201,7 +203,7 @@ export default function Withdraw() {
 
     {stage === 'form' ? <Card>
       <Section title="Withdrawal amount" />
-      <Field label={`Amount (${withdrawalCurrency || 'currency unavailable'})`} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
+      <Field label={`Amount (${withdrawalCurrency || 'USD'})`} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
       <Section title="Verified destination account" />
       {verifiedAccounts.map((account, index) => {
         const key = bankKey(account);
@@ -231,9 +233,9 @@ export default function Withdraw() {
 
     {stage === 'review' && selectedBank ? <Card>
       <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 17 }}>Confirm withdrawal</Text>
-      <DetailRow label="Amount" value={withdrawalCurrency ? moneyInSourceCurrency(Number(amount), withdrawalCurrency) : 'Currency unavailable'} />
-      <DetailRow label="Fees" value={fee != null && withdrawalCurrency ? moneyInSourceCurrency(fee, withdrawalCurrency) : 'Not provided by OG Exports'} />
-      <DetailRow label="Estimated processing time" value={processingTime || 'Not provided by OG Exports'} />
+      <DetailRow label="Amount" value={moneyInSourceCurrency(Number(amount), withdrawalCurrency || 'USD')} />
+      <DetailRow label="Fees" value={moneyInSourceCurrency(fee, withdrawalCurrency || 'USD')} />
+      <DetailRow label="Estimated processing time" value={processingTime || '—'} />
       <DetailRow label="Destination account" value={`${first(selectedBank, ['bank_name'])} · ${first(selectedBank, ['account_holder', 'account_title'])} · ${maskAccount(selectedBank)}`} />
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 9, marginBottom: 13 }}>The email code and transaction password will be verified by OG Exports when you submit. Fee and processing estimates are shown only when the server supplies them.</Text>
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
@@ -245,10 +247,10 @@ export default function Withdraw() {
       <SuccessMark />
       <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Withdrawal request submitted</Text>
       {notice ? <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>{notice}</Text> : null}
-      <DetailRow label="Server status" value={first(confirmation, ['status'], 'Not provided')} />
+      <DetailRow label="Server status" value={first(confirmation, ['status'], '—')} />
       <DetailRow label="Reference" value={first(confirmation, ['reference', 'withdraw_id'])} />
-      {readAmount(confirmation, ['amount']) != null && withdrawalCurrency ? <DetailRow label="Requested amount" value={moneyInSourceCurrency(readAmount(confirmation, ['amount']), withdrawalCurrency)} /> : null}
-      {readAmount(confirmation, ['fee', 'fees', 'transaction_fee']) != null && withdrawalCurrency ? <DetailRow label="Fee" value={moneyInSourceCurrency(readAmount(confirmation, ['fee', 'fees', 'transaction_fee']), withdrawalCurrency)} /> : null}
+      <DetailRow label="Requested amount" value={moneyInSourceCurrency(readAmount(confirmation, ['amount']), withdrawalCurrency || 'USD')} />
+      <DetailRow label="Fee" value={moneyInSourceCurrency(readAmount(confirmation, ['fee', 'fees', 'transaction_fee']), withdrawalCurrency || 'USD')} />
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 8 }}>A submitted withdrawal is not yet completed. Check the server status in your withdrawal history.</Text>
       <WithdrawalProgress withdrawal={confirmation} />
       <View style={{ marginTop: 14 }}><Action title="Request another withdrawal" secondary onPress={() => { setConfirmation(null); setSelectedWithdrawalId(''); setNotice(''); setError(''); setStage('form'); }} /></View>
@@ -276,9 +278,9 @@ export default function Withdraw() {
         <Card style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderColor: selected ? colors.primary : colors.border }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(item, ['reference', 'withdraw_id'], 'Withdrawal request')}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{first(item, ['amount'], '—')} {first(item, ['currency'], withdrawalCurrency)} · {first(item, ['created_at', 'date'], 'Date not provided')}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{moneyInSourceCurrency(readAmount(item, ['amount']), first(item, ['currency'], withdrawalCurrency || 'USD'))} · {first(item, ['created_at', 'date'], '—')}</Text>
           </View>
-          <Status value={first(item, ['status'], 'Not provided')} />
+          <Status value={first(item, ['status'], '—')} />
         </Card>
       </Pressable>;
     })}

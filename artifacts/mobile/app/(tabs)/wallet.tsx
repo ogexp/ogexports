@@ -24,12 +24,12 @@ function categoryFor(item: Json): Exclude<WalletCategory, 'All'> | null {
 }
 
 function humanizeType(value: string) {
-  if (!value) return 'Type not provided';
+  if (!value) return '—';
   return value.replace(/[_-]+/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
 }
 
 function displayDate(value: string) {
-  if (!value) return 'Date not provided';
+  if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -38,8 +38,7 @@ function displayDate(value: string) {
 function balanceLabel(value: number | null, currency: string, loading: boolean, error: boolean) {
   if (loading) return 'Loading…';
   if (error) return 'Unavailable';
-  if (value == null) return 'Unavailable';
-  return currency ? money(value, currency) : 'Currency unavailable';
+  return money(value, currency || 'USD');
 }
 
 export default function Wallet() {
@@ -95,20 +94,18 @@ export default function Wallet() {
         {balanceLabel(available, currency, wallet.isLoading, wallet.isError)}
       </Text>
       <Text style={{ color: colors.primaryForeground, fontSize: 11, opacity: 0.82, marginTop: 7 }}>
-        {currency ? `${currency} account` : 'Account currency not provided by OG Exports'}
+        {currency || 'USD'} account
       </Text>
     </LinearGradient>
 
     <Section title="Balance Breakdown" />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
       {balanceMetrics.map(metric => {
-        const unavailable = !wallet.isLoading && !wallet.isError && metric.value == null;
         return <Card key={metric.label} style={{ width: '48%', minHeight: 91, padding: 13, marginBottom: 0 }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{metric.label}</Text>
-          <Text numberOfLines={2} adjustsFontSizeToFit style={{ color: metric.value == null ? colors.mutedForeground : colors.foreground, fontSize: metric.value == null ? 12 : 15, fontWeight: '700', marginTop: 8 }}>
+          <Text numberOfLines={2} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 8 }}>
             {balanceLabel(metric.value, currency, wallet.isLoading, wallet.isError)}
           </Text>
-          {unavailable ? <Text style={{ color: colors.mutedForeground, fontSize: 9, marginTop: 3 }}>Not returned by OG Exports</Text> : null}
         </Card>;
       })}
     </View>
@@ -152,10 +149,10 @@ export default function Wallet() {
       />
       : null}
     {visibleTransactions.map((item, index) => {
-      const id = first(item, ['transaction_id', 'reference', 'id'], 'Transaction ID not provided');
+      const id = first(item, ['transaction_id', 'reference', 'id'], '—');
       const rawType = first(item, ['type', 'transaction_type', 'category']);
       const date = displayDate(first(item, ['created_at', 'date']));
-      const status = first(item, ['status', 'state'], 'Not provided');
+      const status = first(item, ['status', 'state'], '—');
       const value = amount(item, ['amount']);
       const itemCurrency = first(item, ['currency'], currency).toUpperCase();
       const itemCategory = categoryFor(item);
@@ -173,7 +170,7 @@ export default function Wallet() {
         </View>
         <View style={{ alignItems: 'flex-end', gap: 5 }}>
           <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontWeight: '700', fontSize: 12 }}>
-            {value != null && itemCurrency ? money(value, itemCurrency) : 'Amount unavailable'}
+            {money(value, itemCurrency || 'USD')}
           </Text>
           <Status value={status} />
         </View>

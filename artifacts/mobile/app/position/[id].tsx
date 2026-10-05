@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { shareInvestorFile } from '@/lib/file-download';
 
-const notProvided = 'Not provided by OG Exports';
+const notProvided = '—';
 
 export default function PositionDetail() {
   const { id: raw } = useLocalSearchParams<{ id: string }>();
@@ -47,8 +47,7 @@ export default function PositionDetail() {
     ?? amount(project, ['projected_return_pct', 'expected_return_pct', 'projected_return_percentage', 'expected_return_percentage', 'estimated_return_percentage', 'target_return_percentage'])
     ?? amount(trade, ['projected_return_pct', 'expected_return_pct', 'projected_return_percentage', 'expected_return_percentage', 'estimated_return_percentage', 'target_return_percentage']);
   const amountText = (value: number | null) => {
-    if (value == null) return notProvided;
-    return currency ? money(value, currency) : `${value.toLocaleString()} · Currency not provided by OG Exports`;
+    return money(value, currency || 'USD');
   };
   const actualReturn = amount(row, ['actual_return_amount', 'actual_distribution_amount', 'returned_amount', 'amount_returned', 'distributed_amount'])
     ?? amount(project, ['actual_return_amount', 'actual_distribution_amount', 'returned_amount', 'amount_returned', 'distributed_amount'])
@@ -58,6 +57,7 @@ export default function PositionDetail() {
   const actualPerformance: [string, string][] = [];
   if (actualProfitUsd != null) actualPerformance.push([`Profit recorded (${displayCurrencyCode('USD')})`, money(actualProfitUsd, 'USD')]);
   if (actualProfitPkr != null) actualPerformance.push([`Profit recorded (${displayCurrencyCode('PKR')})`, money(actualProfitPkr, 'PKR')]);
+  if (!actualPerformance.length) actualPerformance.push([`Profit recorded (${displayCurrencyCode('USD')})`, money(null, 'USD')]);
   if (actualReturn != null) actualPerformance.push(['Returned or distributed amount', amountText(actualReturn)]);
 
   const investmentDetails: [string, string][] = [
@@ -84,7 +84,7 @@ export default function PositionDetail() {
     ['ETD', first(row, ['etd', 'departure_date'], first(container, ['etd', 'departure_date'], ''))],
     ['ETA', first(row, ['eta', 'estimated_arrival'], first(container, ['eta', 'estimated_arrival'], ''))],
     ['Latest update', first(row, ['latest_update', 'last_updated'], first(container, ['latest_update', 'last_updated', 'updated_at'], ''))],
-  ] as [string, string][]).filter(([, value]) => value.trim() && !/^not provided$/i.test(value.trim()));
+  ] as [string, string][]).filter(([, value]) => value.trim() && value.trim() !== '—');
 
   async function downloadDocument(document: Json, key: string) {
     setDocumentErrors(current => ({ ...current, [key]: '' }));

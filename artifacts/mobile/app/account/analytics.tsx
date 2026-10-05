@@ -14,7 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
 const pageSize = 100;
-const notProvided = 'Not provided by OG Exports';
+const notProvided = '—';
 const completedStatuses = new Set(['complete', 'completed', 'settled']);
 const activeProjectStatuses = new Set(['shipping', 'in transit', 'custom clearance']);
 
@@ -73,7 +73,7 @@ function moneyLabel(value: number | null, currency: string, loading: boolean, er
   if (loading) return 'Loading…';
   if (error) return 'Unavailable';
   if (value == null) return notProvided;
-  return currency ? money(value, currency) : 'Currency not provided by OG Exports';
+  return money(value, currency || 'USD');
 }
 
 export default function TradeAnalytics() {
@@ -181,7 +181,7 @@ export default function TradeAnalytics() {
     {
       label: 'Total Distributions',
       value: distributionsStatus,
-      note: explicitDistributions != null ? 'Reported by OG Exports' : reportedProfitTotal != null ? 'OG Exports-reported profit total; a dedicated distribution total was not provided.' : undefined,
+      note: explicitDistributions != null ? 'Reported by OG Exports' : reportedProfitTotal != null ? 'Based on the total profit figure.' : undefined,
     },
   ];
 
@@ -219,7 +219,7 @@ export default function TradeAnalytics() {
     <Section title="Commodity Allocation" />
     <AllocationDonut
       title="Capital by commodity"
-      subtitle={currency ? `Share of comparable ${currency} capital` : 'Account currency not provided by OG Exports'}
+      subtitle={`Share of comparable ${currency || 'USD'} capital`}
       data={commodityAllocation}
       currency={currency}
       missingAmounts={missingCapitalCount}
@@ -229,7 +229,7 @@ export default function TradeAnalytics() {
     <Section title="Destination Allocation" />
     <AllocationDonut
       title="Capital by destination"
-      subtitle={currency ? `Share of comparable ${currency} capital` : 'Account currency not provided by OG Exports'}
+      subtitle={`Share of comparable ${currency || 'USD'} capital`}
       data={destinationAllocation}
       currency={currency}
       missingAmounts={missingCapitalCount}

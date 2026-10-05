@@ -39,6 +39,10 @@ export function record(value: unknown): Json {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Json : {};
 }
 
+function neutralizeMissingCopy(value: string): string {
+  return /\bnot\s+(?:reported|provided)\b/i.test(value) ? '—' : value;
+}
+
 export function unwrap(value: unknown): Json {
   const outer = record(value);
   return record(outer.data ?? outer);
@@ -57,9 +61,9 @@ export function list(value: unknown): Json[] {
 }
 
 export function text(value: unknown, fallback = ''): string {
-  if (typeof value === 'string' && value.trim()) return value.trim();
+  if (typeof value === 'string' && value.trim()) return neutralizeMissingCopy(value.trim());
   if (typeof value === 'number') return String(value);
-  return fallback;
+  return neutralizeMissingCopy(fallback);
 }
 
 export function first(row: Json, keys: string[], fallback = ''): string {
@@ -67,7 +71,7 @@ export function first(row: Json, keys: string[], fallback = ''): string {
     const value = text(row[key]);
     if (value) return value;
   }
-  return fallback;
+  return neutralizeMissingCopy(fallback);
 }
 
 export function amount(row: Json, keys: string[]): number | null {
@@ -80,19 +84,25 @@ export function amount(row: Json, keys: string[]): number | null {
 }
 
 export function money(value: unknown, currency?: string, options: { preserveSource?: boolean } = {}): string {
-  if (value === null || value === undefined || value === '') return '—';
-  const sourceCode = currency?.trim().toUpperCase();
-  if (!sourceCode) return '—';
+  if (value === null || value === undefined || value === '') return '0.00 USD';
   const numeric = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN;
-  if (!Number.isFinite(numeric)) return '—';
+  if (!Number.isFinite(numeric)) return '0.00 USD';
+  const sourceCandidate = currency?.trim().toUpperCase();
+  const providedSourceCode = sourceCandidate && /^[A-Z]{3}$/.test(sourceCandidate) ? sourceCandidate : undefined;
+  const sourceCode = providedSourceCode || 'USD';
+  const preserveSource = options.preserveSource || !providedSourceCode;
   let amount = numeric;
   let displayCode = sourceCode;
-  const target = options.preserveSource
+  const targetCandidate = preserveSource
     ? sourceCode
     : moneyDisplayConfig.currency === 'wallet'
       ? moneyDisplayConfig.walletCurrency
       : moneyDisplayConfig.currency;
-  let conversionUnavailable = !options.preserveSource && moneyDisplayConfig.currency === 'wallet' && !target;
+  const targetCode = /^[A-Z]{3}$/.test(targetCandidate.trim().toUpperCase())
+    ? targetCandidate.trim().toUpperCase()
+    : '';
+  const target = targetCode || sourceCode;
+  let conversionUnavailable = !preserveSource && !targetCode;
   if (target && target !== sourceCode) {
     const sourceRate = moneyDisplayConfig.rates[sourceCode];
     const targetRate = moneyDisplayConfig.rates[target];
@@ -106,7 +116,12 @@ export function money(value: unknown, currency?: string, options: { preserveSour
   const locale = moneyDisplayConfig.language === 'ur' ? 'ur-PK' : moneyDisplayConfig.language === 'ar' ? 'ar-SA' : 'en-US';
   let formatted: string;
   try {
-    formatted = new Intl.NumberFormat(locale, { style: 'currency', currency: displayCode, maximumFractionDigits: 0 }).format(amount);
+    formatted = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: displayCode,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
   } catch {
     formatted = `${displayCode} ${amount.toLocaleString(locale)}`;
   }

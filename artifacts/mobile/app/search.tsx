@@ -79,8 +79,8 @@ export default function InvestorSearch() {
       id: first(item, ['id', 'project_id']),
       title: first(item, ['commodity_name', 'commodity', 'title', 'name', 'project_name'], 'Trade opportunity'),
       subtitle: tradeId ? `Trade · ${tradeId}` : 'Trade opportunity',
-      supportingText: origin && destination ? `${origin} → ${destination}` : first(item, ['description', 'summary'], 'Trade details not provided'),
-      status: first(item, ['status', 'state'], 'Not provided'),
+      supportingText: origin && destination ? `${origin} → ${destination}` : first(item, ['description', 'summary'], '—'),
+      status: first(item, ['status', 'state'], '—'),
       icon: 'briefcase',
       kind: 'trade',
       currency: '',
@@ -116,7 +116,7 @@ export default function InvestorSearch() {
         title: first(item, ['project_name', 'title', 'name', 'commodity_name'], first(trade, ['commodity_name', 'commodity', 'title', 'name'], 'Investment')),
         subtitle: tradeId ? `Investment · ${tradeId}` : 'Portfolio investment',
         supportingText: first(item, ['trade_status', 'container_status', 'status', 'state'], 'Investment details reported by OG Exports'),
-        status: first(item, ['status', 'state'], 'Not provided'),
+        status: first(item, ['status', 'state'], '—'),
         icon: 'trending-up',
         kind: 'investment',
         currency: first(item, ['currency'], first(trade, ['currency'])),
@@ -192,8 +192,8 @@ export default function InvestorSearch() {
       id: first(item, ['id', 'transaction_id', 'reference']),
       title: first(item, ['description', 'title', 'type', 'transaction_type', 'category'], 'Wallet activity'),
       subtitle: first(item, ['reference', 'transaction_id'], 'Wallet transaction'),
-      supportingText: first(item, ['created_at', 'date'], 'Date not provided'),
-      status: first(item, ['status', 'state'], 'Not provided'),
+      supportingText: first(item, ['created_at', 'date'], '—'),
+      status: first(item, ['status', 'state'], '—'),
       icon: 'credit-card',
       kind: 'transaction',
       currency: first(item, ['currency']),
@@ -281,7 +281,9 @@ export default function InvestorSearch() {
                 <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{result.supportingText}</Text>
               </View>
               <View style={{ alignItems: 'flex-end', gap: 5 }}>
-                {result.value != null && result.currency ? <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700' }}>{money(result.value, result.currency)}</Text> : null}
+                {result.kind === 'investment' || result.kind === 'transaction'
+                  ? <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700' }}>{money(result.value, result.currency || 'USD')}</Text>
+                  : null}
                 <Status value={result.status} />
               </View>
             </Card>

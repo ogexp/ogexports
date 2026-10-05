@@ -36,7 +36,7 @@ type TransactionRow = {
 };
 
 const filters: Filter[] = ['All', 'Deposits', 'Investments', 'Withdrawals', 'Distributions'];
-const unavailable = 'Not provided by OG Exports';
+const unavailable = '—';
 const pageSize = 100;
 
 function formatDateTime(value: string) {
@@ -340,13 +340,13 @@ export default function Transactions() {
         <Text style={{ color: colors.primary, fontWeight: '700' }}>Retry unavailable sources</Text>
       </Pressable>
     </Card> : null}
-    {walletQuery.isError ? <Card><Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Wallet currency was not provided. Amounts without a transaction currency are shown as unavailable.</Text></Card> : null}
+    {walletQuery.isError ? <Card><Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Wallet details could not be loaded. Amounts without a transaction currency are shown in USD.</Text></Card> : null}
     {isLoading ? <LoadingCard label="Loading transactions from OG Exports…" /> : null}
     {!isLoading && !filteredRows.length && !failedSources.length ? <EmptyState title={search ? 'No matching transactions' : `No ${filter.toLowerCase()} found`} body={search ? 'Try a different ID, reference or search term.' : 'Records returned by OG Exports will appear here.'} /> : null}
 
     {filteredRows.map(row => {
       const active = selectedRow?.key === row.key;
-      const amountLabel = row.amount != null && row.currency ? money(row.amount, row.currency) : unavailable;
+      const amountLabel = money(row.amount, row.currency || 'USD');
       return <Pressable key={row.key} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => {
         setSelectedId(active ? '' : row.key);
         setPdfError('');

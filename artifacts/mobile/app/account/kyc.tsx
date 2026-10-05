@@ -80,7 +80,7 @@ export default function Kyc() {
   const bankVerificationStatus = first(bankVerification, ['verification_status', 'status'], first(kyc, ['bank_verification_status'], first(profile, ['bank_account_verification_status'])));
   const addressVerificationStatus = addressSteps.length
     ? addressSteps.map(item => first(record(item.document), ['review_status', 'status'], first(item, ['status'], first(record(item.document), ['original_name']) ? 'Uploaded' : 'Not uploaded'))).join(' · ')
-    : 'Not provided by OG Exports';
+    : '—';
   const statusMessage = isVerified
     ? 'OG Exports has confirmed your identity verification. Investment eligibility is checked by the server.'
     : isUnderReview
@@ -290,11 +290,11 @@ export default function Kyc() {
   function renderApplicationSummary(title: string) {
     return <Card>
       <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700' }}>{title}</Text>
-      <Text style={{ color: colors.mutedForeground, marginTop: 10, lineHeight: 20 }}>Legal name: {name || 'Not provided'}</Text>
-      <Text style={{ color: colors.mutedForeground, marginTop: 4, lineHeight: 20 }}>Account email: {loginEmail || 'Not provided'} · Phone: {phone || 'Not provided'}</Text>
-      <Text style={{ color: colors.mutedForeground, marginTop: 4, lineHeight: 20 }}>Date of birth: {dob || 'Not provided'} · Nationality: {nationality || 'Not provided'}</Text>
-      <Text style={{ color: colors.mutedForeground, marginTop: 4, lineHeight: 20 }}>Residential address: {[streetAddress, city, province, postalCode, country].filter(Boolean).join(', ') || 'Not provided'}</Text>
-      <Text style={{ color: colors.mutedForeground, marginTop: 4, lineHeight: 20 }}>Identity document number: {idNumber ? 'Provided' : 'Not provided'}</Text>
+      <Text style={{ color: colors.mutedForeground, marginTop: 10, lineHeight: 20 }}>Legal name: {name || '—'}</Text>
+      <Text style={{ color: colors.mutedForeground, marginTop: 4, lineHeight: 20 }}>Account email: {loginEmail || '—'} · Phone: {phone || '—'}</Text>
+      <Text style={{ color: colors.mutedForeground, marginTop: 4, lineHeight: 20 }}>Date of birth: {dob || '—'} · Nationality: {nationality || '—'}</Text>
+      <Text style={{ color: colors.mutedForeground, marginTop: 4, lineHeight: 20 }}>Residential address: {[streetAddress, city, province, postalCode, country].filter(Boolean).join(', ') || '—'}</Text>
+      <Text style={{ color: colors.mutedForeground, marginTop: 4, lineHeight: 20 }}>Identity document number: {idNumber ? 'Provided' : '—'}</Text>
       <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 13 }} />
       {steps.map((item, index) => {
         const type = first(item, ['doc_type', 'key'], `document-${index}`);
@@ -374,7 +374,7 @@ export default function Kyc() {
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>Use the legal details shown on your identity document.</Text>
         <View style={{ padding: 12, borderRadius: 12, backgroundColor: colors.secondary, marginBottom: 12 }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700' }}>ACCOUNT EMAIL</Text>
-          <Text style={{ color: colors.foreground, fontWeight: '600', marginTop: 5 }}>{loginEmail || 'Not provided'}</Text>
+          <Text style={{ color: colors.foreground, fontWeight: '600', marginTop: 5 }}>{loginEmail || '—'}</Text>
         </View>
         <Field label="Full legal name (required)" value={name} onChangeText={setName} placeholder="As shown on your identity document" autoCapitalize="words" />
         <Field label="Phone number (optional)" value={phone} onChangeText={setPhone} placeholder="+1 555 000 0000" keyboardType="phone-pad" />

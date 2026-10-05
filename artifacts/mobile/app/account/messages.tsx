@@ -63,7 +63,7 @@ function normalizedTicketStatus(value: string) {
 function TicketStatusProgress({ status }: { status: string }) {
   const colors = useColors();
   const current = ticketStatusSteps.indexOf(normalizedTicketStatus(status) as typeof ticketStatusSteps[number]);
-  if (current < 0) return <Status value={status || 'Status not provided'} />;
+  if (current < 0) return <Status value={status || '—'} />;
 
   return (
     <View accessibilityLabel={`Ticket status: ${ticketStatusSteps[current]}`} style={{ flexDirection: 'row', gap: 5, marginTop: 13 }}>
@@ -296,10 +296,10 @@ export default function Messages() {
         return <Card key={first(item, ['id'], String(index))}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
             <Text style={{ color: colors.foreground, fontWeight: '700', flex: 1 }}>{first(item, ['subject', 'title'], 'Support ticket')}</Text>
-            <Status value={normalizedTicketStatus(status) || status || 'Status not provided'} />
+            <Status value={normalizedTicketStatus(status) || status || '—'} />
           </View>
           <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 6 }}>
-            {first(item, ['created_at', 'date'], 'Date not provided')}
+            {first(item, ['created_at', 'date'], '—')}
           </Text>
           {normalizedTicketStatus(status)
             ? <TicketStatusProgress status={status} />

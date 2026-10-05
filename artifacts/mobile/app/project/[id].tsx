@@ -67,38 +67,38 @@ export default function OpportunityDetail() {
   const walletCurrency = first(wallet, ['currency']);
   const documents = list(project.documents);
   const timeline = list(project.trade_updates);
-  const tradeId = first(project, ['trade_id', 'trade_code', 'code', 'reference'], 'Not provided');
+  const tradeId = first(project, ['trade_id', 'trade_code', 'code', 'reference'], '—');
   const tradeCurrency = first(project, ['currency']);
   const origin = first(project, ['origin', 'origin_country', 'from_country'], '');
   const destination = first(project, ['destination', 'destination_country', 'to_country', 'destination_market'], '');
   const routeStops = [
-    { label: 'Origin', value: origin || 'Not provided', icon: 'map-pin' as const },
-    { label: 'Port of loading', value: first(project, ['port_of_loading', 'loading_port'], 'Not provided'), icon: 'anchor' as const },
+    { label: 'Origin', value: origin || '—', icon: 'map-pin' as const },
+    { label: 'Port of loading', value: first(project, ['port_of_loading', 'loading_port'], '—'), icon: 'anchor' as const },
     {
       label: 'Transport',
-      value: first(project, ['transport_mode', 'mode_of_transport', 'transport_type', 'shipping_mode', 'shipping_method'], 'Not provided'),
+      value: first(project, ['transport_mode', 'mode_of_transport', 'transport_type', 'shipping_mode', 'shipping_method'], '—'),
       detail: first(project, ['vessel_name', 'vessel']),
       icon: 'navigation' as const,
     },
-    { label: 'Destination port', value: first(project, ['destination_port', 'port_of_discharge'], 'Not provided'), icon: 'anchor' as const },
-    { label: 'Buyer', value: first(project, ['buyer_name', 'buyer'], 'Not provided'), icon: 'user' as const },
+    { label: 'Destination port', value: first(project, ['destination_port', 'port_of_discharge'], '—'), icon: 'anchor' as const },
+    { label: 'Buyer', value: first(project, ['buyer_name', 'buyer'], '—'), icon: 'user' as const },
   ];
   const cargoDetails: [string, string][] = ([
-    ['Commodity', first(project, ['commodity_name', 'commodity'], 'Not provided')],
-    ['Grade', first(project, ['grade', 'commodity_grade'], 'Not provided')],
-    ['Quantity', first(project, ['quantity', 'cargo_quantity', 'quantity_tons'], 'Not provided')],
-    ['Packaging', first(project, ['packaging', 'package_type'], 'Not provided')],
-    ['Container type', first(project, ['container_type'], 'Not provided')],
-    ['Container count', first(project, ['container_count', 'containers_count'], 'Not provided')],
-    ['Origin', origin || 'Not provided'],
-    ['Destination', destination || 'Not provided'],
+    ['Commodity', first(project, ['commodity_name', 'commodity'], '—')],
+    ['Grade', first(project, ['grade', 'commodity_grade'], '—')],
+    ['Quantity', first(project, ['quantity', 'cargo_quantity', 'quantity_tons'], '—')],
+    ['Packaging', first(project, ['packaging', 'package_type'], '—')],
+    ['Container type', first(project, ['container_type'], '—')],
+    ['Container count', first(project, ['container_count', 'containers_count'], '—')],
+    ['Origin', origin || '—'],
+    ['Destination', destination || '—'],
   ] as [string, string][]);
   const commercialDetails: [string, string][] = ([
-    ['Trade term / Incoterm', first(project, ['incoterm', 'trade_term'], 'Not provided')],
-    ['Estimated trade cycle', first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], 'Not provided')],
-    ['Shipment date', first(project, ['shipment_date', 'estimated_shipment_date'], 'Not provided')],
-    ['Estimated arrival', first(project, ['estimated_arrival', 'eta'], 'Not provided')],
-    ['Destination market', first(project, ['destination_market', 'destination_country'], 'Not provided')],
+    ['Trade term / Incoterm', first(project, ['incoterm', 'trade_term'], '—')],
+    ['Estimated trade cycle', first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], '—')],
+    ['Shipment date', first(project, ['shipment_date', 'estimated_shipment_date'], '—')],
+    ['Estimated arrival', first(project, ['estimated_arrival', 'eta'], '—')],
+    ['Destination market', first(project, ['destination_market', 'destination_country'], '—')],
   ] as [string, string][]);
   const costBreakdown = record(project.financial_breakdown ?? project.cost_breakdown);
   const financialDetails: [string, number | null][] = ([
@@ -109,8 +109,8 @@ export default function OpportunityDetail() {
     ['Freight', amount(project, ['freight_cost', 'freight']) ?? amount(costBreakdown, ['freight_cost', 'freight'])],
     ['Insurance', amount(project, ['insurance_cost', 'insurance']) ?? amount(costBreakdown, ['insurance_cost', 'insurance'])],
     ['Other trade costs', amount(project, ['other_trade_costs', 'other_costs']) ?? amount(costBreakdown, ['other_trade_costs', 'other_costs'])],
-  ] as [string, number | null][]).filter(([, value]) => value != null);
-  const formatTradeMoney = (value: number | null) => value == null || !tradeCurrency ? 'Unavailable' : money(value, tradeCurrency);
+  ] as [string, number | null][]);
+  const formatTradeMoney = (value: number | null) => money(value, tradeCurrency || 'USD');
   const reportedReturn = first(project, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi']);
   const returnRate = amount(project, ['expected_return_pct']);
   const projectedReturn = reportedReturn || (returnRate != null ? `${returnRate}%` : '');
@@ -124,12 +124,12 @@ export default function OpportunityDetail() {
     ['Remaining funding', formatTradeMoney(remainingFunding)],
     ['Minimum investment', formatTradeMoney(minimum)],
     ['Maximum investment', formatTradeMoney(maximum)],
-    ['Funding deadline', first(project, ['funding_deadline', 'closing_date', 'deadline'], 'Not provided')],
+    ['Funding deadline', first(project, ['funding_deadline', 'closing_date', 'deadline'], '—')],
   ];
   const kycRequired = /kyc|verification/i.test(error);
   const flowSteps = ['Amount', 'Allocation', 'Review', 'Risk disclosure', 'Confirmation', 'Success'];
   const activeFlowStep = Math.max(1, flowSteps.indexOf(stage === 'details' ? 'Amount' : stage === 'success' ? 'Success' : stage === 'confirmation' ? 'Confirmation' : stage === 'risk' ? 'Risk disclosure' : stage === 'review' ? 'Review' : stage === 'allocation' ? 'Allocation' : 'Amount') + 1);
-  const currencyLabel = currency || 'Currency unavailable';
+  const currencyLabel = currency || 'USD';
   const remainingCapacity = remainingFunding;
   const plainPolicyText = (value: string) => value
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -161,13 +161,13 @@ export default function OpportunityDetail() {
   const riskRequired = Boolean(riskContent);
   const legalContentReady = !settingsQuery.isLoading && !settingsQuery.isFetching && !settingsQuery.isError && termsRequired && riskRequired;
   const feeValue = first(project, ['investment_fee', 'investor_fee', 'fee', 'fees', 'transaction_fee', 'platform_fee']);
-  const cycleValue = first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], projectedCycle || 'Not provided');
-  const distributionValue = first(project, ['target_distribution', 'projected_distribution', 'estimated_distribution'], 'Not provided');
+  const cycleValue = first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], projectedCycle || '—');
+  const distributionValue = first(project, ['target_distribution', 'projected_distribution', 'estimated_distribution'], '—');
   const projectTitle = first(project, ['title', 'name', 'project_name'], 'Trade opportunity');
-  const projectTradeAssociation = first(project, ['trade_id', 'trade_code', 'code', 'reference'], 'Not provided');
-  const tradeLabel = projectTradeAssociation !== 'Not provided'
+  const projectTradeAssociation = first(project, ['trade_id', 'trade_code', 'code', 'reference'], '—');
+  const tradeLabel = projectTradeAssociation !== '—'
     ? `Trade #${projectTradeAssociation}`
-    : 'Trade ID not provided by OG Exports';
+    : '—';
   const containerAssociation = first(project, ['container_id', 'container_number', 'container_code', 'container_reference'], '');
 
   function continueToAllocation() {
@@ -251,7 +251,7 @@ export default function OpportunityDetail() {
       const investment = record(payload.investment ?? payload.position ?? response.investment ?? payload);
       const investmentId = first(investment, ['investment_id', 'id'], first(payload, ['investment_id', 'id'], first(response, ['investment_id', 'id'])));
       const returnedTradeId = first(investment, ['trade_id', 'trade_code'], first(payload, ['trade_id', 'trade_code'], first(response, ['trade_id', 'trade_code'])));
-      const responseStatus = first(investment, ['status', 'state'], first(payload, ['status', 'state'], first(response, ['status', 'state'], 'Not provided')));
+      const responseStatus = first(investment, ['status', 'state'], first(payload, ['status', 'state'], first(response, ['status', 'state'], '—')));
       const message = first(payload, ['message'], first(response, ['message'], first(investment, ['message'])));
       if (/^(failed|error|rejected|declined|cancelled|canceled)$/i.test(responseStatus.trim())) {
         throw new Error(message || `OG Exports reported that this investment request was ${responseStatus}.`);
@@ -340,7 +340,7 @@ export default function OpportunityDetail() {
       <Card>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <View style={{ flex: 1 }}><Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>TRADE ID</Text><Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 5 }}>{tradeId}</Text></View>
-          <Status value={first(project, ['status', 'state'], 'Not provided')} />
+          <Status value={first(project, ['status', 'state'], '—')} />
         </View>
         {first(project, ['description', 'summary']) ? <Text style={{ color: colors.foreground, lineHeight: 22, marginTop: 14 }}>{first(project, ['description', 'summary'])}</Text> : null}
       </Card>
@@ -375,11 +375,11 @@ export default function OpportunityDetail() {
           </View>
           <View style={{ flex: 1, paddingBottom: 13 }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{stop.label}</Text>
-            <Text style={{ color: stop.value === 'Not provided' ? colors.mutedForeground : colors.foreground, fontSize: 13, fontWeight: '700', marginTop: 3 }}>{stop.value}</Text>
+            <Text style={{ color: stop.value === '—' ? colors.mutedForeground : colors.foreground, fontSize: 13, fontWeight: '700', marginTop: 3 }}>{stop.value}</Text>
             {stop.detail ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>Vessel: {stop.detail}</Text> : null}
           </View>
         </View>)}
-        {routeStops.every(stop => stop.value === 'Not provided' && !stop.detail) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 4 }}>OG Exports has not supplied route or transport details for this trade.</Text> : null}
+        {routeStops.every(stop => stop.value === '—' && !stop.detail) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 4 }}>Route and transport details will appear here when available.</Text> : null}
         <Pressable testID="project-view-container-record" accessibilityRole="button" onPress={() => router.push({ pathname: '/tracking/[id]', params: { id, source: 'project' } })} style={{ minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12, borderRadius: 12, backgroundColor: colors.primary }}>
           <Text style={{ color: colors.primaryForeground, fontSize: 13, fontWeight: '700' }}>View container record</Text>
           <Feather name="arrow-up-right" size={15} color={colors.primaryForeground} />
@@ -389,14 +389,14 @@ export default function OpportunityDetail() {
       <Section title="Cargo information" />
       <Card>
         {cargoDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: value === 'Not provided' ? colors.mutedForeground : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
+          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: value === '—' ? colors.mutedForeground : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
         </View>)}
       </Card>
 
       <Section title="Commercial information" />
       <Card>
         {commercialDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: value === 'Not provided' ? colors.mutedForeground : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
+          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: value === '—' ? colors.mutedForeground : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
         </View>)}
       </Card>
 
@@ -415,7 +415,7 @@ export default function OpportunityDetail() {
       <Card>
         {financialDetails.length ? financialDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{formatTradeMoney(value)}</Text>
-        </View>) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>A financial cost breakdown has not been provided.</Text>}
+        </View>) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>Trade cost details will appear here when available.</Text>}
       </Card>
 
       <Section title="Projected / target information" />
@@ -423,7 +423,7 @@ export default function OpportunityDetail() {
         {projectedReturn ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Projected return · not guaranteed</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{projectedReturn}</Text></View> : null}
         {projectedDistribution ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Estimated distribution · not guaranteed</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{projectedDistribution}</Text></View> : null}
         {projectedCycle ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Expected trade cycle</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{projectedCycle}</Text></View> : null}
-        {!projectedReturn && !projectedDistribution && !projectedCycle ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>OG Exports has not provided target return, distribution, or projected cycle figures.</Text> : null}
+        {!projectedReturn && !projectedDistribution && !projectedCycle ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>Target return, distribution, and cycle details will appear here when available.</Text> : null}
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 9 }}>Projected returns and distributions are estimates, not guarantees. Actual outcomes depend on trade performance and applicable risks.</Text>
       </Card>
       <Card>
@@ -443,7 +443,7 @@ export default function OpportunityDetail() {
                 <Feather name="download" size={15} color={colors.primary} /><Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 12 }}>{documentBusy === key ? 'Preparing…' : 'Download'}</Text>
               </Pressable>
             </View>
-            {!viewUrl && !downloadUrl ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 8 }}>Secure access links are not provided for this document.</Text> : null}
+            {!viewUrl && !downloadUrl ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 8 }}>This document has no secure access link yet.</Text> : null}
           </View>;
         }) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>No trade documents are available from OG Exports for this opportunity.</Text>}
         {documentError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginTop: 8 }}>{documentError}</Text> : null}
@@ -477,15 +477,15 @@ export default function OpportunityDetail() {
         </View> : null}
         <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
           {[
-            ['Minimum investment', minimum == null ? 'Unavailable' : formatTradeMoney(minimum)],
-          ['Available wallet balance', walletBalance == null || !walletCurrency ? 'Unavailable' : moneyInSourceCurrency(walletBalance, walletCurrency)],
-            ['Remaining opportunity capacity', remainingCapacity == null ? 'Unavailable' : formatTradeMoney(remainingCapacity)],
+            ['Minimum investment', formatTradeMoney(minimum)],
+            ['Available wallet balance', walletQuery.isError && walletBalance == null ? 'Unavailable' : moneyInSourceCurrency(walletBalance, walletCurrency || 'USD')],
+            ['Remaining opportunity capacity', formatTradeMoney(remainingCapacity)],
           ].map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: colors.border }}>
             <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text>
             <Text style={{ color: value === 'Unavailable' ? colors.mutedForeground : colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{value}</Text>
           </View>)}
         </View>
-        {!currency ? <Text style={{ color: colors.destructive, fontSize: 11, lineHeight: 17, marginTop: 10 }}>The opportunity currency is not available. An amount cannot be safely submitted until OG Exports supplies it.</Text> : null}
+        {!currency ? <Text style={{ color: colors.destructive, fontSize: 11, lineHeight: 17, marginTop: 10 }}>Confirm the trade currency before submitting an investment.</Text> : null}
         {walletQuery.isError ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 10 }}>Wallet balance could not be loaded. The server remains authoritative.</Text> : null}
         {error ? <ErrorState message={error} /> : null}
         <View style={{ marginTop: 15 }}><Action title="Continue to allocation" icon="arrow-right" disabled={!investAmount || !currency} onPress={continueToAllocation} /></View>
@@ -515,9 +515,9 @@ export default function OpportunityDetail() {
         {[
           ['Your investment', moneyInSourceCurrency(Number(investAmount), currency)],
           ['Trade', tradeLabel],
-          ['Target return · not guaranteed', projectedReturn || 'Not provided by OG Exports'],
+          ['Target return · not guaranteed', projectedReturn || '—'],
           ['Target distribution · not guaranteed', distributionValue],
-          ['Fees', feeValue || 'Not provided by OG Exports'],
+          ['Fees', feeValue || money(null, tradeCurrency || 'USD')],
           ['Trade cycle', cycleValue],
           ['Wallet debit', currency && walletCurrency
             ? currency.toUpperCase() === walletCurrency.toUpperCase()
@@ -527,7 +527,7 @@ export default function OpportunityDetail() {
           ['Payment method', 'Wallet balance'],
         ].map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text>
-          <Text style={{ color: value === 'Not provided by OG Exports' || value === 'Not provided' ? colors.mutedForeground : colors.foreground, fontWeight: '700', flex: 1, textAlign: 'right' }}>{value}</Text>
+          <Text style={{ color: value === '—' ? colors.mutedForeground : colors.foreground, fontWeight: '700', flex: 1, textAlign: 'right' }}>{value}</Text>
         </View>)}
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 12 }}>No fee, conversion, or return is estimated here. Any available terms above are supplied by the opportunity record.</Text>
         <View style={{ marginTop: 15 }}><Action title="Continue to risk disclosure" icon="arrow-right" onPress={() => { setError(''); setStage('risk'); }} /></View>
@@ -604,11 +604,11 @@ export default function OpportunityDetail() {
         <Pressable onPress={() => router.push('/account/security')} style={{ alignSelf: 'center', padding: 12 }}><Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>Manage confirmation methods</Text></Pressable>
       </Card> : null}
       {kycVerified && stage === 'success' && confirmation ? (() => {
-        const status = first(confirmation, ['status'], 'Not provided');
+        const status = first(confirmation, ['status'], '—');
         const investmentId = first(confirmation, ['id']);
         const serverConfirmed = /^(confirmed|active|approved|success|successful)$/i.test(status.trim());
         const resultCurrency = first(confirmation, ['amountCurrency'], currency);
-        const resultAmount = typeof confirmation.amount === 'number' ? moneyInSourceCurrency(confirmation.amount, resultCurrency) : 'Unavailable';
+        const resultAmount = moneyInSourceCurrency(confirmation.amount, resultCurrency || 'USD');
         const resultWalletAmount = typeof confirmation.amountPkr === 'number' ? moneyInSourceCurrency(confirmation.amountPkr, 'PKR') : '';
         const exchangeRate = typeof confirmation.exchangeRate === 'number'
           ? `1 USD = ${confirmation.exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} PKR`

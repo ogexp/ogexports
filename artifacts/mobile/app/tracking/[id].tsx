@@ -152,7 +152,7 @@ export default function ContainerTracking() {
             <View style={{ flex: 1, paddingBottom: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700' }}>{step.label}</Text>
-                <Text style={{ color: step.status ? colors.primary : colors.mutedForeground, fontSize: 11, fontWeight: step.status ? '700' : '400', textAlign: 'right', flexShrink: 1 }}>{step.status || 'Stage status not provided'}</Text>
+                <Text style={{ color: step.status ? colors.primary : colors.mutedForeground, fontSize: 11, fontWeight: step.status ? '700' : '400', textAlign: 'right', flexShrink: 1 }}>{step.status || '—'}</Text>
               </View>
               {step.date ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{step.date}</Text> : null}
               {step.detail ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 4 }}>{step.detail}</Text> : null}

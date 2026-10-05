@@ -51,7 +51,7 @@ export default function Reports() {
 
   function statementAmount(field: string) {
     const value = readAmount(statement, [field]);
-    return value !== null && currency ? money(value, currency) : 'Not provided by OG Exports';
+    return money(value, currency || 'USD');
   }
 
   async function generate() {
@@ -156,10 +156,10 @@ export default function Reports() {
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>{first(item, ['type'], 'Wallet transaction').replace(/[_-]+/g, ' ')}</Text>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{first(item, ['reference'], 'Reference not provided')} · {first(item, ['date_time'], '')}</Text>
-                  {principal !== null && profit !== null ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>Principal {money(principal, itemCurrency)} · Profit {money(profit, itemCurrency)}</Text> : null}
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{first(item, ['reference'], '—')} · {first(item, ['date_time'], '')}</Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>Principal {money(principal, itemCurrency || 'USD')} · Profit {money(profit, itemCurrency || 'USD')}</Text>
                 </View>
-                <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>{amount !== null && itemCurrency ? `${first(item, ['direction']) === 'debit' ? '− ' : '+ '}${money(amount, itemCurrency)}` : 'Not provided by OG Exports'}</Text>
+                <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>{`${first(item, ['direction']) === 'debit' ? '− ' : '+ '}${money(amount, itemCurrency || 'USD')}`}</Text>
               </View>
             </View>;
           })}
@@ -194,7 +194,7 @@ export default function Reports() {
             <Text style={{ color: colors.primary, fontWeight: '700' }}>{first(item, ['format', 'type'], 'PDF').toUpperCase().slice(0, 4)}</Text>
           </View>
           <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontWeight: '700' }}>{name}</Text><Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>{first(item, ['date_label', 'created_at', 'date'], '')}</Text></View>
-          <Status value={first(item, ['status', 'state'], 'Not provided')} />
+          <Status value={first(item, ['status', 'state'], '—')} />
         </View>
         <Pressable accessibilityRole="button" onPress={() => void download(item)} disabled={downloadId === first(item, ['id'])} style={{ paddingVertical: 8 }}>
           <Text style={{ color: colors.primary, fontWeight: '700' }}>{downloadId === first(item, ['id']) ? 'Preparing file…' : 'Download report'}</Text>

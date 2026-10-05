@@ -103,7 +103,7 @@ function locationWithFlag(location: string) {
 
 function tradeReferenceLabel(value: string) {
   const reference = value.trim();
-  if (!reference || /^(trade id|trade reference) not provided$/i.test(reference)) return 'Trade ID not provided';
+  if (!reference || reference === '—') return '—';
   if (/^trade\s*#/i.test(reference)) return reference;
   return `Trade #${reference.replace(/^trade\s*/i, '')}`;
 }
@@ -116,36 +116,36 @@ function durationLabel(item: Record<string, unknown>) {
 }
 
 function moneyLabel(value: number | null, currency: string) {
-  if (value == null) return 'Not provided';
-  return currency ? money(value, currency) : `${value.toLocaleString('en-US')} · currency not provided`;
+  return money(value, currency || 'USD');
 }
 
 export function OpportunityCard({ item, categoryLabel, featured, progress, onPress }: OpportunityCardProps) {
   const colors = useColors();
   const tradeId = tradeReferenceLabel(opportunityValue(item, ['trade_id', 'trade_code', 'code', 'reference']));
-  const title = opportunityValue(item, ['commodity_name', 'commodity', 'title', 'name', 'project_name'], 'Trade details not provided');
-  const status = opportunityValue(item, ['trade_status', 'project_status', 'status', 'state'], 'Not provided');
+  const title = opportunityValue(item, ['commodity_name', 'commodity', 'title', 'name', 'project_name'], '—');
+  const status = opportunityValue(item, ['trade_status', 'project_status', 'status', 'state'], '—');
   const origin = opportunityValue(item, ['origin', 'origin_country', 'from_country']);
   const destination = opportunityValue(item, ['destination', 'destination_country', 'to_country', 'destination_market']);
   const route = origin || destination
-    ? `${locationWithFlag(origin) || 'Origin not provided'} → ${locationWithFlag(destination) || 'Destination not provided'}`
-    : 'Route details not provided';
+    ? `${locationWithFlag(origin) || '—'} → ${locationWithFlag(destination) || '—'}`
+    : '—';
   const currency = opportunityValue(item, ['currency']);
   const target = opportunityAmount(item, ['target_amount', 'funding_target', 'total_trade_requirement', 'investment_requirement', 'total_investment_required', 'amount']);
   const minimum = opportunityAmount(item, ['minimum_investment', 'min_investment', 'minimum_amount', 'minimum_investment_amount']);
   const funded = opportunityAmount(item, ['funded_amount', 'raised_amount', 'current_amount', 'current_funding']);
+  const fundingAmountLabel = `${moneyLabel(funded, currency)} / ${moneyLabel(target, currency)}`;
   const targetReturn = opportunityValue(item, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi'])
     || (opportunityAmount(item, ['expected_return_pct']) != null ? `${opportunityAmount(item, ['expected_return_pct'])}%` : '');
   const risk = opportunityValue(item, ['risk_level', 'risk_rating']);
   const details: [string, string][] = [
-    ['Grade', opportunityValue(item, ['grade', 'commodity_grade', 'grade_name', 'commodity_grade_name'], 'Not provided')],
-    ['Quantity', opportunityValue(item, ['quantity', 'cargo_quantity', 'quantity_tons', 'quantity_tonnes'], 'Not provided')],
-    ['Container count', opportunityValue(item, ['container_count', 'containers_count', 'number_of_containers'], 'Not provided')],
-    ['Container type', opportunityValue(item, ['container_type', 'container_size_type'], 'Not provided')],
-    ['Destination', locationWithFlag(destination) || 'Not provided'],
-    ['Incoterm', opportunityValue(item, ['incoterm', 'trade_term'], 'Not provided')],
+    ['Grade', opportunityValue(item, ['grade', 'commodity_grade', 'grade_name', 'commodity_grade_name'], '—')],
+    ['Quantity', opportunityValue(item, ['quantity', 'cargo_quantity', 'quantity_tons', 'quantity_tonnes'], '—')],
+    ['Container count', opportunityValue(item, ['container_count', 'containers_count', 'number_of_containers'], '—')],
+    ['Container type', opportunityValue(item, ['container_type', 'container_size_type'], '—')],
+    ['Destination', locationWithFlag(destination) || '—'],
+    ['Incoterm', opportunityValue(item, ['incoterm', 'trade_term'], '—')],
   ];
-  const cycle = durationLabel(item) || 'Not provided';
+  const cycle = durationLabel(item) || '—';
   const progressValue = progress == null
     ? opportunityAmount(item, ['funding_progress_percent', 'funding_progress_pct', 'progress_percentage'])
     : progress;
@@ -206,14 +206,14 @@ export function OpportunityCard({ item, categoryLabel, featured, progress, onPre
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '600' }}>Funding Progress</Text>
               <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700', textAlign: 'right' }}>
-                {funded != null && target != null ? `${moneyLabel(funded, currency)} / ${moneyLabel(target, currency)}` : `${boundedProgress}% funded`}
+                {fundingAmountLabel}
               </Text>
             </View>
             <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: boundedProgress }} style={{ height: 7, borderRadius: 5, backgroundColor: colors.border, overflow: 'hidden' }}>
               <View style={{ width: `${boundedProgress}%`, height: 7, borderRadius: 5, backgroundColor: colors.primary }} />
             </View>
             <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 6 }}>{boundedProgress}% funded</Text>
-          </> : <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Funding progress not provided by OG Exports.</Text>}
+          </> : <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Funding raised / target: {fundingAmountLabel}</Text>}
         </View>
 
         {targetReturn ? <View style={{ marginTop: 11, padding: 11, borderRadius: 12, backgroundColor: colors.lightGreen }}>
@@ -223,7 +223,7 @@ export function OpportunityCard({ item, categoryLabel, featured, progress, onPre
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 11 }}>
           <Feather name="shield" size={13} color={colors.accent} />
           <Text style={{ color: colors.mutedForeground, fontSize: 11, flex: 1 }}>
-            {risk ? `Risk information: ${risk}` : 'Risk information not provided by OG Exports.'}
+            {`Risk information: ${risk || '—'}`}
           </Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 15, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>

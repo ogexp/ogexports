@@ -15,7 +15,7 @@ function updateTime(event: Json): number | null {
 
 function formatDateTime(value: string): string {
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value || 'Date and time not provided by OG Exports';
+  if (Number.isNaN(parsed.getTime())) return value || '—';
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -76,7 +76,7 @@ export function TradeTimeline({
         </Text>
       ) : orderedEvents.map(({ event, index }) => {
         const key = first(event, ['id', 'event_id'], String(index));
-        const status = first(event, ['status'], 'Status not provided by OG Exports');
+        const status = first(event, ['status'], '—');
         const description = first(event, ['description']);
         const rawDateTime = first(event, ['occurred_at']);
         const attachmentUrl = first(event, ['attachment_url']);
@@ -103,7 +103,7 @@ export function TradeTimeline({
             <Status value={status} />
           </View>
           <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 19, marginTop: 8 }}>
-            {description || 'Description not provided by OG Exports'}
+            {description || '—'}
           </Text>
           {attachmentUrl ? <Pressable
             testID={`trade-update-attachment-${key}`}

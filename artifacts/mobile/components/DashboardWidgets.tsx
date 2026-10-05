@@ -78,14 +78,10 @@ export function FinancialHistoryPreview({
         const rowAmount = amount(item, ['amount', 'requested_amount', 'paid_amount', 'original_amount']);
         const rowCurrency = first(item, ['currency', 'wallet_currency', 'original_currency', 'amount_currency'], currency);
         const itemKey = first(item, ['id', 'reference', 'reference_number', 'reference_no', 'transaction_id'], `${title}-${index}`);
-        const dateLabel = date ? transactionDate(date) : 'Date not provided';
+        const dateLabel = date ? transactionDate(date) : '—';
         const amountLabel = hideValues
           ? '••••••'
-          : rowAmount == null
-            ? 'Not reported'
-            : rowCurrency
-              ? money(rowAmount, rowCurrency)
-              : 'Currency not provided';
+          : money(rowAmount, rowCurrency || 'USD');
         return <View key={itemKey} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderBottomWidth: index === records.length - 1 ? 0 : StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
           <View style={{ width: 37, height: 37, borderRadius: 14, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
             <Feather name={icon} size={16} color={colors.primary} />
@@ -96,7 +92,7 @@ export function FinancialHistoryPreview({
           </View>
           <View style={{ alignItems: 'flex-end', gap: 5, maxWidth: 132 }}>
             <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 11, fontWeight: '700' }}>{amountLabel}</Text>
-            <Status value={first(item, ['status', 'state'], 'Status not provided')} />
+            <Status value={first(item, ['status', 'state'], '—')} />
           </View>
         </View>;
       })}
@@ -157,7 +153,7 @@ export function PortfolioBenchmarkCard({ points, available, loading, hideValues 
     return portfolio == null || market == null ? [] : [{
       portfolio,
       market,
-      label: first(item, ['month', 'month_key', 'date_label'], 'Date not provided'),
+      label: first(item, ['month', 'month_key', 'date_label'], '—'),
     }];
   });
 
@@ -191,7 +187,7 @@ export function PortfolioBenchmarkCard({ points, available, loading, hideValues 
       </View>
     </View>
     {loading ? <Text style={{ color: colors.mutedForeground, paddingVertical: 24 }}>Loading benchmark data…</Text>
-      : !available || chartPoints.length === 0 ? <Text style={{ color: colors.mutedForeground, lineHeight: 20, paddingVertical: 20 }}>A verified benchmark comparison has not been provided by OG Exports.</Text>
+      : !available || chartPoints.length === 0 ? <Text style={{ color: colors.mutedForeground, lineHeight: 20, paddingVertical: 20 }}>A benchmark comparison is not available yet.</Text>
         : <>
           <Svg width="100%" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`} accessibilityLabel="Portfolio and market benchmark return comparison">
             <Path d={`M 8 ${zeroY.toFixed(2)} L ${chartWidth - 8} ${zeroY.toFixed(2)}`} stroke={colors.border} strokeWidth={1} strokeDasharray="4 5" />
@@ -225,7 +221,7 @@ export function ProfitAnalyticsCard({ points, currency, loading, hideValues }: {
     const item = record(point);
     const value = amount(item, ['monthly', 'amount', 'profit']);
     return value == null ? [] : [{
-      month: first(item, ['month', 'month_label', 'date_label', 'month_key'], 'Month not provided'),
+      month: first(item, ['month', 'month_label', 'date_label', 'month_key'], '—'),
       value,
     }];
   }).slice(-6);
@@ -235,13 +231,13 @@ export function ProfitAnalyticsCard({ points, currency, loading, hideValues }: {
     <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700' }}>Profit Analytics</Text>
     <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 4 }}>Monthly earnings reported by OG Exports</Text>
     {loading ? <Text style={{ color: colors.mutedForeground, paddingVertical: 20 }}>Loading profit history…</Text>
-      : rows.length === 0 ? <Text style={{ color: colors.mutedForeground, lineHeight: 20, paddingVertical: 20 }}>Monthly profit history has not been provided by OG Exports.</Text>
+      : rows.length === 0 ? <Text style={{ color: colors.mutedForeground, lineHeight: 20, paddingVertical: 20 }}>0.00 USD</Text>
         : <View style={{ gap: 13, marginTop: 16 }}>
           {rows.map((item, index) => <View key={`${item.month}-${index}`} style={{ gap: 5 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
               <Text numberOfLines={1} style={{ flex: 1, color: colors.mutedForeground, fontSize: 10 }}>{item.month}</Text>
               <Text style={{ color: colors.foreground, fontSize: 10, fontWeight: '700' }}>
-                {hideValues ? '••••••' : currency ? money(item.value, currency) : 'Currency not provided'}
+                {hideValues ? '••••••' : money(item.value, currency || 'USD')}
               </Text>
             </View>
             <View style={{ height: 6, borderRadius: 4, backgroundColor: colors.secondary, overflow: 'hidden' }}>

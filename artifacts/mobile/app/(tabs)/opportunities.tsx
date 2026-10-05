@@ -21,7 +21,7 @@ const categories = [
   { value: 'Other', label: 'Other Commodities' },
 ] as const;
 type CommodityCategory = typeof categories[number]['value'];
-const opportunityTabs = ['Featured', 'New', 'Nearly Funded', 'Closing Soon'] as const;
+const opportunityTabs = ['New', 'Nearly Funded', 'Closing Soon'] as const;
 type OpportunityTab = typeof opportunityTabs[number];
 type MarketplaceFilters = {
   maxMinimum: string;
@@ -104,7 +104,7 @@ export default function Opportunities() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [category, setCategory] = useState<CommodityCategory>('All');
-  const [tab, setTab] = useState<OpportunityTab>('Featured');
+  const [tab, setTab] = useState<OpportunityTab>('New');
   const [search, setSearch] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<MarketplaceFilters>(emptyFilters);
@@ -151,7 +151,6 @@ export default function Opportunities() {
     if (appliedFilters.funding === '80–99%' && (progress == null || progress < 80 || progress >= 100)) return false;
     if (appliedFilters.funding === 'Fully funded' && (progress == null || progress < 100)) return false;
 
-    if (tab === 'Featured' && !isFeatured(item)) return false;
     if (tab === 'Nearly Funded' && (progress == null || progress < 80 || progress >= 100)) return false;
     if (tab === 'Closing Soon') {
       const deadline = dateValue(item, ['funding_deadline', 'closing_date', 'closes_at', 'deadline']);
@@ -205,11 +204,11 @@ export default function Opportunities() {
     </View> : null}
     {query.isLoading ? <LoadingCard label="Loading trade opportunities…" /> : null}
     {query.isError ? <ErrorState message="Trade opportunities could not be loaded from OG Exports." error={query.error} onRetry={() => void query.refetch()} /> : null}
-    {!query.isLoading && !query.isError && rows.length === 0 ? <EmptyState title="No matching trade opportunities" body={tab === 'Featured' && !activeCriteriaCount ? "OG Exports hasn't marked any listed trades as featured yet. Try another tab to browse current opportunities." : 'Try another category, tab, or filter. This view only shows opportunities and details supplied by OG Exports.'} /> : null}
+    {!query.isLoading && !query.isError && rows.length === 0 ? <EmptyState title="No matching trade opportunities" body="Try another category, tab, or filter. This view only shows opportunities and details supplied by OG Exports." /> : null}
     {rows.map((item, index) => {
       const id = first(item, ['id', 'project_id'], '');
       const commodityCategory = categoryFor(item);
-      const categoryLabel = commodityCategory === 'Other' ? 'Other Commodities' : commodityCategory === 'Unknown' ? 'Commodity not provided' : commodityCategory;
+      const categoryLabel = commodityCategory === 'Other' ? 'Other Commodities' : commodityCategory === 'Unknown' ? '—' : commodityCategory;
       return <OpportunityCard
         key={id || index}
         item={item}

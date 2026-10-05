@@ -74,7 +74,7 @@ export default function Trade() {
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingTop: 11, borderTopWidth: 1, borderColor: colors.border }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{first(item, ['trade_direction', 'type'], 'Opportunity')}</Text>
-            {target != null ? <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 12 }}>{money(target, first(item, ['currency']))}</Text> : null}
+            <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 12 }}>{money(target, first(item, ['currency'], 'USD'))}</Text>
           </View>
         </Card>
       </Pressable>;

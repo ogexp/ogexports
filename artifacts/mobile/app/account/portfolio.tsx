@@ -24,7 +24,7 @@ function categorizeInvestmentStatus(status: string): PortfolioTab | null {
   return null;
 }
 
-function supplied(value: string, fallback = 'Not provided by OG Exports') {
+function supplied(value: string, fallback = '—') {
   return value || fallback;
 }
 
@@ -103,23 +103,21 @@ export default function Portfolio() {
     const targetPercent = amount(item, ['projected_return_percentage', 'estimated_return_percentage', 'target_return_percentage', 'expected_return_pct'])
       ?? amount(trade, ['projected_return_percentage', 'estimated_return_percentage', 'target_return_percentage', 'expected_return_pct']);
     const route = origin || destination
-      ? `${origin || 'Origin not provided'} → ${destination || 'Destination not provided'}`
-      : 'Route not provided by OG Exports';
-    const amountLabel = investedAmount == null
-      ? 'Not provided by OG Exports'
-      : investmentCurrency ? money(investedAmount, investmentCurrency) : 'Currency not provided by OG Exports';
+      ? `${origin || '—'} → ${destination || '—'}`
+      : '—';
+    const amountLabel = money(investedAmount, investmentCurrency || 'USD');
     const targetLabel = targetAmount != null
-      ? investmentCurrency ? money(targetAmount, investmentCurrency) : 'Currency not provided by OG Exports'
-      : targetPercent != null ? `${targetPercent.toFixed(2)}%` : 'Not provided by OG Exports';
+      ? money(targetAmount, investmentCurrency || 'USD')
+      : targetPercent != null ? `${targetPercent.toFixed(2)}%` : '—';
 
     return <Card key={entry.key} style={{ padding: 18, borderRadius: 20 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>
-            {tradeId ? `Trade #${tradeId.replace(/^Trade\s*#\s*/i, '')}` : 'Trade ID not provided by OG Exports'}
+            {tradeId ? `Trade #${tradeId.replace(/^Trade\s*#\s*/i, '')}` : '—'}
           </Text>
           <Text style={{ color: colors.foreground, fontSize: 18, lineHeight: 23, fontWeight: '700', marginTop: 6 }}>
-            {supplied(commodity, 'Commodity not provided by OG Exports')}
+            {supplied(commodity, '—')}
           </Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 6 }}>{route}</Text>
         </View>
@@ -156,7 +154,7 @@ export default function Portfolio() {
             <View style={{ width: `${boundedProgress}%`, height: 6, borderRadius: 4, backgroundColor: colors.primary }} />
           </View>
         </View> : <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 13 }}>
-          Trade progress not provided by OG Exports.
+          Trade progress: 0.00%.
         </Text>}
       </View>
       <Pressable
@@ -179,8 +177,8 @@ export default function Portfolio() {
 
   const summaryValue = (value: number | null) => {
     if (dashboardQuery.isLoading) return 'Loading';
-    if (value == null) return 'Not provided by OG Exports';
-    return currency ? money(value, currency) : 'Currency not provided by OG Exports';
+    if (dashboardQuery.isError) return 'Unavailable';
+    return money(value, currency || 'USD');
   };
 
   return <Screen title="My Portfolio" subtitle="Capital placed in real trade and shipment activity" refreshable>
@@ -207,9 +205,6 @@ export default function Portfolio() {
           </Text>
         </View>)}
       </View>
-      {!dashboardQuery.isLoading && !currency ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 13 }}>
-        Currency not provided by OG Exports. Values are not converted or inferred.
-      </Text> : null}
     </Card>
     {dashboardQuery.isError ? <ErrorState message="Portfolio summary could not be loaded from the investor server." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} /> : null}
 

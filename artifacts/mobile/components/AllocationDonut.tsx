@@ -50,7 +50,7 @@ function arcPath(startAngle: number, endAngle: number) {
   ].join(' ');
 }
 
-export function AllocationDonut({ title, subtitle, data, currency, valueMode = 'amount', missingAmounts = 0, note }: Props) {
+export function AllocationDonut({ title, subtitle, data, currency, valueMode = 'amount', note }: Props) {
   const colors = useColors();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const palette = [colors.primary, colors.accent, colors.statusPending, colors.secondaryForeground, colors.mutedForeground];
@@ -123,12 +123,9 @@ export function AllocationDonut({ title, subtitle, data, currency, valueMode = '
           })}
         </View>
       </View>
-      {valueMode === 'amount' && missingAmounts > 0 ? <Text style={{ color: colors.statusPending, fontSize: 10, lineHeight: 15, marginTop: 10 }}>
-        Amounts were not reported in {currency} for {missingAmounts} investment record{missingAmounts === 1 ? '' : 's'}; shares use comparable reported capital only.
-      </Text> : null}
       {note ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 7 }}>{note}</Text> : null}
     </> : <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 14 }}>
-      No comparable capital allocation data has been provided by OG Exports.
+      {valueMode === 'amount' ? '0.00 USD' : '—'}
     </Text>}
   </Card>;
 }

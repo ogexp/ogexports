@@ -145,13 +145,25 @@ export default function InvestorHome() {
   const summary = record(data.summary);
   const wallet = record(data.wallet);
   const series = record(data.portfolio_series);
-  const currency = first(wallet, ['currency', 'default_currency'], first(summary, ['display_currency']));
+  const currency = first(wallet, ['currency', 'default_currency'], first(summary, ['display_currency'], 'USD'));
   const liveBalance = amount(wallet, ['available_balance', 'balance', 'available']) ?? amount(summary, ['available_balance']);
   const portfolioTotal = amount(summary, ['total_portfolio_value', 'portfolio_value', 'total_value']);
-  const investedCapital = amount(summary, ['total_investment', 'total_investment_usd', 'invested_capital']);
-  const netReturns = amount(summary, ['total_profit_earned', 'total_profit_earned_usd', 'distributed_returns', 'total_returns', 'profit']);
-  const monthlyProfit = amount(summary, ['monthly_profit', 'monthly_profit_usd']);
-  const activeInvestment = amount(summary, ['active_investment', 'active_investment_usd']);
+  const investedCapitalLocal = amount(summary, ['total_investment']);
+  const investedCapitalUsd = amount(summary, ['total_investment_usd']);
+  const investedCapital = investedCapitalLocal ?? investedCapitalUsd ?? amount(summary, ['invested_capital']);
+  const investedCapitalCurrency = investedCapitalLocal != null ? currency : investedCapitalUsd != null ? 'USD' : currency;
+  const netReturnsLocal = amount(summary, ['total_profit_earned', 'distributed_returns', 'total_returns', 'profit']);
+  const netReturnsUsd = amount(summary, ['total_profit_earned_usd']);
+  const netReturns = netReturnsLocal ?? netReturnsUsd;
+  const netReturnsCurrency = netReturnsLocal != null ? currency : netReturnsUsd != null ? 'USD' : currency;
+  const monthlyProfitLocal = amount(summary, ['monthly_profit']);
+  const monthlyProfitUsd = amount(summary, ['monthly_profit_usd']);
+  const monthlyProfit = monthlyProfitLocal ?? monthlyProfitUsd;
+  const monthlyProfitCurrency = monthlyProfitLocal != null ? currency : monthlyProfitUsd != null ? 'USD' : currency;
+  const activeInvestmentLocal = amount(summary, ['active_investment']);
+  const activeInvestmentUsd = amount(summary, ['active_investment_usd']);
+  const activeInvestment = activeInvestmentLocal ?? activeInvestmentUsd;
+  const activeInvestmentCurrency = activeInvestmentLocal != null ? currency : activeInvestmentUsd != null ? 'USD' : currency;
   const pendingDistribution = amount(summary, ['pending_distribution', 'pending_distribution_usd']);
   const roi = amount(summary, ['lifetime_roi', 'roi_percentage', 'roi']);
   const availableBalance = liveBalance;
@@ -176,15 +188,23 @@ export default function InvestorHome() {
   const monthlyProfitHistory = list(data.profit_monthly);
   const allocation: AllocationSlice[] = list(data.allocation).flatMap(item => {
     const value = amount(item, ['value', 'percentage', 'share']);
-    return value == null ? [] : [{ name: first(item, ['name', 'label', 'category'], 'Allocation details not provided'), value }];
+    return [{ name: first(item, ['name', 'label', 'category'], '—'), value: value ?? 0 }];
   });
   const benchmarkSeries = record(data.benchmark_series);
   const benchmarkAvailable = data.benchmark_available === true;
   const displayMoney = (value: number | null, unit = currency) =>
-    balanceHidden ? '••••••' : value == null ? 'Not reported' : unit ? money(value, unit) : 'Currency not provided';
-  const displayRoi = balanceHidden ? '••••' : roi == null ? '—' : `${roi.toFixed(2)}%`;
-  const metricMoney = (value: number | null) => dashboard.isLoading ? '…' : displayMoney(value);
-  const metricCount = (value: number | null) => dashboard.isLoading ? '…' : value == null ? 'Not reported' : String(value);
+    balanceHidden ? '••••••' : dashboard.isError ? 'Unavailable' : money(value, unit || 'USD');
+  const displayRoi = balanceHidden ? '••••' : dashboard.isError ? 'Unavailable' : roi == null ? '—' : `${roi.toFixed(2)}%`;
+  const metricMoney = (value: number | null, unit = currency) =>
+    dashboard.isLoading ? '…' : dashboard.isError ? 'Unavailable' : displayMoney(value, unit);
+  const metricMoneyFromSummary = (sourceKey: string, usdKey?: string) => {
+    if (dashboard.isLoading) return '…';
+    if (dashboard.isError) return 'Unavailable';
+    const localValue = amount(summary, [sourceKey]);
+    if (localValue != null) return displayMoney(localValue, currency || 'USD');
+    return displayMoney(usdKey ? amount(summary, [usdKey]) : null, 'USD');
+  };
+  const metricCount = (value: number | null) => dashboard.isLoading ? '…' : dashboard.isError ? 'Unavailable' : value == null ? '—' : String(value);
   const depositLoading = depositsQuery.isLoading && dashboardDeposits.length === 0;
   const depositError = depositsQuery.isError && dashboardDeposits.length === 0;
   const withdrawalLoading = withdrawalsQuery.isLoading && dashboardWithdrawals.length === 0;
@@ -192,23 +212,23 @@ export default function InvestorHome() {
   const alertsLoading = notificationsQuery.isLoading && dashboardAlerts.length === 0;
   const alertsError = notificationsQuery.isError && dashboardAlerts.length === 0;
   const metricItems: DashboardMetricItem[] = [
-    { label: 'Total Deposits', value: metricMoney(amount(summary, ['total_deposits', 'total_deposits_usd'])), icon: 'arrow-down-left', detail: metricCount(amount(summary, ['total_deposits_count'])) },
+    { label: 'Total Deposits', value: metricMoneyFromSummary('total_deposits', 'total_deposits_usd'), icon: 'arrow-down-left', detail: metricCount(amount(summary, ['total_deposits_count'])) },
     { label: 'Pending Deposits', value: metricMoney(amount(summary, ['pending_deposits_amount', 'pending_deposits'])), icon: 'clock', detail: metricCount(amount(summary, ['pending_deposits_count'])) },
-    { label: 'Total Withdrawals', value: metricMoney(amount(summary, ['total_withdrawals', 'total_withdrawals_usd'])), icon: 'arrow-up-right', detail: metricCount(amount(summary, ['total_withdrawals_count'])) },
-    { label: 'Pending Withdrawals', value: metricMoney(amount(summary, ['pending_withdrawals_amount', 'pending_withdrawals_amount_usd'])), icon: 'clock', detail: metricCount(amount(summary, ['pending_withdrawals_count'])) },
-    { label: 'Total Investment', value: metricMoney(investedCapital), icon: 'briefcase', detail: metricCount(amount(summary, ['investments_count'])) },
-    { label: 'Active Investment', value: metricMoney(activeInvestment), icon: 'activity', detail: metricCount(amount(summary, ['active_investments_count'])) },
-    { label: 'Total Profit Earned', value: metricMoney(netReturns), icon: 'trending-up' },
-    { label: 'Monthly Profit', value: metricMoney(monthlyProfit), icon: 'bar-chart-2' },
-    { label: 'Lifetime ROI', value: dashboard.isLoading ? '…' : balanceHidden ? '••••' : roi == null ? 'Not reported' : `${roi.toFixed(2)}%`, icon: 'activity' },
+    { label: 'Total Withdrawals', value: metricMoneyFromSummary('total_withdrawals', 'total_withdrawals_usd'), icon: 'arrow-up-right', detail: metricCount(amount(summary, ['total_withdrawals_count'])) },
+    { label: 'Pending Withdrawals', value: metricMoneyFromSummary('pending_withdrawals_amount', 'pending_withdrawals_amount_usd'), icon: 'clock', detail: metricCount(amount(summary, ['pending_withdrawals_count'])) },
+    { label: 'Total Investment', value: metricMoney(investedCapital, investedCapitalCurrency), icon: 'briefcase', detail: metricCount(amount(summary, ['investments_count'])) },
+    { label: 'Active Investment', value: metricMoney(activeInvestment, activeInvestmentCurrency), icon: 'activity', detail: metricCount(amount(summary, ['active_investments_count'])) },
+    { label: 'Total Profit Earned', value: metricMoney(netReturns, netReturnsCurrency), icon: 'trending-up' },
+    { label: 'Monthly Profit', value: metricMoney(monthlyProfit, monthlyProfitCurrency), icon: 'bar-chart-2' },
+    { label: 'Lifetime ROI', value: dashboard.isLoading ? '…' : balanceHidden ? '••••' : dashboard.isError ? 'Unavailable' : roi == null ? '—' : `${roi.toFixed(2)}%`, icon: 'activity' },
     { label: 'Completed Transactions', value: metricCount(amount(summary, ['completed_transactions'])), icon: 'check-circle' },
-    { label: 'Available Balance', value: metricMoney(availableBalance), icon: 'credit-card' },
+    { label: 'Available Balance', value: metricMoney(availableBalance, currency || 'USD'), icon: 'credit-card' },
     { label: 'Pending Distribution', value: metricMoney(pendingDistribution), icon: 'calendar' },
   ];
   const verificationItems = [
-    { label: 'KYC', value: first(data, ['kyc_status'], 'Not provided') },
-    { label: 'AML', value: first(data, ['aml_status'], 'Not provided') },
-    { label: 'Tax Documents', value: first(data, ['tax_document_status', 'tax_documents_status'], 'Not provided') },
+    { label: 'KYC', value: first(data, ['kyc_status'], '—') },
+    { label: 'AML', value: first(data, ['aml_status'], '—') },
+    { label: 'Tax Documents', value: first(data, ['tax_document_status', 'tax_documents_status'], '—') },
   ];
   const groupedTransactions = recent.reduce<{ label: string; items: Record<string, unknown>[] }[]>((groups, item) => {
     const label = transactionGroup(first(item, ['created_at', 'date'], ''));
@@ -325,7 +345,7 @@ export default function InvestorHome() {
           {dashboard.isLoading ? '…' : displayMoney(availableBalance)}
         </Text>
         <Text style={{ color: colors.balanceCardText, opacity: 0.76, fontSize: 10, marginTop: 3 }}>
-          {currency ? `${currency} account` : 'Currency not provided by OG Exports'}
+          {currency} account
         </Text>
       </View>
 
@@ -406,14 +426,14 @@ export default function InvestorHome() {
     {!investments.isLoading && !investments.isError && investmentItems.length === 0 ? <EmptyState title="No investment records" body="Investment details will appear here when supplied by OG Exports." /> : null}
     {investmentItems.map((position, index) => {
       const trade = record(position.trade ?? position.project ?? position.trade_details);
-      const tradeId = first(position, ['trade_id', 'trade_code'], first(trade, ['trade_id', 'trade_code', 'project_code', 'code'], 'Trade reference not provided'));
-      const tradeLabel = tradeId === 'Trade reference not provided' || /^trade\s*#/i.test(tradeId) ? tradeId : `Trade #${tradeId}`;
-      const title = first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(position, ['project_name', 'title', 'name'], 'Trade details not provided'));
+      const tradeId = first(position, ['trade_id', 'trade_code'], first(trade, ['trade_id', 'trade_code', 'project_code', 'code'], '—'));
+      const tradeLabel = tradeId === '—' || /^trade\s*#/i.test(tradeId) ? tradeId : `Trade #${tradeId}`;
+      const title = first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(position, ['project_name', 'title', 'name'], '—'));
       const origin = first(position, ['origin', 'origin_country', 'from_country'], first(trade, ['origin', 'origin_country', 'from_country', 'country_of_origin']));
       const destination = first(position, ['destination', 'destination_country', 'to_country'], first(trade, ['destination', 'destination_country', 'to_country', 'destination_market']));
-      const route = origin && destination ? `${origin} → ${destination}` : 'Route details not provided';
-      const containerStatus = first(position, ['container_status', 'shipment_status', 'trade_status'], first(trade, ['container_status', 'shipment_status', 'trade_status'], 'Status not provided'));
-      const eta = first(position, ['estimated_arrival', 'eta'], first(trade, ['estimated_arrival', 'eta'], 'Not provided'));
+      const route = origin && destination ? `${origin} → ${destination}` : '—';
+      const containerStatus = first(position, ['container_status', 'shipment_status', 'trade_status'], first(trade, ['container_status', 'shipment_status', 'trade_status'], '—'));
+      const eta = first(position, ['estimated_arrival', 'eta'], first(trade, ['estimated_arrival', 'eta'], '—'));
       const progress = amount(position, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage'])
         ?? amount(trade, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage']);
       const boundedProgress = progress == null ? null : Math.max(0, Math.min(100, progress));
@@ -438,7 +458,7 @@ export default function InvestorHome() {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 15, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
           <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 14, backgroundColor: colors.secondary }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Investment amount</Text>
-            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 14, fontWeight: '700', marginTop: 5 }}>{positionCurrency ? displayMoney(investmentAmount, positionCurrency) : '—'}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 14, fontWeight: '700', marginTop: 5 }}>{displayMoney(investmentAmount, positionCurrency || 'USD')}</Text>
           </View>
           <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 14, backgroundColor: colors.secondary }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Estimated arrival</Text>
@@ -473,11 +493,11 @@ export default function InvestorHome() {
           <Card style={{ width: 250, minHeight: 132, marginBottom: 5, borderRadius: 20, padding: 17 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
               <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}><Feather name="briefcase" size={16} color={colors.primary} /></View>
-              <Status value={first(item, ['status', 'state'], 'Not provided')} />
+              <Status value={first(item, ['status', 'state'], '—')} />
             </View>
             <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 13 }}>{first(item, ['commodity_name', 'commodity', 'title', 'name', 'project_name'], 'Trade opportunity')}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6 }}>
-              <Text numberOfLines={1} style={{ flex: 1, color: colors.mutedForeground, fontSize: 11 }}>{first(item, ['destination', 'destination_country', 'type', 'category', 'location'], 'Trade details not provided')}</Text>
+              <Text numberOfLines={1} style={{ flex: 1, color: colors.mutedForeground, fontSize: 11 }}>{first(item, ['destination', 'destination_country', 'type', 'category', 'location'], '—')}</Text>
               <Feather name="arrow-up-right" size={14} color={colors.primary} />
             </View>
           </Card>
@@ -537,7 +557,7 @@ export default function InvestorHome() {
             <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{transactionDate(date)}</Text>
           </View>
           <View style={{ alignItems: 'flex-end', gap: 4 }}>
-            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700' }}>{rowCurrency ? displayMoney(rowAmount, rowCurrency) : '—'}</Text>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700' }}>{displayMoney(rowAmount, rowCurrency || 'USD')}</Text>
             <Status value={first(item, ['status'], '—')} />
           </View>
         </Pressable>;
@@ -573,8 +593,8 @@ export default function InvestorHome() {
       const payoutCurrency = first(item, ['currency'], currency);
       return <Card key={first(item, ['id', 'reference'], String(index))} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ width: 38, height: 38, borderRadius: 14, backgroundColor: colors.statusPendingBackground, alignItems: 'center', justifyContent: 'center' }}><Feather name="calendar" size={16} color={colors.statusPending} /></View>
-        <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 13 }}>{first(item, ['project_name', 'title', 'description'], 'Investment payout')}</Text><Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{first(item, ['payout_date', 'date', 'due_date'], 'Date not provided')}</Text></View>
-        <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 13 }}>{payoutCurrency ? displayMoney(amount(item, ['amount', 'payout_amount']), payoutCurrency) : '—'}</Text>
+        <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 13 }}>{first(item, ['project_name', 'title', 'description'], 'Investment payout')}</Text><Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{first(item, ['payout_date', 'date', 'due_date'], '—')}</Text></View>
+        <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 13 }}>{displayMoney(amount(item, ['amount', 'payout_amount']), payoutCurrency || 'USD')}</Text>
       </Card>;
     }) : <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 11, borderStyle: 'dashed' }}>
       <Feather name="calendar" size={18} color={colors.accent} />

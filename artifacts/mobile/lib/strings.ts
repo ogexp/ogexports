@@ -697,7 +697,9 @@ const translations = new Map<string, Readonly<Record<Exclude<AppLanguage, 'en'>,
 );
 
 export function translateUi(value: string, language: AppLanguage): string {
-  if (language === 'en' || !value) return value;
+  if (!value) return value;
+  if (/\bnot\s+(?:reported|provided)\b/i.test(value)) return '—';
+  if (language === 'en') return value;
   const leading = value.match(/^\s*/)?.[0] ?? '';
   const trailing = value.match(/\s*$/)?.[0] ?? '';
   const normalized = value.trim().replace(/\s+/g, ' ');
