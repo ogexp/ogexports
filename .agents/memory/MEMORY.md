@@ -10,3 +10,4 @@
 - [OpenAPI binary uploads](openapi-binary-validation.md) — enforce upload size limits on the server; generated Zod schemas cannot apply maxLength to Blob fields.
 - [Mobile session security](mobile-session-security.md) — Sanctum mobile tokens must be listed and revoked alongside browser sessions; logout-everywhere also invalidates the current token.
 - [Biometric session unlock](biometric-session-unlock.md) — Face ID/fingerprint unlocks only a securely stored, account-scoped session; never store passwords or remove password fallback.
+- [Admin dashboard source](admin-dashboard-source.md) — use the dashboard from the user's original frontend ZIP; do not create a replacement.
