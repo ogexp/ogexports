@@ -7,6 +7,7 @@ import { useGetInvestorInvestment } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
 import { amount, displayCurrencyCode, first, list, messageOf, money, record, unwrap, type Json } from '@/lib/data';
 import { TradeTimeline } from '@/components/TradeTimeline';
+import { TradeProgressCard } from '@/components/TradeProgressCard';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { shareInvestorFile } from '@/lib/file-download';
@@ -31,6 +32,8 @@ export default function PositionDetail() {
   const status = first(row, ['status', 'state'], notProvided);
   const containerNumber = first(row, ['container_number', 'container_name'], first(container, ['container_number', 'number', 'name'], notProvided));
   const timeline = list(project.trade_updates);
+  const stageUpdates = list(project.stage_updates);
+  const investmentPeriodProgress = record(row.investment_period_progress);
   const documents = list(project.documents ?? row.documents ?? trade.documents);
   const investedUsd = amount(row, ['amount', 'investment_amount', 'principal']);
   const investedPkr = amount(row, ['amount_pkr']);
@@ -138,6 +141,11 @@ export default function PositionDetail() {
           <Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
         </View>)}
       </Card>
+
+      <TradeProgressCard
+        stageUpdates={stageUpdates}
+        periodProgress={investmentPeriodProgress}
+      />
 
       <Section title="Trade Information" />
       <Card>

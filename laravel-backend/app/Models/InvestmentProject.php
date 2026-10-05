@@ -94,4 +94,9 @@ class InvestmentProject extends Model
     {
         return $this->hasMany(InvestmentProjectTradeUpdate::class, 'investment_project_id');
     }
+
+    public function stageUpdates(): HasMany
+    {
+        return $this->hasMany(InvestmentProjectStageUpdate::class, 'investment_project_id');
+    }
 }

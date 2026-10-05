@@ -492,6 +492,22 @@ export interface AdminProjectDetail {
   investments: AdminProjectInvestment[]
 }
 
+export interface AdminProjectStageUpdate {
+  id: number
+  stage: string
+  status: string
+  description: string
+  occurred_at: string
+  created_at: string
+}
+
+export interface AdminProjectStageUpdateInput {
+  stage: string
+  status: string
+  description: string
+  occurred_at: string
+}
+
 export interface AdminAuditLog {
   id: string; actor: string; action: string; module: string; ip: string; timestamp: string
 }
@@ -3026,6 +3042,20 @@ export async function fetchProjectDetail(id: string): Promise<AdminProjectDetail
       ? payload.investments.map(mapProjectInvestment)
       : [],
   }
+}
+
+export async function fetchProjectStageUpdates(id: string): Promise<AdminProjectStageUpdate[]> {
+  const response: any = await api.get(`/api/admin/projects/${id}/stage-updates`)
+  const payload = response?.data ?? response
+  return Array.isArray(payload) ? payload : []
+}
+
+export async function createProjectStageUpdate(
+  id: string,
+  input: AdminProjectStageUpdateInput,
+): Promise<AdminProjectStageUpdate> {
+  const response: any = await api.post(`/api/admin/projects/${id}/stage-updates`, input)
+  return response?.data ?? response
 }
 
 export async function approveProjectInvestment(projectId: string, investmentId: string) {

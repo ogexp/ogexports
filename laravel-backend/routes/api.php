@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\Admin\InvestmentController as AdminInvestmentContro
 use App\Http\Controllers\Api\Admin\ProjectInvestmentController as AdminProjectInvestmentController;
 use App\Http\Controllers\Api\Admin\InvestmentProjectDocumentController as AdminInvestmentProjectDocumentController;
 use App\Http\Controllers\Api\Admin\InvestmentProjectContainerTrackingController;
+use App\Http\Controllers\Api\Admin\InvestmentProjectStageUpdateController;
 use App\Http\Controllers\Api\Admin\InvestmentProjectTradeUpdateController;
 use App\Http\Controllers\Api\Admin\MessageController as AdminMessageController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
@@ -484,8 +485,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('investment_module')->group(function () {
             Route::get('/projects/{id}/container-tracking', [InvestmentProjectContainerTrackingController::class, 'show']);
             Route::patch('/projects/{id}/container-tracking', [InvestmentProjectContainerTrackingController::class, 'update']);
-        Route::get('/projects/{id}/updates', [InvestmentProjectTradeUpdateController::class, 'index']);
-        Route::post('/projects/{id}/updates', [InvestmentProjectTradeUpdateController::class, 'store']);
+            Route::get('/projects/{id}/updates', [InvestmentProjectTradeUpdateController::class, 'index']);
+            Route::post('/projects/{id}/updates', [InvestmentProjectTradeUpdateController::class, 'store']);
+            Route::get('/projects/{id}/stage-updates', [InvestmentProjectStageUpdateController::class, 'index']);
+            Route::post('/projects/{id}/stage-updates', [InvestmentProjectStageUpdateController::class, 'store']);
 
             Route::get('/investment-projects', [AdminInvestmentController::class, 'index']);
             Route::get('/investment-projects/active', [AdminInvestmentController::class, 'activeProjects']);

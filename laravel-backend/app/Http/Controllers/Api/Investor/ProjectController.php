@@ -82,6 +82,7 @@ class ProjectController extends Controller
                     'documents',
                     'containerTracking',
                     'tradeUpdates' => fn ($query) => $query->orderBy('occurred_at')->orderBy('id'),
+                    'stageUpdates' => fn ($query) => $query->orderBy('created_at')->orderBy('id'),
                 ])
                 ->whereIn('status', ContainerProjectStatus::allVisibleStatuses())
                 ->findOrFail($id)
@@ -247,6 +248,7 @@ class ProjectController extends Controller
                 'project.documents',
                 'project.containerTracking',
                 'project.tradeUpdates' => fn ($query) => $query->orderBy('occurred_at')->orderBy('id'),
+                'project.stageUpdates' => fn ($query) => $query->orderBy('created_at')->orderBy('id'),
             ])
             ->findOrFail($id);
 

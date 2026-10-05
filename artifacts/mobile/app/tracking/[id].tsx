@@ -9,7 +9,8 @@ import {
   type ContainerTracking,
 } from '@workspace/api-client-react';
 import { Card, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
-import { first, record } from '@/lib/data';
+import { first, list, record } from '@/lib/data';
+import { TradeProgressCard } from '@/components/TradeProgressCard';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -78,6 +79,8 @@ export default function ContainerTracking() {
   const position = record(record(positionQuery.data).data);
   const positionProject = record(position.project);
   const container = record(isProject ? project.container : positionProject.container);
+  const stageUpdates = list(isProject ? project.stage_updates : positionProject.stage_updates);
+  const investmentPeriodProgress = record(position.investment_period_progress);
   const read = (value: unknown) => typeof value === 'string' ? value.trim() || 'Unavailable' : typeof value === 'number' ? String(value) : 'Unavailable';
 
   const containerNumber = read(container?.container_number);
@@ -135,6 +138,12 @@ export default function ContainerTracking() {
           <DetailRow label="Last Updated" value={lastUpdated} />
         </View>
       </Card>
+
+      <TradeProgressCard
+        stageUpdates={stageUpdates}
+        periodProgress={investmentPeriodProgress}
+        showPeriod={!isProject}
+      />
 
       <Section title="Container journey" />
       <Card style={{ paddingHorizontal: 15, paddingVertical: 16 }}>

@@ -24,6 +24,7 @@ import {
   investmentStatusLabel,
 } from "@/lib/investment-statuses"
 import { formatProjectInvestmentAmount } from "@/lib/admin-currency"
+import { ProjectStageUpdatesPanel } from "@/components/admin/ProjectStageUpdatesPanel"
 
 const EMERALD = "#0F3D2E"
 const GREEN = "#4CAF50"
@@ -359,6 +360,10 @@ export function AdminProjectDetailPane({ projectId, onToast, onProjectUpdated }:
           Save Details
         </button>
       </div>
+
+      {project.type === "container" ? (
+        <ProjectStageUpdatesPanel projectId={project.id} onToast={onToast} />
+      ) : null}
 
       <div className="p-4">
         <div className="flex items-center justify-between mb-3 gap-2">

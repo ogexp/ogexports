@@ -29,6 +29,25 @@ export const CONTAINER_EXPORT_STAGES = [
   "Settled",
 ] as const
 
+export const CONTAINER_PROJECT_STAGE_OPTIONS = [
+  { value: "funding", label: "Funding" },
+  { value: "investment_confirmed", label: "Investment Confirmed" },
+  { value: "cargo_loaded", label: "Cargo Loaded" },
+  { value: "in_transit", label: "In Transit" },
+  { value: "custom_clearance", label: "Custom Clearance" },
+  { value: "settled", label: "Settled" },
+] as const
+
+export type ContainerProjectStageKey = (typeof CONTAINER_PROJECT_STAGE_OPTIONS)[number]["value"]
+
+export const CONTAINER_PROJECT_STAGE_UPDATE_STATUSES = [
+  { value: "not_started", label: "Not started" },
+  { value: "in_progress", label: "In progress" },
+  { value: "completed", label: "Completed" },
+] as const
+
+export type ContainerProjectStageUpdateStatus = (typeof CONTAINER_PROJECT_STAGE_UPDATE_STATUSES)[number]["value"]
+
 const LEGACY_MAP: Record<string, ContainerProjectStatus> = {
   pending: "funding",
   ready_to_ship: "investment_confirmed",

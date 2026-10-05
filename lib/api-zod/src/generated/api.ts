@@ -412,6 +412,14 @@ export const GetInvestorProjectsResponse = zod.object({
   "attachment_size_bytes": zod.number().int().min(getInvestorProjectsResponseDataItemTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
   "created_at": zod.coerce.date().nullish()
 })).optional().describe('Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded.'),
+  "stage_updates": zod.array(zod.object({
+  "id": zod.number().int(),
+  "stage": zod.enum(['funding', 'investment_confirmed', 'cargo_loaded', 'in_transit', 'custom_clearance', 'settled']),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']),
+  "description": zod.string(),
+  "occurred_at": zod.coerce.date().describe('Event time explicitly entered by the administrator.'),
+  "created_at": zod.coerce.date().describe('Server-owned time when the record was created.')
+})).optional().describe('Append-only admin records for the six standard container milestones. Status is taken only from the latest explicit record for each stage; no status is inferred.'),
   "project": zod.object({
   "container": zod.object({
   "container_number": zod.string().max(getInvestorProjectsResponseDataItemProjectContainerContainerNumberMax).nullish(),
@@ -467,7 +475,15 @@ export const GetInvestorProjectsResponse = zod.object({
   "attachment_mime": zod.string().nullable(),
   "attachment_size_bytes": zod.number().int().min(getInvestorProjectsResponseDataItemProjectTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
   "created_at": zod.coerce.date().nullish()
-})).optional().describe('Persisted events explicitly published by OG Exports for this position\'s project.')
+})).optional().describe('Persisted events explicitly published by OG Exports for this position\'s project.'),
+  "stage_updates": zod.array(zod.object({
+  "id": zod.number().int(),
+  "stage": zod.enum(['funding', 'investment_confirmed', 'cargo_loaded', 'in_transit', 'custom_clearance', 'settled']),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']),
+  "description": zod.string(),
+  "occurred_at": zod.coerce.date().describe('Event time explicitly entered by the administrator.'),
+  "created_at": zod.coerce.date().describe('Server-owned time when the record was created.')
+})).optional().describe('Explicit admin records for the project\'s standard container milestones.')
 }).optional().describe('Associated project record included with a portfolio position.')
 }).describe('Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.')).optional()
 }).describe('Laravel paginated investment opportunity collection.')
@@ -666,6 +682,14 @@ export const GetInvestorProjectResponse = zod.object({
   "attachment_size_bytes": zod.number().int().min(getInvestorProjectResponseDataTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
   "created_at": zod.coerce.date().nullish()
 })).optional().describe('Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded.'),
+  "stage_updates": zod.array(zod.object({
+  "id": zod.number().int(),
+  "stage": zod.enum(['funding', 'investment_confirmed', 'cargo_loaded', 'in_transit', 'custom_clearance', 'settled']),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']),
+  "description": zod.string(),
+  "occurred_at": zod.coerce.date().describe('Event time explicitly entered by the administrator.'),
+  "created_at": zod.coerce.date().describe('Server-owned time when the record was created.')
+})).optional().describe('Append-only admin records for the six standard container milestones. Status is taken only from the latest explicit record for each stage; no status is inferred.'),
   "project": zod.object({
   "container": zod.object({
   "container_number": zod.string().max(getInvestorProjectResponseDataProjectContainerContainerNumberMax).nullish(),
@@ -721,7 +745,15 @@ export const GetInvestorProjectResponse = zod.object({
   "attachment_mime": zod.string().nullable(),
   "attachment_size_bytes": zod.number().int().min(getInvestorProjectResponseDataProjectTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
   "created_at": zod.coerce.date().nullish()
-})).optional().describe('Persisted events explicitly published by OG Exports for this position\'s project.')
+})).optional().describe('Persisted events explicitly published by OG Exports for this position\'s project.'),
+  "stage_updates": zod.array(zod.object({
+  "id": zod.number().int(),
+  "stage": zod.enum(['funding', 'investment_confirmed', 'cargo_loaded', 'in_transit', 'custom_clearance', 'settled']),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']),
+  "description": zod.string(),
+  "occurred_at": zod.coerce.date().describe('Event time explicitly entered by the administrator.'),
+  "created_at": zod.coerce.date().describe('Server-owned time when the record was created.')
+})).optional().describe('Explicit admin records for the project\'s standard container milestones.')
 }).optional().describe('Associated project record included with a portfolio position.')
 }).describe('Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.')
 }).describe('Laravel project resource response envelope.')
@@ -900,6 +932,12 @@ export const getInvestorInvestmentResponseDataProjectProjectContainerContainerJo
 
 export const getInvestorInvestmentResponseDataProjectProjectTradeUpdatesItemAttachmentSizeBytesMin = 0;
 
+export const getInvestorInvestmentResponseDataInvestmentPeriodProgressOneDaysElapsedMin = 0;
+
+
+export const getInvestorInvestmentResponseDataInvestmentPeriodProgressOneProgressPercentMin = 0;
+export const getInvestorInvestmentResponseDataInvestmentPeriodProgressOneProgressPercentMax = 100;
+
 
 
 export const GetInvestorInvestmentResponse = zod.object({
@@ -975,6 +1013,14 @@ export const GetInvestorInvestmentResponse = zod.object({
   "attachment_size_bytes": zod.number().int().min(getInvestorInvestmentResponseDataProjectTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
   "created_at": zod.coerce.date().nullish()
 })).optional().describe('Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded.'),
+  "stage_updates": zod.array(zod.object({
+  "id": zod.number().int(),
+  "stage": zod.enum(['funding', 'investment_confirmed', 'cargo_loaded', 'in_transit', 'custom_clearance', 'settled']),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']),
+  "description": zod.string(),
+  "occurred_at": zod.coerce.date().describe('Event time explicitly entered by the administrator.'),
+  "created_at": zod.coerce.date().describe('Server-owned time when the record was created.')
+})).optional().describe('Append-only admin records for the six standard container milestones. Status is taken only from the latest explicit record for each stage; no status is inferred.'),
   "project": zod.object({
   "container": zod.object({
   "container_number": zod.string().max(getInvestorInvestmentResponseDataProjectProjectContainerContainerNumberMax).nullish(),
@@ -1030,9 +1076,22 @@ export const GetInvestorInvestmentResponse = zod.object({
   "attachment_mime": zod.string().nullable(),
   "attachment_size_bytes": zod.number().int().min(getInvestorInvestmentResponseDataProjectProjectTradeUpdatesItemAttachmentSizeBytesMin).nullable(),
   "created_at": zod.coerce.date().nullish()
-})).optional().describe('Persisted events explicitly published by OG Exports for this position\'s project.')
+})).optional().describe('Persisted events explicitly published by OG Exports for this position\'s project.'),
+  "stage_updates": zod.array(zod.object({
+  "id": zod.number().int(),
+  "stage": zod.enum(['funding', 'investment_confirmed', 'cargo_loaded', 'in_transit', 'custom_clearance', 'settled']),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']),
+  "description": zod.string(),
+  "occurred_at": zod.coerce.date().describe('Event time explicitly entered by the administrator.'),
+  "created_at": zod.coerce.date().describe('Server-owned time when the record was created.')
+})).optional().describe('Explicit admin records for the project\'s standard container milestones.')
 }).optional().describe('Associated project record included with a portfolio position.')
-}).describe('Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.')
+}).describe('Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.'),
+  "investment_period_progress": zod.union([zod.object({
+  "days_elapsed": zod.number().int().min(getInvestorInvestmentResponseDataInvestmentPeriodProgressOneDaysElapsedMin),
+  "total_days": zod.number().int().min(1),
+  "progress_percent": zod.number().min(getInvestorInvestmentResponseDataInvestmentPeriodProgressOneProgressPercentMin).max(getInvestorInvestmentResponseDataInvestmentPeriodProgressOneProgressPercentMax)
+}),zod.null()]).optional().describe('Server-computed elapsed investment period; null unless the investment date and configured period are both available.')
 }).describe('Investor position fields and its Laravel project resource.')
 }).describe('Laravel investor investment resource envelope.')
 
@@ -2007,6 +2066,57 @@ export const CreateAdminProjectTradeUpdateResponse = zod.object({
   "attachment_mime": zod.string().nullable(),
   "attachment_size_bytes": zod.number().int().min(createAdminProjectTradeUpdateResponseDataAttachmentSizeBytesMin).nullable(),
   "created_at": zod.coerce.date().nullish()
+})
+})
+
+
+/**
+ * Returns append-only admin records. These records are separate from the project's general trade update feed.
+ * @summary List explicit milestone updates for a container project
+ */
+export const GetAdminProjectStageUpdatesParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetAdminProjectStageUpdatesResponse = zod.object({
+  "data": zod.array(zod.object({
+  "id": zod.number().int(),
+  "stage": zod.enum(['funding', 'investment_confirmed', 'cargo_loaded', 'in_transit', 'custom_clearance', 'settled']),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']),
+  "description": zod.string(),
+  "occurred_at": zod.coerce.date().describe('Event time explicitly entered by the administrator.'),
+  "created_at": zod.coerce.date().describe('Server-owned time when the record was created.')
+}))
+})
+
+
+/**
+ * Appends an admin-authored milestone status, description, and event time. No other milestone state is inferred or changed.
+ * @summary Record an explicit status update for one container milestone
+ */
+export const CreateAdminProjectStageUpdateParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const createAdminProjectStageUpdateBodyDescriptionMax = 5000;
+
+
+
+export const CreateAdminProjectStageUpdateBody = zod.object({
+  "stage": zod.enum(['funding', 'investment_confirmed', 'cargo_loaded', 'in_transit', 'custom_clearance', 'settled']),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']),
+  "description": zod.string().min(1).max(createAdminProjectStageUpdateBodyDescriptionMax),
+  "occurred_at": zod.coerce.date().describe('Required event time entered by the administrator; never defaulted from a device clock.')
+})
+
+export const CreateAdminProjectStageUpdateResponse = zod.object({
+  "data": zod.object({
+  "id": zod.number().int(),
+  "stage": zod.enum(['funding', 'investment_confirmed', 'cargo_loaded', 'in_transit', 'custom_clearance', 'settled']),
+  "status": zod.enum(['not_started', 'in_progress', 'completed']),
+  "description": zod.string(),
+  "occurred_at": zod.coerce.date().describe('Event time explicitly entered by the administrator.'),
+  "created_at": zod.coerce.date().describe('Server-owned time when the record was created.')
 })
 })
 

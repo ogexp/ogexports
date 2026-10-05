@@ -5,6 +5,7 @@
  * OG Exports investor and administrator API, generated from the Laravel API contract
  * OpenAPI spec version: 1.0.0
  */
+import type { InvestmentPeriodProgress } from './investmentPeriodProgress';
 import type { InvestorProjectDetail } from './investorProjectDetail';
 
 /**
@@ -12,5 +13,7 @@ import type { InvestorProjectDetail } from './investorProjectDetail';
  */
 export interface InvestorInvestmentDetail {
   project: InvestorProjectDetail;
+  /** Server-computed elapsed investment period; null unless the investment date and configured period are both available. */
+  investment_period_progress?: InvestmentPeriodProgress | null;
   [key: string]: unknown;
  }

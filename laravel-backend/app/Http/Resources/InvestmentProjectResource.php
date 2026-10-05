@@ -69,6 +69,10 @@ class InvestmentProjectResource extends JsonResource
                 $this->relationLoaded('tradeUpdates'),
                 fn () => InvestmentProjectTradeUpdateResource::collection($this->tradeUpdates)->resolve($request)
             ),
+            'stage_updates' => $this->when(
+                $this->relationLoaded('stageUpdates'),
+                fn () => InvestmentProjectStageUpdateResource::collection($this->stageUpdates)->resolve($request)
+            ),
             'documents' => $this->when(
                 $this->relationLoaded('documents'),
                 fn () => $this->documents->map(function ($doc) {

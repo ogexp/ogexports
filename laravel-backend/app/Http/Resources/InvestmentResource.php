@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use Carbon\Carbon;
 use App\Support\InvestmentReferenceGenerator;
 use App\Support\UserDisplayCurrency;
 use Illuminate\Http\Request;
@@ -34,6 +35,35 @@ class InvestmentResource extends JsonResource
             'approved_at' => $this->approved_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
             'project' => new InvestmentProjectResource($this->whenLoaded('project')),
+            'investment_period_progress' => $this->whenLoaded(
+                'project',
+                fn () => $this->investmentPeriodProgress(),
+            ),
+        ];
+    }
+
+    private function investmentPeriodProgress(): ?array
+    {
+        $investedAt = $this->invested_at ? Carbon::parse($this->invested_at) : null;
+        $periodDays = (int) ($this->project?->investment_period_days ?: 0);
+        $eta = $this->project?->eta ? Carbon::parse($this->project->eta) : null;
+        $totalDays = $periodDays > 0
+            ? $periodDays
+            : ($investedAt && $eta ? max(1, $investedAt->diffInDays($eta)) : 0);
+
+        if (! $investedAt || $totalDays < 1) {
+            return null;
+        }
+
+        $daysElapsed = min(
+            $totalDays,
+            max(0, (int) $investedAt->diffInDays(now())),
+        );
+
+        return [
+            'days_elapsed' => $daysElapsed,
+            'total_days' => $totalDays,
+            'progress_percent' => round(min(100, ($daysElapsed / $totalDays) * 100), 1),
         ];
     }
 }

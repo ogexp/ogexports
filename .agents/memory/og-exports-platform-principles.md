@@ -13,7 +13,11 @@ The OG Exports investor app must communicate:
 
 Use server-provided trade identifiers, shipment details, documents, and statuses as the source of truth. Do not invent missing values or imply live logistics tracking. Make an investment's trade/container association easy to find, and state clearly when OG Exports has not supplied information.
 
-Timeline stage names may be shown as the standard visual sequence, but each stage's status, description, and date must be supplied by the backend/admin system. Show unavailable when a stage update is missing; never infer progress from stage order, dates, or a trade-level status.
+The six container milestones use explicit, append-only per-stage admin records, separate from the project status, trade-update feed, and container journey. Show each stage from its latest saved record only; never infer progress from stage order, dates, or another stage's status.
+
+**Why:** the user chose per-stage records because one project status cannot prove the state of every milestone.
+
+**How to apply:** append a new admin record for the selected stage and keep missing stages unavailable; do not derive completion from neighboring stages.
 
 Project/trade update feeds are separate append-only event records, not reconstructions of the standard journey stages. Each event's status, description, event time, and optional attachment must be explicitly supplied by OG Exports; leave the feed empty until an update is published. Require admins to enter the event time instead of defaulting it from the device clock.
 

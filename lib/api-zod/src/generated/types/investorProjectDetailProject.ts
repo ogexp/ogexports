@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ContainerTracking } from './containerTracking';
+import type { ProjectStageUpdate } from './projectStageUpdate';
 import type { ProjectTradeUpdate } from './projectTradeUpdate';
 
 /**
@@ -15,5 +16,7 @@ export type InvestorProjectDetailProject = {
   container?: ContainerTracking;
   /** Persisted events explicitly published by OG Exports for this position's project. */
   trade_updates?: ProjectTradeUpdate[];
+  /** Explicit admin records for the project's standard container milestones. */
+  stage_updates?: ProjectStageUpdate[];
   [key: string]: unknown;
  };

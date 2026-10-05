@@ -5,6 +5,93 @@
  * OG Exports investor and administrator API, generated from the Laravel API contract
  * OpenAPI spec version: 1.0.0
  */
+export type ProjectStageUpdateStage = typeof ProjectStageUpdateStage[keyof typeof ProjectStageUpdateStage];
+
+
+export const ProjectStageUpdateStage = {
+  funding: 'funding',
+  investment_confirmed: 'investment_confirmed',
+  cargo_loaded: 'cargo_loaded',
+  in_transit: 'in_transit',
+  custom_clearance: 'custom_clearance',
+  settled: 'settled',
+} as const;
+
+export type ProjectStageUpdateStatus = typeof ProjectStageUpdateStatus[keyof typeof ProjectStageUpdateStatus];
+
+
+export const ProjectStageUpdateStatus = {
+  not_started: 'not_started',
+  in_progress: 'in_progress',
+  completed: 'completed',
+} as const;
+
+export interface ProjectStageUpdate {
+  readonly id: number;
+  stage: ProjectStageUpdateStage;
+  status: ProjectStageUpdateStatus;
+  description: string;
+  /** Event time explicitly entered by the administrator. */
+  occurred_at: string;
+  /** Server-owned time when the record was created. */
+  readonly created_at: string;
+}
+
+export type AdminProjectStageUpdateInputStage = typeof AdminProjectStageUpdateInputStage[keyof typeof AdminProjectStageUpdateInputStage];
+
+
+export const AdminProjectStageUpdateInputStage = {
+  funding: 'funding',
+  investment_confirmed: 'investment_confirmed',
+  cargo_loaded: 'cargo_loaded',
+  in_transit: 'in_transit',
+  custom_clearance: 'custom_clearance',
+  settled: 'settled',
+} as const;
+
+export type AdminProjectStageUpdateInputStatus = typeof AdminProjectStageUpdateInputStatus[keyof typeof AdminProjectStageUpdateInputStatus];
+
+
+export const AdminProjectStageUpdateInputStatus = {
+  not_started: 'not_started',
+  in_progress: 'in_progress',
+  completed: 'completed',
+} as const;
+
+export interface AdminProjectStageUpdateInput {
+  stage: AdminProjectStageUpdateInputStage;
+  status: AdminProjectStageUpdateInputStatus;
+  /**
+     * @minLength 1
+     * @maxLength 5000
+     */
+  description: string;
+  /** Required event time entered by the administrator; never defaulted from a device clock. */
+  occurred_at: string;
+}
+
+export interface ProjectStageUpdateList {
+  data: ProjectStageUpdate[];
+  [key: string]: unknown;
+ }
+
+export interface ProjectStageUpdateResponse {
+  data: ProjectStageUpdate;
+  [key: string]: unknown;
+ }
+
+export interface InvestmentPeriodProgress {
+  /** @minimum 0 */
+  days_elapsed: number;
+  /** @minimum 1 */
+  total_days: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  progress_percent: number;
+}
+
 export interface ProjectTradeUpdate {
   id: number;
   status: string;
@@ -293,6 +380,8 @@ export type InvestorProjectDetailProject = {
   container?: ContainerTracking;
   /** Persisted events explicitly published by OG Exports for this position's project. */
   trade_updates?: ProjectTradeUpdate[];
+  /** Explicit admin records for the project's standard container milestones. */
+  stage_updates?: ProjectStageUpdate[];
   [key: string]: unknown;
  };
 
@@ -341,6 +430,8 @@ export interface InvestorProjectDetail {
   container?: ContainerTracking;
   /** Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded. */
   trade_updates?: ProjectTradeUpdate[];
+  /** Append-only admin records for the six standard container milestones. Status is taken only from the latest explicit record for each stage; no status is inferred. */
+  stage_updates?: ProjectStageUpdate[];
   /** Associated project record included with a portfolio position. */
   project?: InvestorProjectDetailProject;
   [key: string]: unknown;
@@ -409,6 +500,8 @@ export interface InvestorProjectDetailResponse {
  */
 export interface InvestorInvestmentDetail {
   project: InvestorProjectDetail;
+  /** Server-computed elapsed investment period; null unless the investment date and configured period are both available. */
+  investment_period_progress?: InvestmentPeriodProgress | null;
   [key: string]: unknown;
  }
 

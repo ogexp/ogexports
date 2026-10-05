@@ -899,6 +899,39 @@ paths:
         "403": { description: OG Exports administrator access required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
         "404": { description: Project not found, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
         "422": { description: Invalid update or attachment, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /admin/projects/{id}/stage-updates:
+    get:
+      operationId: getAdminProjectStageUpdates
+      tags: [admin]
+      summary: List explicit milestone updates for a container project
+      description: Returns append-only admin records. These records are separate from the project's general trade update feed.
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Stage updates ordered by server creation time, content: { application/json: { schema: { $ref: "#/components/schemas/ProjectStageUpdateList" } } } }
+        "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "403": { description: OG Exports administrator access required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "404": { description: Project not found, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+    post:
+      operationId: createAdminProjectStageUpdate
+      tags: [admin]
+      summary: Record an explicit status update for one container milestone
+      description: Appends an admin-authored milestone status, description, and event time. No other milestone state is inferred or changed.
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminProjectStageUpdateInput" }
+      responses:
+        "201": { description: Recorded milestone update, content: { application/json: { schema: { $ref: "#/components/schemas/ProjectStageUpdateResponse" } } } }
+        "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "403": { description: OG Exports administrator access required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "404": { description: Project not found, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "422": { description: Invalid stage update or non-container project, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /investor/projects/{id}/updates/{updateId}/attachment:
     get:
       operationId: downloadInvestorProjectTradeUpdateAttachment
@@ -918,6 +951,67 @@ paths:
         "404": { description: "Project, update, or attachment not found", content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
 components:
   schemas:
+    ProjectStageUpdate:
+      type: object
+      additionalProperties: false
+      required: [id, stage, status, description, occurred_at, created_at]
+      properties:
+        id: { type: integer, readOnly: true }
+        stage:
+          type: string
+          enum: [funding, investment_confirmed, cargo_loaded, in_transit, custom_clearance, settled]
+        status:
+          type: string
+          enum: [not_started, in_progress, completed]
+        description: { type: string }
+        occurred_at:
+          type: string
+          format: date-time
+          description: Event time explicitly entered by the administrator.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Server-owned time when the record was created.
+    AdminProjectStageUpdateInput:
+      type: object
+      additionalProperties: false
+      required: [stage, status, description, occurred_at]
+      properties:
+        stage:
+          type: string
+          enum: [funding, investment_confirmed, cargo_loaded, in_transit, custom_clearance, settled]
+        status:
+          type: string
+          enum: [not_started, in_progress, completed]
+        description: { type: string, minLength: 1, maxLength: 5000 }
+        occurred_at:
+          type: string
+          format: date-time
+          description: Required event time entered by the administrator; never defaulted from a device clock.
+    ProjectStageUpdateList:
+      type: object
+      additionalProperties: true
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/ProjectStageUpdate" }
+    ProjectStageUpdateResponse:
+      type: object
+      additionalProperties: true
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/ProjectStageUpdate"
+    InvestmentPeriodProgress:
+      type: object
+      additionalProperties: false
+      required: [days_elapsed, total_days, progress_percent]
+      properties:
+        days_elapsed: { type: integer, minimum: 0 }
+        total_days: { type: integer, minimum: 1 }
+        progress_percent: { type: number, minimum: 0, maximum: 100 }
     ProjectTradeUpdate:
       type: object
       additionalProperties: false
@@ -1189,6 +1283,11 @@ components:
           description: Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded.
           items:
             $ref: "#/components/schemas/ProjectTradeUpdate"
+        stage_updates:
+          type: array
+          description: Append-only admin records for the six standard container milestones. Status is taken only from the latest explicit record for each stage; no status is inferred.
+          items:
+            $ref: "#/components/schemas/ProjectStageUpdate"
         project:
           type: object
           description: Associated project record included with a portfolio position.
@@ -1201,6 +1300,11 @@ components:
               description: Persisted events explicitly published by OG Exports for this position's project.
               items:
                 $ref: "#/components/schemas/ProjectTradeUpdate"
+            stage_updates:
+              type: array
+              description: Explicit admin records for the project's standard container milestones.
+              items:
+                $ref: "#/components/schemas/ProjectStageUpdate"
     InvestorProjectListResponse:
       type: object
       description: Laravel paginated investment opportunity collection.
@@ -1280,6 +1384,11 @@ components:
       properties:
         project:
           $ref: "#/components/schemas/InvestorProjectDetail"
+        investment_period_progress:
+          anyOf:
+            - $ref: "#/components/schemas/InvestmentPeriodProgress"
+            - type: "null"
+          description: Server-computed elapsed investment period; null unless the investment date and configured period are both available.
     InvestorInvestmentDetailResponse:
       type: object
       description: Laravel investor investment resource envelope.

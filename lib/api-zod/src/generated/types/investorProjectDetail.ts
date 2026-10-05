@@ -7,6 +7,7 @@
  */
 import type { ContainerTracking } from './containerTracking';
 import type { InvestorProjectDetailProject } from './investorProjectDetailProject';
+import type { ProjectStageUpdate } from './projectStageUpdate';
 import type { ProjectTradeUpdate } from './projectTradeUpdate';
 
 /**
@@ -54,6 +55,8 @@ export interface InvestorProjectDetail {
   container?: ContainerTracking;
   /** Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded. */
   trade_updates?: ProjectTradeUpdate[];
+  /** Append-only admin records for the six standard container milestones. Status is taken only from the latest explicit record for each stage; no status is inferred. */
+  stage_updates?: ProjectStageUpdate[];
   /** Associated project record included with a portfolio position. */
   project?: InvestorProjectDetailProject;
   [key: string]: unknown;
