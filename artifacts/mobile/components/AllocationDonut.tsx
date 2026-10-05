@@ -16,6 +16,7 @@ type Props = {
   subtitle: string;
   data: AllocationSlice[];
   currency: string;
+  valueMode?: 'amount' | 'percentage';
   missingAmounts?: number;
   note?: string;
 };
@@ -49,7 +50,7 @@ function arcPath(startAngle: number, endAngle: number) {
   ].join(' ');
 }
 
-export function AllocationDonut({ title, subtitle, data, currency, missingAmounts = 0, note }: Props) {
+export function AllocationDonut({ title, subtitle, data, currency, valueMode = 'amount', missingAmounts = 0, note }: Props) {
   const colors = useColors();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const palette = [colors.primary, colors.accent, colors.statusPending, colors.secondaryForeground, colors.mutedForeground];
@@ -89,7 +90,7 @@ export function AllocationDonut({ title, subtitle, data, currency, missingAmount
           </Svg>
           <View pointerEvents="none" style={{ position: 'absolute', width: 82, alignItems: 'center' }}>
             <Text style={{ color: colors.primary, fontSize: 18, fontWeight: '700' }}>
-              {selected ? `${(selected.value / total * 100).toFixed(1)}%` : '—'}
+              {selected ? valueMode === 'percentage' ? `${selected.value.toFixed(1)}%` : `${(selected.value / total * 100).toFixed(1)}%` : '—'}
             </Text>
             <Text numberOfLines={2} style={{ color: colors.mutedForeground, fontSize: 10, textAlign: 'center', marginTop: 3 }}>
               {selected?.name ?? 'No allocation data'}
@@ -99,11 +100,14 @@ export function AllocationDonut({ title, subtitle, data, currency, missingAmount
         <View style={{ flex: 1, gap: 5 }}>
           {slices.map((slice, index) => {
             const share = slice.value / total * 100;
+            const rawValueLabel = valueMode === 'percentage' ? `${slice.value.toFixed(1)}%` : money(slice.value, currency);
             const selectedSlice = selectedIndex === index;
             return <Pressable
               key={slice.name}
               accessibilityRole="button"
-              accessibilityLabel={`${slice.name}, ${share.toFixed(1)} percent, ${money(slice.value, currency)}`}
+              accessibilityLabel={valueMode === 'percentage'
+                ? `${slice.name}, ${slice.value.toFixed(1)} percent`
+                : `${slice.name}, ${share.toFixed(1)} percent, ${money(slice.value, currency)}`}
               accessibilityState={{ selected: selectedSlice }}
               testID={`allocation-slice-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`}
               onPress={() => setSelectedIndex(index)}
@@ -112,14 +116,14 @@ export function AllocationDonut({ title, subtitle, data, currency, missingAmount
               <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: palette[index % palette.length] }} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 10, fontWeight: selectedSlice ? '700' : '500' }}>{slice.name}</Text>
-                <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 9, marginTop: 2 }}>{money(slice.value, currency)}</Text>
+                <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 9, marginTop: 2 }}>{rawValueLabel}</Text>
               </View>
               <Text style={{ color: colors.foreground, fontSize: 10, fontWeight: '700' }}>{share.toFixed(1)}%</Text>
             </Pressable>;
           })}
         </View>
       </View>
-      {missingAmounts > 0 ? <Text style={{ color: colors.statusPending, fontSize: 10, lineHeight: 15, marginTop: 10 }}>
+      {valueMode === 'amount' && missingAmounts > 0 ? <Text style={{ color: colors.statusPending, fontSize: 10, lineHeight: 15, marginTop: 10 }}>
         Amounts were not reported in {currency} for {missingAmounts} investment record{missingAmounts === 1 ? '' : 's'}; shares use comparable reported capital only.
       </Text> : null}
       {note ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 7 }}>{note}</Text> : null}

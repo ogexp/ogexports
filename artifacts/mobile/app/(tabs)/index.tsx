@@ -7,16 +7,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import {
+  useGetInvestorDeposits,
   useGetInvestorDashboard,
   useGetInvestorInvestments,
+  useGetInvestorNotifications,
   useGetInvestorProjects,
+  useGetInvestorWithdrawals,
   useGetInvestorWalletTransactions,
 } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Status } from '@/components/InvestorUI';
+import { AllocationDonut, type AllocationSlice } from '@/components/AllocationDonut';
 import { amount, first, list, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
+import {
+  DashboardMetric,
+  FinancialHistoryPreview,
+  PortfolioBenchmarkCard,
+  ProfitAnalyticsCard,
+  RecentAlertsPreview,
+  type DashboardMetricItem,
+} from '@/components/DashboardWidgets';
 
 function transactionGroup(value: string) {
   const date = new Date(value);
@@ -73,21 +85,27 @@ export default function InvestorHome() {
   const investments = useGetInvestorInvestments({ per_page: 50 }, { query: { queryKey: ['investor-positions', 50], enabled: !!token, staleTime: 30_000 } });
   const projects = useGetInvestorProjects({ per_page: 3 }, { query: { queryKey: ['investor-projects', 3], enabled: !!token, staleTime: 60_000 } });
   const transactions = useGetInvestorWalletTransactions({ page: 1, per_page: 6 }, { query: { queryKey: ['investor-wallet-transactions', 1, 6], enabled: !!token, staleTime: 30_000 } });
+  const depositsQuery = useGetInvestorDeposits({ per_page: 5 }, { query: { queryKey: ['investor-deposits'], enabled: !!token, staleTime: 30_000 } });
+  const withdrawalsQuery = useGetInvestorWithdrawals({}, { query: { queryKey: ['investor-withdrawals'], enabled: !!token, staleTime: 30_000 } });
+  const notificationsQuery = useGetInvestorNotifications({ query: { queryKey: ['investor-notifications'], enabled: !!token, staleTime: 20_000 } });
   const data = unwrap(dashboard.data);
   const summary = record(data.summary);
   const wallet = record(data.wallet);
   const series = record(data.portfolio_series);
-  const currency = first(wallet, ['currency', 'default_currency']);
+  const currency = first(wallet, ['currency', 'default_currency'], first(summary, ['display_currency']));
   const liveBalance = amount(wallet, ['available_balance', 'balance', 'available']) ?? amount(summary, ['available_balance']);
   const portfolioTotal = amount(summary, ['total_portfolio_value', 'portfolio_value', 'total_value']);
   const investedCapital = amount(summary, ['total_investment', 'total_investment_usd', 'invested_capital']);
-  const netReturns = amount(summary, ['total_profit_earned', 'total_profit_earned_usd', 'total_returns', 'profit']);
+  const netReturns = amount(summary, ['total_profit_earned', 'total_profit_earned_usd', 'distributed_returns', 'total_returns', 'profit']);
+  const monthlyProfit = amount(summary, ['monthly_profit', 'monthly_profit_usd']);
+  const activeInvestment = amount(summary, ['active_investment', 'active_investment_usd']);
+  const pendingDistribution = amount(summary, ['pending_distribution', 'pending_distribution_usd']);
   const roi = amount(summary, ['lifetime_roi', 'roi_percentage', 'roi']);
   const availableBalance = liveBalance;
   const name = first(record(user), ['name', 'first_name'], 'Investor');
   const firstName = name.split(/\s+/)[0] || 'Investor';
   const initials = name.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'OG';
-  const greeting = 'Good Morning';
+  const greeting = 'Welcome back';
   const opportunities = list(projects.data);
   const featuredOpportunities = opportunities.slice(0, 3);
   const dashboardActivity = list(data.recent_activity ?? data.recent_transactions ?? data.activity);
@@ -95,13 +113,50 @@ export default function InvestorHome() {
   const activityLoading = transactions.isLoading && dashboardActivity.length === 0;
   const activityError = transactions.isError && dashboardActivity.length === 0;
   const payouts = list(data.upcoming_payouts);
-  const activeTrades = list(investments.data).filter(item => {
-    const status = first(item, ['trade_status', 'container_status', 'status', 'state']).toLowerCase();
-    return !!status && /(active|confirm|funded|prepar|stuff|custom|transit|arriv|deliver|settle|ship|in.?progress)/i.test(status)
-      && !/(cancel|reject|fail|complete|closed)/i.test(status);
-  }).slice(0, 2);
-  const displayMoney = (value: number | null, unit = currency) => balanceHidden ? '••••••' : unit ? money(value, unit) : '—';
+  const investmentItems = list(investments.data).slice(0, 3);
+  const dashboardDeposits = list(data.recent_deposits);
+  const recentDeposits = (dashboardDeposits.length ? dashboardDeposits : list(depositsQuery.data)).slice(0, 3);
+  const dashboardWithdrawals = list(data.withdrawals);
+  const recentWithdrawals = (dashboardWithdrawals.length ? dashboardWithdrawals : list(withdrawalsQuery.data)).slice(0, 3);
+  const dashboardAlerts = list(data.notifications);
+  const recentAlerts = (dashboardAlerts.length ? dashboardAlerts : list(notificationsQuery.data)).slice(0, 3);
+  const monthlyProfitHistory = list(data.profit_monthly);
+  const allocation: AllocationSlice[] = list(data.allocation).flatMap(item => {
+    const value = amount(item, ['value', 'percentage', 'share']);
+    return value == null ? [] : [{ name: first(item, ['name', 'label', 'category'], 'Allocation details not provided'), value }];
+  });
+  const benchmarkSeries = record(data.benchmark_series);
+  const benchmarkAvailable = data.benchmark_available === true;
+  const displayMoney = (value: number | null, unit = currency) =>
+    balanceHidden ? '••••••' : value == null ? 'Not reported' : unit ? money(value, unit) : 'Currency not provided';
   const displayRoi = balanceHidden ? '••••' : roi == null ? '—' : `${roi.toFixed(2)}%`;
+  const metricMoney = (value: number | null) => dashboard.isLoading ? '…' : displayMoney(value);
+  const metricCount = (value: number | null) => dashboard.isLoading ? '…' : value == null ? 'Not reported' : String(value);
+  const depositLoading = depositsQuery.isLoading && dashboardDeposits.length === 0;
+  const depositError = depositsQuery.isError && dashboardDeposits.length === 0;
+  const withdrawalLoading = withdrawalsQuery.isLoading && dashboardWithdrawals.length === 0;
+  const withdrawalError = withdrawalsQuery.isError && dashboardWithdrawals.length === 0;
+  const alertsLoading = notificationsQuery.isLoading && dashboardAlerts.length === 0;
+  const alertsError = notificationsQuery.isError && dashboardAlerts.length === 0;
+  const metricItems: DashboardMetricItem[] = [
+    { label: 'Total Deposits', value: metricMoney(amount(summary, ['total_deposits', 'total_deposits_usd'])), icon: 'arrow-down-left', detail: metricCount(amount(summary, ['total_deposits_count'])) },
+    { label: 'Pending Deposits', value: metricMoney(amount(summary, ['pending_deposits_amount', 'pending_deposits'])), icon: 'clock', detail: metricCount(amount(summary, ['pending_deposits_count'])) },
+    { label: 'Total Withdrawals', value: metricMoney(amount(summary, ['total_withdrawals', 'total_withdrawals_usd'])), icon: 'arrow-up-right', detail: metricCount(amount(summary, ['total_withdrawals_count'])) },
+    { label: 'Pending Withdrawals', value: metricMoney(amount(summary, ['pending_withdrawals_amount', 'pending_withdrawals_amount_usd'])), icon: 'clock', detail: metricCount(amount(summary, ['pending_withdrawals_count'])) },
+    { label: 'Total Investment', value: metricMoney(investedCapital), icon: 'briefcase', detail: metricCount(amount(summary, ['investments_count'])) },
+    { label: 'Active Investment', value: metricMoney(activeInvestment), icon: 'activity', detail: metricCount(amount(summary, ['active_investments_count'])) },
+    { label: 'Total Profit Earned', value: metricMoney(netReturns), icon: 'trending-up' },
+    { label: 'Monthly Profit', value: metricMoney(monthlyProfit), icon: 'bar-chart-2' },
+    { label: 'Lifetime ROI', value: dashboard.isLoading ? '…' : balanceHidden ? '••••' : roi == null ? 'Not reported' : `${roi.toFixed(2)}%`, icon: 'activity' },
+    { label: 'Completed Transactions', value: metricCount(amount(summary, ['completed_transactions'])), icon: 'check-circle' },
+    { label: 'Available Balance', value: metricMoney(availableBalance), icon: 'credit-card' },
+    { label: 'Pending Distribution', value: metricMoney(pendingDistribution), icon: 'calendar' },
+  ];
+  const verificationItems = [
+    { label: 'KYC', value: first(data, ['kyc_status'], 'Not provided') },
+    { label: 'AML', value: first(data, ['aml_status'], 'Not provided') },
+    { label: 'Tax Documents', value: first(data, ['tax_document_status', 'tax_documents_status'], 'Not provided') },
+  ];
   const groupedTransactions = recent.reduce<{ label: string; items: Record<string, unknown>[] }[]>((groups, item) => {
     const label = transactionGroup(first(item, ['created_at', 'date'], ''));
     const existing = groups.find(group => group.label === label);
@@ -199,19 +254,6 @@ export default function InvestorHome() {
         <Text style={{ color: colors.primaryForeground, opacity: 0.68, fontSize: 10, marginTop: 4 }}>Reported by OG Exports</Text>
       </View>
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 17, paddingTop: 13, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.2)' }}>
-        {[
-          { label: 'Total invested', value: displayMoney(investedCapital) },
-          { label: 'Net returns / distributions', value: displayMoney(netReturns) },
-          { label: 'ROI', value: displayRoi },
-          { label: 'Available balance', value: displayMoney(availableBalance) },
-        ].map((item, index) => {
-          return <View key={item.label} style={{ width: '50%', minHeight: 52, paddingTop: index > 1 ? 13 : 2, paddingBottom: 3, paddingRight: index % 2 === 0 ? 10 : 0 }}>
-            <Text style={{ color: colors.primaryForeground, opacity: 0.72, fontSize: 10, lineHeight: 14 }}>{item.label}</Text>
-            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.primaryForeground, fontSize: 14, fontWeight: '700', marginTop: 5 }}>{dashboard.isLoading ? '…' : item.value}</Text>
-          </View>;
-        })}
-      </View>
     </Card>
 
     <View style={[{ flexDirection: 'row', alignItems: 'stretch', justifyContent: 'space-between', borderRadius: 22, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingVertical: 8, paddingHorizontal: 7, marginHorizontal: 0, marginTop: -17, marginBottom: 15, zIndex: 2 }, dockShadow]}>
@@ -238,11 +280,28 @@ export default function InvestorHome() {
       <Pressable accessibilityRole="button" onPress={() => void dashboard.refetch()}><Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>Try again</Text></Pressable>
     </View> : null}
 
-    <HomeSection title="My Active Trades" right={<Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/portfolio')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Portfolio</Text></Pressable>} />
-    {investments.isError ? <ErrorState message="Active trade information could not be loaded." error={investments.error} onRetry={() => void investments.refetch()} /> : null}
-    {investments.isLoading ? <LoadingCard label="Loading active trades…" /> : null}
-    {!investments.isLoading && !investments.isError && activeTrades.length === 0 ? <EmptyState title="No active trades" body="Your active import and export trades will appear here when provided by OG Exports." /> : null}
-    {activeTrades.map((position, index) => {
+    <HomeSection title="Account Overview" />
+    <View style={{ gap: 9 }}>
+      {Array.from({ length: Math.ceil(metricItems.length / 2) }, (_, rowIndex) => (
+        <View key={rowIndex} style={{ flexDirection: 'row', gap: 9 }}>
+          {metricItems.slice(rowIndex * 2, rowIndex * 2 + 2).map(item => <DashboardMetric key={item.label} item={item} />)}
+        </View>
+      ))}
+    </View>
+
+    <HomeSection title="Verification Status" right={<Pressable accessibilityRole="button" onPress={() => router.push('/account/kyc')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>View details</Text></Pressable>} />
+    <View style={{ flexDirection: 'row', gap: 8 }}>
+      {verificationItems.map(item => <Card key={item.label} style={{ flex: 1, minWidth: 0, padding: 10, marginBottom: 0, borderRadius: 16 }}>
+        <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 9, fontWeight: '600', marginBottom: 7 }}>{item.label}</Text>
+        <Status value={item.value} />
+      </Card>)}
+    </View>
+
+    <HomeSection title="My Investments" right={<Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/portfolio')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>View all</Text></Pressable>} />
+    {investments.isError ? <ErrorState message="Investment information could not be loaded." error={investments.error} onRetry={() => void investments.refetch()} /> : null}
+    {investments.isLoading ? <LoadingCard label="Loading investments…" /> : null}
+    {!investments.isLoading && !investments.isError && investmentItems.length === 0 ? <EmptyState title="No investment records" body="Investment details will appear here when supplied by OG Exports." /> : null}
+    {investmentItems.map((position, index) => {
       const trade = record(position.trade ?? position.project ?? position.trade_details);
       const tradeId = first(position, ['trade_id', 'trade_code'], first(trade, ['trade_id', 'trade_code', 'project_code', 'code'], 'Trade reference not provided'));
       const tradeLabel = tradeId === 'Trade reference not provided' || /^trade\s*#/i.test(tradeId) ? tradeId : `Trade #${tradeId}`;
@@ -323,6 +382,33 @@ export default function InvestorHome() {
       })}
     </ScrollView> : null}
 
+    <FinancialHistoryPreview
+      title="Recent Deposits"
+      route="/wallet/deposit"
+      icon="arrow-down-left"
+      records={recentDeposits}
+      loading={depositLoading}
+      error={depositError}
+      onRetry={() => void depositsQuery.refetch()}
+      emptyTitle="No recent deposits"
+      emptyBody="Deposit records will appear here when returned by OG Exports."
+      currency={currency}
+      hideValues={balanceHidden}
+    />
+    <FinancialHistoryPreview
+      title="Withdrawal History"
+      route="/wallet/withdraw"
+      icon="arrow-up-right"
+      records={recentWithdrawals}
+      loading={withdrawalLoading}
+      error={withdrawalError}
+      onRetry={() => void withdrawalsQuery.refetch()}
+      emptyTitle="No recent withdrawals"
+      emptyBody="Withdrawal requests will appear here when returned by OG Exports."
+      currency={currency}
+      hideValues={balanceHidden}
+    />
+
     <HomeSection title="Recent activity" right={<Pressable accessibilityRole="button" onPress={() => router.push('/account/transactions')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>See all</Text></Pressable>} />
     {activityError ? <ErrorState message="Recent activity could not be loaded." error={transactions.error} onRetry={() => void transactions.refetch()} /> : null}
     {activityLoading ? <LoadingCard label="Loading recent activity…" /> : null}
@@ -355,8 +441,29 @@ export default function InvestorHome() {
       })}
     </View>)}
 
+    <RecentAlertsPreview
+      records={recentAlerts}
+      loading={alertsLoading}
+      error={alertsError}
+      onRetry={() => void notificationsQuery.refetch()}
+    />
+
     <HomeSection title="Portfolio performance" right={<Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/portfolio')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Portfolio</Text></Pressable>} />
     <PortfolioHistoryCard points={series.points} currency={currency} loading={dashboard.isLoading} compact hideValues={balanceHidden} />
+    <PortfolioBenchmarkCard
+      points={benchmarkSeries.points}
+      available={benchmarkAvailable}
+      loading={dashboard.isLoading}
+      hideValues={balanceHidden}
+    />
+    <ProfitAnalyticsCard points={monthlyProfitHistory} currency={currency} loading={dashboard.isLoading} hideValues={balanceHidden} />
+    <AllocationDonut
+      title="Allocation"
+      subtitle="Portfolio distribution"
+      data={allocation}
+      currency={currency}
+      valueMode="percentage"
+    />
 
     <HomeSection title="Upcoming payouts" />
     {payouts.length ? payouts.map((item, index) => {
