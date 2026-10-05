@@ -71,9 +71,9 @@ export default function LegalContent() {
   const document = plainText(content);
 
   if (!section) return <Screen title="Policy unavailable"><EmptyState title="Page not found" body="This policy link is not available." /></Screen>;
-  return <Screen title={section.title} subtitle="Official content published by OG Exports">
+  return <Screen title={section.title} subtitle="Official content published by OG Exports" refreshable>
     {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading official content…</Text></Card> : null}
-    {query.isError ? <ErrorState message="Official policy content could not be loaded." onRetry={() => void query.refetch()} /> : null}
+    {query.isError ? <ErrorState message="Official policy content could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
     {!query.isLoading && !query.isError && !document ? <EmptyState title="Official content not available" body="OG Exports has not published this content to the investor app settings endpoint." /> : null}
     {document ? <Card><Text selectable style={{ color: colors.foreground, fontSize: 14, lineHeight: 23 }}>{document}</Text></Card> : null}
   </Screen>;

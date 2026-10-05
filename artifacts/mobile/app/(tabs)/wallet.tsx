@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
-import { Action, Card, EmptyState, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
+import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
 import { amount, first, list, money, record, type Json } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -79,7 +79,7 @@ export default function Wallet() {
     { label: 'Withdrawable', value: withdrawable },
   ];
 
-  return <Screen title="Wallet" subtitle="Your account balance and wallet activity">
+  return <Screen title="Wallet" subtitle="Your account balance and wallet activity" refreshable>
     <LinearGradient
       colors={[colors.primary, colors.accent]}
       start={{ x: 0, y: 0 }}
@@ -112,7 +112,7 @@ export default function Wallet() {
         </Card>;
       })}
     </View>
-    {wallet.isError ? <ErrorState message="Wallet balance could not be loaded from OG Exports." onRetry={() => void wallet.refetch()} /> : null}
+    {wallet.isError ? <ErrorState message="Wallet balance could not be loaded from OG Exports." error={wallet.error} onRetry={() => void wallet.refetch()} /> : null}
 
     <Section title="Quick Actions" />
     <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -143,8 +143,8 @@ export default function Wallet() {
       })}
     </ScrollView>
 
-    {transactions.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading transactions…</Text></Card> : null}
-    {transactions.isError ? <ErrorState message="Wallet activity could not be loaded." onRetry={() => void transactions.refetch()} /> : null}
+    {transactions.isLoading ? <LoadingCard label="Loading transactions…" /> : null}
+    {transactions.isError ? <ErrorState message="Wallet activity could not be loaded." error={transactions.error} onRetry={() => void transactions.refetch()} /> : null}
     {!transactions.isLoading && !transactions.isError && visibleTransactions.length === 0
       ? <EmptyState
         title={category === 'All' ? 'No transactions yet' : `No ${category.toLowerCase()} yet`}

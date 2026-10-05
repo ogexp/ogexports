@@ -20,7 +20,7 @@ import {
   useUpdateInvestorPassword,
   useUpdateInvestorProfile,
 } from '@workspace/api-client-react';
-import { Action, Card, Field, Screen } from '@/components/InvestorUI';
+import { Action, Card, ConfirmationSheet, Field, Screen } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap, type Json } from '@/lib/data';
 import { validOrigin } from '@/lib/api-config';
@@ -74,6 +74,7 @@ export default function Settings() {
   const [newTransactionPassword, setNewTransactionPassword] = useState('');
   const [confirmTransactionPassword, setConfirmTransactionPassword] = useState('');
   const [error, setError] = useState('');
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [notificationPrefs, setNotificationPrefs] = useState<Record<string, unknown>>({});
   const [notificationPreferenceError, setNotificationPreferenceError] = useState('');
   const [savingNotificationPreference, setSavingNotificationPreference] = useState<NotificationCategoryKey | null>(null);
@@ -543,7 +544,18 @@ export default function Settings() {
     </Card>
     {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
     <View style={{ marginBottom: 8 }}>
-      <Action title="Sign out" icon="log-out" secondary loading={logout.isPending} onPress={() => void signOutNow()} />
+      <Action title="Sign out" icon="log-out" secondary loading={logout.isPending} onPress={() => setConfirmSignOut(true)} />
     </View>
+    <ConfirmationSheet
+      visible={confirmSignOut}
+      testID="confirm-sign-out-sheet"
+      title="Confirm logout"
+      body="Your session on this device will end."
+      confirmLabel="Sign out"
+      destructive
+      loading={logout.isPending}
+      onCancel={() => setConfirmSignOut(false)}
+      onConfirm={() => void signOutNow()}
+    />
   </Screen>;
 }

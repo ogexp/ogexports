@@ -21,7 +21,7 @@ export default function Profile() {
   const open = (path: string) => router.push(path as never);
 
   return <Screen title="Profile" subtitle="Your identity, payment details and account preferences">
-    {profileQuery.isError ? <ErrorState message="Account details could not be refreshed." onRetry={() => void profileQuery.refetch()} /> : null}
+    {profileQuery.isError ? <ErrorState message="Account details could not be refreshed." error={profileQuery.error} onRetry={() => void profileQuery.refetch()} /> : null}
     <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
       <View style={{ width: 50, height: 50, borderRadius: 18, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 17 }}>{initials}</Text>

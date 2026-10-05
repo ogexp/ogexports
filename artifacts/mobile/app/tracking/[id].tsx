@@ -92,7 +92,7 @@ export default function ContainerTracking() {
   const lastUpdated = read(container?.tracking_updated_at);
   const journey = getJourney(container);
 
-  return <Screen title="Container tracking" subtitle="Reported shipment record">
+  return <Screen title="Container tracking" subtitle="Reported shipment record" refreshable>
     {query.isLoading ? <Card>
       <View style={{ gap: 11 }}>
         <View style={{ width: '45%', height: 12, borderRadius: 6, backgroundColor: colors.secondary }} />
@@ -102,7 +102,7 @@ export default function ContainerTracking() {
         <View style={{ width: '66%', height: 12, borderRadius: 6, backgroundColor: colors.secondary }} />
       </View>
     </Card> : null}
-    {query.isError ? <ErrorState message="Container information could not be loaded." onRetry={() => void query.refetch()} /> : null}
+    {query.isError ? <ErrorState message="Container information could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
     {!query.isLoading && !query.isError ? <>
       <Card style={{ padding: 0, overflow: 'hidden', borderColor: colors.border }}>
         <View style={{ backgroundColor: colors.primary, paddingHorizontal: 18, paddingTop: 17, paddingBottom: 19 }}>

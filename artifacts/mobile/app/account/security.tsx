@@ -15,7 +15,7 @@ import {
   useRevokeInvestorSession,
   useRevokeOtherInvestorSessions,
 } from '@workspace/api-client-react';
-import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
+import { Action, Card, ConfirmationSheet, EmptyState, ErrorState, Field, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
 import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -305,7 +305,7 @@ export default function Security() {
     router.push('/account/settings');
   }
 
-  return <Screen title="Security & devices" subtitle="Manage app unlock, email verification, and active sessions">
+  return <Screen title="Security & devices" subtitle="Manage app unlock, email verification, and active sessions" refreshable>
     {error ? <ErrorState message={error} /> : null}
     {notice ? <Card><Text style={{ color: colors.primary, lineHeight: 20 }}>{notice}</Text></Card> : null}
 
@@ -461,8 +461,8 @@ export default function Security() {
     <Card><Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>
       Review devices signed in to this investor account and revoke any session you no longer use.
     </Text></Card>
-    {sessions.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading sessions…</Text></Card> : null}
-    {sessions.isError ? <ErrorState message="Account sessions could not be loaded." onRetry={() => void sessions.refetch()} /> : null}
+    {sessions.isLoading ? <LoadingCard label="Loading sessions…" /> : null}
+    {sessions.isError ? <ErrorState message="Account sessions could not be loaded." error={sessions.error} onRetry={() => void sessions.refetch()} /> : null}
     {!sessions.isLoading && !sessions.isError && sessionsList.length === 0 ? <EmptyState title="No active sessions" body="No active investor sessions were returned." /> : null}
     {confirmAll ? <Card style={{ borderColor: colors.destructive }}>
       <Text style={{ color: colors.foreground, fontWeight: '700' }}>Revoke all other sessions?</Text>
@@ -500,8 +500,8 @@ export default function Security() {
         Recent sign-ins and security changes recorded by OG Exports.
       </Text>
     </Card>
-    {activity.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading security activity…</Text></Card> : null}
-    {activity.isError ? <ErrorState message="Login activity could not be loaded." onRetry={() => void activity.refetch()} /> : null}
+    {activity.isLoading ? <LoadingCard label="Loading security activity…" /> : null}
+    {activity.isError ? <ErrorState message="Login activity could not be loaded." error={activity.error} onRetry={() => void activity.refetch()} /> : null}
     {!activity.isLoading && !activity.isError && activityList.length === 0
       ? <EmptyState title="No security activity" body="OG Exports has not returned any recent security events." />
       : null}
@@ -525,17 +525,18 @@ export default function Security() {
       <Text style={{ color: colors.mutedForeground, marginTop: 5, marginBottom: 12, fontSize: 12, lineHeight: 18 }}>
         This revokes other browser and mobile sessions, then signs this device out.
       </Text>
-      {!confirmLogoutAll
-        ? <Action title="Log out from all devices" icon="log-out" secondary onPress={() => setConfirmLogoutAll(true)} />
-        : <>
-          <Text style={{ color: colors.destructive, marginBottom: 12, fontSize: 12, lineHeight: 18 }}>
-            You will need to sign in again on this device and every other device.
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <View style={{ flex: 1 }}><Action title="Cancel" secondary onPress={() => setConfirmLogoutAll(false)} /></View>
-            <View style={{ flex: 1 }}><Action title="Confirm logout" icon="log-out" loading={busy || revokeOthers.isPending || logout.isPending} onPress={() => void logoutAllDevices()} /></View>
-          </View>
-        </>}
+      <Action title="Log out from all devices" icon="log-out" secondary onPress={() => setConfirmLogoutAll(true)} />
     </Card>
+    <ConfirmationSheet
+      visible={confirmLogoutAll}
+      testID="confirm-logout-all-sheet"
+      title="End every active session"
+      body="You will need to sign in again on this device and every other device."
+      confirmLabel="Confirm logout"
+      destructive
+      loading={busy || revokeOthers.isPending || logout.isPending}
+      onCancel={() => setConfirmLogoutAll(false)}
+      onConfirm={() => void logoutAllDevices()}
+    />
   </Screen>;
 }

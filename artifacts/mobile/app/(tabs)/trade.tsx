@@ -36,7 +36,7 @@ export default function Trade() {
     return matchesCategory && haystack.includes(search.trim().toLowerCase());
   });
 
-  return <Screen title="Trade opportunities" subtitle="Explore live commodities and trade projects">
+  return <Screen title="Trade opportunities" subtitle="Explore live commodities and trade projects" refreshable>
     <Field label="Search opportunities" value={search} onChangeText={setSearch} placeholder="Commodity, origin or destination" />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
       {categories.map(item => {
@@ -51,7 +51,7 @@ export default function Trade() {
       <Text style={{ color: colors.mutedForeground, flex: 1, fontSize: 12, lineHeight: 18 }}>Commodities, routes, prices and terms are shown only when provided for an opportunity by OG Exports.</Text>
     </Card>
     {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading live opportunities…</Text></Card> : null}
-    {query.isError ? <ErrorState message="Trade opportunities could not be loaded." onRetry={() => void query.refetch()} /> : null}
+    {query.isError ? <ErrorState message="Trade opportunities could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
     {!query.isLoading && !query.isError && filtered.length === 0 ? <EmptyState title={search || category !== 'All' ? 'No matching opportunities' : 'No trade opportunities available'} body={search || category !== 'All' ? 'Try a different search or category.' : 'New opportunities will appear here when OG Exports publishes them.'} /> : null}
     {filtered.map((item, index) => {
       const id = first(item, ['id', 'project_id'], '');

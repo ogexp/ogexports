@@ -245,9 +245,9 @@ export default function Messages() {
           </Text>
         </Card>
         {conversationQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Opening your support conversation…</Text></Card> : null}
-        {conversationQuery.isError ? <ErrorState message="Your support conversation could not be opened." onRetry={() => void conversationQuery.refetch()} /> : null}
+        {conversationQuery.isError ? <ErrorState message="Your support conversation could not be opened." error={conversationQuery.error} onRetry={() => void conversationQuery.refetch()} /> : null}
         {!conversationQuery.isLoading && !conversationQuery.isError && !conversationId ? <EmptyState title="Conversation unavailable" body="Use a support ticket or email instead. The support conversation could not be opened." /> : null}
-        {messagesQuery.isError ? <ErrorState message="Messages could not be loaded." onRetry={() => void messagesQuery.refetch()} /> : null}
+        {messagesQuery.isError ? <ErrorState message="Messages could not be loaded." error={messagesQuery.error} onRetry={() => void messagesQuery.refetch()} /> : null}
         {conversationId ? <FlatList
           testID="support-chat-messages"
           data={chatMessages}
@@ -289,7 +289,7 @@ export default function Messages() {
       </Card>
       <Section title="Ticket history" />
       {ticketsQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading ticket history…</Text></Card> : null}
-      {ticketsQuery.isError ? <ErrorState message="Support tickets could not be loaded." onRetry={() => void ticketsQuery.refetch()} /> : null}
+      {ticketsQuery.isError ? <ErrorState message="Support tickets could not be loaded." error={ticketsQuery.error} onRetry={() => void ticketsQuery.refetch()} /> : null}
       {tickets.length === 0 && !ticketsQuery.isLoading && !ticketsQuery.isError ? <EmptyState title="No tickets yet" body="Tickets you create will appear here with their latest status." /> : null}
       {tickets.map((item, index) => {
         const status = first(item, ['status'], '');

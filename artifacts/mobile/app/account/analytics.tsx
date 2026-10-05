@@ -193,7 +193,7 @@ export default function TradeAnalytics() {
     'Smaller categories are grouped into Other when needed.',
   ].filter(Boolean).join(' ');
 
-  return <Screen title="Trade Analytics" subtitle="Trade activity and capital allocation reported by OG Exports">
+  return <Screen title="Trade Analytics" subtitle="Trade activity and capital allocation reported by OG Exports" refreshable>
     <Section title="Portfolio Statistics" />
     <View style={{ gap: 10 }}>
       {Array.from({ length: Math.ceil(metrics.length / 2) }, (_, rowIndex) => {
@@ -210,8 +210,8 @@ export default function TradeAnalytics() {
       })}
     </View>
 
-    {positionsQuery.isError ? <ErrorState message="Trade records could not be loaded from OG Exports." onRetry={() => void positionsQuery.refetch()} /> : null}
-    {dashboardQuery.isError ? <ErrorState message="Portfolio totals could not be loaded from OG Exports." onRetry={() => void dashboardQuery.refetch()} /> : null}
+    {positionsQuery.isError ? <ErrorState message="Trade records could not be loaded from OG Exports." error={positionsQuery.error} onRetry={() => void positionsQuery.refetch()} /> : null}
+    {dashboardQuery.isError ? <ErrorState message="Portfolio totals could not be loaded from OG Exports." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} /> : null}
     {coverageNote ? <Card style={{ marginTop: 12, marginBottom: 0 }}>
       <Text style={{ color: colors.statusPending, fontSize: 11, lineHeight: 17 }}>{coverageNote}</Text>
     </Card> : null}

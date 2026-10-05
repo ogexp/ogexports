@@ -10,7 +10,7 @@ import {
   useGetInvestorPaymentBankAccounts,
   useGetInvestorWallet,
 } from '@workspace/api-client-react';
-import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
+import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessMark } from '@/components/InvestorUI';
 import { amount as readAmount, first, list, messageOf, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { useAuth } from '@/context/AuthContext';
@@ -202,7 +202,7 @@ export default function Deposit() {
       </Card>
 
       <Section title="3 · Bank / Payment Instructions" />
-      {banksQuery.isError ? <ErrorState message="OG Exports payment accounts could not be loaded." onRetry={() => void banksQuery.refetch()} /> : null}
+      {banksQuery.isError ? <ErrorState message="OG Exports payment accounts could not be loaded." error={banksQuery.error} onRetry={() => void banksQuery.refetch()} /> : null}
       {banksQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading payment instructions…</Text></Card> : null}
       {!banksQuery.isLoading && !banksQuery.isError && banks.length === 0
         ? <EmptyState title="Payment instructions unavailable" body="OG Exports has not provided an active receiving account. You cannot submit a transfer request until instructions are available." />
@@ -231,7 +231,7 @@ export default function Deposit() {
         </View> : null}
       </Card> : null}
 
-      {optionsQuery.isError ? <ErrorState message="Project association options could not be loaded." onRetry={() => void optionsQuery.refetch()} /> : null}
+      {optionsQuery.isError ? <ErrorState message="Project association options could not be loaded." error={optionsQuery.error} onRetry={() => void optionsQuery.refetch()} /> : null}
       {projects.length ? <Card>
         <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 8 }}>Optional project association</Text>
         <Pressable accessibilityRole="button" accessibilityState={{ selected: !projectId }} onPress={() => setProjectId('')} style={{ paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: colors.border }}>
@@ -278,6 +278,7 @@ export default function Deposit() {
     </Card> : null}
 
     {stage === 'submitted' && confirmation ? <Card style={{ borderColor: colors.primary }}>
+      <SuccessMark />
       <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Deposit request submitted</Text>
       {notice ? <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>{notice}</Text> : null}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9, marginTop: 6 }}>
@@ -297,7 +298,7 @@ export default function Deposit() {
     }} style={{ width: 38, height: 36, alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ color: colors.primary, fontSize: 18 }}>↻</Text>
     </Pressable>} />
-    {depositsQuery.isError ? <ErrorState message="Deposit history could not be loaded." onRetry={() => void depositsQuery.refetch()} /> : null}
+    {depositsQuery.isError ? <ErrorState message="Deposit history could not be loaded." error={depositsQuery.error} onRetry={() => void depositsQuery.refetch()} /> : null}
     {depositsQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading deposit history…</Text></Card> : null}
     {!depositsQuery.isLoading && !depositsQuery.isError && deposits.length === 0 ? <EmptyState title="No deposits yet" body="Submitted transfers will appear here with their review status." /> : null}
     {deposits.map((item, index) => {

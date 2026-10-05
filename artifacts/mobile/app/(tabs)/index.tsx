@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
+import * as Haptics from 'expo-haptics';
 import {
   useGetInvestorDashboard,
   useGetInvestorInvestments,
   useGetInvestorProjects,
   useGetInvestorWalletTransactions,
 } from '@workspace/api-client-react';
-import { Card, EmptyState, ErrorState, Status } from '@/components/InvestorUI';
+import { Card, EmptyState, ErrorState, LoadingCard, Status } from '@/components/InvestorUI';
 import { amount, first, list, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -64,7 +66,9 @@ export default function InvestorHome() {
   const { token, user } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const [balanceHidden, setBalanceHidden] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const dashboard = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: !!token, staleTime: 30_000 } });
   const investments = useGetInvestorInvestments({ per_page: 50 }, { query: { queryKey: ['investor-positions', 50], enabled: !!token, staleTime: 30_000 } });
   const projects = useGetInvestorProjects({ per_page: 3 }, { query: { queryKey: ['investor-projects', 3], enabled: !!token, staleTime: 60_000 } });
@@ -111,6 +115,16 @@ export default function InvestorHome() {
     { title: 'Withdraw', shortTitle: 'Withdraw', icon: 'arrow-up-right' as const, onPress: () => router.push('/wallet/withdraw') },
     { title: 'Transactions', shortTitle: 'Transactions', icon: 'file-text' as const, onPress: () => router.push('/account/transactions') },
   ];
+  const refreshDashboard = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => undefined);
+    try {
+      await queryClient.refetchQueries({ type: 'active' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const activityIcon = (item: Record<string, unknown>) => {
     const kind = activityLabel(item).toLowerCase();
     if (/withdraw/.test(kind)) return 'arrow-up-right';
@@ -123,6 +137,14 @@ export default function InvestorHome() {
     : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 };
 
   return <ScrollView
+    refreshControl={<RefreshControl
+      testID="home-pull-to-refresh"
+      refreshing={refreshing}
+      onRefresh={() => void refreshDashboard()}
+      tintColor={colors.primary}
+      colors={[colors.primary]}
+      progressBackgroundColor={colors.card}
+    />}
     style={{ flex: 1, backgroundColor: colors.background }}
     contentContainerStyle={{
       paddingTop: Platform.OS === 'web' ? 67 : insets.top + 12,
@@ -217,8 +239,8 @@ export default function InvestorHome() {
     </View> : null}
 
     <HomeSection title="My Active Trades" right={<Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/portfolio')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Portfolio</Text></Pressable>} />
-    {investments.isError ? <ErrorState message="Active trade information could not be loaded." onRetry={() => void investments.refetch()} /> : null}
-    {investments.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading active trades…</Text></Card> : null}
+    {investments.isError ? <ErrorState message="Active trade information could not be loaded." error={investments.error} onRetry={() => void investments.refetch()} /> : null}
+    {investments.isLoading ? <LoadingCard label="Loading active trades…" /> : null}
     {!investments.isLoading && !investments.isError && activeTrades.length === 0 ? <EmptyState title="No active trades" body="Your active import and export trades will appear here when provided by OG Exports." /> : null}
     {activeTrades.map((position, index) => {
       const trade = record(position.trade ?? position.project ?? position.trade_details);
@@ -279,8 +301,8 @@ export default function InvestorHome() {
     })}
 
     <HomeSection title="Featured opportunities" right={<Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/opportunities')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>See all</Text></Pressable>} />
-    {projects.isError ? <ErrorState message="Trade opportunities could not be loaded." onRetry={() => void projects.refetch()} /> : null}
-    {projects.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading available opportunities…</Text></Card> : null}
+    {projects.isError ? <ErrorState message="Trade opportunities could not be loaded." error={projects.error} onRetry={() => void projects.refetch()} /> : null}
+    {projects.isLoading ? <LoadingCard label="Loading available opportunities…" /> : null}
     {!projects.isLoading && !projects.isError && opportunities.length === 0 ? <EmptyState title="No available opportunities" body="Trade opportunities will appear here when provided by OG Exports." /> : null}
     {featuredOpportunities.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 8 }}>
       {featuredOpportunities.map((item, index) => {
@@ -302,8 +324,8 @@ export default function InvestorHome() {
     </ScrollView> : null}
 
     <HomeSection title="Recent activity" right={<Pressable accessibilityRole="button" onPress={() => router.push('/account/transactions')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>See all</Text></Pressable>} />
-    {activityError ? <ErrorState message="Recent activity could not be loaded." onRetry={() => void transactions.refetch()} /> : null}
-    {activityLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading recent activity…</Text></Card> : null}
+    {activityError ? <ErrorState message="Recent activity could not be loaded." error={transactions.error} onRetry={() => void transactions.refetch()} /> : null}
+    {activityLoading ? <LoadingCard label="Loading recent activity…" /> : null}
     {!activityLoading && !activityError && recent.length === 0 ? <EmptyState title="No recent activity" body="Investments, deposits, withdrawals, distributions and trade status updates will appear here when returned by OG Exports." /> : null}
     {groupedTransactions.map(group => <View key={group.label}>
       <Text style={{ color: colors.mutedForeground, fontSize: 10, letterSpacing: 1, fontWeight: '700', marginTop: 8, marginBottom: 2 }}>{group.label}</Text>

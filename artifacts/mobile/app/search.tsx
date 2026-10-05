@@ -8,7 +8,7 @@ import {
   useGetInvestorProjects,
   useGetInvestorWalletTransactions,
 } from '@workspace/api-client-react';
-import { Card, EmptyState, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
+import { Card, EmptyState, ErrorState, Field, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
 import { amount, first, list, money, record } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -200,10 +200,10 @@ export default function InvestorSearch() {
       value: amount(item, ['amount', 'total']),
     }));
 
-  const resultsByKind: { title: string; kind: ResultKind; results: SearchResult[]; isLoading: boolean; isError: boolean; refetch: () => unknown }[] = [
-    { title: 'Trade opportunities', kind: 'trade', results: tradeResults, isLoading: projectsQuery.isLoading, isError: projectsQuery.isError, refetch: projectsQuery.refetch },
-    { title: 'My investments', kind: 'investment', results: investmentResults, isLoading: investmentsQuery.isLoading, isError: investmentsQuery.isError, refetch: investmentsQuery.refetch },
-    { title: 'Wallet transactions', kind: 'transaction', results: transactionResults, isLoading: transactionsQuery.isLoading, isError: transactionsQuery.isError, refetch: transactionsQuery.refetch },
+  const resultsByKind: { title: string; kind: ResultKind; results: SearchResult[]; isLoading: boolean; isError: boolean; error: unknown; refetch: () => unknown }[] = [
+    { title: 'Trade opportunities', kind: 'trade', results: tradeResults, isLoading: projectsQuery.isLoading, isError: projectsQuery.isError, error: projectsQuery.error, refetch: projectsQuery.refetch },
+    { title: 'My investments', kind: 'investment', results: investmentResults, isLoading: investmentsQuery.isLoading, isError: investmentsQuery.isError, error: investmentsQuery.error, refetch: investmentsQuery.refetch },
+    { title: 'Wallet transactions', kind: 'transaction', results: transactionResults, isLoading: transactionsQuery.isLoading, isError: transactionsQuery.isError, error: transactionsQuery.error, refetch: transactionsQuery.refetch },
   ];
   const anyLoading = resultsByKind.some(group => group.isLoading);
   const totalMatches = tradeResults.length + investmentResults.length + transactionResults.length + documentResults.length;
@@ -236,7 +236,7 @@ export default function InvestorSearch() {
     }
   }
 
-  return <Screen title="Search" subtitle="Find trades, investments and wallet activity">
+  return <Screen title="Search" subtitle="Find trades, investments and wallet activity" refreshable>
     <Field
       label="Search records"
       value={search}
@@ -258,8 +258,8 @@ export default function InvestorSearch() {
       </Text>
       {resultsByKind.map(group => <View key={group.kind}>
         <Section title={group.title} />
-        {group.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading {group.title.toLowerCase()}…</Text></Card> : null}
-        {group.isError ? <ErrorState message={`${group.title} could not be searched.`} onRetry={() => { void group.refetch(); }} /> : null}
+        {group.isLoading ? <LoadingCard label={group.kind === 'trade' ? 'Loading trade opportunities…' : group.kind === 'investment' ? 'Loading investment records…' : 'Loading transactions from OG Exports…'} /> : null}
+        {group.isError ? <ErrorState message={`${group.title} could not be searched.`} error={group.error} onRetry={() => { void group.refetch(); }} /> : null}
         {!group.isLoading && !group.isError && group.results.length === 0 ? null : group.results.map((result, index) => {
           const hasDestination = result.kind !== 'trade' || Boolean(result.id);
           return <Pressable
@@ -290,8 +290,8 @@ export default function InvestorSearch() {
       </View>)}
       <View>
         <Section title="Documents" />
-        {projectsQuery.isLoading || investmentsQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading authorized documents…</Text></Card> : null}
-        {!projectsQuery.isLoading && !investmentsQuery.isLoading && (projectsQuery.isError || investmentsQuery.isError) ? <ErrorState message="Some authorized document records could not be searched." onRetry={() => { if (projectsQuery.isError) void projectsQuery.refetch(); if (investmentsQuery.isError) void investmentsQuery.refetch(); }} /> : null}
+        {projectsQuery.isLoading || investmentsQuery.isLoading ? <LoadingCard label="Loading authorized documents…" /> : null}
+        {!projectsQuery.isLoading && !investmentsQuery.isLoading && (projectsQuery.isError || investmentsQuery.isError) ? <ErrorState message="Some authorized document records could not be searched." error={projectsQuery.error ?? investmentsQuery.error} onRetry={() => { if (projectsQuery.isError) void projectsQuery.refetch(); if (investmentsQuery.isError) void investmentsQuery.refetch(); }} /> : null}
         {!projectsQuery.isLoading && !investmentsQuery.isLoading && !projectsQuery.isError && !investmentsQuery.isError && documentResults.length === 0 ? <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 12 }}>No matching documents with a server-provided access link.</Text> : null}
         {documentResults.map((result, index) => {
           const hasDestination = Boolean(result.entityId);

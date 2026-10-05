@@ -97,6 +97,8 @@ function RootLayoutNav() {
     <>
       {statusBar}
       <Stack screenOptions={{
+        animation: 'slide_from_right',
+        gestureEnabled: true,
         headerBackTitle: t('Back'),
         headerTintColor: colors.primary,
         headerStyle: { backgroundColor: colors.background },

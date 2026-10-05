@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGetInvestorProjects } from '@workspace/api-client-react';
-import { Card, EmptyState, ErrorState, Field, Screen } from '@/components/InvestorUI';
+import { Card, EmptyState, ErrorState, Field, LoadingCard, Screen } from '@/components/InvestorUI';
 import { OpportunityCard } from '@/components/OpportunityCard';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { amount, first, list } from '@/lib/data';
@@ -182,7 +182,7 @@ export default function Opportunities() {
     setDraftFilters(emptyFilters);
     setAppliedFilters(emptyFilters);
   };
-  return <Screen title="Explore Trade Opportunities" subtitle="Import and export opportunities reported by OG Exports">
+  return <Screen title="Explore Trade Opportunities" subtitle="Import and export opportunities reported by OG Exports" refreshable>
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <View style={{ flex: 1 }}><Field label="Search" value={search} onChangeText={setSearch} placeholder="Trade ID, commodity or destination" /></View>
       <Pressable testID="marketplace-open-filters" accessibilityRole="button" accessibilityLabel="Open opportunity filters" onPress={() => setFiltersOpen(true)}
@@ -208,8 +208,8 @@ export default function Opportunities() {
         <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>Clear selection</Text>
       </Pressable> : null}
     </View> : null}
-    {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading trade opportunities…</Text></Card> : null}
-    {query.isError ? <ErrorState message="Trade opportunities could not be loaded from OG Exports." onRetry={() => void query.refetch()} /> : null}
+    {query.isLoading ? <LoadingCard label="Loading trade opportunities…" /> : null}
+    {query.isError ? <ErrorState message="Trade opportunities could not be loaded from OG Exports." error={query.error} onRetry={() => void query.refetch()} /> : null}
     {!query.isLoading && !query.isError && rows.length === 0 ? <EmptyState title="No matching trade opportunities" body={tab === 'Featured' && !activeCriteriaCount ? "OG Exports hasn't marked any listed trades as featured yet. Try another tab to browse current opportunities." : 'Try another category, tab, or filter. This view only shows opportunities and details supplied by OG Exports.'} /> : null}
     {rows.map((item, index) => {
       const id = first(item, ['id', 'project_id'], '');

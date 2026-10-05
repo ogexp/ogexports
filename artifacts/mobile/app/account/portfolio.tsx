@@ -8,7 +8,7 @@ import {
   useGetInvestorDashboard,
   useGetInvestorInvestments,
 } from '@workspace/api-client-react';
-import { Card, EmptyState, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
+import { Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
 import { amount, first, list, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -183,7 +183,7 @@ export default function Portfolio() {
     return currency ? money(value, currency) : 'Currency not provided by OG Exports';
   };
 
-  return <Screen title="My Portfolio" subtitle="Capital placed in real trade and shipment activity">
+  return <Screen title="My Portfolio" subtitle="Capital placed in real trade and shipment activity" refreshable>
     <Section title="Summary" />
     <Card style={{ padding: 18, borderRadius: 20 }}>
       <View style={{ paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: colors.border }}>
@@ -211,14 +211,10 @@ export default function Portfolio() {
         Currency not provided by OG Exports. Values are not converted or inferred.
       </Text> : null}
     </Card>
-    {dashboardQuery.isError ? <ErrorState message="Portfolio summary could not be loaded from the investor server." onRetry={() => void dashboardQuery.refetch()} /> : null}
+    {dashboardQuery.isError ? <ErrorState message="Portfolio summary could not be loaded from the investor server." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} /> : null}
 
-    {positionsQuery.isError ? <ErrorState message="Portfolio positions could not be loaded." onRetry={() => void positionsQuery.refetch()} /> : null}
-    {positionsQuery.isLoading ? <Card style={{ padding: 20 }}>
-      <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Loading investment records…</Text>
-      <View style={{ height: 9, borderRadius: 8, backgroundColor: colors.secondary, marginTop: 14 }} />
-      <View style={{ height: 9, width: '68%', borderRadius: 8, backgroundColor: colors.secondary, marginTop: 9 }} />
-    </Card> : null}
+    {positionsQuery.isError ? <ErrorState message="Portfolio positions could not be loaded." error={positionsQuery.error} onRetry={() => void positionsQuery.refetch()} /> : null}
+    {positionsQuery.isLoading ? <LoadingCard label="Loading investment records…" /> : null}
     {!positionsQuery.isLoading && !positionsQuery.isError ? <>
       <Section title="Investments" />
       <View style={{ flexDirection: 'row', backgroundColor: colors.secondary, borderRadius: 14, padding: 4, marginBottom: 14 }}>

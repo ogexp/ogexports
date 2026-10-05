@@ -9,7 +9,7 @@ import {
   useGetInvestorWalletTransactions,
   useGetInvestorWithdrawals,
 } from '@workspace/api-client-react';
-import { Card, EmptyState, Field, Screen, Status } from '@/components/InvestorUI';
+import { Card, EmptyState, Field, LoadingCard, Screen, Status } from '@/components/InvestorUI';
 import { amount as readAmount, first, Json, list, messageOf, money, record, unwrap } from '@/lib/data';
 import { shareInvestorFile } from '@/lib/file-download';
 import { useAuth } from '@/context/AuthContext';
@@ -318,7 +318,7 @@ export default function Transactions() {
     await Promise.all(querySources.filter(source => source.query.isError).map(source => source.query.refetch()));
   }
 
-  return <Screen title="Transactions" subtitle="Deposits, investments, withdrawals and distributions">
+  return <Screen title="Transactions" subtitle="Deposits, investments, withdrawals and distributions" refreshable>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 12 }}>
       {filters.map(item => {
         const active = filter === item;
@@ -341,7 +341,7 @@ export default function Transactions() {
       </Pressable>
     </Card> : null}
     {walletQuery.isError ? <Card><Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Wallet currency was not provided. Amounts without a transaction currency are shown as unavailable.</Text></Card> : null}
-    {isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading transactions from OG Exports…</Text></Card> : null}
+    {isLoading ? <LoadingCard label="Loading transactions from OG Exports…" /> : null}
     {!isLoading && !filteredRows.length && !failedSources.length ? <EmptyState title={search ? 'No matching transactions' : `No ${filter.toLowerCase()} found`} body={search ? 'Try a different ID, reference or search term.' : 'Records returned by OG Exports will appear here.'} /> : null}
 
     {filteredRows.map(row => {

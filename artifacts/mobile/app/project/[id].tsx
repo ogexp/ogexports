@@ -16,7 +16,7 @@ import {
   useGetPublicInvestorAppSettings,
   useInvestInProject,
 } from '@workspace/api-client-react';
-import { Action, Card, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
+import { Action, Card, ErrorState, Field, Screen, Section, Status, SuccessMark } from '@/components/InvestorUI';
 import { amount, first, list, messageOf, record, unwrap, money, moneyInSourceCurrency } from '@/lib/data';
 import { TradeTimeline } from '@/components/TradeTimeline';
 import { useAuth } from '@/context/AuthContext';
@@ -320,7 +320,7 @@ export default function OpportunityDetail() {
       })}
     </View> : null}
     {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading opportunity details…</Text></Card> : null}
-    {query.isError ? <ErrorState message="Opportunity details could not be loaded." onRetry={() => void query.refetch()} /> : null}
+    {query.isError ? <ErrorState message="Opportunity details could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
     {!query.isLoading && !query.isError ? <>
       {stage === 'details' ? <>
       <Section title="Trade overview" />
@@ -332,7 +332,7 @@ export default function OpportunityDetail() {
         {first(project, ['description', 'summary']) ? <Text style={{ color: colors.foreground, lineHeight: 22, marginTop: 14 }}>{first(project, ['description', 'summary'])}</Text> : null}
       </Card>
       {profileQuery.isLoading || profileQuery.isFetching ? <Card><Text style={{ color: colors.mutedForeground }}>Checking your identity-verification status before enabling investments…</Text></Card> : null}
-      {profileQuery.isError ? <ErrorState message="Investment access is unavailable because your verification status could not be confirmed." onRetry={() => void profileQuery.refetch()} /> : null}
+      {profileQuery.isError ? <ErrorState message="Investment access is unavailable because your verification status could not be confirmed." error={profileQuery.error} onRetry={() => void profileQuery.refetch()} /> : null}
       {!profileQuery.isLoading && !profileQuery.isFetching && !profileQuery.isError && !kycVerified ? <Card style={{ borderColor: colors.primary }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', flex: 1 }}>Verification required to invest</Text>
@@ -439,7 +439,7 @@ export default function OpportunityDetail() {
       {kycRequired ? <Pressable onPress={() => router.push('/account/kyc')}><Text style={{ color: colors.primary, fontWeight: '700', marginBottom: 12 }}>Complete identity verification →</Text></Pressable> : null}
       </> : null}
       {stage !== 'details' && (profileQuery.isLoading || profileQuery.isFetching) ? <Card><Text style={{ color: colors.mutedForeground }}>Rechecking your identity-verification status…</Text></Card> : null}
-      {stage !== 'details' && profileQuery.isError ? <ErrorState message="Investment access is unavailable because your verification status could not be confirmed." onRetry={() => void profileQuery.refetch()} /> : null}
+      {stage !== 'details' && profileQuery.isError ? <ErrorState message="Investment access is unavailable because your verification status could not be confirmed." error={profileQuery.error} onRetry={() => void profileQuery.refetch()} /> : null}
       {stage !== 'details' && !profileQuery.isLoading && !profileQuery.isFetching && !profileQuery.isError && !kycVerified ? <Card>
         <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Verified identity required</Text>
         <Text style={{ color: colors.mutedForeground, lineHeight: 20, marginTop: 8 }}>OG Exports no longer reports this account as verified. The investment flow is blocked until verification is complete.</Text>
@@ -511,7 +511,7 @@ export default function OpportunityDetail() {
           Review the published documents provided in OG Exports app settings. Acknowledgements are separate and required to continue.
         </Text>
         {settingsQuery.isLoading || settingsQuery.isFetching ? <Card><Text style={{ color: colors.mutedForeground }}>Loading published legal content…</Text></Card> : null}
-        {settingsQuery.isError ? <ErrorState message="Published Terms of Service and Risk Disclosure could not be loaded. Retry before continuing." onRetry={() => void settingsQuery.refetch()} /> : null}
+        {settingsQuery.isError ? <ErrorState message="Published Terms of Service and Risk Disclosure could not be loaded. Retry before continuing." error={settingsQuery.error} onRetry={() => void settingsQuery.refetch()} /> : null}
         {!settingsQuery.isLoading && !settingsQuery.isFetching && !settingsQuery.isError && !termsRequired ? <Card style={{ borderColor: colors.destructive }}>
           <Text style={{ color: colors.foreground, fontWeight: '700' }}>Terms of Service unavailable</Text>
           <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 5 }}>Official Terms of Service have not been published in investor app settings. You cannot acknowledge or submit this investment until they are available.</Text>
@@ -574,6 +574,7 @@ export default function OpportunityDetail() {
           <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center', marginBottom: 13 }}>
             <Feather name={serverConfirmed ? 'check' : 'send'} size={21} color={colors.primary} />
           </View>
+          <SuccessMark icon={serverConfirmed ? 'check' : 'clock'} />
           <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>{serverConfirmed ? 'Investment Confirmed' : 'Investment request submitted'}</Text>
           {first(confirmation, ['message']) ? <Text style={{ color: colors.mutedForeground, marginTop: 7, lineHeight: 19 }}>{first(confirmation, ['message'])}</Text> : null}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: colors.border }}><Text style={{ color: colors.mutedForeground }}>Server status</Text><Status value={status} /></View>

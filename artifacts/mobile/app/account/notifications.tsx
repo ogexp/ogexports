@@ -4,7 +4,7 @@ import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useGetInvestorNotifications, useMarkAllInvestorNotificationsRead, useMarkInvestorNotificationRead } from '@workspace/api-client-react';
-import { Card, EmptyState, ErrorState, Screen } from '@/components/InvestorUI';
+import { Card, EmptyState, ErrorState, LoadingCard, Screen, SwipeAction } from '@/components/InvestorUI';
 import { first, list, messageOf } from '@/lib/data';
 import { notificationHref } from '@/lib/notification-routing';
 import {
@@ -46,7 +46,7 @@ export default function Notifications() {
     if (target) router.push(target);
   }
 
-  return <Screen title="Notifications" subtitle="Updates about your account and investments" action={
+  return <Screen title="Notifications" subtitle="Updates about your account and investments" refreshable action={
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
       <Pressable testID="notification-preferences-link" accessibilityRole="button" accessibilityLabel="Notification preferences" onPress={() => router.push('/account/settings')}>
         <Feather name="sliders" size={18} color={colors.primary} />
@@ -56,8 +56,8 @@ export default function Notifications() {
       </Pressable> : null}
     </View>
   }>
-    {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading notifications…</Text></Card> : null}
-    {query.isError ? <ErrorState message="Notifications could not be loaded." onRetry={() => void query.refetch()} /> : null}
+    {query.isLoading ? <LoadingCard label="Loading notifications…" /> : null}
+    {query.isError ? <ErrorState message="Notifications could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
     {actionError ? <ErrorState message={`Notification action failed: ${actionError}`} /> : null}
     {!query.isLoading && !query.isError && notifications.length === 0 ? <EmptyState title="You’re all caught up" body="Important investor updates will appear here." /> : null}
     {notifications.length > 0 ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
@@ -86,7 +86,7 @@ export default function Notifications() {
       const categoryInfo = NOTIFICATION_CATEGORIES.find(value => value.key === category);
       const body = first(item, ['body', 'message', 'description']);
       const createdAt = first(item, ['created_at', 'date']);
-      return <Card key={id || index} style={{ borderColor: unread ? colors.primary : colors.border, padding: 14 }}>
+      const notificationCard = <Card style={{ borderColor: unread ? colors.primary : colors.border, padding: 14, marginBottom: 0 }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
           <Pressable
             testID={`notification-${id || index}`}
@@ -123,6 +123,9 @@ export default function Notifications() {
           </Pressable> : null}
         </View>
       </Card>;
+      return unread
+        ? <SwipeAction key={id || index} label="Mark as read" disabled={!id || markOne.isPending} onAction={() => id && markOne.mutate({ id })}>{notificationCard}</SwipeAction>
+        : <React.Fragment key={id || index}>{notificationCard}</React.Fragment>;
     })}
   </Screen>;
 }

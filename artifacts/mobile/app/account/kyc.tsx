@@ -310,7 +310,7 @@ export default function Kyc() {
   const stageLabels = ['Personal', 'Identity', 'Verification', 'Completed'] as const;
 
   return <Screen title="Investor verification" subtitle="Submit identity and address details for OG Exports review">
-    {query.isError ? <ErrorState message="Verification status could not be loaded." onRetry={() => void query.refetch()} /> : null}
+    {query.isError ? <ErrorState message="Verification status could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
     <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' }}><Feather name="shield" size={19} color={colors.primary} /></View>
       <View style={{ flex: 1 }}>

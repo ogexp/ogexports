@@ -10,7 +10,7 @@ import {
   useGetInvestorWithdrawals,
   useSendInvestorWithdrawalOtp,
 } from '@workspace/api-client-react';
-import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
+import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessMark } from '@/components/InvestorUI';
 import { amount as readAmount, first, list, messageOf, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -182,8 +182,8 @@ export default function Withdraw() {
   }
 
   return <Screen title="Withdraw" subtitle="Request a payout from your OG Exports wallet">
-    {walletQuery.isError ? <ErrorState message="Withdrawable balance could not be loaded." onRetry={() => void walletQuery.refetch()} /> : null}
-    {bankAccountsQuery.isError ? <ErrorState message="Bank account details could not be loaded." onRetry={() => void bankAccountsQuery.refetch()} /> : null}
+    {walletQuery.isError ? <ErrorState message="Withdrawable balance could not be loaded." error={walletQuery.error} onRetry={() => void walletQuery.refetch()} /> : null}
+    {bankAccountsQuery.isError ? <ErrorState message="Bank account details could not be loaded." error={bankAccountsQuery.error} onRetry={() => void bankAccountsQuery.refetch()} /> : null}
     <Card style={{ borderLeftWidth: 3, borderLeftColor: colors.primary }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>WITHDRAWABLE BALANCE</Text>
       <Text style={{ color: colors.foreground, fontSize: 27, fontWeight: '700', marginTop: 7 }}>
@@ -242,6 +242,7 @@ export default function Withdraw() {
     </Card> : null}
 
     {stage === 'submitted' && confirmation ? <Card style={{ borderColor: colors.primary }}>
+      <SuccessMark />
       <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Withdrawal request submitted</Text>
       {notice ? <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>{notice}</Text> : null}
       <DetailRow label="Server status" value={first(confirmation, ['status'], 'Not provided')} />
@@ -259,7 +260,7 @@ export default function Withdraw() {
     }} style={{ width: 38, height: 36, alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ color: colors.primary, fontSize: 18 }}>↻</Text>
     </Pressable>} />
-    {historyQuery.isError ? <ErrorState message="Withdrawal history could not be loaded." onRetry={() => void historyQuery.refetch()} /> : null}
+    {historyQuery.isError ? <ErrorState message="Withdrawal history could not be loaded." error={historyQuery.error} onRetry={() => void historyQuery.refetch()} /> : null}
     {historyQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading withdrawal history…</Text></Card> : null}
     {!historyQuery.isLoading && !historyQuery.isError && withdrawals.length === 0 ? <EmptyState title="No withdrawals yet" body="Your payout requests will appear here with their review status." /> : null}
     {withdrawals.map((item, index) => {

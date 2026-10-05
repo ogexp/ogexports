@@ -4,7 +4,7 @@ import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useGetInvestorInvestment } from '@workspace/api-client-react';
-import { Card, EmptyState, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
+import { Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
 import { amount, displayCurrencyCode, first, list, messageOf, money, record, unwrap, type Json } from '@/lib/data';
 import { TradeTimeline } from '@/components/TradeTimeline';
 import { useAuth } from '@/context/AuthContext';
@@ -127,9 +127,9 @@ export default function PositionDetail() {
     }
   }
 
-  return <Screen title="Investment Details" subtitle={first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(project, ['commodity_name', 'commodity', 'title', 'name'], 'Investment record'))}>
-    {query.isLoading ? <Card><View style={{ gap: 11 }}><View style={{ width: '42%', height: 14, borderRadius: 7, backgroundColor: colors.secondary }} /><View style={{ width: '78%', height: 14, borderRadius: 7, backgroundColor: colors.secondary }} /><View style={{ width: '62%', height: 14, borderRadius: 7, backgroundColor: colors.secondary }} /></View></Card> : null}
-    {query.isError ? <ErrorState message="This investment position could not be loaded." onRetry={() => void query.refetch()} /> : null}
+  return <Screen title="Investment Details" subtitle={first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(project, ['commodity_name', 'commodity', 'title', 'name'], 'Investment record'))} refreshable>
+    {query.isLoading ? <LoadingCard label="Loading investment records…" /> : null}
+    {query.isError ? <ErrorState message="This investment position could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
     {!query.isLoading && !query.isError ? <>
       <Section title="Investment Summary" />
       <Card>

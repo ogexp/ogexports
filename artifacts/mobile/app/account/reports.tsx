@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useGetInvestorReports, useCreateInvestorReport, useGetInvestorStatement } from '@workspace/api-client-react';
-import { Action, Card, EmptyState, ErrorState, Screen, Status } from '@/components/InvestorUI';
+import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Status } from '@/components/InvestorUI';
 import { amount as readAmount, first, list, messageOf, money, record, unwrap } from '@/lib/data';
 import { shareInvestorFile } from '@/lib/file-download';
 import { useAuth } from '@/context/AuthContext';
@@ -100,7 +100,7 @@ export default function Reports() {
     finally { setDownloadId(''); }
   }
 
-  return <Screen title="Investor statements & reports" subtitle="Monthly wallet activity and downloadable account reports">
+  return <Screen title="Investor statements & reports" subtitle="Monthly wallet activity and downloadable account reports" refreshable>
     <Card style={{ gap: 12 }}>
       <View>
         <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Monthly statement</Text>
@@ -117,7 +117,7 @@ export default function Reports() {
           </Pressable>;
         })}
       </ScrollView> : null}
-      {statementQuery.isError ? <ErrorState message="The monthly statement could not be loaded from OG Exports." onRetry={() => void statementQuery.refetch()} /> : null}
+      {statementQuery.isError ? <ErrorState message="The monthly statement could not be loaded from OG Exports." error={statementQuery.error} onRetry={() => void statementQuery.refetch()} /> : null}
       {statementQuery.isLoading ? <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Loading monthly statement…</Text> : null}
       {!statementQuery.isLoading && !statementQuery.isError && selectedStatementMonth ? <>
         <View style={{ borderRadius: 16, backgroundColor: colors.secondary, padding: 14, gap: 10 }}>
@@ -182,8 +182,8 @@ export default function Reports() {
     </Card>
 
     <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700', marginVertical: 10 }}>Previous reports</Text>
-    {query.isError ? <ErrorState message="Your report history could not be loaded." onRetry={() => void query.refetch()} /> : null}
-    {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading reports…</Text></Card> : null}
+    {query.isError ? <ErrorState message="Your report history could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
+    {query.isLoading ? <LoadingCard label="Loading reports…" /> : null}
     {!query.isLoading && !query.isError && reports.length === 0 ? <EmptyState title="No reports yet" body="Generated account reports will be listed here." /> : null}
     {reports.map((item, index) => {
       const id = first(item, ['id', 'reference'], String(index));

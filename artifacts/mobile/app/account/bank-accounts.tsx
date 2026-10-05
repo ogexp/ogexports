@@ -85,7 +85,7 @@ export default function BankAccounts() {
   }
 
   return <Screen title="Bank Accounts" subtitle="Submit an account and proof for OG Exports review">
-    {query.isError ? <ErrorState message="Bank accounts could not be loaded." onRetry={() => void query.refetch()} /> : null}
+    {query.isError ? <ErrorState message="Bank accounts could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
     {error ? <Card><Text accessibilityRole="alert" style={{ color: colors.destructive }}>{error}</Text></Card> : null}
     {notice ? <Card><Text accessibilityLiveRegion="polite" style={{ color: colors.primary }}>{notice}</Text></Card> : null}
     <Card>
