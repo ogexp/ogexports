@@ -40,3 +40,9 @@ KYC gating applies to investments only: require a server-reported `Verified` sta
 **Why:** the user explicitly requires trade timeline statuses to remain under backend/admin control.
 
 **How to apply:** render stages consistently across trade detail views, but mark completion or in-progress status only from that stage's server-provided event.
+
+Localized financial, security, and privacy copy must preserve the source action and status. A data-access, correction, or deletion ticket is a request—not a promise of completion; a withdrawal request is not a completed transfer; and session revocation must communicate that access will end.
+
+**Why:** small wording shifts in investor-facing Urdu and Arabic can change what users believe has happened or what the support team has agreed to do.
+
+**How to apply:** review translated copy against the source wording and API behavior, especially for balances, withdrawals, account security, and privacy requests.
