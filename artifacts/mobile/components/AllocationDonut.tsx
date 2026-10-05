@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { Card } from '@/components/InvestorUI';
 import { money } from '@/lib/data';

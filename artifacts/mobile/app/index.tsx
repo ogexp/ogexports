@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, Easing, Image, Platform, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Image, Platform, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';

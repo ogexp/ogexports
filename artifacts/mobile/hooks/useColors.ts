@@ -1,5 +1,8 @@
 import colors from '@/constants/colors';
+import { useOptionalAppPreferences } from '@/context/AppPreferencesContext';
 
 export function useColors() {
-  return { ...colors.light, radius: colors.radius };
+  const preferences = useOptionalAppPreferences();
+  const appearance = preferences?.resolvedAppearance ?? 'light';
+  return { ...colors[appearance], radius: colors.radius };
 }

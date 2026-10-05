@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -17,10 +18,12 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import type { NotificationResponse } from 'expo-notifications';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { AppPreferencesProvider, useAppPreferences } from '@/context/AppPreferencesContext';
 import { useColors } from '@/hooks/useColors';
 import { serializeRouteState } from '@/lib/post-auth-route';
 import { notificationHref } from '@/lib/notification-routing';
 import { record } from '@/lib/data';
+import { translateUi } from '@/lib/strings';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -29,7 +32,10 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const { ready, token, appUnlocked } = useAuth();
+  const { isRTL, preferences, resolvedAppearance } = useAppPreferences();
   const colors = useColors();
+  const t = (value: string) => translateUi(value, preferences.language);
+  const statusBar = <StatusBar style={resolvedAppearance === 'dark' ? 'light' : 'dark'} />;
   const segments = useSegments();
   const pathname = usePathname();
   const routeParams = useGlobalSearchParams();
@@ -78,36 +84,49 @@ function RootLayoutNav() {
   }, [ready, token, appUnlocked, segments, returnTo]);
 
   if (token && !appUnlocked) {
-    return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-      <Stack.Screen name="lock" />
-      <Stack.Screen name="(auth)" options={{ presentation: 'modal', headerShown: false }} />
-    </Stack>;
+    return <>
+      {statusBar}
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background, direction: isRTL ? 'rtl' : 'ltr' } }}>
+        <Stack.Screen name="lock" />
+        <Stack.Screen name="(auth)" options={{ presentation: 'modal', headerShown: false }} />
+      </Stack>
+    </>;
   }
 
   return (
-    <Stack screenOptions={{ headerBackTitle: 'Back', headerTintColor: colors.primary, contentStyle: { backgroundColor: colors.background } }}>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-      <Stack.Screen name="lock" options={{ headerShown: false }} />
-      <Stack.Screen name="(auth)" options={{ presentation: 'modal', headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="project/[id]" options={{ title: 'Opportunity' }} />
-      <Stack.Screen name="position/[id]" options={{ title: 'Investment' }} />
-      <Stack.Screen name="tracking/[id]" options={{ title: 'Container tracking' }} />
-      <Stack.Screen name="account/profile" options={{ title: '' }} />
-      <Stack.Screen name="account/portfolio" options={{ title: 'Portfolio' }} />
-      <Stack.Screen name="account/transactions" options={{ title: 'Transactions' }} />
-      <Stack.Screen name="account/security" options={{ title: 'Security & devices' }} />
-      <Stack.Screen name="account/legal/[section]" options={{ title: 'Policies' }} />
-      <Stack.Screen name="wallet/deposit" options={{ title: 'Add funds' }} />
-      <Stack.Screen name="wallet/withdraw" options={{ title: 'Withdraw' }} />
-      <Stack.Screen name="account/kyc" options={{ title: 'Identity verification' }} />
-      <Stack.Screen name="account/reports" options={{ title: 'Reports' }} />
-      <Stack.Screen name="account/notifications" options={{ title: 'Notifications' }} />
-      <Stack.Screen name="account/messages" options={{ title: 'Support' }} />
-      <Stack.Screen name="account/settings" options={{ title: 'Settings' }} />
-      <Stack.Screen name="account/analytics" options={{ title: 'Trade Analytics' }} />
-    </Stack>
+    <>
+      {statusBar}
+      <Stack screenOptions={{
+        headerBackTitle: t('Back'),
+        headerTintColor: colors.primary,
+        headerStyle: { backgroundColor: colors.background },
+        headerTitleStyle: { color: colors.foreground },
+        contentStyle: { backgroundColor: colors.background, direction: isRTL ? 'rtl' : 'ltr' },
+      }}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="lock" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ presentation: 'modal', headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="project/[id]" options={{ title: t('Opportunity') }} />
+        <Stack.Screen name="position/[id]" options={{ title: t('Investment') }} />
+        <Stack.Screen name="tracking/[id]" options={{ title: t('Container tracking') }} />
+        <Stack.Screen name="account/profile" options={{ title: '' }} />
+        <Stack.Screen name="account/portfolio" options={{ title: t('Portfolio') }} />
+        <Stack.Screen name="account/transactions" options={{ title: t('Transactions') }} />
+        <Stack.Screen name="account/security" options={{ title: t('Security & devices') }} />
+        <Stack.Screen name="account/legal/[section]" options={{ title: t('Policies') }} />
+        <Stack.Screen name="account/data-preferences" options={{ title: t('Data preferences') }} />
+        <Stack.Screen name="wallet/deposit" options={{ title: t('Add funds') }} />
+        <Stack.Screen name="wallet/withdraw" options={{ title: t('Withdraw') }} />
+        <Stack.Screen name="account/kyc" options={{ title: t('Identity verification') }} />
+        <Stack.Screen name="account/reports" options={{ title: t('Reports') }} />
+        <Stack.Screen name="account/notifications" options={{ title: t('Notifications') }} />
+        <Stack.Screen name="account/messages" options={{ title: t('Support') }} />
+        <Stack.Screen name="account/settings" options={{ title: t('Settings') }} />
+        <Stack.Screen name="account/analytics" options={{ title: t('Trade Analytics') }} />
+      </Stack>
+    </>
   );
 }
 
@@ -134,7 +153,9 @@ export default function RootLayout() {
           <GestureHandlerRootView>
             <KeyboardProvider>
               <AuthProvider>
-                <RootLayoutNav />
+                <AppPreferencesProvider>
+                  <RootLayoutNav />
+                </AppPreferencesProvider>
               </AuthProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>

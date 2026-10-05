@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { LocalizedText as Text, LocalizedTextInput as TextInput } from '@/components/LocalizedText';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { Action, Card } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';

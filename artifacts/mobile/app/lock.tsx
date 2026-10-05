@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Image, Text, View } from 'react-native';
+import { Image, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Action, Card, Field } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';

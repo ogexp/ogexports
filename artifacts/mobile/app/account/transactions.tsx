@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useLocalSearchParams } from 'expo-router';
 import {
   useGetInvestorDeposits,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useLocalSearchParams } from 'expo-router';
 import { useGetPublicInvestorAppSettings } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, Screen } from '@/components/InvestorUI';
@@ -9,7 +9,15 @@ import { useColors } from '@/hooks/useColors';
 const sections = {
   terms: {
     title: 'Terms of service',
-    keys: ['terms', 'terms_of_service', 'terms_and_conditions', 'terms_content', 'terms_of_service_content'],
+    keys: ['terms', 'terms_of_service', 'terms_and_conditions', 'terms_content', 'terms_of_service_content', 'investment_terms', 'investment_terms_content'],
+  },
+  'investment-terms': {
+    title: 'Investment Terms',
+    keys: ['investment_terms', 'investment_terms_content', 'investmentTerms', 'investmentTermsContent'],
+  },
+  'user-agreement': {
+    title: 'User Agreement',
+    keys: ['user_agreement', 'user_agreement_content', 'userAgreement', 'userAgreementContent'],
   },
   privacy: {
     title: 'Privacy policy',

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useGetInvestorInvestment } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount, first, list, messageOf, money, record, unwrap, type Json } from '@/lib/data';
+import { amount, displayCurrencyCode, first, list, messageOf, money, record, unwrap, type Json } from '@/lib/data';
 import { TradeTimeline } from '@/components/TradeTimeline';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -47,7 +48,7 @@ export default function PositionDetail() {
     ?? amount(trade, ['projected_return_pct', 'expected_return_pct', 'projected_return_percentage', 'expected_return_percentage', 'estimated_return_percentage', 'target_return_percentage']);
   const amountText = (value: number | null) => {
     if (value == null) return notProvided;
-    return currency ? `${currency.toUpperCase()} ${value.toLocaleString()}` : `${value.toLocaleString()} · Currency not provided by OG Exports`;
+    return currency ? money(value, currency) : `${value.toLocaleString()} · Currency not provided by OG Exports`;
   };
   const actualReturn = amount(row, ['actual_return_amount', 'actual_distribution_amount', 'returned_amount', 'amount_returned', 'distributed_amount'])
     ?? amount(project, ['actual_return_amount', 'actual_distribution_amount', 'returned_amount', 'amount_returned', 'distributed_amount'])
@@ -55,8 +56,8 @@ export default function PositionDetail() {
   const actualProfitUsd = amount(row, ['profit_amount']);
   const actualProfitPkr = amount(row, ['profit_amount_pkr']);
   const actualPerformance: [string, string][] = [];
-  if (actualProfitUsd != null) actualPerformance.push(['Profit recorded (USD)', money(actualProfitUsd, 'USD')]);
-  if (actualProfitPkr != null) actualPerformance.push(['Profit recorded (PKR)', money(actualProfitPkr, 'PKR')]);
+  if (actualProfitUsd != null) actualPerformance.push([`Profit recorded (${displayCurrencyCode('USD')})`, money(actualProfitUsd, 'USD')]);
+  if (actualProfitPkr != null) actualPerformance.push([`Profit recorded (${displayCurrencyCode('PKR')})`, money(actualProfitPkr, 'PKR')]);
   if (actualReturn != null) actualPerformance.push(['Returned or distributed amount', amountText(actualReturn)]);
 
   const investmentDetails: [string, string][] = [

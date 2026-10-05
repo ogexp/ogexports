@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Platform, Pressable, Text, View } from 'react-native';
+import { Animated, Image, Platform, Pressable, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';

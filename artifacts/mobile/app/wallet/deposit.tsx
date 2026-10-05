@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import * as DocumentPicker from 'expo-document-picker';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -10,7 +11,7 @@ import {
   useGetInvestorWallet,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount as readAmount, first, list, messageOf, money, record, unwrap } from '@/lib/data';
+import { amount as readAmount, first, list, messageOf, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -263,7 +264,7 @@ export default function Deposit() {
 
     {stage === 'review' ? <Card>
       <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Review deposit</Text>
-      <DetailRow label="Amount" value={paymentCurrency ? money(Number(amount), paymentCurrency) : 'Currency unavailable'} />
+      <DetailRow label="Amount" value={paymentCurrency ? moneyInSourceCurrency(Number(amount), paymentCurrency) : 'Currency unavailable'} />
       <DetailRow label="Payment method" value="Bank transfer" />
       <DetailRow label="Receiving bank" value={first(selectedBank ?? {}, ['bank_name', 'name'])} />
       <DetailRow label="Account number / IBAN" value={first(selectedBank ?? {}, ['account_number', 'iban'])} />
@@ -284,7 +285,7 @@ export default function Deposit() {
         <Status value={first(confirmation, ['review_status_label', 'status'], 'Not provided')} />
       </View>
       <DetailRow label="Deposit reference" value={first(confirmation, ['reference', 'deposit_reference'])} />
-      {readAmount(confirmation, ['amount']) != null && confirmationCurrency ? <DetailRow label="Amount" value={money(readAmount(confirmation, ['amount']), confirmationCurrency)} /> : null}
+      {readAmount(confirmation, ['amount']) != null && confirmationCurrency ? <DetailRow label="Amount" value={moneyInSourceCurrency(readAmount(confirmation, ['amount']), confirmationCurrency)} /> : null}
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 8 }}>A submitted request is not yet a wallet credit. Follow the server status below.</Text>
       <DepositProgress deposit={confirmation} />
       <View style={{ marginTop: 14 }}><Action title="Record another deposit" secondary onPress={() => { setConfirmation(null); setSelectedDepositId(''); setNotice(''); setError(''); setStage('form'); }} /></View>

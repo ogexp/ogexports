@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { FlatList, Linking, Pressable, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { FlatList, Linking, Pressable, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -78,6 +79,7 @@ function TicketStatusProgress({ status }: { status: string }) {
 }
 
 export default function Messages() {
+  const params = useLocalSearchParams<{ mode?: string; subject?: string; body?: string }>();
   const { token } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -87,6 +89,13 @@ export default function Messages() {
   const [ticketBody, setTicketBody] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    if (params.mode !== 'tickets') return;
+    setMode('tickets');
+    if (typeof params.subject === 'string') setSubject(params.subject);
+    if (typeof params.body === 'string') setTicketBody(params.body);
+  }, [params.mode, params.subject, params.body]);
 
   const settingsQuery = useGetPublicInvestorAppSettings({
     query: { queryKey: getGetPublicInvestorAppSettingsQueryKey(), staleTime: 300_000 },

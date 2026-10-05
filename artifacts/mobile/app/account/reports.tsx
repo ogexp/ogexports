@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useGetInvestorReports, useCreateInvestorReport, useGetInvestorStatement } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Screen, Status } from '@/components/InvestorUI';
 import { amount as readAmount, first, list, messageOf, money, record, unwrap } from '@/lib/data';
 import { shareInvestorFile } from '@/lib/file-download';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { localizedAlert as Alert } from '@/lib/strings';
 
 const reportTypes = ['portfolio', 'profit', 'monthly', 'annual'];
 

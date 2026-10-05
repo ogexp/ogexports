@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import {

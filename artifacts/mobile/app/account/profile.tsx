@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useGetInvestorProfile } from '@workspace/api-client-react';

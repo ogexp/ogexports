@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreateInvestorWithdrawal,
@@ -10,7 +11,7 @@ import {
   useSendInvestorWithdrawalOtp,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount as readAmount, first, list, messageOf, money, record, unwrap } from '@/lib/data';
+import { amount as readAmount, first, list, messageOf, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -186,7 +187,7 @@ export default function Withdraw() {
     <Card style={{ borderLeftWidth: 3, borderLeftColor: colors.primary }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>WITHDRAWABLE BALANCE</Text>
       <Text style={{ color: colors.foreground, fontSize: 27, fontWeight: '700', marginTop: 7 }}>
-        {walletQuery.isLoading ? 'Loading…' : availableBalance != null && withdrawalCurrency ? money(availableBalance, withdrawalCurrency) : 'Unavailable'}
+        {walletQuery.isLoading ? 'Loading…' : availableBalance != null && withdrawalCurrency ? moneyInSourceCurrency(availableBalance, withdrawalCurrency) : 'Unavailable'}
       </Text>
       {explicitWithdrawableBalance == null && availableBalance != null
         ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 6 }}>OG Exports does not return a separate withdrawable total; requests are reserved from the reported available balance.</Text>
@@ -230,8 +231,8 @@ export default function Withdraw() {
 
     {stage === 'review' && selectedBank ? <Card>
       <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 17 }}>Confirm withdrawal</Text>
-      <DetailRow label="Amount" value={withdrawalCurrency ? money(Number(amount), withdrawalCurrency) : 'Currency unavailable'} />
-      <DetailRow label="Fees" value={fee != null && withdrawalCurrency ? money(fee, withdrawalCurrency) : 'Not provided by OG Exports'} />
+      <DetailRow label="Amount" value={withdrawalCurrency ? moneyInSourceCurrency(Number(amount), withdrawalCurrency) : 'Currency unavailable'} />
+      <DetailRow label="Fees" value={fee != null && withdrawalCurrency ? moneyInSourceCurrency(fee, withdrawalCurrency) : 'Not provided by OG Exports'} />
       <DetailRow label="Estimated processing time" value={processingTime || 'Not provided by OG Exports'} />
       <DetailRow label="Destination account" value={`${first(selectedBank, ['bank_name'])} · ${first(selectedBank, ['account_holder', 'account_title'])} · ${maskAccount(selectedBank)}`} />
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 9, marginBottom: 13 }}>The email code and transaction password will be verified by OG Exports when you submit. Fee and processing estimates are shown only when the server supplies them.</Text>
@@ -245,8 +246,8 @@ export default function Withdraw() {
       {notice ? <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>{notice}</Text> : null}
       <DetailRow label="Server status" value={first(confirmation, ['status'], 'Not provided')} />
       <DetailRow label="Reference" value={first(confirmation, ['reference', 'withdraw_id'])} />
-      {readAmount(confirmation, ['amount']) != null && withdrawalCurrency ? <DetailRow label="Requested amount" value={money(readAmount(confirmation, ['amount']), withdrawalCurrency)} /> : null}
-      {readAmount(confirmation, ['fee', 'fees', 'transaction_fee']) != null && withdrawalCurrency ? <DetailRow label="Fee" value={money(readAmount(confirmation, ['fee', 'fees', 'transaction_fee']), withdrawalCurrency)} /> : null}
+      {readAmount(confirmation, ['amount']) != null && withdrawalCurrency ? <DetailRow label="Requested amount" value={moneyInSourceCurrency(readAmount(confirmation, ['amount']), withdrawalCurrency)} /> : null}
+      {readAmount(confirmation, ['fee', 'fees', 'transaction_fee']) != null && withdrawalCurrency ? <DetailRow label="Fee" value={moneyInSourceCurrency(readAmount(confirmation, ['fee', 'fees', 'transaction_fee']), withdrawalCurrency)} /> : null}
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 8 }}>A submitted withdrawal is not yet completed. Check the server status in your withdrawal history.</Text>
       <WithdrawalProgress withdrawal={confirmation} />
       <View style={{ marginTop: 14 }}><Action title="Request another withdrawal" secondary onPress={() => { setConfirmation(null); setSelectedWithdrawalId(''); setNotice(''); setError(''); setStage('form'); }} /></View>

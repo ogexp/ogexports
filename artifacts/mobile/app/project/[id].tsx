@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Linking, Platform, Pressable, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,7 +17,7 @@ import {
   useInvestInProject,
 } from '@workspace/api-client-react';
 import { Action, Card, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount, first, list, messageOf, record, unwrap, money } from '@/lib/data';
+import { amount, first, list, messageOf, record, unwrap, money, moneyInSourceCurrency } from '@/lib/data';
 import { TradeTimeline } from '@/components/TradeTimeline';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -178,8 +179,8 @@ export default function OpportunityDetail() {
     }
     const value = Number(investAmount);
     if (!Number.isFinite(value) || value <= 0) { setError('Enter an investment amount greater than zero.'); return; }
-    if (currency && minimum != null && value < minimum) { setError(`The minimum investment for this opportunity is ${money(minimum, currency)}.`); return; }
-    if (currency && maximum != null && value > maximum) { setError(`The maximum investment for this opportunity is ${money(maximum, currency)}.`); return; }
+    if (currency && minimum != null && value < minimum) { setError(`The minimum investment for this opportunity is ${moneyInSourceCurrency(minimum, currency)}.`); return; }
+    if (currency && maximum != null && value > maximum) { setError(`The maximum investment for this opportunity is ${moneyInSourceCurrency(maximum, currency)}.`); return; }
     if (currency && walletCurrency && walletBalance != null && walletCurrency.toUpperCase() === currency.toUpperCase() && value > walletBalance) { setError('This amount is greater than your available wallet balance.'); return; }
     if (currency && remainingCapacity != null && value > remainingCapacity) { setError('This amount exceeds the remaining opportunity capacity.'); return; }
     setStage('allocation');
@@ -454,7 +455,7 @@ export default function OpportunityDetail() {
         <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
           {[
             ['Minimum investment', minimum == null ? 'Unavailable' : formatTradeMoney(minimum)],
-            ['Available wallet balance', walletBalance == null || !walletCurrency ? 'Unavailable' : money(walletBalance, walletCurrency)],
+          ['Available wallet balance', walletBalance == null || !walletCurrency ? 'Unavailable' : moneyInSourceCurrency(walletBalance, walletCurrency)],
             ['Remaining opportunity capacity', remainingCapacity == null ? 'Unavailable' : formatTradeMoney(remainingCapacity)],
           ].map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: colors.border }}>
             <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text>
@@ -472,7 +473,7 @@ export default function OpportunityDetail() {
         <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>02 · Trade allocation</Text>
         <View style={{ backgroundColor: colors.lightGreen, borderRadius: 14, padding: 15, marginTop: 14, marginBottom: 13 }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', letterSpacing: 0.6 }}>YOUR INVESTMENT</Text>
-          <Text style={{ color: colors.primary, fontSize: 26, fontWeight: '700', marginTop: 5 }}>{money(Number(investAmount), currency)}</Text>
+          <Text style={{ color: colors.primary, fontSize: 26, fontWeight: '700', marginTop: 5 }}>{moneyInSourceCurrency(Number(investAmount), currency)}</Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 5 }}>{projectTitle}</Text>
         </View>
         <Card style={{ borderColor: colors.border, marginBottom: 12 }}>
@@ -490,7 +491,7 @@ export default function OpportunityDetail() {
         <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>03 · Review commitment</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5 }}>Confirm the trade and money movement details before moving to the published terms.</Text>
         {[
-          ['Your investment', money(Number(investAmount), currency)],
+          ['Your investment', moneyInSourceCurrency(Number(investAmount), currency)],
           ['Trade', tradeLabel],
           ['Fees', feeValue || 'Not provided by OG Exports'],
           ['Trade cycle', cycleValue],
@@ -556,7 +557,7 @@ export default function OpportunityDetail() {
         </View> : null}
         <View style={{ backgroundColor: colors.secondary, borderRadius: 12, padding: 13, marginBottom: 14 }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700' }}>REQUEST SUMMARY</Text>
-          <Text style={{ color: colors.foreground, fontWeight: '700', marginTop: 6 }}>{money(Number(investAmount), currency)} · {tradeLabel}</Text>
+          <Text style={{ color: colors.foreground, fontWeight: '700', marginTop: 6 }}>{moneyInSourceCurrency(Number(investAmount), currency)} · {tradeLabel}</Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>Payment method: Wallet balance</Text>
         </View>
         {error ? <ErrorState message={error} /> : null}
@@ -568,7 +569,7 @@ export default function OpportunityDetail() {
         const status = first(confirmation, ['status'], 'Not provided');
         const investmentId = first(confirmation, ['id']);
         const serverConfirmed = /^confirmed$/i.test(status.trim());
-        const resultAmount = typeof confirmation.amount === 'number' ? money(confirmation.amount, currency) : 'Unavailable';
+        const resultAmount = typeof confirmation.amount === 'number' ? moneyInSourceCurrency(confirmation.amount, currency) : 'Unavailable';
         return <Card style={{ borderColor: colors.primary }}>
           <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center', marginBottom: 13 }}>
             <Feather name={serverConfirmed ? 'check' : 'send'} size={21} color={colors.primary} />

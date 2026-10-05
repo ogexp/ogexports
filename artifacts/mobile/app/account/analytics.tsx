@@ -1,5 +1,6 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import {
   getGetInvestorDashboardQueryKey,
   getGetInvestorInvestmentsQueryKey,

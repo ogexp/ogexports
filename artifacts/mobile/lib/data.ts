@@ -1,4 +1,39 @@
+import { translateUi } from '@/lib/strings';
+
 export type Json = Record<string, unknown>;
+
+type MoneyDisplayCurrency = 'wallet' | 'USD' | 'PKR' | 'EUR' | 'GBP';
+type MoneyDisplayConfig = {
+  language: 'en' | 'ur' | 'ar';
+  currency: MoneyDisplayCurrency;
+  walletCurrency: string;
+  rates: Record<string, number>;
+};
+
+let moneyDisplayConfig: MoneyDisplayConfig = {
+  language: 'en',
+  currency: 'wallet',
+  walletCurrency: '',
+  rates: {},
+};
+
+export function configureMoneyDisplay(config: MoneyDisplayConfig) {
+  moneyDisplayConfig = config;
+}
+
+export function displayCurrencyCode(currency?: string): string {
+  const sourceCode = currency?.trim().toUpperCase();
+  if (!sourceCode) return '';
+  const target = moneyDisplayConfig.currency === 'wallet'
+    ? moneyDisplayConfig.walletCurrency
+    : moneyDisplayConfig.currency;
+  if (!target || target === sourceCode) return sourceCode;
+  const sourceRate = moneyDisplayConfig.rates[sourceCode];
+  const targetRate = moneyDisplayConfig.rates[target];
+  return sourceRate && targetRate && Number.isFinite(sourceRate) && Number.isFinite(targetRate)
+    ? target
+    : sourceCode;
+}
 
 export function record(value: unknown): Json {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Json : {};
@@ -44,17 +79,44 @@ export function amount(row: Json, keys: string[]): number | null {
   return null;
 }
 
-export function money(value: unknown, currency?: string): string {
+export function money(value: unknown, currency?: string, options: { preserveSource?: boolean } = {}): string {
   if (value === null || value === undefined || value === '') return '—';
-  const code = currency?.trim().toUpperCase();
-  if (!code) return '—';
+  const sourceCode = currency?.trim().toUpperCase();
+  if (!sourceCode) return '—';
   const numeric = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN;
   if (!Number.isFinite(numeric)) return '—';
-  try {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(numeric);
-  } catch {
-    return `${code} ${numeric.toLocaleString()}`;
+  let amount = numeric;
+  let displayCode = sourceCode;
+  const target = options.preserveSource
+    ? sourceCode
+    : moneyDisplayConfig.currency === 'wallet'
+      ? moneyDisplayConfig.walletCurrency
+      : moneyDisplayConfig.currency;
+  let conversionUnavailable = !options.preserveSource && moneyDisplayConfig.currency === 'wallet' && !target;
+  if (target && target !== sourceCode) {
+    const sourceRate = moneyDisplayConfig.rates[sourceCode];
+    const targetRate = moneyDisplayConfig.rates[target];
+    if (sourceRate && targetRate && Number.isFinite(sourceRate) && Number.isFinite(targetRate)) {
+      amount = numeric / sourceRate * targetRate;
+      displayCode = target;
+    } else {
+      conversionUnavailable = true;
+    }
   }
+  const locale = moneyDisplayConfig.language === 'ur' ? 'ur-PK' : moneyDisplayConfig.language === 'ar' ? 'ar-SA' : 'en-US';
+  let formatted: string;
+  try {
+    formatted = new Intl.NumberFormat(locale, { style: 'currency', currency: displayCode, maximumFractionDigits: 0 }).format(amount);
+  } catch {
+    formatted = `${displayCode} ${amount.toLocaleString(locale)}`;
+  }
+  return conversionUnavailable
+    ? `${formatted} · ${translateUi('Currency conversion unavailable', moneyDisplayConfig.language)}`
+    : formatted;
+}
+
+export function moneyInSourceCurrency(value: unknown, currency?: string): string {
+  return money(value, currency, { preserveSource: true });
 }
 
 export function messageOf(error: unknown): string {

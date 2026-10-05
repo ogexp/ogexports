@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Linking, Platform, Pressable, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, View } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import { isRunningInExpoGo } from 'expo';
 import { useQueryClient } from '@tanstack/react-query';
@@ -24,6 +25,8 @@ import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap, type Json } from '@/lib/data';
 import { validOrigin } from '@/lib/api-config';
 import { useColors } from '@/hooks/useColors';
+import { useAppPreferences, type AppearancePreference, type DisplayCurrency } from '@/context/AppPreferencesContext';
+import { localizedAlert as Alert, translateUi } from '@/lib/strings';
 import {
   NOTIFICATION_CATEGORIES,
   isNotificationPreferenceEnabled,
@@ -35,6 +38,7 @@ const pushTokenKey = (userId: string) => `og-investor-push-token:${userId}`;
 
 export default function Settings() {
   const { token, user, apiOrigin, updateOrigin, updateUser, signOut } = useAuth();
+  const appPreferences = useAppPreferences();
   const colors = useColors();
   const queryClient = useQueryClient();
   const userId = first(record(user), ['id']);
@@ -314,6 +318,17 @@ export default function Settings() {
     } catch (err) { setError(messageOf(err)); }
   }
 
+  async function saveAppPreference(patch: { language?: 'en' | 'ur' | 'ar'; currency?: DisplayCurrency; appearance?: AppearancePreference }) {
+    setError('');
+    try {
+      await appPreferences.savePreferences(patch);
+    } catch (preferenceSaveError) {
+      setError(messageOf(preferenceSaveError));
+    }
+  }
+
+  const appLanguage = appPreferences.preferences.language;
+
   async function signOutNow() {
     if (userId) {
       try {
@@ -348,15 +363,84 @@ export default function Settings() {
 
     <Card>
       <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 10 }}>App preferences</Text>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-        <Text style={{ color: colors.mutedForeground }}>Language</Text>
-        <Text style={{ color: colors.foreground, fontWeight: '600' }}>English</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>Language</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+        {([
+          ['en', 'English'],
+          ['ur', 'اردو'],
+          ['ar', 'العربية'],
+        ] as const).map(([language, label]) => {
+          const selected = appPreferences.preferences.language === language;
+          return <Pressable
+            key={language}
+            testID={`language-option-${language}`}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: selected, disabled: appPreferences.isSaving }}
+            disabled={appPreferences.isSaving}
+            onPress={() => void saveAppPreference({ language })}
+            style={{ paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, borderRadius: 18, backgroundColor: selected ? colors.lightGreen : colors.card }}
+          >
+            <Text style={{ color: selected ? colors.primary : colors.foreground, fontSize: 13, fontWeight: selected ? '700' : '500' }}>{label}</Text>
+          </Pressable>;
+        })}
       </View>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-        <Text style={{ color: colors.mutedForeground }}>Wallet currency</Text>
-        <Text style={{ color: colors.foreground, fontWeight: '600' }}>{walletQuery.isLoading ? 'Loading…' : walletCurrency || 'Not available'}</Text>
+
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>Display currency</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 7 }}>
+        {([
+          ['wallet', walletCurrency ? `${translateUi('Wallet', appLanguage)} (${walletCurrency})` : 'Wallet currency'],
+          ['USD', 'USD'],
+          ['PKR', 'PKR'],
+          ['EUR', 'EUR'],
+          ['GBP', 'GBP'],
+        ] as const).map(([currency, label]) => {
+          const selected = appPreferences.preferences.currency === currency;
+          return <Pressable
+            key={currency}
+            testID={`currency-option-${currency}`}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: selected, disabled: appPreferences.isSaving }}
+            disabled={appPreferences.isSaving}
+            onPress={() => void saveAppPreference({ currency: currency as DisplayCurrency })}
+            style={{ paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, borderRadius: 18, backgroundColor: selected ? colors.lightGreen : colors.card }}
+          >
+            <Text style={{ color: selected ? colors.primary : colors.foreground, fontSize: 13, fontWeight: selected ? '700' : '500' }}>{label}</Text>
+          </Pressable>;
+        })}
       </View>
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 5 }}>This app is currently in English. Amounts use the wallet currency returned by OG Exports; the investor API does not provide a selectable mobile display-currency setting.</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginBottom: 14 }}>
+        {appPreferences.preferences.currency === 'wallet'
+          ? <>{translateUi('Amounts stay in the wallet currency returned by OG Exports', appLanguage)}{walletQuery.isLoading ? '…' : walletCurrency ? ` (${walletCurrency})` : ''}.</>
+          : appPreferences.ratesLoading
+            ? translateUi('Loading authenticated OG Exports exchange rates. Until rates are available, amounts stay in their source currency.', appLanguage)
+            : appPreferences.ratesError
+              ? translateUi('Exchange rates are unavailable. Amounts stay in their source currency and are marked as unavailable for conversion.', appLanguage)
+              : <>{translateUi('Display-only conversion uses authenticated OG Exports rates', appLanguage)}{appPreferences.ratesAsOf ? ` as of ${appPreferences.ratesAsOf}` : ''}. {translateUi('Transaction amounts are submitted in their original currency.', appLanguage)}</>}
+      </Text>
+
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>Appearance</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+        {([
+          ['light', 'Light'],
+          ['dark', 'Dark'],
+          ['system', 'System'],
+        ] as const).map(([appearance, label]) => {
+          const selected = appPreferences.preferences.appearance === appearance;
+          return <Pressable
+            key={appearance}
+            testID={`appearance-option-${appearance}`}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: selected, disabled: appPreferences.isSaving }}
+            disabled={appPreferences.isSaving}
+            onPress={() => void saveAppPreference({ appearance })}
+            style={{ paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, borderRadius: 18, backgroundColor: selected ? colors.lightGreen : colors.card }}
+          >
+            <Text style={{ color: selected ? colors.primary : colors.foreground, fontSize: 13, fontWeight: selected ? '700' : '500' }}>{label}</Text>
+          </Pressable>;
+        })}
+      </View>
+      {appPreferences.isSaving ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 8 }}>Saving app preferences…</Text> : null}
+      <Action title="Data preferences" icon="shield" secondary onPress={() => router.push('/account/data-preferences' as never)} />
     </Card>
 
     <Card>

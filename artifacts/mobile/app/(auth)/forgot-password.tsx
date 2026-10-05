@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { router } from 'expo-router';
-import { Text } from 'react-native';
+import { LocalizedText as Text } from '@/components/LocalizedText';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { Action, Card, Field } from '@/components/InvestorUI';
 import { messageOf } from '@/lib/data';
