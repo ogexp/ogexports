@@ -14,7 +14,7 @@ import './_group.css';
 type BalanceCardPreviewProps = { refined: boolean };
 
 const quickActions = [
-  { label: 'Add funds', icon: <Plus size={17} /> },
+  { label: 'Add Funds', icon: <Plus size={17} /> },
   { label: 'Invest', icon: <TrendingUp size={17} /> },
   { label: 'Withdraw', icon: <ArrowUpRight size={17} /> },
   { label: 'Transactions', icon: <FileText size={17} /> },
@@ -247,7 +247,7 @@ export function BalanceCardPreview({ refined }: BalanceCardPreviewProps) {
                 overflow: 'hidden',
                 maxWidth: '100%',
                 color: index === 0 ? 'var(--og-balance-primary)' : 'var(--og-balance-foreground)',
-                fontSize: 10,
+                fontSize: 'clamp(8px, 2.49vw, 10px)',
                 fontWeight: 700,
                 lineHeight: '12px',
                 textAlign: 'center',

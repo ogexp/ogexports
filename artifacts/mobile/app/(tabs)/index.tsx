@@ -238,7 +238,7 @@ export default function InvestorHome() {
     return groups;
   }, []);
   const quickActions = [
-    { title: 'Add Funds', shortTitle: 'Add funds', icon: 'plus' as const, onPress: () => router.push('/wallet/deposit') },
+    { title: 'Add Funds', shortTitle: 'Add Funds', icon: 'plus' as const, onPress: () => router.push('/wallet/deposit') },
     { title: 'Invest', shortTitle: 'Invest', icon: 'trending-up' as const, onPress: () => router.push('/(tabs)/opportunities') },
     { title: 'Withdraw', shortTitle: 'Withdraw', icon: 'arrow-up-right' as const, onPress: () => router.push('/wallet/withdraw') },
     { title: 'Transactions', shortTitle: 'Transactions', icon: 'file-text' as const, onPress: () => router.push('/account/transactions') },
@@ -303,8 +303,8 @@ export default function InvestorHome() {
       end={{ x: 1, y: 1 }}
       style={{ overflow: 'hidden', paddingHorizontal: 19, paddingTop: 18, paddingBottom: 39, borderRadius: 24, marginBottom: 0 }}
     >
-      <View pointerEvents="none" style={{ position: 'absolute', top: -48, right: -17, width: 134, height: 134, borderRadius: 67, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.12)' }} />
-      <View pointerEvents="none" style={{ position: 'absolute', top: -26, right: 6, width: 88, height: 88, borderRadius: 44, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.08)' }} />
+      <View pointerEvents="none" style={{ position: 'absolute', top: -48, right: -17, width: 134, height: 134, borderRadius: 67, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.06)' }} />
+      <View pointerEvents="none" style={{ position: 'absolute', top: -26, right: 6, width: 88, height: 88, borderRadius: 44, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.04)' }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11 }}>
         <View style={{ width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.36)', backgroundColor: 'rgba(248, 251, 248, 0.14)', alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: colors.balanceCardText, fontSize: 16, fontWeight: '700' }}>{firstName.charAt(0).toUpperCase()}</Text>
@@ -335,14 +335,14 @@ export default function InvestorHome() {
 
       <View style={{ marginTop: 18 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ color: colors.balanceCardText, opacity: 0.8, fontSize: 10, fontWeight: '700', letterSpacing: 0.9 }}>AVAILABLE BALANCE</Text>
+          <Text style={{ color: colors.balanceCardText, opacity: 0.88, fontSize: 11, fontWeight: '700', letterSpacing: 0.25 }}>Available Balance</Text>
           <Pressable testID="home-toggle-sensitive-values" accessibilityRole="button" accessibilityLabel={balanceHidden ? 'Show account balances' : 'Hide account balances'}
             onPress={() => setBalanceHidden(current => !current)} hitSlop={8}
             style={({ pressed }) => ({ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248, 251, 248, 0.12)', opacity: pressed ? 0.72 : 1 })}>
             <Feather name={balanceHidden ? 'eye-off' : 'eye'} size={15} color={colors.balanceCardText} />
           </Pressable>
         </View>
-        <Text testID="home-available-balance" numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, fontSize: 33, fontWeight: '700', letterSpacing: -0.7, marginTop: 3 }}>
+        <Text testID="home-available-balance" numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, fontSize: 40, fontWeight: '700', letterSpacing: -0.9, marginTop: 3 }}>
           {dashboard.isLoading ? '…' : displayMoney(availableBalance)}
         </Text>
         <Text style={{ color: colors.balanceCardText, opacity: 0.76, fontSize: 10, marginTop: 3 }}>
@@ -352,7 +352,7 @@ export default function InvestorHome() {
 
       <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(248, 251, 248, 0.22)', marginTop: 16 }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 11 }}>
-        <Text style={{ color: colors.balanceCardText, opacity: 0.78, fontSize: 11 }}>Total portfolio value</Text>
+        <Text style={{ color: colors.balanceCardText, opacity: 0.72, fontSize: 11 }}>Portfolio Value</Text>
         <Text numberOfLines={1} adjustsFontSizeToFit style={{ flexShrink: 1, color: colors.balanceCardText, fontSize: 13, fontWeight: '700', textAlign: 'right' }}>
           {dashboard.isLoading ? '…' : displayMoney(portfolioTotal)}
         </Text>
