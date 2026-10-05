@@ -1,6 +1,6 @@
 import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
@@ -22,7 +22,7 @@ function NativeLayout() {
       labelStyle={{ default: { color: colors.mutedForeground }, selected: { color: colors.primary, fontWeight: '600' } }}
       backgroundColor={colors.card}
     >
-      <NativeTabs.Trigger name="index"><NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} /><NativeTabs.Trigger.Label>{t('Home')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
+      <NativeTabs.Trigger name="index"><NativeTabs.Trigger.Icon sf={{ default: 'house.circle', selected: 'house.circle.fill' }} /><NativeTabs.Trigger.Label>{t('Home')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="opportunities"><NativeTabs.Trigger.Icon sf={{ default: 'safari', selected: 'safari.fill' }} /><NativeTabs.Trigger.Label>{t('Explore')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="portfolio"><NativeTabs.Trigger.Icon sf={{ default: 'chart.pie', selected: 'chart.pie.fill' }} /><NativeTabs.Trigger.Label>{t('Portfolio')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="wallet"><NativeTabs.Trigger.Icon sf={{ default: 'wallet.bifold', selected: 'wallet.bifold.fill' }} /><NativeTabs.Trigger.Label>{t('Wallet')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
@@ -61,7 +61,7 @@ function ClassicLayout() {
       ),
     }}>
       {([
-        ['index', t('Home'), 'home-outline', 'home', 'house', 'house.fill'],
+        ['index', t('Home'), 'home-outline', 'home', 'house.circle', 'house.circle.fill'],
         ['opportunities', t('Explore'), 'compass-outline', 'compass', 'safari', 'safari.fill'],
         ['portfolio', t('Portfolio'), 'pie-chart-outline', 'pie-chart', 'chart.pie', 'chart.pie.fill'],
         ['wallet', t('Wallet'), 'wallet-outline', 'wallet', 'wallet.bifold', 'wallet.bifold.fill'],
@@ -70,6 +70,8 @@ function ClassicLayout() {
           title,
           tabBarIcon: ({ color, focused }) => Platform.OS === 'ios'
             ? <SymbolView name={focused ? iosSelectedIcon : iosIcon} tintColor={color} size={22} />
+            : Platform.OS === 'android' && name === 'index'
+              ? <MaterialCommunityIcons name={focused ? 'home-circle' : 'home-circle-outline'} size={22} color={color} />
             : <Ionicons name={focused ? androidSelectedIcon : androidIcon} size={22} color={color} />,
         }} />
       ))}
