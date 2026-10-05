@@ -79,6 +79,8 @@ function ClassicLayout() {
           title,
           tabBarIcon: ({ color, focused }) => Platform.OS === 'ios'
             ? <SymbolView name={focused ? iosSelectedIcon : iosIcon} tintColor={color} size={22} />
+            : name === 'wallet'
+              ? <MaterialCommunityIcons name={focused ? 'wallet-bifold' : 'wallet-bifold-outline'} size={22} color={color} />
             : Platform.OS === 'android' && name === 'index'
               ? <MaterialCommunityIcons name={focused ? 'home-circle' : 'home-circle-outline'} size={22} color={color} />
             : <Ionicons name={focused ? androidSelectedIcon : androidIcon} size={22} color={color} />,
