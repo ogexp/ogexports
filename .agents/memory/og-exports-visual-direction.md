@@ -13,4 +13,4 @@ Use spacious typography, rounded cards with subtle borders and shadows, and ligh
 
 **Why:** the user wants the complete app to feel professional, premium, and less bold. The master prompt also specifies the four-tab navigation, top-right Profile access, and official logo; Phase 27 adds Light, Dark, and System appearance choices.
 
-**How to apply:** sync mobile theme values to the sibling web palette, use the transparent OG artwork without a dark backing shape, keep gold rare, and preserve the four-tab navigation with Profile in the avatar/menu.
+**How to apply:** sync mobile theme values to the sibling web palette, use the transparent OG artwork without a dark backing shape, keep gold rare, and preserve the four-tab navigation with Profile in the avatar/menu. On Android, keep the custom bar low with bounded safe-area spacing, without overlapping system controls.
