@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { LocalizedText as Text, LocalizedTextInput as TextInput } from '@/components/LocalizedText';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
@@ -119,7 +119,7 @@ export function Action({ title, onPress, icon, secondary = false, destructive = 
     : { backgroundColor: colors.primary, borderWidth: 1, borderColor: colors.primary };
   const buttonTextColor = secondary ? colors.primary : destructive ? colors.destructiveForeground : colors.primaryForeground;
   return (
-    <Pressable accessibilityRole="button" testID={testID} onPress={() => {
+      <Pressable accessibilityRole="button" accessibilityState={{ disabled: disabled || loading, busy: loading }} testID={testID} onPress={() => {
       if (disabled || loading) return;
       if (secondary) selectionFeedback();
       else actionFeedback();
@@ -143,7 +143,7 @@ export function Field({ label, value, onChangeText, placeholder, secureTextEntry
   return (
     <View style={{ gap: 7, marginBottom: 14 }}>
       <Text style={[s.label, { color: colors.foreground }]}>{label}</Text>
-      <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.mutedForeground}
+      <TextInput accessibilityLabel={label} value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.mutedForeground}
         secureTextEntry={secureTextEntry} keyboardType={keyboardType} autoCapitalize={autoCapitalize} multiline={multiline}
         onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
         selectionColor={colors.primary} underlineColorAndroid={focused ? colors.primary : colors.input}
@@ -178,9 +178,33 @@ export function Row({ label, value, icon, onPress }: { label: string; value?: st
 
 export function Status({ value }: { value: string }) {
   const colors = useColors();
-  const approved = /approved|active|complete|paid|verified|success/i.test(value);
-  const pending = /pending|review|processing/i.test(value);
-  return <View style={[s.status, { backgroundColor: approved ? colors.statusSuccessBackground : pending ? colors.statusPendingBackground : colors.secondary }]}><Text style={{ color: approved ? colors.statusSuccess : pending ? colors.statusPending : colors.mutedForeground, fontSize: 11, fontWeight: '700' }}>{value || '—'}</Text></View>;
+  const language = useAppPreferences().preferences.language;
+  const label = value.trim() || '—';
+  const normalized = label.toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const successStatuses = new Set(['approved', 'active', 'complete', 'completed', 'paid', 'verified', 'success', 'successful', 'settled', 'delivered', 'released', 'disbursed']);
+  const pendingStatuses = new Set(['pending', 'review', 'under review', 'processing', 'submitted', 'initiated', 'awaiting', 'in transit', 'shipped', 'scheduled', 'queued', 'in progress']);
+  const errorStatuses = new Set(['rejected', 'failed', 'error', 'declined', 'cancelled', 'canceled', 'expired', 'blocked', 'suspended', 'overdue', 'returned']);
+  const tone = successStatuses.has(normalized) ? 'success'
+    : pendingStatuses.has(normalized) ? 'pending'
+      : errorStatuses.has(normalized) ? 'error'
+        : 'neutral';
+  const foreground = tone === 'success' ? colors.statusSuccess
+    : tone === 'pending' ? colors.statusPending
+      : tone === 'error' ? colors.destructive
+        : colors.mutedForeground;
+  const background = tone === 'success' ? colors.statusSuccessBackground
+    : tone === 'pending' ? colors.statusPendingBackground
+      : colors.secondary;
+  const icon = tone === 'success' ? 'checkmark-circle'
+    : tone === 'pending' ? 'time-outline'
+      : tone === 'error' ? 'close-circle'
+        : 'information-circle-outline';
+  const accessibleLabel = `${translateUi('Status', language)}: ${translateUi(label, language)}`;
+  return <View accessible accessibilityRole="text" accessibilityLabel={accessibleLabel}
+    style={[s.status, { backgroundColor: background, flexDirection: 'row', alignItems: 'center', gap: 5, maxWidth: 190 }]}>
+    <Ionicons name={icon} size={13} color={foreground} />
+    <Text numberOfLines={1} style={{ color: foreground, fontSize: 11, fontWeight: '700', flexShrink: 1 }}>{label}</Text>
+  </View>;
 }
 
 function isOfflineFailure(error: unknown, message: string) {

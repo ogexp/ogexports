@@ -24,6 +24,7 @@ export type PostAuthHref =
   | '/(tabs)/wallet'
   | { pathname: '/project/[id]'; params: { id: string } }
   | { pathname: '/position/[id]'; params: { id: string } }
+  | { pathname: '/account/transaction/[id]'; params: { id: string } }
   | TransactionHref;
 
 function decode(value: string) {
@@ -64,6 +65,10 @@ export function resolvePostAuthHref(returnTo?: string | string[]): PostAuthHref 
   const positionId = validId(decode(positionMatch?.[1] ?? (pathname === '/position/[id]' ? queryValue(query, 'id') : '')));
   if (positionId) return { pathname: '/position/[id]', params: { id: positionId } };
 
+  const transactionMatch = pathname.match(/^\/account\/transaction\/([^/]+)\/?$/);
+  const transactionId = validId(decode(transactionMatch?.[1] ?? ''));
+  if (/^\d+$/.test(transactionId)) return { pathname: '/account/transaction/[id]', params: { id: transactionId } };
+
   if (pathname === '/account/transactions') {
     const tab = queryValue(query, 'tab');
     return {
@@ -76,7 +81,7 @@ export function resolvePostAuthHref(returnTo?: string | string[]): PostAuthHref 
     };
   }
 
-  const staticRoutes: Record<string, Exclude<PostAuthHref, TransactionHref | { pathname: '/project/[id]'; params: { id: string } } | { pathname: '/position/[id]'; params: { id: string } }>> = {
+  const staticRoutes: Record<string, Exclude<PostAuthHref, TransactionHref | { pathname: '/project/[id]'; params: { id: string } } | { pathname: '/position/[id]'; params: { id: string } } | { pathname: '/account/transaction/[id]'; params: { id: string } }>> = {
     '/': '/(tabs)',
     '/(tabs)': '/(tabs)',
     '/(tabs)/index': '/(tabs)',

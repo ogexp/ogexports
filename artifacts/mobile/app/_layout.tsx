@@ -116,6 +116,7 @@ function RootLayoutNav() {
         <Stack.Screen name="account/profile" options={{ title: '' }} />
         <Stack.Screen name="account/portfolio" options={{ title: t('Portfolio') }} />
         <Stack.Screen name="account/transactions" options={{ title: t('Transactions') }} />
+        <Stack.Screen name="account/transaction/[id]" options={{ title: t('Transaction details') }} />
         <Stack.Screen name="account/security" options={{ title: t('Security & devices') }} />
         <Stack.Screen name="account/legal/[section]" options={{ title: t('Policies') }} />
         <Stack.Screen name="account/data-preferences" options={{ title: t('Data preferences') }} />

@@ -5,6 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import InvestorAnalyticsPanel from "@/components/admin/InvestorAnalyticsPanel";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
@@ -948,7 +949,7 @@ export default function AdminDashboard() {
                     { label: "Active Portfolio", value: fmtUsd(invest.active_portfolio), color: EMERALD, sub: "Active + completed" },
                     { label: "Portfolio Value", value: fmtUsd(invest.portfolio_value), color: "#16a34a", sub: "Raised capital" },
                     { label: "Total Investors", value: String(invest.total_investors), color: "#2563eb", sub: "Distinct investors" },
-                    { label: "Active Projects", value: String(invest.active_projects), color: "#8b5cf6", sub: invest.avg_roi_pct ? `Avg ROI ${invest.avg_roi_pct}%` : "Open pipeline" },
+                    { label: "Active Projects", value: String(invest.active_projects), color: "#8b5cf6", sub: invest.avg_roi_pct ? `Avg target return ${invest.avg_roi_pct}% · not guaranteed` : "Open pipeline" },
                   ].map(k => (
                     <div key={k.label} className="luxury-card p-4 rounded-xl text-center">
                       <p className="text-2xl font-bold font-heading" style={{ color: k.color }}>{k.value}</p>
@@ -971,7 +972,7 @@ export default function AdminDashboard() {
                           </div>
                           <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5">
                             <span>Target: <strong style={{ color: GOLD }}>{fmtUsd(op.target)}</strong></span>
-                            <span>ROI: <strong style={{ color: "#16a34a" }}>{op.roi}</strong></span>
+                            <span>Target return · not guaranteed: <strong style={{ color: "#16a34a" }}>{op.roi}</strong></span>
                             <span>ETA: {op.eta}</span>
                           </div>
                           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
@@ -1078,6 +1079,15 @@ export default function AdminDashboard() {
 
           <TabsContent value="analytics">
             <div className="space-y-5">
+              {investmentModuleEnabled ? (
+                data.investor_analytics ? (
+                  <InvestorAnalyticsPanel analytics={data.investor_analytics} formatMoney={fmtUsd} />
+                ) : (
+                  <div className="luxury-card rounded-2xl border border-dashed p-5 text-sm text-muted-foreground" role="status" data-testid="investor-analytics-unavailable">
+                    Investor analytics are not available from the connected Laravel server.
+                  </div>
+                )
+              ) : null}
               <div className="grid lg:grid-cols-2 gap-5">
                 <div className="luxury-card p-5 rounded-2xl">
                   <h3 className="font-heading font-bold text-sm mb-3">User Growth Trend</h3>

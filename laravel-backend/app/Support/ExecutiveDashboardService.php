@@ -8,6 +8,7 @@ use App\Models\CrmLead;
 use App\Models\Deposit;
 use App\Models\Investment;
 use App\Models\InvestmentProject;
+use App\Models\InvestmentProjectTradeUpdate;
 use App\Models\KycApplication;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -19,6 +20,7 @@ use App\Models\SupplierOffer;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\Withdrawal;
+use App\Models\WalletTransaction;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -80,6 +82,7 @@ class ExecutiveDashboardService
             'warehouse' => $this->warehouse(),
             'supplier_offers' => $this->supplierOffers(),
             'investment_summary' => $this->investments(),
+            'investor_analytics' => $this->investorAnalytics($period),
             'charts' => $this->charts(),
             'calendar_events' => $this->calendarEvents(),
             'security' => $this->security(),
@@ -271,6 +274,11 @@ class ExecutiveDashboardService
             : 0.0;
 
         $investorsTotal = User::role('investor')->count();
+        $investorsActive = Investment::query()
+            ->whereIn('status', self::ELIGIBLE_INVESTMENT_STATUSES)
+            ->where('invested_at', '>=', $now->copy()->subDays(30))
+            ->distinct()
+            ->count('investor_id');
         $investmentValue = (float) Investment::query()
             ->whereIn('status', self::ELIGIBLE_INVESTMENT_STATUSES)
             ->sum('amount');
@@ -341,7 +349,7 @@ class ExecutiveDashboardService
             ],
             'investors' => [
                 'total' => $investorsTotal,
-                'active' => $investorsTotal,
+                'active' => $investorsActive,
                 'investment_value' => round($investmentValue, 2),
             ],
             'orders' => [
@@ -842,6 +850,256 @@ class ExecutiveDashboardService
             'avg_roi_pct' => round($avgRoi, 1),
             'active_projects' => $portfolio['active_projects'],
             'open_projects' => $openProjects,
+        ];
+    }
+
+    /**
+     * Period-filtered investor activity. Amounts remain in their recorded currency;
+     * no mixed-currency totals or projected returns are presented as actuals.
+     *
+     * @return array<string, mixed>
+     */
+    private function investorAnalytics(string $period): array
+    {
+        [$periodStart, $periodEnd] = $this->periodWindow($period);
+        $periodInvestments = Investment::query()
+            ->whereIn('status', self::ELIGIBLE_INVESTMENT_STATUSES)
+            ->whereBetween('invested_at', [$periodStart, $periodEnd])
+            ->with('project:id,title,commodity,destination,destination_country')
+            ->get(['id', 'project_id', 'investor_id', 'amount', 'profit_amount', 'status', 'invested_at']);
+
+        $investmentCount = $periodInvestments->count();
+        $investedAmount = (float) $periodInvestments->sum(fn (Investment $investment) => (float) $investment->amount);
+        $realizedInvestments = $periodInvestments->filter(
+            fn (Investment $investment) => $investment->status === 'completed' && $investment->profit_amount !== null
+        );
+        $realizedPrincipal = (float) $realizedInvestments->sum(fn (Investment $investment) => (float) $investment->amount);
+        $realizedProfit = (float) $realizedInvestments->sum(fn (Investment $investment) => (float) $investment->profit_amount);
+
+        $newInvestors = User::role('investor')
+            ->whereBetween('created_at', [$periodStart, $periodEnd])
+            ->count();
+        $activeInvestors = Investment::query()
+            ->whereIn('status', self::ELIGIBLE_INVESTMENT_STATUSES)
+            ->where('invested_at', '>=', now()->subDays(30))
+            ->distinct()
+            ->count('investor_id');
+
+        $fundingProjects = InvestmentProject::query()
+            ->whereBetween('created_at', [$periodStart, $periodEnd])
+            ->where('target_amount', '>', 0)
+            ->get(['target_amount', 'raised_amount']);
+        $fundingTarget = (float) $fundingProjects->sum(fn (InvestmentProject $project) => (float) $project->target_amount);
+        $fundedAmount = (float) $fundingProjects->sum(fn (InvestmentProject $project) => (float) $project->raised_amount);
+
+        $monthStart = now()->startOfMonth()->subMonths(11);
+        $monthEnd = now();
+        $months = [];
+        for ($index = 0; $index < 12; $index++) {
+            $month = $monthStart->copy()->addMonths($index);
+            $key = $month->format('Y-m');
+            $months[$key] = [
+                'month' => $month->format('M y'),
+                'new_investors' => 0,
+                'investments' => 0,
+                'investment_amount' => 0.0,
+                'wallet_credits' => 0,
+                'wallet_debits' => 0,
+                'withdrawal_requests' => 0,
+                'approved_withdrawals' => 0,
+            ];
+        }
+
+        User::role('investor')
+            ->whereBetween('created_at', [$monthStart, $monthEnd])
+            ->get(['created_at'])
+            ->each(function (User $investor) use (&$months): void {
+                $key = $investor->created_at?->format('Y-m');
+                if ($key !== null && isset($months[$key])) {
+                    $months[$key]['new_investors']++;
+                }
+            });
+
+        Investment::query()
+            ->whereIn('status', self::ELIGIBLE_INVESTMENT_STATUSES)
+            ->whereBetween('invested_at', [$monthStart, $monthEnd])
+            ->get(['amount', 'invested_at'])
+            ->each(function (Investment $investment) use (&$months): void {
+                $key = $investment->invested_at?->format('Y-m');
+                if ($key !== null && isset($months[$key])) {
+                    $months[$key]['investments']++;
+                    $months[$key]['investment_amount'] += (float) $investment->amount;
+                }
+            });
+
+        $walletEvents = WalletTransaction::query()
+            ->whereBetween('created_at', [$monthStart, $monthEnd])
+            ->with('wallet:id,currency')
+            ->get(['wallet_id', 'amount', 'direction', 'status', 'created_at']);
+        $walletAmountsByCurrency = [];
+        $periodWalletEvents = $walletEvents->filter(
+            fn (WalletTransaction $transaction) => $transaction->created_at >= $periodStart
+                && $transaction->created_at <= $periodEnd
+        );
+        foreach ($periodWalletEvents as $transaction) {
+            if ($transaction->status !== 'completed') {
+                continue;
+            }
+            $currency = trim((string) $transaction->wallet?->currency) ?: 'Unavailable';
+            $direction = strtolower((string) $transaction->direction);
+            if (! in_array($direction, ['credit', 'debit'], true)) {
+                continue;
+            }
+            $walletAmountsByCurrency[$currency] ??= ['currency' => $currency, 'credits' => 0.0, 'debits' => 0.0];
+            $walletAmountsByCurrency[$currency][$direction === 'credit' ? 'credits' : 'debits'] += (float) $transaction->amount;
+        }
+        foreach ($walletEvents as $transaction) {
+            $monthKey = $transaction->created_at?->format('Y-m');
+            if ($monthKey === null || ! isset($months[$monthKey])) {
+                continue;
+            }
+            $direction = strtolower((string) $transaction->direction);
+            if (! in_array($direction, ['credit', 'debit'], true)) {
+                continue;
+            }
+            $months[$monthKey][$direction === 'credit' ? 'wallet_credits' : 'wallet_debits']++;
+        }
+
+        $withdrawalEvents = Withdrawal::query()
+            ->whereBetween('created_at', [$monthStart, $monthEnd])
+            ->get(['status', 'created_at']);
+        $periodWithdrawals = $withdrawalEvents->filter(
+            fn (Withdrawal $withdrawal) => $withdrawal->created_at >= $periodStart
+                && $withdrawal->created_at <= $periodEnd
+        );
+        foreach ($withdrawalEvents as $withdrawal) {
+            $monthKey = $withdrawal->created_at?->format('Y-m');
+            if ($monthKey === null || ! isset($months[$monthKey])) {
+                continue;
+            }
+            $months[$monthKey]['withdrawal_requests']++;
+            if (in_array(strtolower((string) $withdrawal->status), self::APPROVED_WITHDRAWAL_STATUSES, true)) {
+                $months[$monthKey]['approved_withdrawals']++;
+            }
+        }
+
+        $fundedUpdates = InvestmentProjectTradeUpdate::query()
+            ->whereRaw(
+                "LOWER(REPLACE(REPLACE(REPLACE(status, '_', ''), ' ', ''), '-', '')) IN (?, ?, ?, ?)",
+                ['funded', 'fullyfunded', 'fundingcomplete', 'fundingcompleted']
+            )
+            ->orderBy('occurred_at')
+            ->get(['investment_project_id', 'occurred_at'])
+            ->unique('investment_project_id')
+            ->filter(fn (InvestmentProjectTradeUpdate $update) => $update->occurred_at >= $periodStart
+                && $update->occurred_at <= $periodEnd);
+        $fundedProjects = $fundedUpdates->isEmpty()
+            ? collect()
+            : InvestmentProject::query()
+                ->whereKey($fundedUpdates->pluck('investment_project_id'))
+                ->get(['id', 'created_at'])
+                ->keyBy('id');
+        $fundingDurations = [];
+        foreach ($fundedUpdates as $update) {
+            $project = $fundedProjects->get($update->investment_project_id);
+            if ($project?->created_at && $update->occurred_at) {
+                $seconds = $project->created_at->diffInSeconds($update->occurred_at, false);
+                if ($seconds >= 0) {
+                    $fundingDurations[] = $seconds / 86400;
+                }
+            }
+        }
+
+        $topGroups = function (string $field) use ($periodInvestments): array {
+            return $periodInvestments
+                ->map(function (Investment $investment) use ($field): array {
+                    $project = $investment->project;
+                    $name = $field === 'destination'
+                        ? trim((string) ($project?->destination_country ?: $project?->destination))
+                        : trim((string) $project?->commodity);
+
+                    return [
+                        'name' => $name,
+                        'investment_count' => 1,
+                        'investment_amount' => (float) $investment->amount,
+                    ];
+                })
+                ->filter(fn (array $row) => $row['name'] !== '')
+                ->groupBy('name')
+                ->map(fn (Collection $rows, string $name) => [
+                    'name' => $name,
+                    'investment_count' => $rows->count(),
+                    'investment_amount' => round((float) $rows->sum('investment_amount'), 2),
+                ])
+                ->sortByDesc('investment_amount')
+                ->take(8)
+                ->values()
+                ->all();
+        };
+
+        $monthRows = array_values($months);
+
+        return [
+            'period' => $period,
+            'active_investors_30d' => $activeInvestors,
+            'new_investors' => $newInvestors,
+            'investment_count' => $investmentCount,
+            'invested_amount' => round($investedAmount, 2),
+            'average_investment' => $investmentCount > 0 ? round($investedAmount / $investmentCount, 2) : null,
+            'funding_projects_count' => $fundingProjects->count(),
+            'funding_target' => round($fundingTarget, 2),
+            'funded_amount' => round($fundedAmount, 2),
+            'funding_conversion_pct' => $fundingTarget > 0 ? round(($fundedAmount / $fundingTarget) * 100, 1) : null,
+            'realized_profit' => $realizedInvestments->isNotEmpty() ? round($realizedProfit, 2) : null,
+            'realized_return_pct' => $realizedPrincipal > 0 ? round(($realizedProfit / $realizedPrincipal) * 100, 2) : null,
+            'realized_investments_count' => $realizedInvestments->count(),
+            'wallet_transaction_count' => $periodWalletEvents->count(),
+            'wallet_completed_amounts_by_currency' => array_values(array_map(
+                fn (array $row) => [
+                    'currency' => $row['currency'],
+                    'credits' => round($row['credits'], 2),
+                    'debits' => round($row['debits'], 2),
+                ],
+                $walletAmountsByCurrency
+            )),
+            'withdrawal_request_count' => $periodWithdrawals->count(),
+            'approved_withdrawal_count' => $periodWithdrawals
+                ->filter(fn (Withdrawal $withdrawal) => in_array(strtolower((string) $withdrawal->status), self::APPROVED_WITHDRAWAL_STATUSES, true))
+                ->count(),
+            'average_funding_days' => count($fundingDurations) > 0
+                ? round(array_sum($fundingDurations) / count($fundingDurations), 1)
+                : null,
+            'funding_speed_samples' => count($fundingDurations),
+            'investor_growth' => array_map(
+                fn (array $row) => ['month' => $row['month'], 'new_investors' => $row['new_investors']],
+                $monthRows
+            ),
+            'investment_activity' => array_map(
+                fn (array $row) => [
+                    'month' => $row['month'],
+                    'investments' => $row['investments'],
+                    'amount' => round($row['investment_amount'], 2),
+                ],
+                $monthRows
+            ),
+            'wallet_activity' => array_map(
+                fn (array $row) => [
+                    'month' => $row['month'],
+                    'credits' => $row['wallet_credits'],
+                    'debits' => $row['wallet_debits'],
+                ],
+                $monthRows
+            ),
+            'withdrawal_activity' => array_map(
+                fn (array $row) => [
+                    'month' => $row['month'],
+                    'requests' => $row['withdrawal_requests'],
+                    'approved' => $row['approved_withdrawals'],
+                ],
+                $monthRows
+            ),
+            'top_commodities' => $topGroups('commodity'),
+            'top_destinations' => $topGroups('destination'),
         ];
     }
 

@@ -761,6 +761,19 @@ export const GetInvestorWalletTransactionsResponse = zod.record(zod.string(), zo
 
 
 /**
+ * @summary Get one wallet transaction owned by the authenticated investor
+ */
+
+
+
+export const GetInvestorWalletTransactionParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const GetInvestorWalletTransactionResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary Get supported currency exchange rates
  */
 export const GetInvestorExchangeRatesResponse = zod.record(zod.string(), zod.unknown())

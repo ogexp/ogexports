@@ -93,20 +93,20 @@ Route::prefix('maint')->group(function () {
 });
 
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
-    Route::post('/resend-verification', [AuthController::class, 'resendVerification']);
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/2fa/verify', [SecurityController::class, 'twoFactorVerifyLogin']);
-    Route::post('/2fa/resend', [SecurityController::class, 'twoFactorResend']);
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/verify-reset-otp', [AuthController::class, 'verifyResetOtp']);
-    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+    Route::post('/verify-email', [AuthController::class, 'verifyEmail'])->middleware('throttle:5,1');
+    Route::post('/resend-verification', [AuthController::class, 'resendVerification'])->middleware('throttle:3,1');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('/2fa/verify', [SecurityController::class, 'twoFactorVerifyLogin'])->middleware('throttle:5,1');
+    Route::post('/2fa/resend', [SecurityController::class, 'twoFactorResend'])->middleware('throttle:3,1');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,1');
+    Route::post('/verify-reset-otp', [AuthController::class, 'verifyResetOtp'])->middleware('throttle:5,1');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 
     // Mobile (Flutter) — Sanctum personal access tokens (no session/CSRF)
-    Route::post('/mobile/login', [AuthController::class, 'mobileLogin']);
-    Route::post('/mobile/verify-email', [AuthController::class, 'mobileVerifyEmail']);
-    Route::post('/mobile/2fa/verify', [SecurityController::class, 'twoFactorVerifyLoginMobile']);
+    Route::post('/mobile/login', [AuthController::class, 'mobileLogin'])->middleware('throttle:5,1');
+    Route::post('/mobile/verify-email', [AuthController::class, 'mobileVerifyEmail'])->middleware('throttle:5,1');
+    Route::post('/mobile/2fa/verify', [SecurityController::class, 'twoFactorVerifyLoginMobile'])->middleware('throttle:5,1');
 });
 
 // Mobile investor API surface (Flutter) — aliases + bootstrap
@@ -114,9 +114,9 @@ Route::prefix('mobile/v1')->group(function () {
     Route::get('/bootstrap', [MobileAppController::class, 'bootstrap']);
 
     Route::prefix('auth')->group(function () {
-        Route::post('/login', [AuthController::class, 'mobileLogin']);
-        Route::post('/verify-email', [AuthController::class, 'mobileVerifyEmail']);
-        Route::post('/2fa/verify', [SecurityController::class, 'twoFactorVerifyLoginMobile']);
+        Route::post('/login', [AuthController::class, 'mobileLogin'])->middleware('throttle:5,1');
+        Route::post('/verify-email', [AuthController::class, 'mobileVerifyEmail'])->middleware('throttle:5,1');
+        Route::post('/2fa/verify', [SecurityController::class, 'twoFactorVerifyLoginMobile'])->middleware('throttle:5,1');
     });
 });
 
@@ -164,11 +164,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/me/sessions/{id}', [SecurityController::class, 'destroySession']);
     Route::get('/me/audit-logs', [SecurityController::class, 'auditLogs']);
     Route::get('/me/2fa', [SecurityController::class, 'twoFactorStatus']);
-    Route::post('/me/2fa/enable', [SecurityController::class, 'twoFactorEnable']);
-    Route::post('/me/2fa/confirm', [SecurityController::class, 'twoFactorConfirm']);
-    Route::post('/me/2fa/disable', [SecurityController::class, 'twoFactorDisable']);
+        Route::post('/me/2fa/enable', [SecurityController::class, 'twoFactorEnable'])->middleware('throttle:5,1');
+        Route::post('/me/2fa/confirm', [SecurityController::class, 'twoFactorConfirm'])->middleware('throttle:5,1');
+        Route::post('/me/2fa/disable', [SecurityController::class, 'twoFactorDisable'])->middleware('throttle:5,1');
 
-    Route::post('/uploads', [UploadController::class, 'store']);
+        Route::post('/uploads', [UploadController::class, 'store'])->middleware('throttle:10,1');
 
     Route::get('/exchange-rates', ExchangeRateController::class);
 
@@ -284,6 +284,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/wallet', [InvestorWalletController::class, 'show']);
         Route::get('/wallet/exchange-rates', [InvestorWalletController::class, 'exchangeRates']);
         Route::get('/wallet/transactions', [InvestorWalletController::class, 'transactions']);
+        Route::get('/wallet/transactions/{id}', [InvestorWalletController::class, 'transaction'])->whereNumber('id');
         Route::get('/wallet/transactions/{id}/pdf', [InvestorWalletController::class, 'transactionPdf']);
 
         Route::get('/projects', [InvestorProjectController::class, 'index']);
@@ -291,7 +292,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/projects/{id}', [InvestorProjectController::class, 'show']);
         Route::get('/projects/{id}/documents/{documentId}/download', [InvestorProjectController::class, 'downloadDocument']);
         Route::get('/projects/{id}/updates/{updateId}/attachment', [InvestorProjectController::class, 'downloadTradeUpdateAttachment']);
-        Route::post('/projects/{id}/invest', [InvestorProjectController::class, 'invest']);
+        Route::post('/projects/{id}/invest', [InvestorProjectController::class, 'invest'])->middleware('throttle:5,1');
         Route::get('/investments', [InvestorProjectController::class, 'myInvestments']);
         Route::get('/investments/{id}', [InvestorProjectController::class, 'showInvestment']);
         Route::get('/investments/{id}/pdf', [InvestorProjectController::class, 'investmentPdf']);
@@ -300,22 +301,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payment-bank-accounts', [InvestorDepositController::class, 'paymentBankAccounts']);
         Route::get('/deposit-options', [InvestorDepositOptionController::class, 'index']);
         Route::get('/deposits', [InvestorDepositController::class, 'index']);
-        Route::post('/deposits', [InvestorDepositController::class, 'store']);
+        Route::post('/deposits', [InvestorDepositController::class, 'store'])->middleware('throttle:5,1');
         Route::get('/deposits/{id}', [InvestorDepositController::class, 'show']);
         Route::get('/deposits/{id}/pdf', [InvestorDepositController::class, 'pdf']);
 
         Route::get('/withdrawals', [InvestorWithdrawalController::class, 'index']);
-        Route::post('/withdrawals/otp/send', [InvestorWithdrawalController::class, 'sendOtp']);
-        Route::post('/withdrawals', [InvestorWithdrawalController::class, 'store']);
+        Route::post('/withdrawals/otp/send', [InvestorWithdrawalController::class, 'sendOtp'])->middleware('throttle:3,1');
+        Route::post('/withdrawals', [InvestorWithdrawalController::class, 'store'])->middleware('throttle:5,1');
         Route::get('/withdrawals/{id}', [InvestorWithdrawalController::class, 'show']);
         Route::get('/withdrawals/{id}/pdf', [InvestorWithdrawalController::class, 'pdf']);
 
         Route::get('/security/transaction-password', [SecurityController::class, 'transactionPasswordStatus']);
-        Route::post('/security/transaction-password/set', [SecurityController::class, 'transactionPasswordSet']);
-        Route::post('/security/transaction-password/reset', [SecurityController::class, 'transactionPasswordReset']);
+        Route::post('/security/transaction-password/set', [SecurityController::class, 'transactionPasswordSet'])->middleware('throttle:5,1');
+        Route::post('/security/transaction-password/reset', [SecurityController::class, 'transactionPasswordReset'])->middleware('throttle:5,1');
 
         Route::get('/kyc', [InvestorKycController::class, 'index']);
-        Route::post('/kyc', [InvestorKycController::class, 'store']);
+        Route::post('/kyc', [InvestorKycController::class, 'store'])->middleware('throttle:5,1');
         Route::get('/kyc/{id}', [InvestorKycController::class, 'show']);
 
         Route::get('/notifications', [InvestorNotificationController::class, 'index']);

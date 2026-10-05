@@ -132,6 +132,38 @@ export interface DashboardInvestmentSummary {
   open_projects: DashboardOpenProject[]
 }
 
+export interface DashboardInvestorAnalytics {
+  period: string
+  active_investors_30d: number
+  new_investors: number
+  investment_count: number
+  invested_amount: number
+  average_investment: number | null
+  funding_projects_count: number
+  funding_target: number
+  funded_amount: number
+  funding_conversion_pct: number | null
+  realized_profit: number | null
+  realized_return_pct: number | null
+  realized_investments_count: number
+  wallet_transaction_count: number
+  wallet_completed_amounts_by_currency: Array<{
+    currency: string
+    credits: number
+    debits: number
+  }>
+  withdrawal_request_count: number
+  approved_withdrawal_count: number
+  average_funding_days: number | null
+  funding_speed_samples: number
+  investor_growth: Array<{ month: string; new_investors: number }>
+  investment_activity: Array<{ month: string; investments: number; amount: number }>
+  wallet_activity: Array<{ month: string; credits: number; debits: number }>
+  withdrawal_activity: Array<{ month: string; requests: number; approved: number }>
+  top_commodities: Array<{ name: string; investment_count: number; investment_amount: number }>
+  top_destinations: Array<{ name: string; investment_count: number; investment_amount: number }>
+}
+
 export interface DashboardCharts {
   revenue_trend: Array<{ month: string; revenue: number; profit: number; expenses: number }>
   buyer_growth: Array<{ month: string; buyers: number; investors: number; suppliers: number }>
@@ -215,6 +247,7 @@ export interface AdminDashboardData {
   warehouse: DashboardWarehouseItem[]
   supplier_offers: DashboardSupplierOffer[]
   investment_summary: DashboardInvestmentSummary
+  investor_analytics: DashboardInvestorAnalytics
   charts: DashboardCharts
   calendar_events: DashboardCalendarEvent[]
   security: DashboardSecurity
@@ -295,6 +328,33 @@ export const EMPTY_DASHBOARD: AdminDashboardData = {
     avg_roi_pct: 0,
     active_projects: 0,
     open_projects: [],
+  },
+  investor_analytics: {
+    period: "month",
+    active_investors_30d: 0,
+    new_investors: 0,
+    investment_count: 0,
+    invested_amount: 0,
+    average_investment: null,
+    funding_projects_count: 0,
+    funding_target: 0,
+    funded_amount: 0,
+    funding_conversion_pct: null,
+    realized_profit: null,
+    realized_return_pct: null,
+    realized_investments_count: 0,
+    wallet_transaction_count: 0,
+    wallet_completed_amounts_by_currency: [],
+    withdrawal_request_count: 0,
+    approved_withdrawal_count: 0,
+    average_funding_days: null,
+    funding_speed_samples: 0,
+    investor_growth: [],
+    investment_activity: [],
+    wallet_activity: [],
+    withdrawal_activity: [],
+    top_commodities: [],
+    top_destinations: [],
   },
   charts: {
     revenue_trend: [],

@@ -83,6 +83,17 @@ class WalletController extends Controller
         return response()->json($transactions);
     }
 
+    public function transaction(Request $request, int $id): JsonResponse
+    {
+        $wallet = Wallet::query()
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $transaction = $wallet->transactions()->findOrFail($id);
+
+        return response()->json(['data' => $transaction]);
+    }
+
     public function transactionPdf(Request $request, int $id, InvestorTransactionPdfGenerator $pdf): \Symfony\Component\HttpFoundation\Response
     {
         $wallet = Wallet::query()->where('user_id', $request->user()->id)->firstOrFail();

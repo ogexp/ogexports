@@ -30,6 +30,10 @@ export function notificationTarget(item: Record<string, unknown>): NotificationT
   const linkedInvestmentId = safeId(investmentPath?.[1] ?? '');
   if (linkedInvestmentId) return { kind: 'investment', id: linkedInvestmentId };
 
+  const directTransactionPath = route.match(/(?:^|\/)(?:account\/transaction|account\/transactions|wallet\/transactions|transaction|transactions)\/([^/?#]+)/i);
+  const directTransactionId = safeId(directTransactionPath?.[1] ?? '');
+  if (directTransactionId) return { kind: 'transaction', id: directTransactionId };
+
   const screenRoutes = [
     ['/account/kyc', '/account/kyc'],
     ['/wallet/deposit', '/wallet/deposit'],
@@ -46,8 +50,8 @@ export function notificationTarget(item: Record<string, unknown>): NotificationT
   const transactionPath = /(?:^|\/)account\/transactions(?:[/?#]|$)/i.test(route);
   const transactionId = first(payload, ['transaction_id', 'wallet_transaction_id', 'transactionId'], first(item, ['transaction_id', 'wallet_transaction_id']));
   if (transactionPath || transactionId) {
-    const routeSearch = route.match(/[?&](?:search|transaction_id|id)=([^&#]+)/i)?.[1];
-    return { kind: 'transaction', id: transactionId || (routeSearch ? decode(routeSearch) : undefined) };
+    const routeSearch = route.match(/[?&](?:search|selected|transaction_id|id)=([^&#]+)/i)?.[1];
+    return { kind: 'transaction', id: safeId(transactionId) || safeId(routeSearch ?? '') || undefined };
   }
 
   const context = [
@@ -82,6 +86,9 @@ export function notificationHref(item: Record<string, unknown>): PostAuthHref | 
   if (target.kind === 'trade') return { pathname: '/project/[id]', params: { id: target.id } };
   if (target.kind === 'investment') return { pathname: '/position/[id]', params: { id: target.id } };
   if (target.kind === 'transaction') {
+    if (target.id && /^\d+$/.test(target.id)) {
+      return { pathname: '/account/transaction/[id]', params: { id: target.id } };
+    }
     return { pathname: '/account/transactions', params: { tab: 'Wallet', search: target.id, selected: target.id } };
   }
   return target.path;
