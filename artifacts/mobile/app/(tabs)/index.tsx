@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -80,6 +80,7 @@ export default function InvestorHome() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const [balanceHidden, setBalanceHidden] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const dashboard = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: !!token, staleTime: 30_000 } });
   const investments = useGetInvestorInvestments({ per_page: 50 }, { query: { queryKey: ['investor-positions', 50], enabled: !!token, staleTime: 30_000 } });
@@ -104,7 +105,6 @@ export default function InvestorHome() {
   const availableBalance = liveBalance;
   const name = first(record(user), ['name', 'first_name'], 'Investor');
   const firstName = name.split(/\s+/)[0] || 'Investor';
-  const initials = name.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'OG';
   const greeting = 'Welcome back';
   const opportunities = list(projects.data);
   const featuredOpportunities = opportunities.slice(0, 3);
@@ -191,7 +191,8 @@ export default function InvestorHome() {
     ? { boxShadow: `0 3px 12px ${colors.shadow}` }
     : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1 };
 
-  return <ScrollView
+  return <>
+  <ScrollView
     refreshControl={<RefreshControl
       testID="home-pull-to-refresh"
       refreshing={refreshing}
@@ -208,25 +209,23 @@ export default function InvestorHome() {
     }}
     showsVerticalScrollIndicator={false}
   >
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-        <Image source={require('../../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 38, height: 34 }} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ color: colors.primary, fontSize: 9, fontWeight: '700', letterSpacing: 1.1 }}>OG EXPORTS</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 21, fontWeight: '700', letterSpacing: -0.55, marginTop: 3 }}>{greeting}, {firstName}</Text>
-          <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 3 }}>Your trade portfolio at a glance</Text>
-        </View>
+    <View style={{ height: 46, justifyContent: 'center', alignItems: 'center', marginBottom: 13 }}>
+      <Pressable testID="home-account-menu" accessibilityRole="button" accessibilityLabel="Open account menu" hitSlop={8} onPress={() => setAccountMenuOpen(true)}
+        style={({ pressed }) => ({ position: 'absolute', left: 0, width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.76 : 1 })}>
+        <Feather name="menu" size={20} color={colors.primary} />
+      </Pressable>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, maxWidth: '70%' }}>
+        <Image source={require('../../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 34, height: 32 }} />
+        <Text numberOfLines={1} adjustsFontSizeToFit style={{ flexShrink: 1, color: colors.primary, fontSize: 17, fontWeight: '700', letterSpacing: -0.3 }}>OG Exports</Text>
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Pressable testID="home-notifications" accessibilityRole="button" accessibilityLabel="Open notifications" hitSlop={8} onPress={() => router.push('/account/notifications')}
-          style={({ pressed }) => ({ width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.76 : 1 })}>
-          <Feather name="bell" size={18} color={colors.primary} />
-        </Pressable>
-        <Pressable testID="home-profile" accessibilityRole="button" accessibilityLabel="Open profile and account options" hitSlop={8} onPress={() => router.push('/account/profile')}
-          style={({ pressed }) => ({ width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.76 : 1 })}>
-          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{initials}</Text>
-        </Pressable>
-      </View>
+      <Pressable testID="home-notifications" accessibilityRole="button" accessibilityLabel="Open notifications" hitSlop={8} onPress={() => router.push('/account/notifications')}
+        style={({ pressed }) => ({ position: 'absolute', right: 0, width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.76 : 1 })}>
+        <Feather name="bell" size={18} color={colors.primary} />
+      </Pressable>
+    </View>
+    <View style={{ marginBottom: 16 }}>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 20, fontWeight: '600', letterSpacing: -0.4 }}>{greeting}, {firstName}</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 3 }}>Your trade portfolio at a glance</Text>
     </View>
 
     <Card style={{ padding: 20, paddingBottom: 19, borderRadius: 20, marginBottom: 0 }}>
@@ -478,5 +477,54 @@ export default function InvestorHome() {
       <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 13 }}>Payout schedule</Text><Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 4 }}>Upcoming payout details are not available from the server.</Text></View>
     </Card>}
 
-  </ScrollView>;
+  </ScrollView>
+  <Modal
+    visible={accountMenuOpen}
+    transparent
+    animationType="fade"
+    statusBarTranslucent
+    onRequestClose={() => setAccountMenuOpen(false)}
+  >
+    <View style={{ flex: 1, flexDirection: 'row', backgroundColor: 'rgba(10, 22, 16, 0.36)' }}>
+      <View accessibilityViewIsModal style={{
+        width: '82%',
+        maxWidth: 320,
+        backgroundColor: colors.card,
+        borderColor: colors.border,
+        borderRightWidth: 1,
+        borderTopRightRadius: 26,
+        borderBottomRightRadius: 26,
+        paddingTop: insets.top + 16,
+        paddingBottom: Math.max(insets.bottom, 16) + 14,
+        paddingHorizontal: 20,
+        shadowColor: colors.shadowColor,
+        shadowOffset: { width: 4, height: 0 },
+        shadowOpacity: 0.12,
+        shadowRadius: 18,
+        elevation: 14,
+      }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 17 }}>
+          <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>Account</Text>
+          <Pressable testID="home-menu-close" accessibilityRole="button" accessibilityLabel="Close account menu" hitSlop={8} onPress={() => setAccountMenuOpen(false)}
+            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.75 : 1 })}>
+            <Feather name="x" size={19} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
+        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginBottom: 16 }} />
+        <Pressable testID="home-profile" accessibilityRole="button" accessibilityLabel="Open profile" onPress={() => {
+          setAccountMenuOpen(false);
+          router.push('/account/profile');
+        }}
+          style={({ pressed }) => ({ minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, borderRadius: 15, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, opacity: pressed ? 0.78 : 1 })}>
+          <View style={{ width: 38, height: 38, borderRadius: 14, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
+            <Feather name="user" size={17} color={colors.primary} />
+          </View>
+          <Text style={{ flex: 1, color: colors.foreground, fontSize: 14, fontWeight: '600' }}>Profile</Text>
+          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        </Pressable>
+      </View>
+      <Pressable accessibilityRole="button" accessibilityLabel="Close account menu" onPress={() => setAccountMenuOpen(false)} style={{ flex: 1 }} />
+    </View>
+  </Modal>
+  </>;
 }

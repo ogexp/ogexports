@@ -5,7 +5,7 @@ description: The requested premium light brand style and data-safe visual constr
 
 Across OG Exports web and mobile, keep a calm premium visual language: warm off-white surfaces, clear emerald hierarchy, soft green highlights, and muted gold only as a small accent. Use moderate heading sizes and weights; avoid oversized heavy type, black-heavy surfaces, strong glows, and metallic shimmer. Light is the default appearance; users can choose Light, Dark, or System.
 
-Use four bottom tabs: Home, Explore, Portfolio, and Wallet. Keep Profile out of the tab bar and make it accessible from the top-right avatar/menu.
+Use four bottom tabs: Home, Explore, Portfolio, and Wallet. Keep Profile out of the tab bar and make it accessible from the left hamburger menu. Center the OG Exports logo/name in the home header and keep notifications on the right.
 
 The metallic emerald “OG” artwork supplied by the user is the official logo. Use that artwork for app identity instead of the previous sprout mark, with a transparent background and its original emerald colors.
 
