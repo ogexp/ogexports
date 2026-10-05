@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable } from 'react-native';
+import { Platform, Pressable } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
@@ -68,9 +68,10 @@ export default function Verify() {
   const isPending = emailVerify.isPending || twoFactor.isPending;
   return <KeyboardAwareScrollViewCompat
     style={{ flex: 1, backgroundColor: colors.background }}
+    contentInsetAdjustmentBehavior="never"
     contentContainerStyle={{
       flexGrow: 1,
-      paddingTop: insets.top + 28,
+      paddingTop: Platform.OS === 'ios' ? 0 : insets.top + 28,
       paddingBottom: insets.bottom + 24,
       paddingHorizontal: 20,
       justifyContent: 'center',

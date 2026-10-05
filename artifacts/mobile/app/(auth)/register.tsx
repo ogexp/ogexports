@@ -135,11 +135,12 @@ export default function Register() {
     }
   }
 
-  const topInset = Platform.OS === 'web' ? 72 : insets.top + 10;
+  const topInset = Platform.OS === 'web' ? 72 : Platform.OS === 'ios' ? insets.top : insets.top + 10;
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom + 24;
   return (
     <KeyboardAwareScrollViewCompat
       style={{ flex: 1, backgroundColor: colors.background }}
+      contentInsetAdjustmentBehavior="never"
       contentContainerStyle={[s.container, { paddingTop: topInset, paddingBottom: bottomInset }]}
       bottomOffset={72}
       keyboardShouldPersistTaps="handled"

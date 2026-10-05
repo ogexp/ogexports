@@ -13,6 +13,7 @@ import {
 import { LocalizedText as Text, LocalizedTextInput as TextInput } from '@/components/LocalizedText';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSegments } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { useQueryClient } from '@tanstack/react-query';
@@ -40,7 +41,13 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
 }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const topPadding = Platform.OS === 'web' ? 67 : Platform.OS === 'android' ? insets.top : insets.top + 10;
+  const segments = useSegments();
+  const isHeaderlessTabRoute = segments[0] === '(tabs)';
+  const topPadding = Platform.OS === 'web'
+    ? 67
+    : Platform.OS === 'android'
+      ? insets.top
+      : isHeaderlessTabRoute ? insets.top : 0;
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = React.useState(false);
   const refresh = React.useCallback(async () => {
@@ -77,7 +84,7 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
     );
   }
   return (
-    <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: colors.background }} contentInsetAdjustmentBehavior="automatic"
+    <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: colors.background }} contentInsetAdjustmentBehavior={Platform.OS === 'ios' ? 'never' : 'automatic'}
       keyboardShouldPersistTaps="handled" bottomOffset={24}
       refreshControl={refreshable ? <RefreshControl
         testID="screen-pull-to-refresh"

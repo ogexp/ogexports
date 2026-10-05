@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
@@ -46,7 +47,7 @@ export default function ForgotPassword() {
     } catch (err) { setError(messageOf(err)); }
   }
   const title = ['Reset your password', 'Enter your email code', 'Choose a new password', 'Password updated'][step];
-  return <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 30, paddingBottom: insets.bottom + 24, paddingHorizontal: 20, justifyContent: 'center' }} bottomOffset={72} keyboardShouldPersistTaps="handled">
+  return <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: colors.background }} contentInsetAdjustmentBehavior="never" contentContainerStyle={{ flexGrow: 1, paddingTop: Platform.OS === 'ios' ? 0 : insets.top + 30, paddingBottom: insets.bottom + 24, paddingHorizontal: 20, justifyContent: 'center' }} bottomOffset={72} keyboardShouldPersistTaps="handled">
     <Text style={{ color: colors.foreground, fontSize: 27, fontWeight: '700' }}>{title}</Text>
     <Text style={{ color: colors.mutedForeground, marginTop: 8, marginBottom: 20, lineHeight: 21 }}>
       {step === 0
