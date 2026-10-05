@@ -36,29 +36,36 @@ function ClassicLayout() {
   const t = (value: string) => translateUi(value, preferences.language);
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === 'web';
-  const androidTabBarBottom = Math.min(Math.max(insets.bottom - 12, 8), 16);
+  const isAndroid = Platform.OS === 'android';
   return (
     <Tabs screenOptions={{
       headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.mutedForeground,
       tabBarStyle: {
-        position: 'absolute', left: 14, right: 14,
-        bottom: isWeb ? 0 : Platform.OS === 'android' ? androidTabBarBottom : Math.max(insets.bottom, 10),
-        height: isWeb ? 84 : 70, paddingTop: 4, paddingBottom: isWeb ? 34 : 0,
-        backgroundColor: 'transparent', borderTopWidth: 0, elevation: 0,
+        position: 'absolute', left: isAndroid ? 0 : 14, right: isAndroid ? 0 : 14,
+        bottom: isWeb || isAndroid ? 0 : Math.max(insets.bottom, 10),
+        height: isWeb ? 84 : isAndroid ? 64 : 70,
+        paddingTop: isWeb ? 2 : isAndroid ? 0 : 4,
+        paddingBottom: isWeb ? 34 : 0,
+        backgroundColor: isAndroid ? colors.card : 'transparent',
+        borderTopWidth: isAndroid ? StyleSheet.hairlineWidth : 0,
+        borderTopColor: colors.border,
+        elevation: 0,
       },
       tabBarItemStyle: { paddingTop: isWeb ? 2 : 0 },
       tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: 1 },
-      tabBarBackground: () => (
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          {Platform.OS === 'ios' ? <BlurView intensity={85} tint={resolvedAppearance} style={[StyleSheet.absoluteFill, { bottom: isWeb ? 34 : 0 }]} /> : null}
-          <View style={{
-            position: 'absolute', left: 0, right: 0, top: 0, bottom: isWeb ? 34 : 0,
-            backgroundColor: colors.card,
-            borderWidth: 1, borderColor: colors.border, borderRadius: 30,
-            ...(isWeb ? { boxShadow: `0 -6px 20px ${colors.shadow}` } : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 12 }),
-          }} />
-        </View>
-      ),
+      tabBarBackground: () => isAndroid
+        ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]} />
+        : (
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            {Platform.OS === 'ios' ? <BlurView intensity={85} tint={resolvedAppearance} style={[StyleSheet.absoluteFill, { bottom: isWeb ? 34 : 0 }]} /> : null}
+            <View style={{
+              position: 'absolute', left: 0, right: 0, top: 0, bottom: isWeb ? 34 : 0,
+              backgroundColor: colors.card,
+              borderWidth: 1, borderColor: colors.border, borderRadius: 30,
+              ...(isWeb ? { boxShadow: `0 -6px 20px ${colors.shadow}` } : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 12 }),
+            }} />
+          </View>
+        ),
     }}>
       {([
         ['index', t('Home'), 'home-outline', 'home', 'house.circle', 'house.circle.fill'],

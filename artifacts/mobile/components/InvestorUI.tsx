@@ -40,6 +40,7 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
 }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const topPadding = Platform.OS === 'web' ? 67 : Platform.OS === 'android' ? insets.top : insets.top + 10;
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = React.useState(false);
   const refresh = React.useCallback(async () => {
@@ -66,7 +67,7 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
       <View style={{
         flex: 1,
         backgroundColor: colors.background,
-        paddingTop: Platform.OS === 'web' ? 67 : insets.top + 10,
+        paddingTop: topPadding,
         paddingBottom: Platform.OS === 'web' ? 34 : 0,
         paddingHorizontal: 20,
       }}>
@@ -86,7 +87,7 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
         colors={[colors.primary]}
         progressBackgroundColor={colors.card}
       /> : undefined}
-      contentContainerStyle={{ paddingTop: Platform.OS === 'web' ? 67 : insets.top + 10, paddingBottom: Platform.OS === 'web' ? 110 : insets.bottom + 104, paddingHorizontal: 20 }}>
+      contentContainerStyle={{ paddingTop: topPadding, paddingBottom: Platform.OS === 'web' ? 110 : insets.bottom + 104, paddingHorizontal: 20 }}>
       {header}
       {children}
     </KeyboardAwareScrollViewCompat>
