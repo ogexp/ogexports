@@ -145,7 +145,7 @@ export default function SignIn() {
       <div className="space-y-8">
         <div>
           <img src={`${import.meta.env.BASE_URL}og-logo.png`} alt="OG Exports" className="h-14 w-auto mb-6" />
-          <h2 className="text-3xl font-heading font-bold text-foreground">Welcome back</h2>
+          <h2 className="text-2xl font-heading font-semibold text-foreground">Welcome back</h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Sign in to your OG Exports trade account
           </p>
@@ -208,11 +208,11 @@ export default function SignIn() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-lg text-sm font-bold tracking-wide transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold tracking-wide transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
             style={{
               background: "hsl(var(--primary))",
               color: "hsl(var(--primary-foreground))",
-              boxShadow: "0 2px 16px hsl(var(--primary) / 0.35)",
+              boxShadow: "0 2px 8px hsl(var(--primary) / 0.16)",
             }}
           >
             {isSubmitting ? (

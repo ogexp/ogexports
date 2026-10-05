@@ -48,7 +48,7 @@ export function LuxuryHero() {
   }, []);
 
   return (
-    <section className="relative min-h-[100dvh] flex flex-col justify-end overflow-hidden bg-[#050E0A]">
+    <section className="relative min-h-[88dvh] flex flex-col justify-end overflow-hidden bg-[#14241E]">
 
       {/* ── Video Backgrounds ── */}
       {VIDEOS.map((src, idx) => (
@@ -64,12 +64,12 @@ export function LuxuryHero() {
       ))}
 
       {/* ── Layered Overlays ── */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#050E0A]/95 via-[#050E0A]/40 to-[#050E0A]/20 pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#050E0A]/80 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#14241E]/90 via-[#14241E]/38 to-[#14241E]/18 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#14241E]/66 via-transparent to-transparent pointer-events-none" />
       {/* Emerald tint overlay at bottom */}
       <div
         className="absolute bottom-0 left-0 right-0 h-[40%] pointer-events-none"
-        style={{ background: "linear-gradient(to top, hsl(158 59% 8% / 0.6), transparent)" }}
+        style={{ background: "linear-gradient(to top, hsl(153 34% 14% / 0.48), transparent)" }}
       />
 
       {/* ── Decorative Gold Lines ── */}
@@ -90,18 +90,16 @@ export function LuxuryHero() {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="inline-flex items-center gap-3 px-4 py-2 rounded-full border backdrop-blur-md"
             style={{
-              background: "hsl(43 85% 47% / 0.12)",
-              borderColor: "hsl(43 85% 47% / 0.35)",
+              background: "hsl(39 39% 56% / 0.12)",
+              borderColor: "hsl(39 39% 70% / 0.30)",
             }}
           >
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-                style={{ background: "hsl(43 85% 47%)" }} />
               <span className="relative inline-flex rounded-full h-2 w-2"
-                style={{ background: "hsl(43 85% 47%)" }} />
+               style={{ background: "hsl(39 55% 68%)" }} />
             </span>
-            <span className="text-xs font-bold tracking-[0.2em] uppercase"
-              style={{ color: "hsl(43 90% 68%)" }}>
+            <span className="text-xs font-semibold tracking-[0.14em] uppercase"
+              style={{ color: "hsl(39 44% 82%)" }}>
               {getSiteSettings().hero.badge || "Pakistan's Premier Agricultural Exporter"}
             </span>
           </motion.div>
@@ -112,17 +110,17 @@ export function LuxuryHero() {
             animate={loaded ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.9, delay: 0.2 }}
           >
-            <h1 className="font-heading font-bold leading-[1.05] tracking-tight text-white">
-              <span className="block text-5xl md:text-7xl lg:text-8xl">
+            <h1 className="font-heading font-medium leading-[1.12] tracking-tight text-white">
+              <span className="block text-3xl md:text-5xl lg:text-[3.75rem]">
                 Connecting the World
               </span>
-              <span className="block text-5xl md:text-7xl lg:text-8xl">
+              <span className="block text-3xl md:text-5xl lg:text-[3.75rem]">
                 to Pakistan's
               </span>
               <span
-                className="block text-5xl md:text-7xl lg:text-8xl"
+                className="block text-3xl md:text-5xl lg:text-[3.75rem]"
                 style={{
-                  background: "linear-gradient(130deg, hsl(43 90% 72%), hsl(43 85% 52%) 50%, hsl(43 90% 72%))",
+                  background: "linear-gradient(130deg, hsl(39 44% 83%), hsl(39 39% 67%) 50%, hsl(39 44% 83%))",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
@@ -138,7 +136,7 @@ export function LuxuryHero() {
             initial={{ opacity: 0, y: 20 }}
             animate={loaded ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-lg md:text-xl text-white/75 max-w-2xl leading-relaxed font-light"
+            className="text-base md:text-lg text-white/78 max-w-2xl leading-relaxed font-light"
           >
             {getSiteSettings().hero.subheadline || "OG Exports (Private) Limited — a direct importer and exporter of premium agricultural commodities, serving verified buyers across 40+ countries with 5+ years of institutional trade expertise."}
           </motion.p>
@@ -152,20 +150,20 @@ export function LuxuryHero() {
           >
             <Link href="/products">
               <button
-                className="inline-flex items-center gap-2.5 h-14 px-8 rounded-full font-heading font-semibold text-base transition-all duration-300 group"
+                className="inline-flex items-center gap-2.5 h-12 px-7 rounded-lg font-heading font-semibold text-sm transition-all duration-300 group"
                 style={{
                   background: "hsl(158 59% 15%)",
                   color: "white",
                   border: "1px solid hsl(158 59% 25%)",
-                  boxShadow: "0 4px 24px hsl(158 59% 15% / 0.5)",
+                  boxShadow: "0 3px 12px hsl(153 34% 12% / 0.22)",
                 }}
                 onMouseEnter={e => {
                   (e.currentTarget as HTMLElement).style.background = "hsl(158 55% 20%)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 32px hsl(158 59% 15% / 0.7)";
+                  (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 14px hsl(153 34% 12% / 0.28)";
                 }}
                 onMouseLeave={e => {
                   (e.currentTarget as HTMLElement).style.background = "hsl(158 59% 15%)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 24px hsl(158 59% 15% / 0.5)";
+                  (e.currentTarget as HTMLElement).style.boxShadow = "0 3px 12px hsl(153 34% 12% / 0.22)";
                 }}
               >
                 Explore Products
@@ -175,22 +173,22 @@ export function LuxuryHero() {
             <InvestmentModuleOptional>
             <Link href="/invest">
               <button
-                className="inline-flex items-center gap-2.5 h-14 px-8 rounded-full font-heading font-semibold text-base transition-all duration-300 group"
+                className="inline-flex items-center gap-2.5 h-12 px-7 rounded-lg font-heading font-semibold text-sm transition-all duration-300 group"
                 style={{
-                  background: "hsl(43 85% 47%)",
-                  color: "hsl(207 28% 8%)",
+                  background: "hsl(39 39% 65%)",
+                  color: "hsl(164 17% 17%)",
                   border: "none",
-                  boxShadow: "0 2px 10px hsl(43 85% 47% / 0.30), 0 6px 28px hsl(43 85% 47% / 0.22)",
+                  boxShadow: "0 2px 8px hsl(39 39% 25% / 0.16)",
                 }}
                 onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px hsl(43 85% 47% / 0.40), 0 10px 40px hsl(43 85% 47% / 0.28)";
-                  (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
-                  (e.currentTarget as HTMLElement).style.background = "hsl(43 85% 50%)";
+                  (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 12px hsl(39 39% 25% / 0.20)";
+                  (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+                  (e.currentTarget as HTMLElement).style.background = "hsl(39 42% 69%)";
                 }}
                 onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 10px hsl(43 85% 47% / 0.30), 0 6px 28px hsl(43 85% 47% / 0.22)";
+                  (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 8px hsl(39 39% 25% / 0.16)";
                   (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-                  (e.currentTarget as HTMLElement).style.background = "hsl(43 85% 47%)";
+                  (e.currentTarget as HTMLElement).style.background = "hsl(39 39% 65%)";
                 }}
               >
                 <TrendingUp className="w-4 h-4" />
@@ -200,7 +198,7 @@ export function LuxuryHero() {
             </InvestmentModuleOptional>
             <Link href="/contact">
               <button
-                className="inline-flex items-center gap-2.5 h-14 px-8 rounded-full font-heading font-semibold text-base transition-all duration-300 group"
+                className="inline-flex items-center gap-2.5 h-12 px-7 rounded-lg font-heading font-semibold text-sm transition-all duration-300 group"
                 style={{
                   background: "hsl(0 0% 100% / 0.08)",
                   color: "white",
@@ -242,7 +240,7 @@ export function LuxuryHero() {
           initial={{ opacity: 0, x: 30 }}
           animate={loaded ? { opacity: 1, x: 0 } : {}}
           transition={{ duration: 0.9, delay: 0.5 }}
-          className="hidden lg:flex flex-col gap-4 min-w-[220px]"
+          className="hidden lg:flex flex-col gap-3 min-w-[210px]"
         >
           {[
             { value: "40+", label: "Active Markets", color: "hsl(38 41% 59%)" },
@@ -253,11 +251,11 @@ export function LuxuryHero() {
               key={i}
               className="px-6 py-5 rounded-2xl backdrop-blur-xl border"
               style={{
-                background: "hsl(0 0% 0% / 0.38)",
-                borderColor: "hsl(0 0% 100% / 0.10)",
+               background: "hsl(153 25% 16% / 0.55)",
+               borderColor: "hsl(0 0% 100% / 0.15)",
               }}
             >
-              <div className="text-3xl font-heading font-bold" style={{ color: stat.color }}>
+              <div className="text-2xl font-heading font-semibold" style={{ color: stat.color }}>
                 {stat.value}
               </div>
               <div className="text-white/55 text-xs mt-1 uppercase tracking-wider font-medium">
@@ -273,7 +271,7 @@ export function LuxuryHero() {
         className="relative z-20 border-t overflow-hidden"
         style={{
           borderTopColor: "hsl(38 41% 59% / 0.25)",
-          background: "hsl(0 0% 0% / 0.35)",
+          background: "hsl(153 25% 16% / 0.58)",
           backdropFilter: "blur(12px)",
         }}
       >

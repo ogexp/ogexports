@@ -146,7 +146,7 @@ export function InvestPortalLayout({ children, title, subtitle }: InvestPortalLa
   // Loading state
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-muted-foreground">Loading portal…</p>
@@ -158,7 +158,7 @@ export function InvestPortalLayout({ children, title, subtitle }: InvestPortalLa
   // Auth wall — shown briefly before redirect fires
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center px-4">
         <div className="text-center space-y-6 max-w-sm">
           <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
             <Lock className="w-7 h-7 text-primary" />
@@ -207,7 +207,7 @@ export function InvestPortalLayout({ children, title, subtitle }: InvestPortalLa
   }
 
   return (
-    <div className="h-screen bg-background flex overflow-hidden flex-col">
+    <div className="h-[100dvh] bg-background flex overflow-hidden flex-col">
       <ImpersonationBanner />
       <div className="flex flex-1 overflow-hidden">
       {/* Sidebar overlay on mobile */}
@@ -275,7 +275,7 @@ export function InvestPortalLayout({ children, title, subtitle }: InvestPortalLa
                         className={cn(
                           "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                           isActive
-                            ? "bg-primary text-primary-foreground shadow-sm"
+              ? "bg-primary/10 text-primary border border-primary/10"
                             : "text-foreground/70 hover:text-foreground hover:bg-foreground/6"
                         )}
                       >

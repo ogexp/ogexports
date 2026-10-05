@@ -15,11 +15,10 @@ import {
   Sprout, TrendingUp,
 } from "lucide-react"
 
-const EMERALD = "#0F3D2E"
-const GOLD = "#D4A012"
-const SIDEBAR_BG = "#0a2a1e"
-const SIDEBAR_HOVER = "rgba(212,160,18,0.12)"
-const SIDEBAR_ACTIVE = "rgba(212,160,18,0.18)"
+const GOLD = "#c5b487"
+const SIDEBAR_BG = "#203b31"
+const SIDEBAR_HOVER = "rgba(215,224,211,0.08)"
+const SIDEBAR_ACTIVE = "rgba(215,224,211,0.13)"
 
 const NAV = [
   {
@@ -241,12 +240,12 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
       <div className="px-5 py-5 border-b shrink-0" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
         <Link href="/admin/dashboard" className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: "linear-gradient(135deg, #4CAF50, #0F3D2E)" }}>
+            style={{ background: "rgba(229,237,225,0.10)" }}>
             <LayoutDashboard className="w-5 h-5 text-white" />
           </div>
           <div>
-            <div className="text-white font-bold text-sm leading-none">OG Exports</div>
-            <div className="text-[10px] font-bold tracking-widest mt-0.5" style={{ color: GOLD }}>
+            <div className="text-white font-semibold text-sm leading-none">OG Exports</div>
+            <div className="text-[10px] font-semibold tracking-[0.14em] mt-0.5" style={{ color: GOLD }}>
               SUPER ADMIN
             </div>
           </div>
@@ -257,7 +256,7 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
       <div className="flex-1 overflow-y-auto min-h-0 py-3 px-3 space-y-5">
         {navGroups.map(section => (
           <div key={section.group}>
-            <p className="text-[9px] font-bold tracking-[0.15em] px-2 mb-1.5" style={{ color: "rgba(255,255,255,0.3)" }}>
+            <p className="text-[9px] font-semibold tracking-[0.12em] px-2 mb-1.5" style={{ color: "rgba(255,255,255,0.45)" }}>
               {section.group}
             </p>
             <div className="space-y-0.5">
@@ -270,10 +269,10 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
                       className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer"
                       style={{
                         background: active ? SIDEBAR_ACTIVE : "transparent",
-                        color: active ? GOLD : "rgba(255,255,255,0.6)",
+                        color: active ? "#e2dcc9" : "rgba(255,255,255,0.72)",
                       }}
-                      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLDivElement).style.background = SIDEBAR_HOVER; (e.currentTarget as HTMLDivElement).style.color = "rgba(255,255,255,0.9)" }}
-                      onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLDivElement).style.background = "transparent"; (e.currentTarget as HTMLDivElement).style.color = "rgba(255,255,255,0.6)" } }}
+                       onMouseEnter={e => { if (!active) (e.currentTarget as HTMLDivElement).style.background = SIDEBAR_HOVER; (e.currentTarget as HTMLDivElement).style.color = "rgba(255,255,255,0.96)" }}
+                       onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLDivElement).style.background = "transparent"; (e.currentTarget as HTMLDivElement).style.color = "rgba(255,255,255,0.72)" } }}
                     >
                       <item.icon className="w-4 h-4 shrink-0" style={{ color: active ? GOLD : undefined }} />
                       <span className="flex-1 truncate">{item.label}</span>
@@ -299,7 +298,7 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
       <div className="px-3 py-3 border-t shrink-0" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
-            style={{ background: "linear-gradient(135deg, #D4A012, #8a6000)" }}>
+            style={{ background: "rgba(215,224,211,0.16)" }}>
             SA
           </div>
           <div className="flex-1 min-w-0">
@@ -320,7 +319,7 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
   )
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "#F7F7F2" }}>
+    <div className="flex h-[100dvh] overflow-hidden" style={{ background: "hsl(var(--background))" }}>
       {/* Desktop sidebar */}
       <div className="hidden lg:flex h-full">
         {sidebarNav}
@@ -342,7 +341,7 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
-        <div className="h-14 bg-white border-b border-border flex items-center gap-4 px-5 shrink-0">
+        <div className="h-16 bg-card/90 border-b border-border flex items-center gap-4 px-5 shrink-0">
           <button className="lg:hidden text-foreground/60 hover:text-foreground" onClick={() => setSidebarOpen(true)}>
             <Menu className="w-5 h-5" />
           </button>
@@ -360,7 +359,7 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
             {/* System health dot */}
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold"
               style={{ background: "rgba(76,175,80,0.1)", color: "#4CAF50" }}>
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <div className="w-1.5 h-1.5 rounded-full bg-green-700/70" />
               Systems Normal
             </div>
 
@@ -373,7 +372,7 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
 
             {/* Admin avatar */}
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white"
-              style={{ background: "linear-gradient(135deg, #D4A012, #8a6000)" }}>
+              style={{ background: "hsl(var(--primary) / 0.12)", color: "hsl(var(--primary))" }}>
               SA
             </div>
           </div>

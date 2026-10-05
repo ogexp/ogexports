@@ -19,7 +19,7 @@ function NativeLayout() {
     <NativeTabs
       tintColor={colors.primary}
       iconColor={{ default: colors.mutedForeground, selected: colors.primary }}
-      labelStyle={{ default: { color: colors.mutedForeground }, selected: { color: colors.primary, fontWeight: '700' } }}
+      labelStyle={{ default: { color: colors.mutedForeground }, selected: { color: colors.primary, fontWeight: '600' } }}
       backgroundColor={colors.card}
     >
       <NativeTabs.Trigger name="index"><NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} /><NativeTabs.Trigger.Label>{t('Home')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>

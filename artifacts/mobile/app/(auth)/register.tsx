@@ -139,7 +139,7 @@ export default function Register() {
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom + 24;
   return (
     <KeyboardAwareScrollViewCompat
-      style={{ flex: 1, backgroundColor: colors.secondary }}
+      style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={[s.container, { paddingTop: topInset, paddingBottom: bottomInset }]}
       bottomOffset={72}
       keyboardShouldPersistTaps="handled"

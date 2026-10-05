@@ -64,58 +64,55 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ============================================================
-   LIGHT MODE — Deep Emerald · Luxury Gold · Soft Off-White
-   Palette: #0F3D2E emerald · #4CAF50 fresh green · #F7F7F2 off-white
-            #1F2933 charcoal · #C6A969 soft gold
-   ============================================================ */
+/* OG Exports — cultivated trade palette: mineral green, warm limestone,
+   and a restrained harvest-brass accent. */
 :root {
-  --background: 60 17% 96%;           /* #F7F7F2 soft off-white */
-  --foreground: 207 24% 16%;          /* #1F2933 charcoal */
-  --border: 60 10% 88%;               /* warm gray border */
-  --input: 60 10% 91%;
-  --ring: 158 59% 15%;                /* deep emerald ring */
+  --background: 48 24% 96%;
+  --foreground: 164 17% 19%;
+  --border: 42 13% 86%;
+  --input: 42 16% 90%;
+  --ring: 153 34% 31%;
 
-  --card: 0 0% 100%;                  /* pure white cards */
-  --card-foreground: 207 24% 16%;
-  --card-border: 60 10% 88%;
+  --card: 48 30% 99%;
+  --card-foreground: 164 17% 19%;
+  --card-border: 42 13% 87%;
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 207 24% 16%;
-  --popover-border: 60 10% 88%;
+  --popover: 48 30% 99%;
+  --popover-foreground: 164 17% 19%;
+  --popover-border: 42 13% 87%;
 
-  --primary: 158 59% 15%;             /* #0F3D2E deep emerald */
-  --primary-foreground: 60 17% 96%;
-  --primary-border: hsl(158 59% 15% / 0.22);
+  --primary: 153 34% 29%;
+  --primary-foreground: 48 24% 97%;
+  --primary-border: hsl(153 34% 29% / 0.20);
 
-  --secondary: 123 38% 49%;           /* #4CAF50 fresh green */
-  --secondary-foreground: 0 0% 98%;
-  --secondary-border: hsl(123 38% 49% / 0.22);
+  --secondary: 147 24% 43%;
+  --secondary-foreground: 48 24% 97%;
+  --secondary-border: hsl(147 24% 43% / 0.22);
 
-  --muted: 60 12% 93%;               /* warm light gray */
-  --muted-foreground: 207 16% 46%;   /* mid charcoal-gray */
-  --muted-border: hsl(60 10% 88%);
+  --muted: 45 21% 92%;
+  --muted-foreground: 159 9% 45%;
+  --muted-border: hsl(42 13% 86%);
 
-  --accent: 41 45% 59%;              /* #C6A969 luxury muted gold */
-  --accent-foreground: 207 28% 8%;
-  --accent-border: hsl(41 45% 59% / 0.28);
+  --accent: 39 39% 56%;
+  --accent-foreground: 164 17% 17%;
+  --accent-border: hsl(39 39% 56% / 0.25);
 
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 98%;
   --destructive-border: hsl(0 72% 51% / 0.3);
 
-  --sidebar: 60 14% 94%;
-  --sidebar-foreground: 207 24% 16%;
-  --sidebar-border: 60 10% 88%;
-  --sidebar-primary: 158 59% 15%;
-  --sidebar-primary-foreground: 60 17% 96%;
-  --sidebar-primary-border: hsl(158 59% 15% / 0.22);
-  --sidebar-accent: 41 45% 59%;
-  --sidebar-accent-foreground: 207 28% 8%;
-  --sidebar-accent-border: hsl(41 45% 59% / 0.28);
-  --sidebar-ring: 158 59% 15%;
+  --sidebar: 45 25% 94%;
+  --sidebar-foreground: 164 17% 19%;
+  --sidebar-border: 42 13% 86%;
+  --sidebar-primary: 153 34% 29%;
+  --sidebar-primary-foreground: 48 24% 97%;
+  --sidebar-primary-border: hsl(153 34% 29% / 0.20);
+  --sidebar-accent: 39 39% 56%;
+  --sidebar-accent-foreground: 164 17% 17%;
+  --sidebar-accent-border: hsl(39 39% 56% / 0.25);
+  --sidebar-ring: 153 34% 31%;
 
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 }
 
 /* ============================================================
@@ -261,34 +258,24 @@ textarea:focus-visible {
   @apply backdrop-blur-md border shadow-sm;
   background: hsl(var(--card) / 0.90);
   border-color: hsl(var(--card-border));
-  box-shadow:
-    0 1px 3px hsl(0 0% 0% / 0.06),
-    0 4px 16px hsl(0 0% 0% / 0.04);
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+  box-shadow: 0 1px 3px hsl(164 17% 19% / 0.045), 0 5px 18px hsl(164 17% 19% / 0.025);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease;
 }
 .glass-card:hover {
-  transform: translateY(-2px);
-  border-color: hsl(43 45% 59% / 0.45);
-  box-shadow:
-    0 2px 6px hsl(0 0% 0% / 0.06),
-    0 12px 32px hsl(0 0% 0% / 0.08),
-    0 0 0 1px hsl(43 45% 59% / 0.12);
+  transform: translateY(-1px);
+  border-color: hsl(var(--accent) / 0.38);
+  box-shadow: 0 4px 14px hsl(164 17% 19% / 0.06);
 }
 
 .luxury-card {
   @apply bg-card border rounded-2xl transition-all duration-300;
   border-color: hsl(var(--card-border));
-  box-shadow:
-    0 1px 3px hsl(0 0% 0% / 0.06),
-    0 4px 24px hsl(0 0% 0% / 0.05);
+  box-shadow: 0 1px 3px hsl(164 17% 19% / 0.045), 0 5px 18px hsl(164 17% 19% / 0.025);
 }
 .luxury-card:hover {
   border-color: hsl(var(--accent) / 0.38);
-  box-shadow:
-    0 4px 12px hsl(0 0% 0% / 0.09),
-    0 12px 40px hsl(0 0% 0% / 0.07),
-    0 0 0 1px hsl(var(--accent) / 0.16);
-  transform: translateY(-3px);
+  box-shadow: 0 4px 14px hsl(164 17% 19% / 0.06);
+  transform: translateY(-1px);
 }
 
 .gold-divider {
@@ -329,15 +316,15 @@ textarea:focus-visible {
   @apply bg-clip-text text-transparent;
   background-image: linear-gradient(
     135deg,
-    hsl(158 59% 15%),
-    hsl(123 38% 35%)
+    hsl(var(--primary)),
+    hsl(var(--secondary))
   );
 }
 .dark .text-gradient-emerald {
   background-image: linear-gradient(
     135deg,
-    hsl(123 38% 55%),
-    hsl(158 40% 40%)
+    hsl(var(--primary)),
+    hsl(var(--secondary))
   );
 }
 
@@ -345,9 +332,9 @@ textarea:focus-visible {
   @apply bg-clip-text text-transparent;
   background-image: linear-gradient(
     130deg,
-    hsl(38 55% 75%),
-    hsl(38 41% 59%) 45%,
-    hsl(38 55% 78%)
+    hsl(var(--accent) / 0.82),
+    hsl(var(--accent)) 45%,
+    hsl(var(--accent) / 0.82)
   );
 }
 
@@ -359,22 +346,15 @@ textarea:focus-visible {
    GLOW EFFECTS
    ============================================================ */
 .glow-emerald {
-  box-shadow:
-    0 0 0 1px hsl(158 59% 15% / 0.15),
-    0 0 24px -4px hsl(158 59% 15% / 0.35);
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.12);
 }
 
 .glow-gold {
-  box-shadow:
-    0 0 0 1px hsl(43 85% 47% / 0.22),
-    0 0 24px -4px hsl(43 85% 47% / 0.35);
+  box-shadow: 0 0 0 1px hsl(var(--accent) / 0.18);
 }
 
 .glow-gold-strong {
-  box-shadow:
-    0 0 0 1px hsl(43 85% 47% / 0.32),
-    0 0 32px -4px hsl(43 85% 47% / 0.55),
-    0 0 64px -8px hsl(43 85% 47% / 0.22);
+  box-shadow: 0 0 0 1px hsl(var(--accent) / 0.22), 0 4px 14px hsl(var(--accent) / 0.10);
 }
 
 /* ============================================================
@@ -382,21 +362,21 @@ textarea:focus-visible {
    ============================================================ */
 .badge-gold {
   @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase;
-  background: hsl(43 85% 47% / 0.11);
-  border: 1px solid hsl(43 85% 47% / 0.32);
+  background: hsl(var(--accent) / 0.10);
+  border: 1px solid hsl(var(--accent) / 0.22);
   color: hsl(var(--accent));
 }
 
 .badge-green {
   @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase;
-  background: hsl(158 59% 15% / 0.10);
-  border: 1px solid hsl(158 59% 15% / 0.28);
-  color: hsl(158 45% 25%);
+  background: hsl(var(--primary) / 0.08);
+  border: 1px solid hsl(var(--primary) / 0.18);
+  color: hsl(var(--primary));
 }
 .dark .badge-green {
-  background: hsl(123 38% 45% / 0.15);
-  border-color: hsl(123 38% 45% / 0.35);
-  color: hsl(123 38% 60%);
+  background: hsl(var(--primary) / 0.15);
+  border-color: hsl(var(--primary) / 0.32);
+  color: hsl(var(--primary));
 }
 
 /* ============================================================
@@ -408,17 +388,10 @@ textarea:focus-visible {
 }
 
 .gold-shimmer-text {
-  background: linear-gradient(
-    90deg,
-    hsl(43 85% 47%),
-    hsl(43 90% 72%),
-    hsl(43 85% 47%)
-  );
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gold-shimmer 3.5s linear infinite;
+  color: hsl(var(--accent));
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  animation: none;
 }
 
 @keyframes subtle-float {
@@ -477,11 +450,11 @@ textarea:focus-visible {
   @apply relative overflow-hidden font-heading font-semibold tracking-wide transition-all duration-300;
   background: hsl(var(--accent));
   color: hsl(var(--accent-foreground));
-  box-shadow: 0 2px 12px hsl(43 85% 47% / 0.30), 0 4px 20px hsl(43 85% 47% / 0.18);
+  box-shadow: 0 2px 8px hsl(var(--accent) / 0.16);
 }
 .btn-luxury-gold:hover {
-  box-shadow: 0 4px 18px hsl(43 85% 47% / 0.42), 0 8px 32px hsl(43 85% 47% / 0.22);
-  transform: translateY(-2px);
+  box-shadow: 0 4px 12px hsl(var(--accent) / 0.20);
+  transform: translateY(-1px);
 }
 
 /* ============================================================
@@ -489,12 +462,12 @@ textarea:focus-visible {
    ============================================================ */
 .hero-glow-emerald {
   background:
-    radial-gradient(ellipse 70% 60% at 50% 0%, hsl(158 59% 15% / 0.25) 0%, transparent 70%);
+    radial-gradient(ellipse 70% 60% at 50% 0%, hsl(var(--primary) / 0.16) 0%, transparent 70%);
 }
 
 .hero-glow-gold {
   background:
-    radial-gradient(ellipse 50% 40% at 80% 20%, hsl(43 85% 47% / 0.14) 0%, transparent 60%);
+    radial-gradient(ellipse 50% 40% at 80% 20%, hsl(var(--accent) / 0.08) 0%, transparent 60%);
 }
 
 .section-separator {
@@ -522,7 +495,7 @@ textarea:focus-visible {
   height: 2px;
   border-radius: 999px;
   background: hsl(var(--accent));
-  box-shadow: 0 0 10px hsl(43 85% 47% / 0.7);
+  box-shadow: 0 0 4px hsl(var(--accent) / 0.28);
 }
 
 /* ============================================================
@@ -549,18 +522,18 @@ textarea:focus-visible {
    ============================================================ */
 .glass-card-emerald {
   @apply backdrop-blur-md border shadow-sm;
-  background: hsl(158 59% 15% / 0.06);
-  border-color: hsl(158 59% 15% / 0.18);
+  background: hsl(var(--primary) / 0.06);
+  border-color: hsl(var(--primary) / 0.18);
 }
 .dark .glass-card-emerald {
-  background: hsl(123 38% 45% / 0.10);
-  border-color: hsl(123 38% 45% / 0.22);
+  background: hsl(var(--primary) / 0.10);
+  border-color: hsl(var(--primary) / 0.22);
 }
 
 .glass-card-amber {
   @apply backdrop-blur-md border shadow-sm;
-  background: hsl(43 85% 47% / 0.08);
-  border-color: hsl(43 85% 47% / 0.22);
+  background: hsl(var(--accent) / 0.08);
+  border-color: hsl(var(--accent) / 0.20);
 }
 
 /* ============================================================
@@ -584,7 +557,7 @@ main {
   to   { opacity: 1; transform: none; }
 }
 .glass-card, .luxury-card {
-  animation: luxe-card-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: luxe-card-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .glass-card:nth-child(1), .luxury-card:nth-child(1) { animation-delay: 0.04s; }
 .glass-card:nth-child(2), .luxury-card:nth-child(2) { animation-delay: 0.10s; }
@@ -595,23 +568,23 @@ main {
 
 /* Silky-smooth interactive elements everywhere */
 button, a, input, select, textarea, [role="button"] {
-  transition: color 0.25s ease, background-color 0.25s ease, border-color 0.25s ease,
-              box-shadow 0.25s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
+  transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease,
+              box-shadow 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
 }
 button:active, [role="button"]:active {
-  transform: scale(0.975);
+  transform: scale(0.99);
 }
 
 /* Gold focus ring — refined input focus */
 input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: none;
-  border-color: hsl(43 45% 59% / 0.6) !important;
-  box-shadow: 0 0 0 3px hsl(43 45% 59% / 0.15);
+  border-color: hsl(var(--accent) / 0.62) !important;
+  box-shadow: 0 0 0 3px hsl(var(--accent) / 0.15);
 }
 
 /* Luxury text selection */
 ::selection {
-  background: hsl(43 45% 59% / 0.30);
+  background: hsl(var(--accent) / 0.28);
   color: inherit;
 }
 
@@ -622,11 +595,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   background: hsl(var(--muted-foreground) / 0.22);
   border-radius: 8px;
 }
-::-webkit-scrollbar-thumb:hover { background: hsl(43 45% 59% / 0.5); }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--accent) / 0.5); }
 
 /* Subtle hover lift for badges & stat blocks */
 .data-table-row { transition: background-color 0.25s ease, box-shadow 0.25s ease; }
-.data-table-row:hover { box-shadow: inset 3px 0 0 hsl(43 45% 59% / 0.55); }
+.data-table-row:hover { box-shadow: inset 3px 0 0 hsl(var(--accent) / 0.45); }
 
 /* Sidebar / nav links — smooth slide on hover */
 aside a, nav a {
@@ -648,30 +621,19 @@ aside a:hover { transform: translateX(2px); }
    ============================================================ */
 .luxe-reveal {
   opacity: 0;
-  transform: translateY(26px);
+  transform: translateY(16px);
 }
 .luxe-reveal.luxe-in {
   opacity: 1;
   transform: none;
-  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Gold sheen sweep on primary buttons — pure transform, composited */
+/* No global metallic sheen: controls keep a quiet, direct response. */
 .btn-luxury-primary::after,
 button[class*="bg-primary"]::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 40%, hsl(43 65% 80% / 0.35) 50%, transparent 60%);
-  transform: translateX(-120%);
-  pointer-events: none;
+  content: none;
 }
-.btn-luxury-primary:hover::after,
-button[class*="bg-primary"]:hover::after {
-  transform: translateX(120%);
-  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-}
-button[class*="bg-primary"] { position: relative; overflow: hidden; }
 
 /* Elegant heading underline grow on hover (links & nav) */
 nav a { position: relative; }
@@ -691,4 +653,11 @@ button:hover > svg, a:hover > svg {
   aside a:hover { transform: none; }
   .luxe-reveal { opacity: 1; transform: none; }
   .btn-luxury-primary::after, button[class*="bg-primary"]::after { display: none; }
+}
+
+/* Keep emphasis clear without using the heaviest available weights. */
+@layer utilities {
+  .font-bold { font-weight: 600; }
+  .font-extrabold { font-weight: 600; }
+  .font-black { font-weight: 700; }
 }

@@ -68,7 +68,7 @@ function HomeSection({ title, right }: { title: string; right?: React.ReactNode 
   const colors = useColors();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 22, marginBottom: 11 }}>
-      <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', letterSpacing: -0.35 }}>{title}</Text>
+      <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '600', letterSpacing: -0.2 }}>{title}</Text>
       {right}
     </View>
   );
@@ -188,8 +188,8 @@ export default function InvestorHome() {
     return 'arrow-down-left';
   };
   const dockShadow = Platform.OS === 'web'
-    ? { boxShadow: `0 5px 18px ${colors.shadow}` }
-    : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 };
+    ? { boxShadow: `0 3px 12px ${colors.shadow}` }
+    : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 1 };
 
   return <ScrollView
     refreshControl={<RefreshControl
@@ -229,41 +229,41 @@ export default function InvestorHome() {
       </View>
     </View>
 
-    <Card style={{ padding: 20, paddingBottom: 19, borderRadius: 25, marginBottom: 0, backgroundColor: colors.primary, borderColor: colors.primary }}>
+    <Card style={{ padding: 20, paddingBottom: 19, borderRadius: 20, marginBottom: 0 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <Text style={{ color: colors.primaryForeground, opacity: 0.78, fontSize: 10, fontWeight: '700', letterSpacing: 1.05 }}>PORTFOLIO OVERVIEW</Text>
+        <Text style={{ color: colors.primary, opacity: 0.88, fontSize: 10, fontWeight: '600', letterSpacing: 0.9 }}>PORTFOLIO OVERVIEW</Text>
         <Pressable testID="home-portfolio-selector" accessibilityRole="button" accessibilityLabel="Open portfolio" onPress={() => router.push('/(tabs)/portfolio')}
-          style={({ pressed }) => ({ minHeight: 32, borderRadius: 16, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(255,255,255,0.10)', opacity: pressed ? 0.8 : 1 })}>
-          <Feather name="pie-chart" size={13} color={colors.primaryForeground} />
-          <Text numberOfLines={1} style={{ color: colors.primaryForeground, fontSize: 10, fontWeight: '700' }}>My portfolio</Text>
-          <Feather name="arrow-up-right" size={12} color={colors.primaryForeground} />
+          style={({ pressed }) => ({ minHeight: 32, borderRadius: 14, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.secondary, opacity: pressed ? 0.8 : 1 })}>
+          <Feather name="pie-chart" size={13} color={colors.primary} />
+          <Text numberOfLines={1} style={{ color: colors.primary, fontSize: 10, fontWeight: '600' }}>My portfolio</Text>
+          <Feather name="arrow-up-right" size={12} color={colors.primary} />
         </Pressable>
       </View>
 
       <View style={{ marginTop: 17 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
-          <Text style={{ color: colors.primaryForeground, opacity: 0.82, fontSize: 12 }}>Total portfolio value</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Total portfolio value</Text>
           <Pressable testID="home-toggle-sensitive-values" accessibilityRole="button" accessibilityLabel={balanceHidden ? 'Show account balances' : 'Hide account balances'}
             onPress={() => setBalanceHidden(current => !current)} hitSlop={8}>
-            <Feather name={balanceHidden ? 'eye-off' : 'eye'} size={16} color={colors.primaryForeground} />
+            <Feather name={balanceHidden ? 'eye-off' : 'eye'} size={16} color={colors.primary} />
           </Pressable>
         </View>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.primaryForeground, fontSize: 38, fontWeight: '700', letterSpacing: -1.25, marginTop: 5 }}>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 34, fontWeight: '600', letterSpacing: -0.8, marginTop: 5 }}>
           {dashboard.isLoading ? '…' : displayMoney(portfolioTotal)}
         </Text>
-        <Text style={{ color: colors.primaryForeground, opacity: 0.68, fontSize: 10, marginTop: 4 }}>Reported by OG Exports</Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 4 }}>Reported by OG Exports</Text>
       </View>
 
     </Card>
 
-    <View style={[{ flexDirection: 'row', alignItems: 'stretch', justifyContent: 'space-between', borderRadius: 22, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingVertical: 8, paddingHorizontal: 7, marginHorizontal: 0, marginTop: -17, marginBottom: 15, zIndex: 2 }, dockShadow]}>
+    <View style={[{ flexDirection: 'row', alignItems: 'stretch', justifyContent: 'space-between', borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingVertical: 6, paddingHorizontal: 6, marginHorizontal: 0, marginTop: 12, marginBottom: 15, zIndex: 2 }, dockShadow]}>
       {quickActions.map((action, index) => (
         <Pressable key={action.title} testID={`home-action-${index}`} accessibilityRole="button" accessibilityLabel={action.title} onPress={action.onPress}
-          style={({ pressed }) => ({ flex: 1, minWidth: 0, minHeight: 75, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: pressed ? colors.secondary : 'transparent' })}>
-          <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: index === 0 ? colors.primary : colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
-            <Feather name={action.icon} size={17} color={index === 0 ? colors.primaryForeground : colors.primary} />
+          style={({ pressed }) => ({ flex: 1, minWidth: 0, minHeight: 68, borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: pressed ? colors.secondary : 'transparent' })}>
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
+            <Feather name={action.icon} size={16} color={colors.primary} />
           </View>
-          <Text numberOfLines={2} adjustsFontSizeToFit style={{ maxWidth: '100%', color: colors.foreground, fontSize: 10, lineHeight: 12, textAlign: 'center', fontWeight: '700' }}>{action.shortTitle}</Text>
+          <Text numberOfLines={2} adjustsFontSizeToFit style={{ maxWidth: '100%', color: colors.foreground, fontSize: 10, lineHeight: 12, textAlign: 'center', fontWeight: '600' }}>{action.shortTitle}</Text>
         </Pressable>
       ))}
     </View>
