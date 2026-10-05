@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "JjCaPu2HlXZCOm4rPNxIL"
+uri = "file://exports/OG%20Exports%20App.zip"
+type = "unspecified"
+title = "OG Exports App.zip"
+description = "Expo mobile app source, required shared API client, workspace configuration, and setup instructions. Cache folders and secret files excluded."
+logical_id = "44246337-903b-47be-aea2-4d929647bcdd"
+content_hash = "sha256:a451d7688af94dda2906bcff81e287342db97526fc17757bbd79f6c59bdc3a44"
+size = 1199532
+mtime_ms = 1791233122317
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/44246337-903b-47be-aea2-4d929647bcdd/6b618fec-f890-4650-9a0e-3a0024499380"
+storage_version_token = "1791233132668074"
+content_type = "application/octet-stream"
