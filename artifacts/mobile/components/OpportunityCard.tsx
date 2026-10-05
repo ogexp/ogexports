@@ -49,11 +49,14 @@ const countryNameByCode: Record<string, string> = {
 };
 
 function dataSources(item: Record<string, unknown>) {
+  const trade = record(item.trade ?? item.project ?? item.trade_details);
   return [
     item,
-    record(item.trade ?? item.project ?? item.trade_details),
+    trade,
+    record(item.meta),
+    record(trade.meta),
     record(item.cargo ?? item.cargo_details),
-    record(item.container ?? item.container_details),
+    record(item.container ?? item.container_details ?? trade.container ?? trade.container_details),
   ];
 }
 
@@ -137,13 +140,38 @@ export function OpportunityCard({ item, categoryLabel, featured, progress, onPre
   const targetReturn = opportunityValue(item, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi'])
     || (opportunityAmount(item, ['expected_return_pct']) != null ? `${opportunityAmount(item, ['expected_return_pct'])}%` : '');
   const risk = opportunityValue(item, ['risk_level', 'risk_rating']);
-  const details: [string, string][] = [
-    ['Grade', opportunityValue(item, ['grade', 'commodity_grade', 'grade_name', 'commodity_grade_name'], '—')],
-    ['Quantity', opportunityValue(item, ['quantity', 'cargo_quantity', 'quantity_tons', 'quantity_tonnes'], '—')],
-    ['Container count', opportunityValue(item, ['container_count', 'containers_count', 'number_of_containers'], '—')],
-    ['Container type', opportunityValue(item, ['container_type', 'container_size_type'], '—')],
-    ['Destination', locationWithFlag(destination) || '—'],
-    ['Incoterm', opportunityValue(item, ['incoterm', 'trade_term'], '—')],
+  const isContainerProject = opportunityValue(item, ['type', 'project_type']).toLowerCase() === 'container';
+  const supplied = (keys: string[]) => {
+    const value = opportunityValue(item, keys).trim();
+    return value && value !== '—' ? value : 'Not provided';
+  };
+  const containerNumber = supplied(['container_number', 'container_no', 'containerNumber']);
+  const containerType = supplied(['container_type', 'container_size_type']);
+  const containerLabel = [containerNumber, containerType].filter(value => value !== 'Not provided').join(' · ') || 'Not provided';
+  const vessel = supplied(['vessel', 'vessel_name']);
+  const voyage = supplied(['voyage', 'voyage_number']);
+  const vesselVoyage = [vessel, voyage].filter(value => value !== 'Not provided').join(' · ') || 'Not provided';
+  const details: [string, string][] = isContainerProject
+    ? [
+      ['Container', containerLabel],
+      ['Vessel / Voyage', vesselVoyage],
+      ['Shipping line', supplied(['shipping_line'])],
+      ['Port of loading', supplied(['port_of_loading', 'loading_port'])],
+      ['Port of discharge', supplied(['port_of_discharge', 'destination_port'])],
+      ['Incoterm', supplied(['incoterm', 'trade_term'])],
+    ]
+    : [
+      ['Grade', opportunityValue(item, ['grade', 'commodity_grade', 'grade_name', 'commodity_grade_name'], '—')],
+      ['Quantity', opportunityValue(item, ['quantity', 'cargo_quantity', 'quantity_tons', 'quantity_tonnes'], '—')],
+      ['Container count', opportunityValue(item, ['container_count', 'containers_count', 'number_of_containers'], '—')],
+      ['Container type', opportunityValue(item, ['container_type', 'container_size_type'], '—')],
+      ['Destination', locationWithFlag(destination) || '—'],
+      ['Incoterm', opportunityValue(item, ['incoterm', 'trade_term'], '—')],
+    ];
+  const projectUpdate: [string, string][] = [
+    ['Current project stage', supplied(['current_project_stage'])],
+    ['ETD', supplied(['etd', 'departure_date'])],
+    ['ETA', supplied(['eta', 'arrival_date'])],
   ];
   const cycle = durationLabel(item) || '—';
   const progressValue = progress == null
@@ -189,6 +217,20 @@ export function OpportunityCard({ item, categoryLabel, featured, progress, onPre
             <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', marginTop: 4 }}>{value}</Text>
           </View>)}
         </View>
+
+        {isContainerProject ? <View style={{ marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: colors.secondary }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>PROJECT UPDATE</Text>
+          <View style={{ marginTop: 9 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{projectUpdate[0][0]}</Text>
+            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginTop: 3 }}>{projectUpdate[0][1]}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 16, marginTop: 9 }}>
+            {projectUpdate.slice(1).map(([label, value]) => <View key={label} style={{ flex: 1 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{label}</Text>
+              <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', marginTop: 3 }}>{value}</Text>
+            </View>)}
+          </View>
+        </View> : null}
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
           {[

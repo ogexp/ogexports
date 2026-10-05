@@ -67,39 +67,70 @@ export default function OpportunityDetail() {
   const walletCurrency = first(wallet, ['currency']);
   const documents = list(project.documents);
   const timeline = list(project.trade_updates);
+  const meta = record(project.meta);
+  const containerRecord = record(project.container ?? project.container_tracking ?? project.container_details);
+  const isContainerProject = first(project, ['type', 'project_type']).toLowerCase() === 'container';
+  const containerNumber = first(
+    containerRecord,
+    ['container_number'],
+    first(project, ['container_number', 'container_no'], first(meta, ['container_no', 'container_number', 'containerNumber'], '—')),
+  );
+  const containerType = first(project, ['container_type', 'container_size_type'], '—');
+  const vesselName = first(project, ['vessel', 'vessel_name'], first(containerRecord, ['vessel_name', 'vessel'], '—'));
+  const voyage = first(meta, ['voyage', 'voyage_number'], first(project, ['voyage', 'voyage_number']));
+  const vesselVoyage = [vesselName, voyage].filter(value => value && value !== '—').join(' · ') || '—';
+  const shippingLine = first(project, ['shipping_line'], first(containerRecord, ['shipping_line'], '—'));
   const tradeId = first(project, ['trade_id', 'trade_code', 'code', 'reference'], '—');
   const tradeCurrency = first(project, ['currency']);
   const origin = first(project, ['origin', 'origin_country', 'from_country'], '');
   const destination = first(project, ['destination', 'destination_country', 'to_country', 'destination_market'], '');
   const routeStops = [
     { label: 'Origin', value: origin || '—', icon: 'map-pin' as const },
-    { label: 'Port of loading', value: first(project, ['port_of_loading', 'loading_port'], '—'), icon: 'anchor' as const },
+    { label: 'Port of loading', value: first(project, ['port_of_loading', 'loading_port'], first(containerRecord, ['port_of_loading'], '—')), icon: 'anchor' as const },
     {
-      label: 'Transport',
-      value: first(project, ['transport_mode', 'mode_of_transport', 'transport_type', 'shipping_mode', 'shipping_method'], '—'),
-      detail: first(project, ['vessel_name', 'vessel']),
+      label: isContainerProject ? 'Vessel / Voyage' : 'Transport',
+      value: isContainerProject
+        ? vesselVoyage
+        : first(project, ['transport_mode', 'mode_of_transport', 'transport_type', 'shipping_mode', 'shipping_method'], '—'),
+      detail: isContainerProject ? shippingLine : vesselName,
       icon: 'navigation' as const,
     },
-    { label: 'Destination port', value: first(project, ['destination_port', 'port_of_discharge'], '—'), icon: 'anchor' as const },
+    { label: 'Destination port', value: first(project, ['port_of_discharge', 'destination_port'], first(containerRecord, ['destination_port'], '—')), icon: 'anchor' as const },
     { label: 'Buyer', value: first(project, ['buyer_name', 'buyer'], '—'), icon: 'user' as const },
   ];
-  const cargoDetails: [string, string][] = ([
-    ['Commodity', first(project, ['commodity_name', 'commodity'], '—')],
-    ['Grade', first(project, ['grade', 'commodity_grade'], '—')],
-    ['Quantity', first(project, ['quantity', 'cargo_quantity', 'quantity_tons'], '—')],
-    ['Packaging', first(project, ['packaging', 'package_type'], '—')],
-    ['Container type', first(project, ['container_type'], '—')],
-    ['Container count', first(project, ['container_count', 'containers_count'], '—')],
-    ['Origin', origin || '—'],
-    ['Destination', destination || '—'],
-  ] as [string, string][]);
-  const commercialDetails: [string, string][] = ([
-    ['Trade term / Incoterm', first(project, ['incoterm', 'trade_term'], '—')],
-    ['Estimated trade cycle', first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], '—')],
-    ['Shipment date', first(project, ['shipment_date', 'estimated_shipment_date'], '—')],
-    ['Estimated arrival', first(project, ['estimated_arrival', 'eta'], '—')],
-    ['Destination market', first(project, ['destination_market', 'destination_country'], '—')],
-  ] as [string, string][]);
+  const cargoDetails: [string, string][] = isContainerProject
+    ? [[
+      'Container',
+      [containerNumber, containerType].filter(value => value && value !== '—').join(' · ') || '—',
+    ]]
+    : ([
+      ['Commodity', first(project, ['commodity_name', 'commodity'], '—')],
+      ['Grade', first(project, ['grade', 'commodity_grade'], '—')],
+      ['Quantity', first(project, ['quantity', 'cargo_quantity', 'quantity_tons'], '—')],
+      ['Packaging', first(project, ['packaging', 'package_type'], '—')],
+      ['Container type', first(project, ['container_type'], '—')],
+      ['Container count', first(project, ['container_count', 'containers_count'], '—')],
+      ['Origin', origin || '—'],
+      ['Destination', destination || '—'],
+    ] as [string, string][]);
+  const commercialDetails: [string, string][] = isContainerProject
+    ? [
+      ['Trade term / Incoterm', first(project, ['incoterm', 'trade_term'], '—')],
+      ['Estimated trade cycle', first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], '—')],
+      ['Destination market', first(project, ['destination_market', 'destination_country'], '—')],
+    ]
+    : ([
+      ['Trade term / Incoterm', first(project, ['incoterm', 'trade_term'], '—')],
+      ['Estimated trade cycle', first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], '—')],
+      ['Shipment date', first(project, ['shipment_date', 'estimated_shipment_date'], '—')],
+      ['Estimated arrival', first(project, ['estimated_arrival', 'eta'], '—')],
+      ['Destination market', first(project, ['destination_market', 'destination_country'], '—')],
+    ] as [string, string][]);
+  const projectUpdateDetails: [string, string][] = [
+    ['Current project stage', first(project, ['current_project_stage'], '—')],
+    ['ETD', first(project, ['etd'], first(containerRecord, ['etd'], '—'))],
+    ['ETA', first(project, ['eta'], first(containerRecord, ['eta'], '—'))],
+  ];
   const costBreakdown = record(project.financial_breakdown ?? project.cost_breakdown);
   const financialDetails: [string, number | null][] = ([
     ['Commodity cost', amount(project, ['commodity_cost']) ?? amount(costBreakdown, ['commodity_cost'])],
@@ -376,7 +407,9 @@ export default function OpportunityDetail() {
           <View style={{ flex: 1, paddingBottom: 13 }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{stop.label}</Text>
             <Text style={{ color: stop.value === '—' ? colors.mutedForeground : colors.foreground, fontSize: 13, fontWeight: '700', marginTop: 3 }}>{stop.value}</Text>
-            {stop.detail ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>Vessel: {stop.detail}</Text> : null}
+            {stop.detail ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>
+              {isContainerProject && stop.label === 'Vessel / Voyage' ? 'Shipping line' : 'Vessel'}: {stop.detail}
+            </Text> : null}
           </View>
         </View>)}
         {routeStops.every(stop => stop.value === '—' && !stop.detail) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 4 }}>Route and transport details will appear here when available.</Text> : null}
@@ -386,7 +419,7 @@ export default function OpportunityDetail() {
         </Pressable>
       </Card>
 
-      <Section title="Cargo information" />
+      <Section title={isContainerProject ? 'Container details' : 'Cargo information'} />
       <Card>
         {cargoDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: value === '—' ? colors.mutedForeground : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
@@ -399,6 +432,15 @@ export default function OpportunityDetail() {
           <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: value === '—' ? colors.mutedForeground : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
         </View>)}
       </Card>
+
+      {isContainerProject ? <>
+        <Section title="Project update" />
+        <Card>
+          {projectUpdateDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: value === '—' ? colors.mutedForeground : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
+          </View>)}
+        </Card>
+      </> : null}
 
       <Section title="Funding information" />
       <Card>
