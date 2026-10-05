@@ -30,6 +30,57 @@ import {
   type DashboardMetricItem,
 } from '@/components/DashboardWidgets';
 
+const accountMenuSections = [
+  {
+    title: 'OVERVIEW',
+    items: [
+      { key: 'home', label: 'Home', icon: 'home', href: '/(tabs)' },
+      { key: 'explore', label: 'Explore opportunities', icon: 'compass', href: '/(tabs)/opportunities' },
+      { key: 'portfolio', label: 'Portfolio', icon: 'pie-chart', href: '/(tabs)/portfolio' },
+      { key: 'wallet', label: 'Wallet', icon: 'briefcase', href: '/(tabs)/wallet' },
+    ],
+  },
+  {
+    title: 'INVESTMENTS & ACTIVITY',
+    items: [
+      { key: 'search', label: 'Search', icon: 'search', href: '/search' },
+      { key: 'transactions', label: 'Transactions', icon: 'file-text', href: '/account/transactions' },
+      { key: 'analytics', label: 'Trade analytics', icon: 'bar-chart-2', href: '/account/analytics' },
+      { key: 'reports', label: 'Reports', icon: 'clipboard', href: '/account/reports' },
+      { key: 'notifications', label: 'Notifications', icon: 'bell', href: '/account/notifications' },
+    ],
+  },
+  {
+    title: 'WALLET & FUNDING',
+    items: [
+      { key: 'add-funds', label: 'Add funds', icon: 'plus-circle', href: '/wallet/deposit' },
+      { key: 'withdraw', label: 'Withdraw', icon: 'arrow-up-right', href: '/wallet/withdraw' },
+      { key: 'bank-accounts', label: 'Bank accounts', icon: 'credit-card', href: '/account/bank-accounts' },
+    ],
+  },
+  {
+    title: 'ACCOUNT & SUPPORT',
+    items: [
+      { key: 'profile', label: 'Profile', icon: 'user', href: '/account/profile' },
+      { key: 'verification', label: 'Identity verification', icon: 'check-circle', href: '/account/kyc' },
+      { key: 'security', label: 'Security & devices', icon: 'shield', href: '/account/security' },
+      { key: 'data-preferences', label: 'Data preferences', icon: 'lock', href: '/account/data-preferences' },
+      { key: 'settings', label: 'Settings', icon: 'settings', href: '/account/settings' },
+      { key: 'support', label: 'Support', icon: 'message-circle', href: '/account/messages' },
+    ],
+  },
+  {
+    title: 'DOCUMENTS & POLICIES',
+    items: [
+      { key: 'terms', label: 'Terms of service', icon: 'file-text', href: '/account/legal/terms' },
+      { key: 'investment-terms', label: 'Investment terms', icon: 'file-text', href: '/account/legal/investment-terms' },
+      { key: 'user-agreement', label: 'User agreement', icon: 'file-text', href: '/account/legal/user-agreement' },
+      { key: 'privacy', label: 'Privacy policy', icon: 'file-text', href: '/account/legal/privacy' },
+      { key: 'risk', label: 'Risk disclosure', icon: 'alert-circle', href: '/account/legal/risk' },
+    ],
+  },
+] as const;
+
 function transactionGroup(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'RECENT';
@@ -487,43 +538,77 @@ export default function InvestorHome() {
   >
     <View style={{ flex: 1, flexDirection: 'row', backgroundColor: 'rgba(10, 22, 16, 0.36)' }}>
       <View accessibilityViewIsModal style={{
-        width: '82%',
-        maxWidth: 320,
+        width: '84%',
+        maxWidth: 340,
         backgroundColor: colors.card,
         borderColor: colors.border,
         borderRightWidth: 1,
         borderTopRightRadius: 26,
         borderBottomRightRadius: 26,
-        paddingTop: insets.top + 16,
-        paddingBottom: Math.max(insets.bottom, 16) + 14,
-        paddingHorizontal: 20,
+        paddingTop: insets.top + 10,
+        paddingBottom: Math.max(insets.bottom, 12),
+        paddingHorizontal: 17,
         shadowColor: colors.shadowColor,
         shadowOffset: { width: 4, height: 0 },
         shadowOpacity: 0.12,
         shadowRadius: 18,
         elevation: 14,
       }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 17 }}>
-          <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>Account</Text>
-          <Pressable testID="home-menu-close" accessibilityRole="button" accessibilityLabel="Close account menu" hitSlop={8} onPress={() => setAccountMenuOpen(false)}
-            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.75 : 1 })}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Image source={require('../../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 38, height: 38 }} />
+            <View>
+              <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 }}>OG Exports</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '600', letterSpacing: 0.8, marginTop: 2 }}>INVESTOR PORTAL</Text>
+            </View>
+          </View>
+          <Pressable testID="home-menu-close" accessibilityRole="button" accessibilityLabel="Close navigation menu" hitSlop={8} onPress={() => setAccountMenuOpen(false)}
+            style={({ pressed }) => ({ width: 38, height: 38, borderRadius: 19, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.75 : 1 })}>
             <Feather name="x" size={19} color={colors.mutedForeground} />
           </Pressable>
         </View>
-        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginBottom: 16 }} />
-        <Pressable testID="home-profile" accessibilityRole="button" accessibilityLabel="Open profile" onPress={() => {
-          setAccountMenuOpen(false);
-          router.push('/account/profile');
-        }}
-          style={({ pressed }) => ({ minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, borderRadius: 15, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, opacity: pressed ? 0.78 : 1 })}>
-          <View style={{ width: 38, height: 38, borderRadius: 14, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
-            <Feather name="user" size={17} color={colors.primary} />
-          </View>
-          <Text style={{ flex: 1, color: colors.foreground, fontSize: 14, fontWeight: '600' }}>Profile</Text>
-          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-        </Pressable>
+        <ScrollView
+          testID="home-navigation-menu"
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 12 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {accountMenuSections.map((section) => (
+            <View key={section.title} style={{ marginTop: 14 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 6, paddingHorizontal: 8 }}>
+                {section.title}
+              </Text>
+              {section.items.map((item) => (
+                <Pressable
+                  key={item.key}
+                  testID={`home-menu-${item.key}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${item.label}`}
+                  onPress={() => {
+                    setAccountMenuOpen(false);
+                    router.push(item.href as never);
+                  }}
+                  style={({ pressed }) => ({
+                    minHeight: 43,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    paddingHorizontal: 10,
+                    borderRadius: 12,
+                    backgroundColor: pressed ? colors.secondary : 'transparent',
+                    opacity: pressed ? 0.82 : 1,
+                  })}
+                >
+                  <Feather name={item.icon} size={17} color={colors.primary} />
+                  <Text style={{ flex: 1, color: colors.foreground, fontSize: 13, fontWeight: '500' }}>{item.label}</Text>
+                  <Feather name="chevron-right" size={15} color={colors.mutedForeground} />
+                </Pressable>
+              ))}
+            </View>
+          ))}
+        </ScrollView>
       </View>
-      <Pressable accessibilityRole="button" accessibilityLabel="Close account menu" onPress={() => setAccountMenuOpen(false)} style={{ flex: 1 }} />
+      <Pressable accessibilityRole="button" accessibilityLabel="Close navigation menu" onPress={() => setAccountMenuOpen(false)} style={{ flex: 1 }} />
     </View>
   </Modal>
   </>;
