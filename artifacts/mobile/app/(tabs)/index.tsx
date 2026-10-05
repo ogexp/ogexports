@@ -276,7 +276,7 @@ export default function InvestorHome() {
     />}
     style={{ flex: 1, backgroundColor: colors.background }}
     contentContainerStyle={{
-      paddingTop: Platform.OS === 'web' ? 67 : insets.top + 12,
+      paddingTop: Platform.OS === 'web' ? 67 : Platform.OS === 'ios' ? insets.top : insets.top + 12,
       paddingBottom: Platform.OS === 'web' ? 110 : insets.bottom + 112,
       paddingHorizontal: 18,
     }}
