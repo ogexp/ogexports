@@ -364,32 +364,31 @@ export default function InvestorHome() {
         return (
         <Pressable key={action.title} testID={`home-action-${index}`} accessibilityRole="button" accessibilityLabel={action.title} onPress={action.onPress}
           style={({ pressed }) => ({
-            flex: isPrimary ? 1 : 0,
-            width: isPrimary ? undefined : 58,
-            minHeight: isPrimary ? 46 : 66,
-            borderRadius: isPrimary ? 23 : 16,
-            flexDirection: isPrimary ? 'row' : 'column',
+            flex: 1,
+            minWidth: 0,
+            minHeight: 68,
+            borderRadius: 16,
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: isPrimary ? 6 : 4,
-            paddingHorizontal: isPrimary ? 8 : 0,
-            backgroundColor: isPrimary ? colors.balanceCardEnd : 'transparent',
+            gap: 4,
+            paddingHorizontal: 2,
             opacity: pressed ? 0.8 : 1,
           })}>
           <View style={{
-            width: isPrimary ? undefined : 40,
-            height: isPrimary ? undefined : 40,
+            width: 40,
+            height: 40,
             borderRadius: 20,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: isPrimary ? 'transparent' : colors.balanceCardStart,
+            backgroundColor: isPrimary ? colors.balanceCardEnd : colors.balanceCardStart,
           }}>
-            <Feather name={action.icon} size={isPrimary ? 16 : 17} color={colors.balanceCardText} />
+            <Feather name={action.icon} size={17} color={colors.balanceCardText} />
           </View>
           <Text numberOfLines={1} adjustsFontSizeToFit style={{
-            color: isPrimary ? colors.balanceCardText : colors.foreground,
-            fontSize: isPrimary ? 11 : 9,
-            lineHeight: 11,
+            color: isPrimary ? colors.primary : colors.foreground,
+            fontSize: 10,
+            lineHeight: 12,
             fontWeight: '700',
             textAlign: 'center',
           }}>{action.shortTitle}</Text>
