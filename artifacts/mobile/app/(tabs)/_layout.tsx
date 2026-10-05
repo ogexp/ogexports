@@ -36,7 +36,7 @@ function ClassicLayout() {
   const t = (value: string) => translateUi(value, preferences.language);
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === 'web';
-  const androidTabBarBottom = Math.min(Math.max(insets.bottom - 12, 8), 24);
+  const androidTabBarBottom = Math.min(Math.max(insets.bottom - 12, 8), 16);
   return (
     <Tabs screenOptions={{
       headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.mutedForeground,

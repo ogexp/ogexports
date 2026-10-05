@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { Platform } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import { Platform, StatusBar as NativeStatusBar } from 'react-native';
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -35,7 +35,10 @@ function RootLayoutNav() {
   const { isRTL, preferences, resolvedAppearance } = useAppPreferences();
   const colors = useColors();
   const t = (value: string) => translateUi(value, preferences.language);
-  const statusBar = <StatusBar style={resolvedAppearance === 'dark' ? 'light' : 'dark'} />;
+  const isDarkStatusBar = resolvedAppearance === 'dark';
+  const statusBar = Platform.OS === 'android'
+    ? <NativeStatusBar barStyle={isDarkStatusBar ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+    : <ExpoStatusBar style={isDarkStatusBar ? 'light' : 'dark'} />;
   const segments = useSegments();
   const pathname = usePathname();
   const routeParams = useGlobalSearchParams();
