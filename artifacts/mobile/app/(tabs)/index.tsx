@@ -156,6 +156,7 @@ export default function InvestorHome() {
   const roi = amount(summary, ['lifetime_roi', 'roi_percentage', 'roi']);
   const availableBalance = liveBalance;
   const name = first(record(user), ['name', 'first_name'], 'Investor');
+  const investorId = first(record(user), ['id']);
   const firstName = name.split(/\s+/)[0] || 'Investor';
   const greeting = 'Welcome back';
   const opportunities = list(projects.data);
@@ -280,6 +281,18 @@ export default function InvestorHome() {
       <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 3 }}>Your trade portfolio at a glance</Text>
     </View>
 
+    <View style={[{ flexDirection: 'row', alignItems: 'stretch', justifyContent: 'space-between', borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingVertical: 6, paddingHorizontal: 6, marginHorizontal: 0, marginTop: 12, marginBottom: 15, zIndex: 2 }, dockShadow]}>
+      {quickActions.map((action, index) => (
+        <Pressable key={action.title} testID={`home-action-${index}`} accessibilityRole="button" accessibilityLabel={action.title} onPress={action.onPress}
+          style={({ pressed }) => ({ flex: 1, minWidth: 0, minHeight: 68, borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: pressed ? colors.secondary : 'transparent' })}>
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
+            <Feather name={action.icon} size={16} color={colors.primary} />
+          </View>
+          <Text numberOfLines={2} adjustsFontSizeToFit style={{ maxWidth: '100%', color: colors.foreground, fontSize: 10, lineHeight: 12, textAlign: 'center', fontWeight: '600' }}>{action.shortTitle}</Text>
+        </Pressable>
+      ))}
+    </View>
+
     <LinearGradient
       colors={[colors.balanceCardStart, colors.balanceCardEnd]}
       start={{ x: 0, y: 0 }}
@@ -289,13 +302,15 @@ export default function InvestorHome() {
       <View pointerEvents="none" style={{ position: 'absolute', top: -48, right: -17, width: 134, height: 134, borderRadius: 67, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.12)' }} />
       <View pointerEvents="none" style={{ position: 'absolute', top: -26, right: 6, width: 88, height: 88, borderRadius: 44, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.08)' }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View style={{ width: 37, height: 37, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248, 251, 248, 0.13)' }}>
             <Feather name="credit-card" size={17} color={colors.balanceCardText} />
           </View>
-          <View>
-            <Text style={{ color: colors.balanceCardText, opacity: 0.82, fontSize: 9, fontWeight: '700', letterSpacing: 1 }}>OG EXPORTS</Text>
-            <Text style={{ color: colors.balanceCardText, fontSize: 12, fontWeight: '600', marginTop: 2 }}>Investor wallet</Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text numberOfLines={1} style={{ color: colors.balanceCardText, opacity: 0.82, fontSize: 9, fontWeight: '700', letterSpacing: 0.9 }}>INVESTOR ACCOUNT</Text>
+            <Text testID="home-investor-id" numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, fontSize: 11, fontWeight: '600', marginTop: 3 }}>
+              {investorId ? `Account ID · ${investorId}` : 'Account ID unavailable'}
+            </Text>
           </View>
         </View>
         <Pressable testID="home-portfolio-selector" accessibilityRole="button" accessibilityLabel="Open portfolio" onPress={() => router.push('/(tabs)/portfolio')}
@@ -331,18 +346,6 @@ export default function InvestorHome() {
         </Text>
       </View>
     </LinearGradient>
-
-    <View style={[{ flexDirection: 'row', alignItems: 'stretch', justifyContent: 'space-between', borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingVertical: 6, paddingHorizontal: 6, marginHorizontal: 0, marginTop: 12, marginBottom: 15, zIndex: 2 }, dockShadow]}>
-      {quickActions.map((action, index) => (
-        <Pressable key={action.title} testID={`home-action-${index}`} accessibilityRole="button" accessibilityLabel={action.title} onPress={action.onPress}
-          style={({ pressed }) => ({ flex: 1, minWidth: 0, minHeight: 68, borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: pressed ? colors.secondary : 'transparent' })}>
-          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
-            <Feather name={action.icon} size={16} color={colors.primary} />
-          </View>
-          <Text numberOfLines={2} adjustsFontSizeToFit style={{ maxWidth: '100%', color: colors.foreground, fontSize: 10, lineHeight: 12, textAlign: 'center', fontWeight: '600' }}>{action.shortTitle}</Text>
-        </Pressable>
-      ))}
-    </View>
 
     <Pressable testID="home-open-search" accessibilityRole="button" accessibilityLabel="Search trades, investments and transactions" onPress={() => router.push('/search')}
       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 11, minHeight: 54, paddingHorizontal: 16, marginBottom: 6, borderRadius: 17, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, opacity: pressed ? 0.78 : 1 })}>
