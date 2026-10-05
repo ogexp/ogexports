@@ -60,6 +60,18 @@ beforeEach(function () {
     ]);
 });
 
+it('reports the container investment currency and server capacity on the opportunity', function () {
+    $investor = makeIntlInvestor();
+
+    $this->actingAs($investor)
+        ->getJson("/api/investor/projects/{$this->containerProject->id}")
+        ->assertOk()
+        ->assertJsonPath('data.currency', 'USD')
+        ->assertJsonPath('data.funding_percentage', 0)
+        ->assertJsonPath('data.remaining_amount', 100000)
+        ->assertJsonPath('data.min_investment', '100.00');
+});
+
 function makePkInvestor(float $pkrBalance = 1_000_000): User
 {
     $investor = User::factory()->create(['account_status' => 'active']);
@@ -125,7 +137,10 @@ it('stores PKR amount and debits PKR wallet when Pakistani investor funds a cont
         ->postJson("/api/investor/projects/{$this->containerProject->id}/invest", [
             'amount' => 2000,
         ])
-        ->assertCreated();
+        ->assertCreated()
+        ->assertJsonPath('message', 'Investment confirmed.')
+        ->assertJsonPath('data.status', 'active')
+        ->assertJsonPath('data.amount_currency', 'USD');
 
     $investment = Investment::query()->findOrFail($response->json('data.id'));
 

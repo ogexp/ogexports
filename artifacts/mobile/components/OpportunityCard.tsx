@@ -109,7 +109,7 @@ function tradeReferenceLabel(value: string) {
 }
 
 function durationLabel(item: Record<string, unknown>) {
-  const days = opportunityAmount(item, ['duration_days', 'trade_duration_days', 'cycle_days']);
+  const days = opportunityAmount(item, ['investment_period_days', 'duration_days', 'trade_duration_days', 'cycle_days']);
   if (days != null) return `${days} days`;
   const label = opportunityValue(item, ['trade_cycle', 'estimated_trade_cycle', 'duration', 'term', 'investment_duration']);
   return label && Number.isFinite(Number(label)) ? `${label} days` : label;
@@ -134,7 +134,8 @@ export function OpportunityCard({ item, categoryLabel, featured, progress, onPre
   const target = opportunityAmount(item, ['target_amount', 'funding_target', 'total_trade_requirement', 'investment_requirement', 'total_investment_required', 'amount']);
   const minimum = opportunityAmount(item, ['minimum_investment', 'min_investment', 'minimum_amount', 'minimum_investment_amount']);
   const funded = opportunityAmount(item, ['funded_amount', 'raised_amount', 'current_amount', 'current_funding']);
-  const targetReturn = opportunityValue(item, ['target_return', 'projected_return', 'expected_return', 'return_rate', 'roi']);
+  const targetReturn = opportunityValue(item, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi'])
+    || (opportunityAmount(item, ['expected_return_pct']) != null ? `${opportunityAmount(item, ['expected_return_pct'])}%` : '');
   const risk = opportunityValue(item, ['risk_level', 'risk_rating']);
   const details: [string, string][] = [
     ['Grade', opportunityValue(item, ['grade', 'commodity_grade', 'grade_name', 'commodity_grade_name'], 'Not provided')],

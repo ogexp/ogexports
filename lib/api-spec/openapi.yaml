@@ -299,7 +299,7 @@ paths:
         - { name: type, in: query, schema: { type: string } }
         - { name: per_page, in: query, schema: { type: integer } }
       responses:
-        "200": { description: Opportunity list, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "200": { description: Opportunity list, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorProjectListResponse" } } } }
   /investor/projects/{id}:
     get:
       operationId: getInvestorProject
@@ -322,9 +322,9 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/JsonObject" }
+            schema: { $ref: "#/components/schemas/InvestorProjectInvestmentRequest" }
       responses:
-        "200": { description: Investment result, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "201": { description: Server-confirmed investment record and updated project capacity, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorProjectInvestmentResponse" } } } }
   /investor/investments:
     get:
       operationId: getInvestorInvestments
@@ -1147,6 +1147,41 @@ components:
       description: Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.
       additionalProperties: true
       properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+        reference:
+          type: [string, "null"]
+        type:
+          type: string
+        status:
+          type: string
+        currency:
+          type: [string, "null"]
+          description: Investment denomination. Container investments are entered in USD; PKR-wallet conversion is calculated by the server.
+        target_amount:
+          type: [number, "null"]
+        raised_amount:
+          type: [number, "null"]
+        funding_percentage:
+          type: [number, "null"]
+          description: Funding percentage explicitly returned by OG Exports.
+        remaining_amount:
+          type: [number, "null"]
+          description: Remaining capacity explicitly returned by OG Exports.
+        min_investment:
+          type: [number, "null"]
+        max_investment:
+          type: [number, "null"]
+        expected_return_pct:
+          type: [number, "null"]
+          description: Return target explicitly supplied by OG Exports; not a guarantee.
+        investment_period_days:
+          type: [integer, "null"]
+        commodity:
+          type: [string, "null"]
         container:
           $ref: "#/components/schemas/ContainerTracking"
         trade_updates:
@@ -1166,6 +1201,69 @@ components:
               description: Persisted events explicitly published by OG Exports for this position's project.
               items:
                 $ref: "#/components/schemas/ProjectTradeUpdate"
+    InvestorProjectListResponse:
+      type: object
+      description: Laravel paginated investment opportunity collection.
+      additionalProperties: true
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvestorProjectDetail"
+    InvestorProjectInvestmentRequest:
+      type: object
+      additionalProperties: false
+      required: [amount]
+      properties:
+        amount:
+          type: number
+          minimum: 1
+          description: Investment amount in the opportunity's reported investment currency.
+    InvestorProjectInvestmentResponse:
+      type: object
+      additionalProperties: true
+      required: [message, data, capacity]
+      properties:
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+          required: [id, amount, amount_currency, status]
+          properties:
+            id:
+              type: integer
+            amount:
+              type: number
+            amount_currency:
+              type: string
+            amount_pkr:
+              type: [number, "null"]
+            exchange_rate:
+              type: [number, "null"]
+            status:
+              type: string
+            reference:
+              type: [string, "null"]
+            invested_at:
+              type: [string, "null"]
+              format: date-time
+            approved_at:
+              type: [string, "null"]
+              format: date-time
+        capacity:
+          type: object
+          additionalProperties: true
+          required: [remaining_amount, pending_reserved, is_full, slots_remaining]
+          properties:
+            remaining_amount:
+              type: number
+            pending_reserved:
+              type: number
+            is_full:
+              type: boolean
+            slots_remaining:
+              type: [integer, "null"]
     InvestorProjectDetailResponse:
       type: object
       description: Laravel project resource response envelope.

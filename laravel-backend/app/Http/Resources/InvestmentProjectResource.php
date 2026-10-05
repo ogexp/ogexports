@@ -19,6 +19,7 @@ class InvestmentProjectResource extends JsonResource
             'title' => $this->title,
             'reference' => $this->reference,
             'type' => $this->type,
+            'currency' => strtolower((string) $this->type) === 'container' ? 'USD' : null,
             'trade_direction' => $this->trade_direction,
             'status' => $this->status,
             'target_amount' => $this->target_amount,

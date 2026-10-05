@@ -677,6 +677,15 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Loading container information…","کنٹینر کی معلومات لوڈ ہو رہی ہیں…","جارٍ تحميل معلومات الحاوية…"],
   ["Unable to reach OG Exports. Check your internet connection and try again.","OG Exports سے رابطہ نہیں ہو سکا۔ اپنا انٹرنیٹ کنکشن چیک کریں اور دوبارہ کوشش کریں۔","تعذر الوصول إلى OG Exports. تحقق من اتصال الإنترنت وحاول مرة أخرى."],
   ["Your session on this device will end.","اس ڈیوائس پر آپ کا سیشن ختم ہو جائے گا۔","ستنتهي جلستك على هذا الجهاز."],
+  ["Container investments are entered in USD. OG Exports converts the PKR wallet debit at submission; this app does not estimate the exchange rate.","کنٹینر سرمایہ کاری USD میں درج کی جاتی ہے۔ OG Exports درخواست جمع ہونے پر والیٹ کی PKR رقم تبدیل کرتا ہے؛ یہ ایپ شرحِ تبادلہ کا اندازہ نہیں لگاتی۔","تُدخل استثمارات الحاويات بالدولار الأمريكي. تحوّل OG Exports مبلغ الخصم من محفظة PKR عند الإرسال؛ ولا تقدّر هذه التطبيقات سعر الصرف."],
+  ["Calculated by OG Exports at submission","درخواست جمع کرتے وقت OG Exports حساب کرے گا","تحتسبها OG Exports عند الإرسال"],
+  ["Validated by OG Exports at submission","درخواست جمع کرتے وقت OG Exports تصدیق کرے گا","تتحقق منها OG Exports عند الإرسال"],
+  ["Target return · not guaranteed","ہدف شدہ منافع · ضمانت نہیں","العائد المستهدف · غير مضمون"],
+  ["Target distribution · not guaranteed","ہدف شدہ تقسیم · ضمانت نہیں","التوزيع المستهدف · غير مضمون"],
+  ["Wallet debit","والیٹ سے کٹوتی","الخصم من المحفظة"],
+  ["Amount invested","سرمایہ کاری کی رقم","المبلغ المستثمر"],
+  ["Investment reference","سرمایہ کاری کا حوالہ","مرجع الاستثمار"],
+  ["Server exchange rate","سرور کی شرحِ تبادلہ","سعر الصرف من الخادم"],
 ];
 
 const translations = new Map<string, Readonly<Record<Exclude<AppLanguage, 'en'>, string>>>(

@@ -54,17 +54,12 @@ function categoryFor(item: Record<string, unknown>) {
 }
 
 function fundingProgress(item: Record<string, unknown>) {
-  const suppliedProgress = amount(item, ['funding_progress_percent', 'funding_progress_pct', 'progress_percentage']);
-  if (suppliedProgress != null) return Math.max(0, Math.min(100, Math.round(suppliedProgress)));
-  const target = amount(item, ['target_amount', 'funding_target', 'total_trade_requirement', 'amount']);
-  const funded = amount(item, ['funded_amount', 'raised_amount', 'current_amount', 'current_funding']);
-  return target != null && target > 0 && funded != null
-    ? Math.max(0, Math.min(100, Math.round(funded / target * 100)))
-    : null;
+  const suppliedProgress = amount(item, ['funding_percentage', 'funding_progress_percent', 'funding_progress_pct', 'progress_percentage']);
+  return suppliedProgress == null ? null : Math.max(0, Math.min(100, Math.round(suppliedProgress)));
 }
 
 function durationInDays(item: Record<string, unknown>) {
-  const explicitDays = amount(item, ['duration_days', 'trade_duration_days', 'cycle_days']);
+  const explicitDays = amount(item, ['investment_period_days', 'duration_days', 'trade_duration_days', 'cycle_days']);
   if (explicitDays != null) return explicitDays;
   const raw = first(item, ['trade_cycle', 'estimated_trade_cycle', 'duration', 'term', 'investment_duration']).toLowerCase();
   const match = raw.match(/(\d+(?:\.\d+)?)\s*(days?|d|weeks?|wks?|months?|mos?|years?|yrs?)\b/);

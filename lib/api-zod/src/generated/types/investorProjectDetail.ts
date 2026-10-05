@@ -13,6 +13,44 @@ import type { ProjectTradeUpdate } from './projectTradeUpdate';
  * Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.
  */
 export interface InvestorProjectDetail {
+  readonly id?: number;
+  title?: string;
+  /** @nullable */
+  reference?: string | null;
+  type?: string;
+  status?: string;
+  /**
+     * Investment denomination. Container investments are entered in USD; PKR-wallet conversion is calculated by the server.
+     * @nullable
+     */
+  currency?: string | null;
+  /** @nullable */
+  target_amount?: number | null;
+  /** @nullable */
+  raised_amount?: number | null;
+  /**
+     * Funding percentage explicitly returned by OG Exports.
+     * @nullable
+     */
+  funding_percentage?: number | null;
+  /**
+     * Remaining capacity explicitly returned by OG Exports.
+     * @nullable
+     */
+  remaining_amount?: number | null;
+  /** @nullable */
+  min_investment?: number | null;
+  /** @nullable */
+  max_investment?: number | null;
+  /**
+     * Return target explicitly supplied by OG Exports; not a guarantee.
+     * @nullable
+     */
+  expected_return_pct?: number | null;
+  /** @nullable */
+  investment_period_days?: number | null;
+  /** @nullable */
+  commodity?: string | null;
   container?: ContainerTracking;
   /** Persisted events explicitly published by OG Exports. Empty when no project updates have been recorded. */
   trade_updates?: ProjectTradeUpdate[];

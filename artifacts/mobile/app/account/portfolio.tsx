@@ -82,7 +82,7 @@ export default function Portfolio() {
     const commodity = first(item, ['commodity_name', 'commodity'], first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(item, ['project_name', 'title'])));
     const origin = first(item, ['origin', 'origin_country', 'from_country'], first(trade, ['origin', 'origin_country', 'from_country', 'country_of_origin']));
     const destination = first(item, ['destination', 'destination_country', 'to_country'], first(trade, ['destination', 'destination_country', 'to_country', 'destination_market']));
-    const investmentCurrency = first(item, ['currency'], first(trade, ['currency']));
+    const investmentCurrency = first(item, ['amount_currency', 'currency'], first(trade, ['currency']));
     const investedAmount = amount(item, ['amount', 'investment_amount', 'principal']);
     const tradeStatus = first(item, ['trade_status', 'shipment_status'], first(trade, ['trade_status', 'shipment_status', 'status']));
     const containerStatus = first(item, ['container_status'], first(
@@ -100,8 +100,8 @@ export default function Portfolio() {
       'projected_return_amount', 'estimated_return_amount', 'target_return_amount',
       'projected_distribution', 'estimated_distribution',
     ]);
-    const targetPercent = amount(item, ['projected_return_percentage', 'estimated_return_percentage', 'target_return_percentage'])
-      ?? amount(trade, ['projected_return_percentage', 'estimated_return_percentage', 'target_return_percentage']);
+    const targetPercent = amount(item, ['projected_return_percentage', 'estimated_return_percentage', 'target_return_percentage', 'expected_return_pct'])
+      ?? amount(trade, ['projected_return_percentage', 'estimated_return_percentage', 'target_return_percentage', 'expected_return_pct']);
     const route = origin || destination
       ? `${origin || 'Origin not provided'} → ${destination || 'Destination not provided'}`
       : 'Route not provided by OG Exports';

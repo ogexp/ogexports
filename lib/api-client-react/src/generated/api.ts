@@ -44,6 +44,9 @@ import type {
   InvestorNotificationsResponse,
   InvestorProfileUpdate,
   InvestorProjectDetailResponse,
+  InvestorProjectInvestmentRequest,
+  InvestorProjectInvestmentResponse,
+  InvestorProjectListResponse,
   InvestorPushTokenRegistration,
   InvestorPushTokenRevocation,
   InvestorWithdrawalInput,
@@ -2179,9 +2182,9 @@ export const getGetInvestorProjectsUrl = (params?: GetInvestorProjectsParams,) =
 /**
  * @summary List investment opportunities
  */
-export const getInvestorProjects = async (params?: GetInvestorProjectsParams, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const getInvestorProjects = async (params?: GetInvestorProjectsParams, options?: Parameters<typeof customFetch>[1]): Promise<InvestorProjectListResponse> => {
 
-  return customFetch<JsonObject>(getGetInvestorProjectsUrl(params),
+  return customFetch<InvestorProjectListResponse>(getGetInvestorProjectsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -2334,7 +2337,7 @@ export const getInvestInProjectUrl = (id: string,) => {
  * @summary Create an investment in a project
  */
 export const investInProject = async (id: string,
-    jsonObject: JsonObject, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+    investorProjectInvestmentRequest: InvestorProjectInvestmentRequest, options?: Parameters<typeof customFetch>[1]): Promise<InvestorProjectInvestmentResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -2350,12 +2353,12 @@ export const investInProject = async (id: string,
     }
     return headers;
   };
-return customFetch<JsonObject>(getInvestInProjectUrl(id),
+return customFetch<InvestorProjectInvestmentResponse>(getInvestInProjectUrl(id),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(jsonObject)
+    body: JSON.stringify(investorProjectInvestmentRequest)
   }
 );}
 
@@ -2393,9 +2396,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type InvestInProjectMutationResult = NonNullable<Awaited<ReturnType<typeof investInProject>>>
-    export type InvestInProjectMutationBody = BodyType<JsonObject>
+    export type InvestInProjectMutationBody = BodyType<InvestorProjectInvestmentRequest>
     export type InvestInProjectMutationError = ErrorType<unknown>
-    export type InvestInProjectMutationVariables = {id: string;data: BodyType<JsonObject>}
+    export type InvestInProjectMutationVariables = {id: string;data: BodyType<InvestorProjectInvestmentRequest>}
 
     /**
  * @summary Create an investment in a project
