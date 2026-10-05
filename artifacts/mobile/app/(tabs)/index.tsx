@@ -389,41 +389,6 @@ export default function InvestorHome() {
       <Pressable accessibilityRole="button" onPress={() => void dashboard.refetch()}><Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>Try again</Text></Pressable>
     </View> : null}
 
-    <HomeSection title="Recent Transactions" right={<Pressable accessibilityRole="button" onPress={() => router.push('/account/transactions')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>See all</Text></Pressable>} />
-    {activityError ? <ErrorState message="Recent activity could not be loaded." error={transactions.error} onRetry={() => void transactions.refetch()} /> : null}
-    {activityLoading ? <LoadingCard label="Loading recent activity…" /> : null}
-    {!activityLoading && !activityError && recent.length === 0 ? <EmptyState title="No recent activity" body="Investments, deposits, withdrawals, distributions and trade status updates will appear here when returned by OG Exports." /> : null}
-    {groupedTransactions.map(group => <View key={group.label}>
-      <Text style={{ color: colors.mutedForeground, fontSize: 10, letterSpacing: 1, fontWeight: '700', marginTop: 8, marginBottom: 2 }}>{group.label}</Text>
-      {group.items.map((item, index) => {
-        const rowCurrency = first(item, ['currency'], currency);
-        const kind = activityLabel(item);
-        const date = first(item, ['created_at', 'date'], 'Date unavailable');
-        const rowAmount = amount(item, ['amount', 'total']);
-        const transactionId = first(item, ['id', 'transaction_id', 'reference']);
-        return <Pressable key={transactionId || `${group.label}-${index}`} accessibilityRole="button" accessibilityLabel={`View ${kind}`} onPress={() => router.push({
-          pathname: '/account/transactions',
-          params: { tab: 'Wallet', search: transactionId || kind, selected: transactionId },
-        })}
-          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, opacity: pressed ? 0.78 : 1 })}>
-          <View style={{ width: 40, height: 40, borderRadius: 22, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
-            <Feather name={activityIcon(item)} size={17} color={colors.primary} />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text numberOfLines={1} style={{ color: colors.foreground, fontWeight: '700', fontSize: 13 }}>{kind}</Text>
-            <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{transactionDate(date)}</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end', gap: 4 }}>
-            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700' }}>{displayMoney(rowAmount, rowCurrency || 'USD')}</Text>
-            <Status value={first(item, ['status'], '—')} />
-          </View>
-        </Pressable>;
-      })}
-    </View>)}
-
-    <HomeSection title="Portfolio Performance" right={<Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/portfolio')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Portfolio</Text></Pressable>} />
-    <PortfolioHistoryCard points={series.points} currency={currency} loading={dashboard.isLoading} compact hideValues={balanceHidden} />
-
     <HomeSection title="Account Overview" />
     <View style={{ gap: 9 }}>
       {Array.from({ length: Math.ceil(metricItems.length / 2) }, (_, rowIndex) => (
@@ -502,6 +467,41 @@ export default function InvestorHome() {
         </Pressable>
       </Card>;
     })}
+
+    <HomeSection title="Portfolio Performance" right={<Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/portfolio')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Portfolio</Text></Pressable>} />
+    <PortfolioHistoryCard points={series.points} currency={currency} loading={dashboard.isLoading} compact hideValues={balanceHidden} />
+
+    <HomeSection title="Recent Transactions" right={<Pressable accessibilityRole="button" onPress={() => router.push('/account/transactions')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>See all</Text></Pressable>} />
+    {activityError ? <ErrorState message="Recent activity could not be loaded." error={transactions.error} onRetry={() => void transactions.refetch()} /> : null}
+    {activityLoading ? <LoadingCard label="Loading recent activity…" /> : null}
+    {!activityLoading && !activityError && recent.length === 0 ? <EmptyState title="No recent activity" body="Investments, deposits, withdrawals, distributions and trade status updates will appear here when returned by OG Exports." /> : null}
+    {groupedTransactions.map(group => <View key={group.label}>
+      <Text style={{ color: colors.mutedForeground, fontSize: 10, letterSpacing: 1, fontWeight: '700', marginTop: 8, marginBottom: 2 }}>{group.label}</Text>
+      {group.items.map((item, index) => {
+        const rowCurrency = first(item, ['currency'], currency);
+        const kind = activityLabel(item);
+        const date = first(item, ['created_at', 'date'], 'Date unavailable');
+        const rowAmount = amount(item, ['amount', 'total']);
+        const transactionId = first(item, ['id', 'transaction_id', 'reference']);
+        return <Pressable key={transactionId || `${group.label}-${index}`} accessibilityRole="button" accessibilityLabel={`View ${kind}`} onPress={() => router.push({
+          pathname: '/account/transactions',
+          params: { tab: 'Wallet', search: transactionId || kind, selected: transactionId },
+        })}
+          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, opacity: pressed ? 0.78 : 1 })}>
+          <View style={{ width: 40, height: 40, borderRadius: 22, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
+            <Feather name={activityIcon(item)} size={17} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text numberOfLines={1} style={{ color: colors.foreground, fontWeight: '700', fontSize: 13 }}>{kind}</Text>
+            <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{transactionDate(date)}</Text>
+          </View>
+          <View style={{ alignItems: 'flex-end', gap: 4 }}>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700' }}>{displayMoney(rowAmount, rowCurrency || 'USD')}</Text>
+            <Status value={first(item, ['status'], '—')} />
+          </View>
+        </Pressable>;
+      })}
+    </View>)}
 
     <HomeSection title="Featured opportunities" right={<Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/opportunities')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>See all</Text></Pressable>} />
     {projects.isError ? <ErrorState message="Trade opportunities could not be loaded." error={projects.error} onRetry={() => void projects.refetch()} /> : null}
