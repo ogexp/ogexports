@@ -1,0 +1,23 @@
+:root {
+  --og-balance-background: #F7F6F2;
+  --og-balance-surface: #FDFDFC;
+  --og-balance-foreground: #283934;
+  --og-balance-primary: #31634C;
+  --og-balance-muted: #687D76;
+  --og-balance-border: #E0DDD7;
+  --og-balance-start: #174B34;
+  --og-balance-end: #2F7650;
+  --og-balance-text: #F8FBF8;
+}
+
+.dark {
+  --og-balance-background: #0F151A;
+  --og-balance-surface: #151D23;
+  --og-balance-foreground: #F0F0EB;
+  --og-balance-primary: #479E4C;
+  --og-balance-muted: #8595A3;
+  --og-balance-border: #252F37;
+  --og-balance-start: #123A2A;
+  --og-balance-end: #255C3C;
+  --og-balance-text: #F1F6F2;
+}
