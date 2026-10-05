@@ -262,9 +262,9 @@ export function AdminProjectHistoryGroup({
               const investorForMoney = {
                 ...item.investor,
                 amount_currency: item.amountCurrency || item.investor.currency,
-                display_pkr: item.investor.displayPkr ?? item.investor.display_pkr,
+                display_pkr: item.investor.display_pkr,
                 country: item.investor.country,
-                wallet_currency: item.investor.walletCurrency || item.investor.currency,
+                wallet_currency: item.investor.wallet_currency || item.investor.currency,
                 amount_pkr: item.amountPkr,
               }
               return (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link } from "wouter"
 import { useSafeAuth } from "@/lib/use-safe-auth"
-import { useCurrency } from "@/lib/use-currency"
+import { formatInvestorProjectAmount } from "@/lib/invest-format"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -16,7 +16,6 @@ import { InvestBottomCta } from "@/components/invest/InvestBottomCta"
 
 export default function Invest({ embedded = false }: { embedded?: boolean } = {}) {
   const { isSignedIn, accountType } = useSafeAuth()
-  const cur = useCurrency()
   const [tab, setTab] = useState<"containers" | "projects">("containers")
   const [containerFilter, setContainerFilter] = useState<"all" | "open" | "shipping" | "completed">("all")
   const filterClientProjects = (list: AdminInvestProject[]) =>
@@ -209,6 +208,7 @@ export default function Invest({ embedded = false }: { embedded?: boolean } = {}
                           <FundingProgress
                             raised={p.currentFunding}
                             target={p.fundingTarget}
+                            currency={p.currency}
                             variant="compact"
                             className="pt-2"
                           />
@@ -216,15 +216,15 @@ export default function Invest({ embedded = false }: { embedded?: boolean } = {}
                         <div className="bg-muted/30 p-6 grid grid-cols-3 gap-4 border-t border-border/50 mt-auto">
                           <div>
                             <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Annual Return</div>
-                            <div className="font-bold text-emerald-500 text-lg">{p.expectedReturnPct}%</div>
+                            <div className="font-bold text-emerald-500 text-lg">{p.expectedReturnPct == null ? "Not provided" : `${p.expectedReturnPct}%`}</div>
                           </div>
                           <div>
                             <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Term</div>
-                            <div className="font-bold text-foreground text-lg">{p.investmentPeriodMonths}mo</div>
+                            <div className="font-bold text-foreground text-lg">{p.investmentPeriodMonths == null ? "Not provided" : `${p.investmentPeriodMonths}mo`}</div>
                           </div>
                           <div>
                             <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Min Inv.</div>
-                            <div className="font-bold text-foreground text-lg">{cur.fmtDual(p.minInvestment)}</div>
+                            <div className="font-bold text-foreground text-lg">{formatInvestorProjectAmount(p.minInvestment, p.currency)}</div>
                           </div>
                         </div>
                       </CardContent>

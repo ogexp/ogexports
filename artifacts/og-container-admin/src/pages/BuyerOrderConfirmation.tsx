@@ -45,7 +45,7 @@ export default function BuyerOrderConfirmation() {
     { icon: FileText,   title: "Proforma Invoice",        desc: "Issued within 24 hours to your registered email" },
     { icon: CreditCard, title: "Payment Processing",       desc: order ? `Your ${order.paymentMethod} details will be verified by our finance team` : "Payment details will be verified" },
     { icon: Package,    title: "Production & Procurement", desc: "Commodity sourcing and quality inspection begins upon payment confirmation" },
-    { icon: MapPin,     title: "Shipment & Tracking",      desc: "Live container tracking shared when goods are loaded at Port Qasim" },
+    { icon: MapPin,     title: "Shipment Updates",         desc: "Shipment milestones are shared after they are recorded; live carrier location is not provided" },
   ]
 
   return (

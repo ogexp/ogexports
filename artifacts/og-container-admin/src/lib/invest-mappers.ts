@@ -15,7 +15,6 @@ export function adminToContainer(p: AdminInvestProject): ContainerInvestment {
   const legacyMap: Partial<Record<AdminInvestProject["status"], ContainerInvestment["status"]>> = {
     funding: "open",
     active: "funded",
-    shipping: "shipping",
     completed: "completed",
   }
   const mapped = statusMap[uiStatus]
@@ -25,26 +24,29 @@ export function adminToContainer(p: AdminInvestProject): ContainerInvestment {
   return {
     id: p.id, slug: p.id,
     commodity: p.commodity || p.title, variety: p.variety || "",
-    tradeDirection: "export",
-    containerType: (p.containerType || "40ft") as ContainerInvestment["containerType"],
-    containerValue: p.containerValue || p.target,
+    tradeDirection: p.tradeDirection,
+    containerType: p.containerType as ContainerInvestment["containerType"],
+    containerValue: p.containerValue ?? null,
     containerNumber: p.containerNumber,
-    origin: p.origin || "Pakistan", portOfLoading: p.portOfLoading || "Port Qasim",
+    origin: p.origin || "", portOfLoading: p.portOfLoading,
     destination: p.destination || "", portOfDischarge: p.portOfDischarge || "",
     destinationCountry: p.destinationCountry || p.destination || "",
     destinationFlag: p.destinationFlag || "🌍",
-    fundingDeadlineDate: p.fundingDeadlineDate || new Date().toISOString(),
-    minInvestment: p.minInvestment || 100, maxInvestment: p.maxInvestment ?? null,
-    currentFunding: p.raised, targetFunding: p.target,
-    totalInvestors: p.investors, totalAmountInvested: p.raised,
-    expectedReturnPct: p.expectedReturnPct || parseFloat(p.roi) || 8,
-    investmentPeriodDays: p.investmentPeriodDays || 45,
+    fundingDeadlineDate: p.fundingDeadlineDate || "",
+    minInvestment: p.minInvestment ?? null, maxInvestment: p.maxInvestment ?? null,
+    currentFunding: p.raisedAmountAvailable === false ? null : p.raised,
+    targetFunding: p.targetAmountAvailable === false ? null : p.target,
+    totalInvestors: p.investorCountAvailable === false ? null : p.investors,
+    totalAmountInvested: p.raisedAmountAvailable === false ? null : p.raised,
+    expectedReturnPct: p.expectedReturnPct ?? null,
+    investmentPeriodDays: p.investmentPeriodDays ?? null,
     status: mapped,
-    imageUrl: p.imageUrl || "", riskLevel: p.riskLevel || "low",
+    imageUrl: p.imageUrl || "", riskLevel: p.riskLevel,
     productCategory: p.productCategory || p.commodity || "",
     description: p.description || "",
-    incoterm: (p.incoterm || "FOB") as ContainerInvestment["incoterm"],
-    paymentTerms: p.paymentTermsInvest || "LC at sight",
+    incoterm: p.incoterm as ContainerInvestment["incoterm"],
+    paymentTerms: p.paymentTermsInvest,
+    currency: p.currency,
     shippingLine: p.shippingLine, vesselName: p.vessel,
     estimatedDepartureDate: p.etd, estimatedArrivalDate: p.eta,
     expectedProjectCompletionDate: p.completion, currentProjectStage: p.currentProjectStage,
@@ -52,17 +54,22 @@ export function adminToContainer(p: AdminInvestProject): ContainerInvestment {
 }
 
 export function adminToLongTerm(p: AdminInvestProject): LongTermProject {
-  const statusMap: Record<AdminInvestProject["status"], LongTermProject["status"]> = {
+  const statusMap: Partial<Record<AdminInvestProject["status"], LongTermProject["status"]>> = {
     funding: "open",
     active: "in-progress",
-    shipping: "in-progress",
+    investment_confirmed: "in-progress",
+    cargo_loaded: "in-progress",
+    in_transit: "in-progress",
+    custom_clearance: "in-progress",
+    settled: "completed",
+    cancelled: "completed",
     completed: "completed",
   }
   const category: LongTermProject["category"] =
     p.type === "plant" ? "processing" : "fresh-produce"
-  const months = p.investmentPeriodDays
+  const months = p.investmentPeriodDays != null
     ? Math.max(1, Math.round(p.investmentPeriodDays / 30))
-    : (p.type === "plant" ? 48 : 24)
+    : null
 
   return {
     id: p.id,
@@ -71,17 +78,18 @@ export function adminToLongTerm(p: AdminInvestProject): LongTermProject {
     category,
     shortDescription: p.description || `${p.title} — co-invest with OG Exports.`,
     fullDescription: p.description || `${p.title} — co-invest with OG Exports.`,
-    fundingTarget: p.target,
-    currentFunding: p.raised,
-    minInvestment: p.minInvestment || 1000,
-    maxInvestment: p.maxInvestment ?? 0,
+    fundingTarget: p.targetAmountAvailable === false ? null : p.target,
+    currentFunding: p.raisedAmountAvailable === false ? null : p.raised,
+    minInvestment: p.minInvestment ?? null,
+    maxInvestment: p.maxInvestment ?? null,
     investmentPeriodMonths: months,
-    expectedReturnPct: p.expectedReturnPct || parseFloat(p.roi) || 12,
+    expectedReturnPct: p.expectedReturnPct ?? null,
     expectedCompletionDate: p.completion || "",
-    riskLevel: p.riskLevel || "medium",
+    riskLevel: p.riskLevel,
     status: statusMap[p.status] || "open",
-    totalInvestors: p.investors,
+    totalInvestors: p.investorCountAvailable === false ? null : p.investors,
     imageUrls: p.imageUrl ? [p.imageUrl] : [],
+    currency: p.currency,
     highlights: [],
     documents: [],
   }

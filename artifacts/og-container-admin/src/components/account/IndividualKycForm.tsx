@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useStartIndividualKyc } from "@workspace/api-client-react"
-import type { StartIndividualKycBody } from "@workspace/api-zod"
+import { z } from "zod"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -15,12 +15,19 @@ type FormValues = {
   proofOfAddressObjectPath: string
 }
 
+const individualKycSchema = z.object({
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  nationality: z.string().trim().min(1, "Nationality is required"),
+  residentialAddress: z.string().trim().min(1, "Residential address is required"),
+  proofOfAddressObjectPath: z.string().min(1, "Proof of address is required"),
+})
+
 export function IndividualKycForm({ retry }: { retry?: boolean }) {
   const { toast } = useToast()
   const startKyc = useStartIndividualKyc()
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(StartIndividualKycBody.omit({ returnUrl: true })),
+    resolver: zodResolver(individualKycSchema),
     defaultValues: {
       dateOfBirth: "",
       nationality: "",
@@ -31,14 +38,10 @@ export function IndividualKycForm({ retry }: { retry?: boolean }) {
 
   const onSubmit = (values: FormValues) => {
     startKyc.mutate(
-      { data: { ...values, returnUrl: window.location.href } },
+      { data: values },
       {
-        onSuccess: (session) => {
-          if (session.verificationUrl) {
-            window.location.href = session.verificationUrl
-          } else {
-            toast({ title: "Verification session created", description: "Please refresh to check your status." })
-          }
+        onSuccess: () => {
+          toast({ title: "Identity verification submitted", description: "Our compliance team will review your application." })
         },
         onError: (error: any) => {
           toast({
@@ -56,7 +59,7 @@ export function IndividualKycForm({ retry }: { retry?: boolean }) {
       <div className="text-center space-y-3">
         <h1 className="text-3xl font-heading font-bold">{retry ? "Resubmit your verification" : "Verify your identity"}</h1>
         <p className="text-muted-foreground">
-          We use Stripe Identity to confirm who you are with a government ID and a selfie. Fill in your details below to begin.
+          Submit your details and proof of address for review by our compliance team.
         </p>
       </div>
 
@@ -123,7 +126,7 @@ export function IndividualKycForm({ retry }: { retry?: boolean }) {
           />
 
           <Button type="submit" size="lg" className="w-full h-12 text-base" disabled={startKyc.isPending}>
-            {startKyc.isPending ? "Starting verification..." : "Continue to identity verification"}
+            {startKyc.isPending ? "Submitting..." : "Submit for review"}
           </Button>
         </form>
       </Form>

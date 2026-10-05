@@ -11,57 +11,27 @@ import { FundingProgress } from "@/components/invest/FundingProgress"
 import { InvestPortalLayout } from "@/components/invest/InvestPortalLayout"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, Ship, TrendingUp, Calendar, Lock, CheckCircle2, FileText, AlertCircle, Building2, Package, Loader2 } from "lucide-react"
-import { type ContainerInvestment, type LongTermProject } from "@/data/investments"
 import { InvestNowModal } from "@/components/invest/InvestNowModal"
 import { InvestorKycGate, InvestorKycRequiredBanner } from "@/components/invest/InvestorKycGate"
 import { api, downloadAuthenticatedFile } from "@/lib/api"
 import { getInvestProjects, loadInvestProjects, mapInvestProject, type AdminInvestProject, type AdminInvestProjectDocument } from "@/lib/admin-data"
 import {
-  CONTAINER_EXPORT_STAGES,
-  containerProjectStageIndex,
   containerProjectStatusLabel,
   isContainerProjectInvestable,
 } from "@/lib/container-project-statuses"
-import { adminToContainer } from "@/lib/invest-mappers"
+import { adminToContainer, adminToLongTerm } from "@/lib/invest-mappers"
 import { getFundingMetrics } from "@/lib/funding-metrics"
 import { Badge } from "@/components/ui/badge"
-import { useCurrency } from "@/lib/use-currency"
-
-function adminToLongTerm(p: AdminInvestProject): LongTermProject {
-  const statusMap: Partial<Record<AdminInvestProject["status"], LongTermProject["status"]>> = {
-    funding: "open", active: "in-progress", completed: "completed",
-  }
-  const months = p.investmentPeriodDays
-    ? Math.max(1, Math.round(p.investmentPeriodDays / 30))
-    : (p.type === "plant" ? 48 : 24)
-  return {
-    id: p.id, slug: p.id, name: p.title,
-    category: p.type === "plant" ? "processing" : "fresh-produce",
-    shortDescription: p.description || p.title,
-    fullDescription: p.description || p.title,
-    fundingTarget: p.target, currentFunding: p.raised,
-    minInvestment: p.minInvestment || 1000, maxInvestment: p.maxInvestment ?? 0,
-    investmentPeriodMonths: months,
-    expectedReturnPct: p.expectedReturnPct || parseFloat(p.roi) || 12,
-    expectedCompletionDate: p.completion || "",
-    riskLevel: p.riskLevel || "medium",
-    status: statusMap[p.status] || "open",
-    totalInvestors: p.investors,
-    imageUrls: p.imageUrl ? [p.imageUrl] : [],
-    highlights: p.description ? [p.description] : [],
-    documents: [],
-  }
-}
+import { formatInvestorProjectAmount } from "@/lib/invest-format"
 
 function mapApiToAdmin(raw: any): AdminInvestProject {
   return mapInvestProject(raw)
 }
 
 export default function InvestDetail() {
-  const params = useParams()
+  const params = useParams<{ id: string }>()
   const slug = params.id
   const { toast } = useToast()
-  const c = useCurrency()
   const { isSignedIn } = useSafeAuth()
   const { user: localUser } = useLocalAuth()
   const { data: me } = useGetMe({ query: { enabled: !!isSignedIn } })
@@ -73,7 +43,7 @@ export default function InvestDetail() {
   const [project, setProject] = useState<AdminInvestProject | null>(null)
   const [imageFailed, setImageFailed] = useState(false)
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
-  const [walletCurrency, setWalletCurrency] = useState("USD")
+  const [walletCurrency, setWalletCurrency] = useState("")
   const [walletLoading, setWalletLoading] = useState(false)
 
   useEffect(() => {
@@ -112,6 +82,7 @@ export default function InvestDetail() {
   useEffect(() => {
     if (!isSignedIn || !isInvestor) {
       setWalletBalance(null)
+        setWalletCurrency("")
       setWalletLoading(false)
       return
     }
@@ -122,12 +93,19 @@ export default function InvestDetail() {
         const payload = res as { data?: { available_balance?: number; currency?: string } }
         const w = payload?.data ?? (payload as { available_balance?: number; currency?: string })
         if (!cancelled) {
-          setWalletBalance(Number(w?.available_balance ?? 0))
-          setWalletCurrency(String(w?.currency || "USD").toUpperCase())
+          const rawBalance = w?.available_balance
+          const parsedBalance = rawBalance == null || String(rawBalance).trim() === ""
+            ? null
+            : Number(rawBalance)
+          setWalletBalance(parsedBalance != null && Number.isFinite(parsedBalance) ? parsedBalance : null)
+          setWalletCurrency(String(w?.currency || "").trim().toUpperCase())
         }
       })
       .catch(() => {
-        if (!cancelled) setWalletBalance(0)
+        if (!cancelled) {
+          setWalletBalance(null)
+          setWalletCurrency("")
+        }
       })
       .finally(() => {
         if (!cancelled) setWalletLoading(false)
@@ -165,45 +143,42 @@ export default function InvestDetail() {
   const projectReference = project.reference
   const target = isProject ? longTerm!.fundingTarget : container!.targetFunding
   const current = inv.currentFunding
-  const pendingReserved = project.pendingReserved || 0
-  const { remaining, isFull } = getFundingMetrics(current, target, pendingReserved)
-  const capacityRemaining = project.remainingAmount != null ? project.remainingAmount : remaining
-  const capacityFull = project.isFull || isFull || capacityRemaining <= 0
+  const pendingReserved = project.pendingReserved ?? null
+  const capacityRemaining = project.remainingAmount
+    ?? (current != null && target != null && pendingReserved != null
+      ? getFundingMetrics(current, target, pendingReserved).remaining
+      : null)
+  const capacityFull = project.isFull === true
+    || (capacityRemaining != null && capacityRemaining <= 0)
+  const hasTerm = isProject
+    ? longTerm!.investmentPeriodMonths != null
+    : container!.investmentPeriodDays != null
+  const termsReady = Boolean(inv.currency) && inv.minInvestment != null && hasTerm
+  const walletCurrencyMatches = Boolean(
+    inv.currency && walletCurrency && inv.currency.toUpperCase() === walletCurrency,
+  )
   const canInvest = (isProject
     ? longTerm!.status === "open"
-    : isContainerProjectInvestable(project.status)) && !capacityFull
-
-  const containerStage = container ? containerProjectStageIndex(project.status) : 0
-  const containerStageDates = container
-    ? [
-        container.fundingDeadlineDate,
-        container.fundingDeadlineDate,
-        container.estimatedDepartureDate,
-        container.estimatedDepartureDate,
-        container.estimatedArrivalDate,
-        container.expectedProjectCompletionDate || container.estimatedArrivalDate,
-      ]
-    : []
-  const timelinePct = container
-    ? Math.min(100, Math.round((containerStage / Math.max(CONTAINER_EXPORT_STAGES.length - 1, 1)) * 100))
-    : 0
+    : isContainerProjectInvestable(project.status))
+    && !capacityFull
+    && capacityRemaining != null
+    && termsReady
+    && walletCurrencyMatches
 
   const val = Number(amount)
-  const estReturn = val ? val * (inv.expectedReturnPct / 100) : 0
-  const showPkrDual = c.isPK
-  const estReturnPkr = showPkrDual && val ? c.convert(estReturn) : null
-  const valPkr = showPkrDual && val ? c.convert(val) : null
-  const usePkrWallet = showPkrDual && walletCurrency === "PKR"
-  const walletDebitNeeded = usePkrWallet && val > 0 ? c.convert(val) : val
+  const walletDebitNeeded = val
   const investAmountDisabled =
     walletLoading
     || walletBalance == null
+    || !walletCurrencyMatches
+    || !termsReady
+    || capacityRemaining == null
     || walletBalance <= 0
     || !amount
-    || val < inv.minInvestment
-    || (inv.maxInvestment ? val > inv.maxInvestment : false)
+    || (inv.minInvestment != null && val < inv.minInvestment)
+    || (inv.maxInvestment != null && val > inv.maxInvestment)
     || val > capacityRemaining
-    || (val > 0 && walletDebitNeeded > (walletBalance ?? 0))
+    || (val > 0 && walletDebitNeeded > walletBalance)
 
   const handleInvestClick = () => {
     if (!isSignedIn) return
@@ -317,7 +292,7 @@ export default function InvestDetail() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Total Value</span>
-                      <span className="font-medium">{c.fmtDual(container.containerValue)}</span>
+                      <span className="font-medium">{formatInvestorProjectAmount(container.containerValue, container.currency)}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -359,39 +334,9 @@ export default function InvestDetail() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-[10px] text-muted-foreground">
-                          <span>Progress</span>
-                          <span>{timelinePct}% complete</span>
-                        </div>
-                        <div className="h-2 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${timelinePct}%` }} />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        {CONTAINER_EXPORT_STAGES.map((stageLabel, i) => {
-                          const isComplete = i < containerStage || project.status === "settled"
-                          const isCurrent = i === containerStage && project.status !== "settled" && project.status !== "cancelled"
-                          return (
-                            <div key={stageLabel} className="flex items-center gap-3">
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold
-                                ${isComplete ? "bg-primary text-primary-foreground"
-                                  : isCurrent ? "bg-primary text-primary-foreground ring-2 ring-primary/30"
-                                  : "bg-muted text-muted-foreground"}`}>
-                                {isComplete ? "✓" : i + 1}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <span className={`text-sm ${isCurrent ? "font-semibold text-foreground" : isComplete ? "text-muted-foreground" : "text-muted-foreground"}`}>
-                                  {stageLabel}
-                                </span>
-                                <p className="text-[10px] text-muted-foreground">{containerStageDates[i] || "TBD"}</p>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Timeline milestones, progress, and dates have not been provided in this project record.
+                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -457,7 +402,11 @@ export default function InvestDetail() {
               </div>
               <ul className="list-disc list-inside text-sm text-amber-700/80 dark:text-amber-500/80 space-y-2">
                 <li>Capital is at risk. Returns are not guaranteed and depend on successful trade execution.</li>
-                <li>Investments are locked for the duration of the term ({isProject ? `${longTerm!.investmentPeriodMonths} months` : `${container!.investmentPeriodDays} days`}).</li>
+                <li>
+                  {hasTerm
+                    ? `Investment term: ${isProject ? `${longTerm!.investmentPeriodMonths} months` : `${container!.investmentPeriodDays} days`}.`
+                    : "Investment term is not provided in the current project record."}
+                </li>
                 <li>Returns are subject to currency fluctuations and final settlement deductions.</li>
               </ul>
             </div>
@@ -469,33 +418,39 @@ export default function InvestDetail() {
                 <FundingProgress
                   raised={current}
                   target={target}
+                  currency={inv.currency}
                   variant="detailed"
                   investors={inv.totalInvestors}
                 />
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded-lg bg-muted/40 p-2">
                     <div className="text-muted-foreground">Remaining</div>
-                    <div className="font-semibold">{c.fmtDual(capacityRemaining)}</div>
+                    <div className="font-semibold">{formatInvestorProjectAmount(capacityRemaining, inv.currency)}</div>
                   </div>
                   <div className="rounded-lg bg-muted/40 p-2">
                     <div className="text-muted-foreground">Pending holds</div>
-                    <div className="font-semibold">{c.fmtDual(pendingReserved)}</div>
+                    <div className="font-semibold">{formatInvestorProjectAmount(pendingReserved, inv.currency)}</div>
                   </div>
                 </div>
                 {capacityFull && (
                   <p className="text-xs text-amber-600 text-center font-medium">Fully subscribed — no slots remaining</p>
                 )}
+                {!capacityFull && capacityRemaining == null && (
+                  <p className="text-xs text-muted-foreground text-center">Available capacity is not provided by the current project record.</p>
+                )}
 
                 <div className="grid grid-cols-2 gap-4 py-5 border-y border-border/50">
                   <div>
                     <div className="flex items-center gap-1.5 text-emerald-500 font-heading font-bold text-2xl">
-                      <TrendingUp className="w-5 h-5" /> {inv.expectedReturnPct}%
+                      <TrendingUp className="w-5 h-5" /> {inv.expectedReturnPct == null ? "Not provided" : `${inv.expectedReturnPct}%`}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">Expected return</div>
                   </div>
                   <div>
                     <div className="font-heading font-bold text-2xl text-foreground">
-                      {isProject ? `${longTerm!.investmentPeriodMonths}mo` : `${container!.investmentPeriodDays}d`}
+                      {isProject
+                        ? (longTerm!.investmentPeriodMonths == null ? "Not provided" : `${longTerm!.investmentPeriodMonths}mo`)
+                        : (container!.investmentPeriodDays == null ? "Not provided" : `${container!.investmentPeriodDays}d`)}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">Investment term</div>
                   </div>
@@ -503,17 +458,25 @@ export default function InvestDetail() {
 
                 {!canInvest ? (
                   <Button className="w-full h-12 text-lg font-semibold bg-muted text-muted-foreground hover:bg-muted" disabled>
-                    {capacityFull ? "Fully Subscribed" : "Funding Closed"}
+                    {capacityFull
+                      ? "Fully Subscribed"
+                      : !termsReady
+                        ? "Terms Not Available"
+                        : !walletCurrencyMatches
+                          ? "Wallet Currency Not Matched"
+                          : capacityRemaining == null
+                            ? "Capacity Not Available"
+                            : "Funding Closed"}
                   </Button>
                 ) : (
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <label className="font-medium">Investment Amount (USD)</label>
-                        <span className="text-muted-foreground">Min: {c.fmtDual(inv.minInvestment)}</span>
+                        <label className="font-medium">Investment Amount ({inv.currency})</label>
+                        <span className="text-muted-foreground">Min: {formatInvestorProjectAmount(inv.minInvestment, inv.currency)}</span>
                       </div>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{inv.currency}</span>
                         <Input
                           type="number"
                           className="pl-8 h-12 text-lg font-medium"
@@ -522,20 +485,12 @@ export default function InvestDetail() {
                           placeholder="0.00"
                         />
                       </div>
-                      {showPkrDual && val > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          ≈ {c.fmtDual(val, valPkr)}
-                        </p>
-                      )}
                     </div>
 
-                    {val > 0 && (
-                      <div className="bg-primary/5 rounded-lg p-3 text-sm flex justify-between items-center gap-2 border border-primary/10">
-                        <span className="text-muted-foreground shrink-0">Est. Return:</span>
-                        <span className="font-bold text-emerald-500 text-right">
-                          +{c.fmtDual(estReturn, estReturnPkr)}
-                        </span>
-                      </div>
+                    {inv.expectedReturnPct == null && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        No return estimate is published for this project.
+                      </p>
                     )}
 
                     {!isSignedIn ? (
@@ -560,13 +515,13 @@ export default function InvestDetail() {
                         )}
                         {!walletLoading && walletBalance != null && walletBalance > 0 && val > 0 && walletDebitNeeded > walletBalance && (
                           <p className="text-xs text-red-500 text-center">
-                            Amount exceeds available balance ({c.fmtWalletAmount(walletBalance, walletCurrency)})
+                            Amount exceeds available balance ({formatInvestorProjectAmount(walletBalance, walletCurrency)})
                           </p>
                         )}
                       </>
                     )}
 
-                    {val > capacityRemaining && <p className="text-xs text-red-500 text-center">Amount exceeds remaining capacity ({c.fmtDual(capacityRemaining)})</p>}
+                    {capacityRemaining != null && val > capacityRemaining && <p className="text-xs text-red-500 text-center">Amount exceeds remaining capacity ({formatInvestorProjectAmount(capacityRemaining, inv.currency)})</p>}
                   </div>
                 )}
               </CardContent>

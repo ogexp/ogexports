@@ -25,8 +25,8 @@ const FREIGHT_SERVICES = [
   },
   {
     icon: MapPin,
-    title: "Real-Time Tracking",
-    desc: "Live container tracking from loading at our facility through the entire voyage to destination port, accessible 24/7.",
+    title: "Recorded Shipment Updates",
+    desc: "Review shipment milestones recorded in your account. Live carrier locations and live ETAs are not provided here.",
   },
   {
     icon: Clock,

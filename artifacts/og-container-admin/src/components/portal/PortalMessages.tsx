@@ -108,7 +108,7 @@ export function PortalMessages({ Layout, showSupport: showSupportProp }: PortalM
   const [ticketForm, setTicketForm] = useState({
     subject: "",
     body: "",
-    contact_name: user?.fullName || user?.name || "",
+    contact_name: user?.fullName || "",
     contact_email: user?.email || "",
     contact_phone: user?.phone || "",
   })
@@ -213,7 +213,7 @@ export function PortalMessages({ Layout, showSupport: showSupportProp }: PortalM
     if (showSupport && activeTab === "tickets") {
       setTicketForm(f => ({
         ...f,
-        contact_name: f.contact_name || user?.fullName || user?.name || "",
+        contact_name: f.contact_name || user?.fullName || "",
         contact_email: f.contact_email || user?.email || "",
         contact_phone: f.contact_phone || user?.phone || "",
       }))

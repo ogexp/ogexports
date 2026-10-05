@@ -1,137 +1,96 @@
 import { useGetPortalAnalytics } from "@workspace/api-client-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { BarChart, Activity, FileText, ShoppingCart, DollarSign, Package } from "lucide-react"
+import { Activity, FileText, ShoppingCart, TrendingUp } from "lucide-react"
 import { useCurrency } from "@/lib/use-currency"
 
 export function AnalyticsTab() {
-  const { data: analytics, isLoading } = useGetPortalAnalytics()
-  const c = useCurrency()
+  const { data: analytics, isLoading, isError, refetch } = useGetPortalAnalytics()
+  const currency = useCurrency()
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1,2,3,4,5,6,7,8].map(i => (
-          <Skeleton key={i} className="h-32 w-full rounded-xl" />
-        ))}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[1, 2, 3, 4].map((item) => <Skeleton key={item} className="h-32 w-full rounded-xl" />)}
       </div>
     )
   }
 
-  if (!analytics) return null
+  if (isError || !analytics) {
+    return (
+      <Card className="border-destructive/30">
+        <CardContent className="space-y-3 py-12 text-center">
+          <p className="font-medium">Buyer analytics are unavailable.</p>
+          <p className="text-sm text-muted-foreground">No sample figures are shown when the API cannot provide analytics.</p>
+          <button className="text-sm font-medium text-primary underline underline-offset-4" onClick={() => void refetch()}>
+            Retry
+          </button>
+        </CardContent>
+      </Card>
+    )
+  }
 
-  const formatCurrency = (amount: number) => c.fmt(Number(amount) || 0)
+  const formatCurrency = (amount: number) => currency.fmt(Number(amount))
+  const metrics = [
+    {
+      label: "Total Orders",
+      value: String(analytics.orders_total),
+      detail: "All recorded orders",
+      icon: ShoppingCart,
+    },
+    {
+      label: "Total Spend",
+      value: formatCurrency(analytics.spend_total),
+      detail: "Recorded order value",
+      icon: Activity,
+    },
+    {
+      label: "RFQs Submitted",
+      value: String(analytics.rfqs_total),
+      detail: "All recorded requests",
+      icon: FileText,
+    },
+    {
+      label: "Accepted Quotes",
+      value: String(analytics.quotations_accepted),
+      detail: "Accepted quotations",
+      icon: TrendingUp,
+    },
+  ]
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total RFQs</CardTitle>
-            <FileText className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics.totalRfqs}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {analytics.openRfqs} currently open
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Orders</CardTitle>
-            <ShoppingCart className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics.totalOrders}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {analytics.activeOrders} active
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Invoiced</CardTitle>
-            <DollarSign className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-accent">{formatCurrency(analytics.totalInvoiced)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {formatCurrency(analytics.totalPaid)} paid
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Outstanding Balance</CardTitle>
-            <Activity className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{formatCurrency(analytics.outstandingBalance)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Awaiting payment
-            </p>
-          </CardContent>
-        </Card>
-
-        {analytics.totalListings !== undefined && analytics.totalListings !== null && (
-          <Card className="bg-card border-border">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {metrics.map(({ label, value, detail, icon: Icon }) => (
+          <Card key={label} className="border-border bg-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Your Listings</CardTitle>
-              <Package className="w-4 h-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+              <Icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analytics.totalListings}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Products in catalog
-              </p>
+              <div className="text-2xl font-bold">{value}</div>
+              <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
             </CardContent>
           </Card>
-        )}
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-lg">RFQs by Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {Object.entries(analytics.rfqsByStatus).map(([status, count]) => (
-                <div key={status} className="flex items-center justify-between">
-                  <div className="text-sm capitalize">{status.replace('_', ' ')}</div>
-                  <div className="font-medium">{count}</div>
-                </div>
-              ))}
-              {Object.keys(analytics.rfqsByStatus).length === 0 && (
-                <div className="text-sm text-muted-foreground py-4 text-center">No RFQ data</div>
-              )}
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <CardTitle className="text-lg">Monthly Spend</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {analytics.spend_by_month.map((entry) => (
+            <div key={entry.month} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0">
+              <span className="text-sm text-muted-foreground">{entry.month}</span>
+              <span className="font-medium">{formatCurrency(entry.total)}</span>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-lg">Orders by Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {Object.entries(analytics.ordersByStatus).map(([status, count]) => (
-                <div key={status} className="flex items-center justify-between">
-                  <div className="text-sm capitalize">{status.replace('_', ' ')}</div>
-                  <div className="font-medium">{count}</div>
-                </div>
-              ))}
-              {Object.keys(analytics.ordersByStatus).length === 0 && (
-                <div className="text-sm text-muted-foreground py-4 text-center">No Order data</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          ))}
+          {analytics.spend_by_month.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">No monthly spend has been recorded.</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

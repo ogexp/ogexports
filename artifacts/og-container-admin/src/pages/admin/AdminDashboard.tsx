@@ -365,8 +365,8 @@ export default function AdminDashboard() {
     { title: "Market Intelligence", icon: Globe, desc: "Pricing trends & market data" },
   ];
 
-  const hasChartData = (rows: Array<Record<string, unknown>>, keys: string[]) =>
-    rows.some(r => keys.some(k => Number(r[k] || 0) > 0));
+  const hasChartData = <T extends object,>(rows: readonly T[], keys: readonly string[]) =>
+    rows.some(r => keys.some(k => Number((r as unknown as Record<string, unknown>)[k] || 0) > 0));
 
   return (
     <AdminLayout title="Command Center" subtitle="OG Exports — Executive Intelligence Platform">
@@ -1353,7 +1353,7 @@ export default function AdminDashboard() {
                 </div>
               )}
               {notifications.map(n => {
-                const IconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+                const IconMap: Record<string, typeof Bell> = {
                   AlertTriangle, Clock, CreditCard, Shield, Truck
                 };
                 const Icon = IconMap[n.icon] ?? Bell;

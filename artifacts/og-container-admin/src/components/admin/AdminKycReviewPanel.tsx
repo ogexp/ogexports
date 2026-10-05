@@ -111,7 +111,7 @@ export function AdminKycReviewPanel({ kyc: initialKyc, userId, userName, onClose
   }
 
   const canReview = kyc.status === "pending" || kyc.status === "review" || kyc.status === "rejected"
-  const isApproved = kyc.status === "approved" || kyc.status === "verified"
+  const isApproved = kyc.status === "approved"
 
   return (
     <div className={compact ? "space-y-3" : "mt-3 pt-3 border-t border-border space-y-3"}>

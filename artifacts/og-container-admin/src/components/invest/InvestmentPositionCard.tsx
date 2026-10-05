@@ -3,17 +3,15 @@ import { Link } from "wouter"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { useCurrency } from "@/lib/use-currency"
 import { downloadInvestmentPdf } from "@/lib/investment-download"
 import { notify } from "@/lib/notify"
 import {
-  CONTAINER_EXPORT_STAGES,
-  containerProjectStageIndex,
   containerProjectStatusLabel,
   containerProjectUiStatus,
 } from "@/lib/container-project-statuses"
 import { formatContainerLabel, formatContainerType } from "@/lib/container-display"
 import { investmentStatusLabel, investmentStatusBadgeClass } from "@/lib/investment-statuses"
+import { formatInvestorProjectAmount } from "@/lib/invest-format"
 
 export type InvestmentPositionData = {
   id: string
@@ -36,14 +34,12 @@ export type InvestmentPositionData = {
   departureDate: string
   arrivalDate: string
   profitDate: string
-  totalDays: number
-  daysElapsed: number
-  amount: number
-  amountPkr?: number | null
-  expectedProfit: number
-  expectedProfitPkr?: number | null
-  exchangeRate?: number | null
-  roi: number
+  term: string | null
+  currency: string
+  amount: number | null
+  expectedProfit: number | null
+  roi: number | null
+  currentStage: string | null
   status: string
   investmentStatus?: string
   projectStatus?: string
@@ -59,47 +55,46 @@ const STATUS_META: Record<string, { label: string; color: string; dot: string }>
   in_transit: { label: "In Transit", color: "bg-blue-500/15 text-blue-600 dark:text-blue-400", dot: "bg-blue-500" },
   customs:    { label: "Customs",    color: "bg-amber-500/15 text-amber-600 dark:text-amber-400", dot: "bg-amber-500" },
   completed:  { label: "Settled",    color: "bg-muted text-muted-foreground", dot: "bg-green-600" },
+  unknown:    { label: "Not provided", color: "bg-muted text-muted-foreground", dot: "bg-muted-foreground" },
 }
 
-function daysRemaining(arrivalDate: string) {
-  if (arrivalDate === "—") return 0
-  const arrival = new Date(arrivalDate)
-  if (Number.isNaN(arrival.getTime())) return 0
-  const diff = Math.ceil((arrival.getTime() - Date.now()) / 86400000)
-  return diff > 0 ? diff : 0
+function optionalNumber(value: unknown): number | null {
+  if (value == null || String(value).trim() === "") return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 export function mapRowToPosition(row: any): InvestmentPositionData | null {
+  if (!row || row.id == null || !Number.isFinite(Number(row.id))) return null
   const project = row.project || {}
   const status = String(row.status || "")
-  const projectType = String(project.type || "export").toLowerCase()
+  const projectType = String(project.type || "").toLowerCase()
   const isProject = ["project", "plant", "ricemill", "feed", "produce"].includes(projectType)
   const isImport = projectType === "import"
-  const uiStatus = containerProjectUiStatus(project.status, status)
-  const amount = Number(row.amount) || 0
-  const amountPkr = row.amount_pkr != null ? Number(row.amount_pkr) : null
-  const roi = Number(project.expected_return_pct) || 0
-  const expectedProfit = row.profit_amount != null
-    ? Number(row.profit_amount)
-    : Math.round(amount * (roi / 100) * 100) / 100
-  const expectedProfitPkr = row.profit_amount_pkr != null
-    ? Number(row.profit_amount_pkr)
-    : amountPkr != null
-      ? Math.round(amountPkr * (roi / 100) * 100) / 100
+  const isExport = projectType === "export"
+  const hasStatus = Boolean(project.status || status)
+  const uiStatus = project.status
+    ? containerProjectUiStatus(project.status, status)
+    : status || "unknown"
+  const amount = optionalNumber(row.amount)
+  const expectedProfit = optionalNumber(row.profit_amount)
+  const roi = optionalNumber(row.expected_return_pct ?? project.expected_return_pct)
+  const currency = String(row.currency || project.currency || "").trim().toUpperCase()
+  const investmentPeriodDays = optionalNumber(project.investment_period_days)
+  const investmentPeriodMonths = optionalNumber(project.investment_period_months)
+  const term = investmentPeriodDays != null
+    ? `${investmentPeriodDays} days`
+    : investmentPeriodMonths != null
+      ? `${investmentPeriodMonths} months`
       : null
-  const exchangeRate = row.exchange_rate != null ? Number(row.exchange_rate) : null
-
   const investDate = row.invested_at || row.created_at
   const etd = project.etd
   const eta = project.eta
-  const totalDays = Number(project.investment_period_days) || 90
-  const start = investDate ? new Date(investDate) : new Date()
-  const daysElapsed = Math.max(0, Math.min(totalDays, Math.ceil((Date.now() - start.getTime()) / 86400000)))
   const meta = project.meta && typeof project.meta === "object" ? project.meta : {}
   const stageLabel = project.current_project_stage ? String(project.current_project_stage) : null
 
   const fmtDate = (d?: string | null) => {
-    if (!d) return "—"
+    if (!d) return "Not provided"
     try {
       return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     } catch {
@@ -114,31 +109,29 @@ export function mapRowToPosition(row: any): InvestmentPositionData | null {
     plan: project.title || "Investment",
     projectReference: project.reference || undefined,
     investmentReference: row.reference || undefined,
-    type: isProject ? "project" : isImport ? "import" : "export",
-    commodity: project.commodity || project.variety || project.description || stageLabel || "—",
-    containerNo: meta.container_no || meta.container_number || meta.containerNumber || "—",
-    containerType: formatContainerType(project.container_type) || (isProject ? "Fixed Asset" : "Container"),
+    type: isProject ? "project" : isImport ? "import" : isExport ? "export" : "unknown",
+    commodity: project.commodity || project.variety || project.description || "Not provided",
+    containerNo: meta.container_no || meta.container_number || meta.containerNumber || "Not provided",
+    containerType: formatContainerType(project.container_type) || "Not provided",
     shippingLine: project.shipping_line || "—",
-    vessel: project.vessel || stageLabel || "—",
-    voyage: meta.voyage || project.current_project_stage || "—",
+    vessel: project.vessel || "Not provided",
+    voyage: meta.voyage || project.voyage || "Not provided",
     portOfLoading: project.port_of_loading || project.origin || "—",
     portOfDischarge: project.port_of_discharge || project.destination || "—",
     incoterm: project.incoterm || "—",
     investDate: fmtDate(investDate),
     departureDate: fmtDate(etd),
     arrivalDate: fmtDate(eta),
-    profitDate: fmtDate(eta),
-    totalDays,
-    daysElapsed,
+    profitDate: fmtDate(row.profit_payout_date || project.profit_payout_date),
+    term,
+    currency,
     amount,
-    amountPkr,
     expectedProfit,
-    expectedProfitPkr,
-    exchangeRate,
     roi,
+    currentStage: stageLabel,
     status: uiStatus,
     investmentStatus: status,
-    projectStatus: project.status,
+    projectStatus: project.status || undefined,
     projectType,
     investorName: row.investor?.name,
     investorEmail: row.investor?.email,
@@ -153,14 +146,10 @@ type InvestmentPositionCardProps = {
 }
 
 export function InvestmentPositionCard({ inv, adminActions, showInvestor, hideDownloadActions }: InvestmentPositionCardProps) {
-  const c = useCurrency()
   const [pdfLoading, setPdfLoading] = useState(false)
-  const pct = inv.totalDays > 0 ? Math.min(100, Math.round((inv.daysElapsed / inv.totalDays) * 100)) : 0
-  const rem = daysRemaining(inv.arrivalDate)
-  const meta = STATUS_META[inv.status] ?? STATUS_META.active
+  const meta = STATUS_META[inv.status] ?? STATUS_META.unknown
   const isImport = inv.type === "import"
   const isProject = inv.type === "project"
-  const stage = containerProjectStageIndex(inv.projectStatus, inv.investmentStatus)
   const statusContext = { projectType: inv.projectType, projectStatus: inv.projectStatus }
   const projectBadgeLabel = containerProjectStatusLabel(inv.projectStatus) !== "—"
     ? containerProjectStatusLabel(inv.projectStatus)
@@ -203,7 +192,7 @@ export function InvestmentPositionCard({ inv, adminActions, showInvestor, hideDo
               <div className="flex flex-wrap items-center gap-2 mb-0.5">
                 <span className="font-heading font-bold text-base">{inv.plan}</span>
                 <Badge className={`text-[10px] font-bold uppercase tracking-wider border-0 ${isProject ? "bg-accent/15 text-amber-700 dark:text-amber-400" : isImport ? "bg-blue-500/15 text-blue-600 dark:text-blue-400" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"}`}>
-                  {isProject ? "Project" : isImport ? "↓ Import" : "↑ Export"}
+                  {isProject ? "Project" : isImport ? "↓ Import" : inv.type === "export" ? "↑ Export" : "Trade"}
                 </Badge>
                 <Badge className={`text-[10px] font-semibold border-0 flex items-center gap-1 ${meta.color}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${meta.dot} inline-block`} />
@@ -298,33 +287,10 @@ export function InvestmentPositionCard({ inv, adminActions, showInvestor, hideDo
           </div>
 
           <div className="px-5 py-4 space-y-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Trade Progress</p>
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-[10px] text-muted-foreground">
-                <span>Day {inv.daysElapsed} of {inv.totalDays}</span>
-                <span>{pct}% complete</span>
-              </div>
-              <div className="h-2 rounded-full bg-muted overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${inv.status === "completed" ? "bg-emerald-500" : isImport ? "bg-blue-500" : "bg-primary"}`}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              {CONTAINER_EXPORT_STAGES.map((s, i) => (
-                <div key={s} className="flex items-center gap-2.5">
-                  <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold
-                    ${i < stage ? "bg-emerald-500 text-white"
-                      : i === stage ? (inv.status === "completed" ? "bg-emerald-500 text-white" : "bg-primary text-primary-foreground ring-2 ring-primary/30")
-                      : "bg-muted text-muted-foreground"}`}>
-                    {i < stage || (i === stage && inv.status === "completed") ? "✓" : i + 1}
-                  </div>
-                  <span className={`text-xs ${i === stage && inv.status !== "completed" ? "font-semibold text-foreground" : i < stage ? "text-muted-foreground line-through" : "text-muted-foreground"}`}>
-                    {s}
-                  </span>
-                </div>
-              ))}
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Project Update</p>
+            <div className="rounded-xl border border-border/50 bg-muted/20 p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Current Project Stage</p>
+              <p className="text-sm font-semibold mt-1">{inv.currentStage || "Not provided"}</p>
             </div>
             <div className="grid grid-cols-3 gap-2 pt-1">
               {[
@@ -345,21 +311,21 @@ export function InvestmentPositionCard({ inv, adminActions, showInvestor, hideDo
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-xl bg-muted/40 space-y-0.5">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Invested</p>
-                <p className="text-sm font-bold leading-snug">{c.fmtDual(inv.amount, inv.amountPkr, inv.exchangeRate)}</p>
+                <p className="text-sm font-bold leading-snug">{formatInvestorProjectAmount(inv.amount, inv.currency)}</p>
               </div>
               <div className="p-3 rounded-xl bg-emerald-500/8 space-y-0.5">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Exp. Profit</p>
-                <p className="text-sm font-bold text-emerald-500 leading-snug">+{c.fmtDual(inv.expectedProfit, inv.expectedProfitPkr, inv.exchangeRate)}</p>
+                <p className="text-sm font-bold text-emerald-500 leading-snug">
+                  {formatInvestorProjectAmount(inv.expectedProfit, inv.currency)}
+                </p>
               </div>
               <div className="p-3 rounded-xl bg-primary/5 space-y-0.5">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">ROI</p>
-                <p className="text-base font-bold text-primary">{inv.roi}%</p>
+                <p className="text-base font-bold text-primary">{inv.roi == null ? "Not provided" : `${inv.roi}%`}</p>
               </div>
               <div className="p-3 rounded-xl bg-muted/40 space-y-0.5">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Days Left</p>
-                <p className={`text-base font-bold ${rem === 0 ? "text-emerald-500" : ""}`}>
-                  {inv.status === "completed" ? "Done" : rem === 0 ? "Due" : `${rem}d`}
-                </p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Investment Term</p>
+                <p className="text-base font-bold">{inv.term || "Not provided"}</p>
               </div>
             </div>
             <div className={`flex items-center gap-2.5 p-3 rounded-xl border ${inv.status === "completed" ? "border-emerald-500/30 bg-emerald-500/8" : "border-accent/30 bg-accent/5"}`}>
@@ -372,15 +338,7 @@ export function InvestmentPositionCard({ inv, adminActions, showInvestor, hideDo
             </div>
             <div className="flex items-center justify-between gap-2 px-1 pt-1 border-t border-border/50">
               <span className="text-xs text-muted-foreground shrink-0">Total Return</span>
-              <span className="text-sm font-bold text-right">
-                {c.fmtDual(
-                  inv.amount + inv.expectedProfit,
-                  inv.amountPkr != null && inv.expectedProfitPkr != null
-                    ? inv.amountPkr + inv.expectedProfitPkr
-                    : null,
-                  inv.exchangeRate,
-                )}
-              </span>
+              <span className="text-sm font-bold text-right">Not provided</span>
             </div>
           </div>
         </div>

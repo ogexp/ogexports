@@ -4,17 +4,17 @@ import { InvestmentModuleOptional } from "@/components/auth/InvestmentModuleGate
 import { ArrowRight, Package, TrendingUp, FileText, BarChart3, Globe, Shield, Wallet, PieChart } from "lucide-react";
 
 const BUYER_FEATURES = [
-  { icon: Package, title: "Product Catalog", desc: "Browse 30+ commodities with full specs, pricing, and lab reports" },
+  { icon: Package, title: "Product Catalog", desc: "Browse available commodity specifications and supporting documents." },
   { icon: FileText, title: "RFQ System", desc: "Request formal quotations with custom quantity and packaging" },
-  { icon: Globe, title: "Order Tracking", desc: "Real-time shipment tracking from loading to destination" },
-  { icon: BarChart3, title: "Market Intelligence", desc: "Live commodity prices and monthly market reports" },
+  { icon: Globe, title: "Shipment Updates", desc: "Review shipment milestones recorded in your buyer account; live carrier locations are not provided." },
+  { icon: BarChart3, title: "Market Information", desc: "Review published market information; prices are current only when shown with a verified source." },
 ];
 
 const INVEST_FEATURES = [
-  { icon: Wallet, title: "Container Investments", desc: "Invest in export-grade commodity containers with fixed-term returns" },
+  { icon: Wallet, title: "Trade Investments", desc: "Review published project terms and documents before deciding whether to invest." },
   { icon: Shield, title: "Verified & Compliant", desc: "Full KYC/AML compliance with transparent contract documentation" },
-  { icon: TrendingUp, title: "Guaranteed Returns", desc: "Earn competitive returns backed by real agricultural trade flows" },
-  { icon: PieChart, title: "Portfolio Dashboard", desc: "Track all investments, payouts, and performance in real-time" },
+  { icon: TrendingUp, title: "Project Terms", desc: "Review project terms and recorded payout status; returns are not guaranteed." },
+  { icon: PieChart, title: "Portfolio Dashboard", desc: "View your recorded investments, payouts, and account activity." },
 ];
 
 export function LuxuryPortal() {
@@ -150,8 +150,8 @@ export function LuxuryPortal() {
               </div>
               <h3 className="text-2xl font-heading font-bold text-white mb-2">Investment Portal</h3>
               <p className="text-white/55 text-sm leading-relaxed">
-                Invest in Pakistan's agricultural export economy. Earn fixed-term returns backed
-                by real commodity trade flows and fully verified documentation.
+            Review current project terms and available documents, then track recorded
+            investment activity in your account.
               </p>
             </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useCurrency } from "@/lib/use-currency"
-import { formatInvestorLedgerAmount } from "@/lib/format-investor-ledger"
+import { formatInvestorProjectAmount } from "@/lib/invest-format"
 import { Link } from "wouter"
 import { InvestPortalLayout } from "@/components/invest/InvestPortalLayout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,8 +32,8 @@ interface RateData { [key: string]: number }
 
 interface DepositBreakdown {
   currency: string
-  original_total: number
-  converted_total: number
+  original_total: number | null
+  converted_total: number | null
 }
 
 interface WalletTxn {
@@ -42,23 +42,11 @@ interface WalletTxn {
   ref: string
   type: string
   currency: string
-  amount: number
+  amount: number | null
   status: string
   desc: string
   originalAmount?: number
   originalCurrency?: string
-}
-
-function convertCurrency(amount: number, from: string, to: string, rates: RateData): number | null {
-  const fromCode = String(from || "").toUpperCase()
-  const toCode = String(to || "").toUpperCase()
-  if (!fromCode || !toCode) return null
-  if (fromCode === toCode) return amount
-  const rFrom = fromCode === "USD" ? 1 : rates[fromCode]
-  const rTo = toCode === "USD" ? 1 : rates[toCode]
-  if (!rFrom || !rTo) return null
-  const usd = fromCode === "USD" ? amount : amount / rFrom
-  return toCode === "USD" ? usd : usd * rTo
 }
 
 function formatCurrencyAmount(amount: number, code: string, symbol: string): string {
@@ -66,6 +54,12 @@ function formatCurrencyAmount(amount: number, code: string, symbol: string): str
   if (code === "USD") return `$${formatted}`
   if (code === "PKR") return `PKR ${formatted}`
   return `${symbol}${formatted}`
+}
+
+function parseOptionalNumber(value: unknown): number | null {
+  if (value == null || String(value).trim() === "") return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 function formatTxnDescription(t: any, walletCurrency: string): string {
@@ -93,9 +87,15 @@ function formatTxnDescription(t: any, walletCurrency: string): string {
 }
 
 function mapWalletTxn(t: any, walletCurrency: string): WalletTxn {
-  const amount = Number(t.amount ?? 0)
-  const direction = String(t.direction || "credit").toLowerCase()
-  const signed = direction === "debit" ? -Math.abs(amount) : Math.abs(amount)
+  const amount = parseOptionalNumber(t.amount)
+  const direction = String(t.direction || "").toLowerCase()
+  const signed = amount == null
+    ? null
+    : direction === "debit"
+      ? -Math.abs(amount)
+      : direction === "credit"
+        ? Math.abs(amount)
+        : amount
   const created = t.created_at ? new Date(t.created_at) : null
   const meta = t.meta || {}
 
@@ -106,35 +106,30 @@ function mapWalletTxn(t: any, walletCurrency: string): WalletTxn {
       : "—",
     ref: t.reference || `TXN-${t.id}`,
     type: t.type || "Transaction",
-    currency: walletCurrency,
+    currency: String(t.currency || walletCurrency || "").trim().toUpperCase(),
     amount: signed,
-    status: t.status || "completed",
+    status: t.status || "unknown",
     desc: formatTxnDescription(t, walletCurrency),
-    originalAmount: meta.original_amount != null ? Number(meta.original_amount) : undefined,
+    originalAmount: parseOptionalNumber(meta.original_amount) ?? undefined,
     originalCurrency: meta.original_currency ? String(meta.original_currency).toUpperCase() : undefined,
   }
 }
 
 export default function InvestWallet() {
   const c = useCurrency()
-  /** Strict USD-only UI when admin PKR display is off (or non-PK investor). */
+  /** Currency detail controls follow the account display setting. */
   const usdOnly = !c.isPK
-  const [selectedCurrency, setSelectedCurrency] = useState(c.isPK ? "PKR" : "USD")
+  const [selectedCurrency, setSelectedCurrency] = useState("")
   const [rates, setRates] = useState<RateData>({})
   const [ratesLoading, setRatesLoading] = useState(true)
   const [ratesError, setRatesError] = useState(false)
   const [lastUpdated, setLastUpdated] = useState("")
-  const [walletBalance, setWalletBalance] = useState(0)
-  const [pendingBalance, setPendingBalance] = useState(0)
-  const [walletCurrency, setWalletCurrency] = useState(c.walletCurrency)
-  const fmtW = (amount: number, usdAmount?: number | null) =>
-    formatInvestorLedgerAmount(c, amount, {
-      usdAmount,
-      ledgerCurrency: walletCurrency,
-      // When display is USD-only, c.rate is 1 — omit so fmtWalletAmount uses live PKR cache.
-      lockedRate: c.isPK && c.rate > 0 ? c.rate : null,
-    })
+  const [walletBalance, setWalletBalance] = useState<number | null>(null)
+  const [pendingBalance, setPendingBalance] = useState<number | null>(null)
+  const [walletCurrency, setWalletCurrency] = useState("")
+  const fmtW = (amount: number | null) => formatInvestorProjectAmount(amount, walletCurrency)
   const [depositBreakdown, setDepositBreakdown] = useState<DepositBreakdown[]>([])
+  const [depositBreakdownAvailable, setDepositBreakdownAvailable] = useState(false)
   const [txns, setTxns] = useState<WalletTxn[]>([])
   const [loading, setLoading] = useState(true)
   const initialCurrencySetRef = useRef(false)
@@ -144,40 +139,32 @@ export default function InvestWallet() {
   const [txnMeta, setTxnMeta] = useState({ current_page: 1, last_page: 1, per_page: TXN_PER_PAGE, total: 0 })
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
-  const breakdownMap = Object.fromEntries(
-    depositBreakdown.map(b => [b.currency, b])
-  )
+  const currencies = depositBreakdown.map(breakdown => {
+    const meta = CURRENCY_META.find(item => item.code === breakdown.currency)
+    return {
+      ...(meta || {
+        code: breakdown.currency,
+        name: breakdown.currency,
+        symbol: `${breakdown.currency} `,
+        flag: "",
+      }),
+      balance: breakdown.original_total,
+      convertedTotal: breakdown.converted_total,
+    }
+  })
 
-  const currencies = CURRENCY_META.map(meta => ({
-    ...meta,
-    balance: breakdownMap[meta.code]?.original_total ?? 0,
-    convertedTotal: breakdownMap[meta.code]?.converted_total ?? 0,
-  }))
-
-  const totalUSD = (() => {
-    if (walletCurrency === "USD") return walletBalance
-    const rate = rates[walletCurrency] || (walletCurrency === "PKR" ? c.rate : null)
-    return rate ? walletBalance / rate : null
-  })()
-
-  const effectiveSelected = usdOnly ? "USD" : selectedCurrency
-  const displayBalance = usdOnly
-    ? (walletCurrency === "USD" ? walletBalance : totalUSD)
-    : convertCurrency(walletBalance, walletCurrency, selectedCurrency, rates)
-  const displayPending = usdOnly
-    ? (walletCurrency === "USD"
-      ? pendingBalance
-      : convertCurrency(pendingBalance, walletCurrency, "USD", {
-          ...rates,
-          ...(walletCurrency === "PKR" && c.rate > 0 ? { PKR: c.rate } : {}),
-        }))
-    : convertCurrency(pendingBalance, walletCurrency, selectedCurrency, rates)
-  const displayUSD = usdOnly
-    ? displayBalance
-    : (displayBalance != null
-      ? convertCurrency(displayBalance, selectedCurrency, "USD", rates)
-      : totalUSD)
-  const curMeta = CURRENCY_META.find(x => x.code === effectiveSelected) || CURRENCY_META[0]
+  const effectiveSelected = selectedCurrency || walletCurrency
+  const selectedBreakdown = depositBreakdown.find(item => item.currency === effectiveSelected)
+  const displayBalance = effectiveSelected === walletCurrency
+    ? walletBalance
+    : selectedBreakdown?.original_total ?? null
+  const knownCurMeta = CURRENCY_META.find(x => x.code === effectiveSelected)
+  const curMeta = knownCurMeta || {
+    code: effectiveSelected,
+    name: effectiveSelected || "Not provided",
+    symbol: effectiveSelected ? `${effectiveSelected} ` : "",
+    flag: "",
+  }
 
   async function fetchRates() {
     setRatesLoading(true)
@@ -187,13 +174,14 @@ export default function InvestWallet() {
       const data = res?.data ?? res
       if (data?.rates) {
         setRates(data.rates)
-        setLastUpdated(data.as_of ? new Date(data.as_of).toLocaleTimeString() : new Date().toLocaleTimeString())
+        setLastUpdated(data.as_of ? new Date(data.as_of).toLocaleTimeString() : "")
       } else {
         setRatesError(true)
       }
     } catch {
       setRatesError(true)
-      setRates({ GBP: 0.79, EUR: 0.92, CNY: 7.25, PKR: 278.5, SAR: 3.75, AED: 3.67, OMR: 0.385, QAR: 3.64 })
+      setRates({})
+      setLastUpdated("")
     } finally {
       setRatesLoading(false)
     }
@@ -237,9 +225,10 @@ export default function InvestWallet() {
     try {
       const walletRes: any = await api.get("/api/investor/wallet")
       const wallet = walletRes?.data ?? walletRes
-      const bal = Number(wallet?.available_balance ?? 0)
-      const pending = Number(wallet?.pending_balance ?? 0)
-      const cur = String(wallet?.currency || "USD").toUpperCase()
+      const bal = parseOptionalNumber(wallet?.available_balance)
+      const pending = parseOptionalNumber(wallet?.pending_balance)
+      const rawCurrency = String(wallet?.currency || "").trim().toUpperCase()
+      const cur = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : ""
       setWalletBalance(bal)
       setPendingBalance(pending)
       setWalletCurrency(cur)
@@ -247,10 +236,22 @@ export default function InvestWallet() {
         setSelectedCurrency(usdOnly ? "USD" : cur)
         initialCurrencySetRef.current = true
       }
-      setDepositBreakdown(Array.isArray(wallet?.deposit_breakdown) ? wallet.deposit_breakdown : [])
+      const hasBreakdown = Array.isArray(wallet?.deposit_breakdown)
+      setDepositBreakdownAvailable(hasBreakdown)
+      setDepositBreakdown(hasBreakdown
+        ? wallet.deposit_breakdown
+            .map((item: any) => ({
+              currency: String(item?.currency || "").trim().toUpperCase(),
+              original_total: parseOptionalNumber(item?.original_total),
+              converted_total: parseOptionalNumber(item?.converted_total),
+            }))
+            .filter((item: DepositBreakdown) => /^[A-Z]{3}$/.test(item.currency))
+        : [])
     } catch {
-      setWalletBalance(0)
-      setPendingBalance(0)
+      setWalletBalance(null)
+      setPendingBalance(null)
+      setWalletCurrency("")
+      setDepositBreakdownAvailable(false)
       setDepositBreakdown([])
       setTxns([])
     } finally {
@@ -274,7 +275,7 @@ export default function InvestWallet() {
 
   useEffect(() => {
     if (loading) return
-    const filterCurrency = usdOnly ? walletCurrency : selectedCurrency
+    const filterCurrency = selectedCurrency
     loadTransactions(viewAll ? txnPage : 1, viewAll, filterCurrency, walletCurrency)
   }, [viewAll, txnPage, selectedCurrency, walletCurrency, loading, loadTransactions, usdOnly])
 
@@ -283,31 +284,24 @@ export default function InvestWallet() {
     setViewAll(false)
   }, [selectedCurrency])
 
-  const cur = currencies.find(x => x.code === effectiveSelected) || currencies[0]
+  const cur = currencies.find(x => x.code === effectiveSelected) || {
+    ...curMeta,
+    balance: null,
+    convertedTotal: null,
+  }
 
   const filteredTxns = useMemo(() => {
-    if (usdOnly) {
-      const start = (txnPage - 1) * TXN_PER_PAGE
-      return viewAll ? txns.slice(start, start + TXN_PER_PAGE) : txns.slice(0, TXN_PER_PAGE)
-    }
+    if (selectedCurrency === walletCurrency) return txns
     const filtered = txns.filter(t => {
-      if (selectedCurrency === walletCurrency) return true
       return t.originalCurrency === selectedCurrency
     })
+    const start = (txnPage - 1) * TXN_PER_PAGE
+    return viewAll ? filtered.slice(start, start + TXN_PER_PAGE) : filtered.slice(0, TXN_PER_PAGE)
+  }, [txns, selectedCurrency, walletCurrency, viewAll, txnPage])
 
-    if (selectedCurrency !== walletCurrency) {
-      const start = (txnPage - 1) * TXN_PER_PAGE
-      return viewAll ? filtered.slice(start, start + TXN_PER_PAGE) : filtered.slice(0, TXN_PER_PAGE)
-    }
-
-    return filtered
-  }, [txns, selectedCurrency, walletCurrency, viewAll, txnPage, usdOnly])
-
-  const displayCount = usdOnly
+  const displayCount = selectedCurrency === walletCurrency
     ? txnMeta.total
-    : selectedCurrency === walletCurrency
-      ? txnMeta.total
-      : txns.filter(t => t.originalCurrency === selectedCurrency).length
+    : txns.filter(t => t.originalCurrency === selectedCurrency).length
 
   async function handleDownloadPdf(txn: WalletTxn) {
     setDownloadingId(txn.id)
@@ -339,26 +333,15 @@ export default function InvestWallet() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">
-                  Available Balance ({usdOnly ? "USD" : effectiveSelected})
+                  Available Balance{walletCurrency ? ` (${walletCurrency})` : ""}
                 </p>
                 <p className="text-xl font-heading font-bold">
-                  {usdOnly
-                    ? fmtW(walletBalance)
-                    : displayBalance != null
-                      ? formatCurrencyAmount(displayBalance, selectedCurrency, curMeta.symbol)
-                      : ratesLoading ? "…" : "—"}
+                  {loading ? "…" : fmtW(walletBalance)}
                 </p>
-                {pendingBalance > 0 && (
+                {pendingBalance != null && pendingBalance > 0 && (
                   <p className="text-[11px] text-amber-600 mt-0.5">
-                    Pending: {usdOnly
-                      ? fmtW(pendingBalance)
-                      : displayPending != null
-                        ? formatCurrencyAmount(displayPending, selectedCurrency, curMeta.symbol)
-                        : fmtW(pendingBalance)}
+                    Pending: {fmtW(pendingBalance)}
                   </p>
-                )}
-                {!usdOnly && displayBalance == null && !ratesLoading && (
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Rates unavailable</p>
                 )}
               </div>
             </CardContent>
@@ -369,14 +352,8 @@ export default function InvestWallet() {
                 <Globe className="w-5 h-5 text-emerald-500" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground font-medium">
-                  {usdOnly || effectiveSelected === "USD" ? "Portfolio Value" : "USD Equivalent"}
-                </p>
-                <p className="text-xl font-heading font-bold">
-                  {displayUSD != null
-                    ? `$${Number(displayUSD).toLocaleString("en", { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`
-                    : "—"}
-                </p>
+                <p className="text-xs text-muted-foreground font-medium">Wallet Currency</p>
+                <p className="text-xl font-heading font-bold">{walletCurrency || "Not provided"}</p>
               </div>
             </CardContent>
           </Card>
@@ -388,7 +365,13 @@ export default function InvestWallet() {
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Exchange Rate Feed</p>
                 <p className="text-sm font-semibold">
-                  {ratesLoading ? "Fetching..." : ratesError ? "Cached" : `Live · ${lastUpdated}`}
+                    {ratesLoading
+                      ? "Fetching..."
+                      : ratesError
+                        ? "Unavailable"
+                        : lastUpdated
+                          ? `Available · ${lastUpdated}`
+                          : Object.keys(rates).length > 0 ? "Available · update time not provided" : "Not provided"}
                 </p>
               </div>
             </CardContent>
@@ -403,7 +386,9 @@ export default function InvestWallet() {
                 <CardTitle className="font-heading text-base flex items-center gap-2">
                   <Globe className="w-4 h-4 text-accent" /> Live Exchange Rates
                 </CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">1 USD equals — {ratesLoading ? "loading..." : ratesError ? "using cached rates" : `updated ${lastUpdated}`}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {ratesLoading ? "Loading rate data…" : ratesError ? "Rate data is unavailable." : lastUpdated ? `Rate data updated ${lastUpdated}.` : "Rate update time is not provided."}
+                </p>
               </div>
               <Button variant="outline" size="sm" onClick={() => { fetchRates(); loadWallet() }} disabled={ratesLoading}>
                 <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${ratesLoading ? "animate-spin" : ""}`} />
@@ -419,7 +404,7 @@ export default function InvestWallet() {
                       <span className="text-lg">{meta.flag}</span>
                       <span className="text-xs font-bold text-foreground">{meta.code}</span>
                       <span className="text-sm font-mono font-semibold text-accent">
-                        {ratesLoading ? "—" : rate ? rate.toFixed(meta.code === "PKR" ? 1 : 4) : "—"}
+                        {ratesLoading ? "—" : rate != null ? rate.toLocaleString("en", { maximumFractionDigits: 6 }) : "Not provided"}
                       </span>
                       <span className="text-[10px] text-muted-foreground">{meta.name}</span>
                     </div>
@@ -434,11 +419,14 @@ export default function InvestWallet() {
           {!usdOnly && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Deposit Breakdown</h3>
+              {currencies.length === 0 && (
+                <p className="text-sm text-muted-foreground rounded-xl border border-border p-4">
+                  {depositBreakdownAvailable ? "No deposit breakdown records were returned." : "Deposit breakdown is not provided."}
+                </p>
+              )}
               {currencies.map(meta => {
-                const rate = rates[meta.code]
-                const usd = meta.code === "USD" ? meta.balance : rate ? meta.balance / rate : null
                 const isActive = selectedCurrency === meta.code
-                const hasDeposits = meta.balance > 0
+                const hasDeposits = meta.balance != null && meta.balance > 0
                 return (
                   <button
                     key={meta.code}
@@ -454,18 +442,15 @@ export default function InvestWallet() {
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-bold">{meta.code}</span>
                         <span className={`text-sm font-bold font-mono ${isActive ? "text-accent" : hasDeposits ? "text-foreground" : "text-muted-foreground"}`}>
-                          {meta.symbol}{meta.balance.toLocaleString("en", { maximumFractionDigits: 2 })}
+                          {meta.balance == null ? "Not provided" : formatCurrencyAmount(meta.balance, meta.code, meta.symbol)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-0.5">
                         <span className="text-xs text-muted-foreground truncate">{meta.name}</span>
-                        {hasDeposits && meta.code !== walletCurrency && meta.convertedTotal > 0 && (
+                        {meta.convertedTotal != null && meta.code !== walletCurrency && walletCurrency && (
                           <span className="text-[10px] text-muted-foreground shrink-0">
-                            ≈ {fmtW(meta.convertedTotal)}
+                            {walletCurrency} total: {fmtW(meta.convertedTotal)}
                           </span>
-                        )}
-                        {c.dualEnabled && usd !== null && meta.code !== "USD" && hasDeposits && (
-                          <span className="text-[10px] text-muted-foreground shrink-0">≈ ${usd.toFixed(2)}</span>
                         )}
                       </div>
                     </div>
@@ -481,36 +466,29 @@ export default function InvestWallet() {
                 <div className="flex items-start justify-between mb-6">
                   <div>
                     <p className="text-sm text-muted-foreground font-medium">
-                      {usdOnly ? "USD Wallet Balance" : `${effectiveSelected} Wallet Balance`}
+                      {effectiveSelected ? `${effectiveSelected} Balance` : "Balance"}
                     </p>
                     <p className="text-4xl font-heading font-bold mt-1">
-                      {usdOnly
-                        ? fmtW(walletBalance)
-                        : displayBalance != null
-                          ? formatCurrencyAmount(displayBalance, selectedCurrency, cur.symbol)
-                          : ratesLoading ? "…" : "—"}
+                      {loading
+                        ? "…"
+                        : displayBalance == null
+                          ? "Not provided"
+                          : effectiveSelected === walletCurrency
+                            ? fmtW(walletBalance)
+                            : formatCurrencyAmount(displayBalance, effectiveSelected, cur.symbol)}
                     </p>
-                    {!usdOnly && selectedCurrency !== walletCurrency && (
+                    {effectiveSelected !== walletCurrency && (
                       <p className="text-sm text-muted-foreground mt-1">
                         Ledger: {fmtW(walletBalance)}
                       </p>
                     )}
-                    {!usdOnly && c.dualEnabled && selectedCurrency === walletCurrency && displayUSD != null && walletCurrency !== "USD" && (
-                      <p className="text-sm text-muted-foreground mt-1">≈ ${Number(displayUSD).toLocaleString("en", { maximumFractionDigits: 2 })} USD</p>
-                    )}
-                    {!usdOnly && c.dualEnabled && selectedCurrency !== walletCurrency && displayBalance != null && displayUSD != null && selectedCurrency !== "USD" && (
-                      <p className="text-sm text-muted-foreground mt-1">≈ ${Number(displayUSD).toLocaleString("en", { maximumFractionDigits: 2 })} USD</p>
-                    )}
-                    {!usdOnly && displayBalance == null && !ratesLoading && (
-                      <p className="text-xs text-muted-foreground mt-2">Rates unavailable for conversion.</p>
-                    )}
-                    {!usdOnly && selectedCurrency !== walletCurrency && cur.balance > 0 && (
+                    {selectedCurrency !== walletCurrency && cur.balance != null && cur.balance > 0 && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        Deposits in {selectedCurrency}: {cur.symbol}{cur.balance.toLocaleString("en", { maximumFractionDigits: 2 })}
+                        Deposits in {selectedCurrency}: {formatCurrencyAmount(cur.balance, selectedCurrency, cur.symbol)}
                       </p>
                     )}
                   </div>
-                  <span className="text-4xl">{usdOnly ? "🇺🇸" : cur.flag}</span>
+                  {cur.flag && <span className="text-4xl">{cur.flag}</span>}
                 </div>
                 <div className="flex gap-3">
                   <Button className="flex-1" asChild>
@@ -589,31 +567,35 @@ export default function InvestWallet() {
                   <>
                     <div className="divide-y divide-border">
                       {filteredTxns.map(t => {
-                        const isCredit = t.amount > 0
-                        const amountLabel = usdOnly || selectedCurrency === walletCurrency
-                          ? fmtW(Math.abs(t.amount))
-                          : formatCurrencyAmount(Math.abs(t.amount), selectedCurrency, cur.symbol)
+                        const isCredit = t.amount != null && t.amount > 0
+                        const amountLabel = t.amount == null
+                          ? "Not provided"
+                          : selectedCurrency === walletCurrency
+                            ? formatInvestorProjectAmount(Math.abs(t.amount), t.currency || walletCurrency)
+                            : t.originalAmount != null && t.originalCurrency === selectedCurrency
+                              ? formatInvestorProjectAmount(Math.abs(t.originalAmount), t.originalCurrency)
+                              : "Not provided"
                         return (
                           <div key={t.id} className="flex items-center gap-4 px-5 py-4 hover:bg-muted/20 transition-colors">
                             <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                              isCredit ? "bg-emerald-500/15" : "bg-red-500/15"
+                              t.amount == null ? "bg-muted" : isCredit ? "bg-emerald-500/15" : "bg-red-500/15"
                             }`}>
                               {isCredit
                                 ? <ArrowDownRight className="w-4 h-4 text-emerald-500" />
-                                : <ArrowUpRight className="w-4 h-4 text-red-400" />
+                                : <ArrowUpRight className={`w-4 h-4 ${t.amount == null ? "text-muted-foreground" : "text-red-400"}`} />
                               }
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-semibold truncate">{t.desc}</p>
                               <p className="text-xs text-muted-foreground">
                                 {t.date} · {t.ref} · ID: {t.id}
-                                {!usdOnly && t.originalCurrency && t.originalCurrency !== walletCurrency && t.originalAmount != null && (
+                                {selectedCurrency === walletCurrency && t.originalCurrency && t.originalCurrency !== walletCurrency && t.originalAmount != null && (
                                   <> · {t.originalCurrency} {t.originalAmount.toLocaleString()}</>
                                 )}
                               </p>
                             </div>
                             <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                              <p className={`text-sm font-bold font-mono ${isCredit ? "text-emerald-500" : "text-red-400"}`}>
+                              <p className={`text-sm font-bold font-mono ${t.amount == null ? "text-muted-foreground" : isCredit ? "text-emerald-500" : "text-red-400"}`}>
                                 {amountLabel}
                               </p>
                               <div className="flex items-center gap-1">
@@ -672,9 +654,7 @@ export default function InvestWallet() {
         <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-xs text-muted-foreground">
           <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
           <span>
-            {usdOnly
-              ? "Amounts are shown in USD. Your ledger may be stored in another currency; conversions use the current exchange rate."
-              : `Your wallet balance is stored in ${walletCurrency}. Deposits in other currencies are converted at prevailing exchange rates on approval and summed into your ${walletCurrency} balance. Rates are indicative; final conversion uses the rate at approval time.`}
+            Wallet and transaction values use the currencies returned by the investor service. Deposit breakdown amounts, converted totals, and exchange rates are shown only when that service provides them.
           </span>
         </div>
       </div>

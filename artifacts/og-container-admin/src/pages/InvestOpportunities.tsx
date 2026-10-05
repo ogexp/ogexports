@@ -5,7 +5,7 @@ export default function InvestOpportunities() {
   return (
     <InvestPortalLayout
       title="Browse Opportunities"
-      subtitle="Co-invest in active export shipments, strategic imports, and expanding infrastructure."
+      subtitle="Review current investment projects, published documents, and terms returned by the investor records."
     >
       <Invest embedded />
     </InvestPortalLayout>

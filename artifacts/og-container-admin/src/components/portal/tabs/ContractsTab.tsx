@@ -35,7 +35,7 @@ export function ContractsTab() {
         setDocPath(null)
         refetch()
       },
-      onError: () => toast({ title: "Failed to create contract", variant: "destructive" })
+      onError: (error) => toast({ title: "Failed to create contract", description: error.message, variant: "destructive" })
     })
   }
 
@@ -45,7 +45,7 @@ export function ContractsTab() {
         toast({ title: "Status updated" })
         refetch()
       },
-      onError: () => toast({ title: "Update failed", variant: "destructive" })
+      onError: (error) => toast({ title: "Update failed", description: error.message, variant: "destructive" })
     })
   }
 

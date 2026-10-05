@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "wouter"
-import { useCurrency } from "@/lib/use-currency"
 import { InvestPortalLayout } from "@/components/invest/InvestPortalLayout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,7 +15,6 @@ const STATUS_TABS = [
 ] as const
 
 export default function ContainerInvestments() {
-  const c = useCurrency()
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<InvestmentPositionData[]>([])
   const [statusFilter, setStatusFilter] = useState("")
@@ -57,16 +55,9 @@ export default function ContainerInvestments() {
   }, [statusFilter, search])
 
   const summary = useMemo(() => {
-    const pendingItems = items.filter(i => i.investmentStatus !== "completed" && i.investmentStatus !== "cancelled")
-    const pendingProfitUsd = pendingItems.reduce((a, b) => a + b.expectedProfit, 0)
-    const pendingProfitPkr = pendingItems.every(i => i.expectedProfitPkr != null)
-      ? pendingItems.reduce((a, b) => a + (b.expectedProfitPkr || 0), 0)
-      : null
     return {
       total: items.length,
       inTransit: items.filter(i => i.projectStatus === "in_transit" || i.status === "in_transit").length,
-      pendingProfitUsd,
-      pendingProfitPkr,
       completed: items.filter(i => i.investmentStatus === "completed" || i.status === "completed").length,
     }
   }, [items])
@@ -76,15 +67,15 @@ export default function ContainerInvestments() {
   return (
     <InvestPortalLayout
       title="My Container Investments"
-      subtitle="Live tracking of your containerised trade positions"
+      subtitle="Recorded milestones and account-backed investment status"
     >
       <div className="space-y-5">
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: "Total Positions", value: String(summary.total), sub: "your investments" },
-            { label: "In Transit", value: String(summary.inTransit), sub: "containers at sea" },
-            { label: "Pending Profit", value: c.fmtDual(summary.pendingProfitUsd, summary.pendingProfitPkr), sub: "expected payout" },
+            { label: "In Transit", value: String(summary.inTransit), sub: "recorded project status" },
+            { label: "Profit Figures", value: "Not provided", sub: "not supplied as an aggregate" },
             { label: "Completed", value: String(summary.completed), sub: "settled trades" },
           ].map(({ label, value, sub }) => (
             <div key={label} className="p-4 rounded-xl border border-border bg-card">

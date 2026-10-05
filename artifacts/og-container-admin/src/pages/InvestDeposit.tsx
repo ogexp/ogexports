@@ -15,77 +15,70 @@ import { submitInvestorDeposit, mapInvestProject, type AdminInvestProject } from
 import { useLocalAuth } from "@/lib/local-auth"
 import { useCurrency } from "@/lib/use-currency"
 import { formatInvestorLedgerAmount } from "@/lib/format-investor-ledger"
+import { formatInvestorProjectAmount } from "@/lib/invest-format"
 import { api, unwrapPage } from "@/lib/api"
 import { notify } from "@/lib/notify"
-import { normalizeReviewStatus, paymentStatusBadgeClass, paymentStatusLabel } from "@/lib/deposit-statuses"
+import { paymentStatusBadgeClass, paymentStatusLabel } from "@/lib/deposit-statuses"
 import { TransactionHistoryCard, type TransactionHistoryItem } from "@/components/invest/TransactionHistoryCard"
 import { type BankAccount } from "@/lib/bank-accounts"
 import { CompanyBankAccountsPanel } from "@/components/shared/CompanyBankAccountsPanel"
 
 const DEPOSIT_CURRENCIES = ["USD", "GBP", "EUR", "CNY", "PKR", "SAR", "AED", "OMR", "QAR"] as const
 
-function buildPaymentMethods(walletBalance: number) {
+function buildPaymentMethods(walletBalance: number | null) {
   return [
     {
       id: "wallet",
       label: "OG Wallet",
       icon: Wallet,
-      minDeposit: 100,
-      maxDeposit: Math.max(walletBalance, 100),
-      processingTime: "Instant",
-      fee: "0%",
-      description: "Use your available OG Exports account balance — instant allocation, no bank transfer or receipt required.",
+      minDeposit: null,
+      maxDeposit: walletBalance,
+      processingTime: "Not provided",
+      fee: "Not provided",
+      description: "Use available wallet funds to submit an investment request.",
     },
     {
       id: "bank",
       label: "Bank Transfer",
       icon: Building2,
-      minDeposit: 500,
-      maxDeposit: 500000,
-      processingTime: "1–2 Business Days",
-      fee: "0%",
+      minDeposit: null,
+      maxDeposit: null,
+      processingTime: "Not provided",
+      fee: "Not provided",
       description: "Direct bank transfer via local or international banking.",
     },
     {
       id: "wire",
       label: "Wire Transfer",
       icon: Wifi,
-      minDeposit: 1000,
-      maxDeposit: 1000000,
-      processingTime: "1–3 Business Days",
-      fee: "0%",
+      minDeposit: null,
+      maxDeposit: null,
+      processingTime: "Not provided",
+      fee: "Not provided",
       description: "International wire transfer for larger institutional deposits.",
     },
     {
       id: "swift",
       label: "SWIFT Transfer",
       icon: Globe,
-      minDeposit: 2000,
-      maxDeposit: 5000000,
-      processingTime: "2–5 Business Days",
-      fee: "0%",
+      minDeposit: null,
+      maxDeposit: null,
+      processingTime: "Not provided",
+      fee: "Not provided",
       description: "Global SWIFT payment network for cross-border transfers.",
     },
     {
       id: "online",
       label: "Online Banking",
       icon: CreditCard,
-      minDeposit: 100,
-      maxDeposit: 50000,
-      processingTime: "Same Day",
-      fee: "0%",
+      minDeposit: null,
+      maxDeposit: null,
+      processingTime: "Not provided",
+      fee: "Not provided",
       description: "Transfer securely from your online banking portal to an OG Exports account.",
     },
   ]
 }
-
-const STATUS_STEPS = [
-  { label: "Pending", desc: "Deposit submitted" },
-  { label: "Under Review", desc: "Finance team reviewing" },
-  { label: "Verified", desc: "Documents verified" },
-  { label: "Approved", desc: "Funds credited" },
-  { label: "Completed", desc: "Investment active" },
-]
 
 type Step = "method" | "form" | "upload" | "confirm" | "status"
 
@@ -93,15 +86,17 @@ export default function InvestDeposit() {
   const { user } = useLocalAuth()
   const c = useCurrency()
   const queryClient = useQueryClient()
-  const [ledgerWalletCurrency, setLedgerWalletCurrency] = useState(c.walletCurrency)
+  const [ledgerWalletCurrency, setLedgerWalletCurrency] = useState("")
   const walletCurrency = ledgerWalletCurrency
   const fmtW = (amount: number, usdAmount?: number | null) =>
-    formatInvestorLedgerAmount(c, amount, {
+    !ledgerWalletCurrency
+      ? "Not provided"
+      : formatInvestorLedgerAmount(c, amount, {
       usdAmount,
       ledgerCurrency: ledgerWalletCurrency,
       lockedRate: c.isPK && c.rate > 0 ? c.rate : null,
     })
-  const [depositCurrency, setDepositCurrency] = useState<string>(c.symLabel)
+  const [depositCurrency, setDepositCurrency] = useState<string>("")
   const [step, setStep] = useState<Step>("method")
   const [selectedMethod, setSelectedMethod] = useState("")
   const [amount, setAmount] = useState("")
@@ -114,8 +109,8 @@ export default function InvestDeposit() {
   const [refNum, setRefNum] = useState("")
   const [selectedProjectId, setSelectedProjectId] = useState("")
   const [selectedBankAccountId, setSelectedBankAccountId] = useState("")
-  const [liveStatus, setLiveStatus] = useState<string>("pending")
-  const [walletBalance, setWalletBalance] = useState(0)
+  const [liveStatus, setLiveStatus] = useState<string>("")
+  const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [selectedBankAccount, setSelectedBankAccount] = useState<BankAccount | undefined>()
 
@@ -130,8 +125,8 @@ export default function InvestDeposit() {
         return {
           ...mapped,
           title: p.title || mapped.title,
-          target: Number(p.target_amount ?? mapped.target) || 0,
-          raised: Number(p.raised_amount ?? mapped.raised) || 0,
+          target: mapped.target,
+          raised: mapped.raised,
           roi: p.roi_label || (p.expected_return_pct != null ? `${p.expected_return_pct}%` : mapped.roi),
           // Keep funding/active so deposit dropdown filter works for all project types
           status: rawStatus === "active" ? "active" : rawStatus === "funding" ? "funding" : mapped.status,
@@ -144,11 +139,18 @@ export default function InvestDeposit() {
   useEffect(() => {
     api.get("/api/investor/wallet").then((res: any) => {
       const wallet = res?.data ?? res
-      setWalletBalance(Number(wallet?.available_balance ?? 0))
-      const cur = String(wallet?.currency || c.walletCurrency || "USD").toUpperCase()
+      const rawBalance = wallet?.available_balance
+      const parsedBalance = rawBalance == null || String(rawBalance).trim() === ""
+        ? null
+        : Number(rawBalance)
+      setWalletBalance(parsedBalance != null && Number.isFinite(parsedBalance) ? parsedBalance : null)
+      const cur = String(wallet?.currency || "").trim().toUpperCase()
       setLedgerWalletCurrency(cur)
-    }).catch(() => setWalletBalance(0))
-  }, [c.walletCurrency])
+    }).catch(() => {
+      setWalletBalance(null)
+      setLedgerWalletCurrency("")
+    })
+  }, [])
 
   const PAYMENT_METHODS = useMemo(() => buildPaymentMethods(walletBalance), [walletBalance])
 
@@ -162,19 +164,19 @@ export default function InvestDeposit() {
   const amountNum = parseFloat(amount) || 0
   const isWalletMethod = selectedMethod === "wallet"
   const requiresBankDetails = ["bank", "wire", "swift", "online"].includes(selectedMethod)
-  const walletAmountError = isWalletMethod && amountNum > walletBalance
-    ? `Amount cannot exceed your available wallet balance (${fmtW(walletBalance)})`
-    : null
+  const walletProject = liveProjects.find(p => p.id === selectedProjectId)
+  const walletAmountError = isWalletMethod && (walletBalance == null || !walletCurrency)
+    ? "Wallet balance or currency is not available."
+    : isWalletMethod && walletProject && (!walletProject.currency || walletProject.currency !== walletCurrency)
+      ? "Wallet and project currencies do not match; conversion terms are not provided."
+      : isWalletMethod && walletBalance != null && amountNum > walletBalance
+        ? `Amount cannot exceed your available wallet balance (${fmtW(walletBalance)})`
+        : null
   const walletProjectRequired = isWalletMethod && !selectedProjectId
     ? "Select a project to invest from your OG Wallet"
     : null
-  const normalizedLive = normalizeReviewStatus(liveStatus)
-  const statusStepIndex =
-    normalizedLive === "approved" ? 3
-      : normalizedLive === "rejected" || normalizedLive === "cancelled" ? 1
-        : 0
-
   const formCanContinue = Boolean(amount) && amountNum > 0
+    && (isWalletMethod ? Boolean(walletProject?.currency) : Boolean(depositCurrency))
     && (!isWalletMethod ? Boolean(purpose) : Boolean(selectedProjectId) && !walletAmountError)
     && (!requiresBankDetails || Boolean(selectedBankAccountId))
 
@@ -186,13 +188,19 @@ export default function InvestDeposit() {
     converted_amount?: number | string | null
     wallet_currency?: string | null
   }) {
-    const walletCur = String(d.wallet_currency || d.currency || depositCurrency).toUpperCase()
-    const originalCur = String(d.original_currency || d.currency || "").toUpperCase()
-    const walletAmt = Number(d.converted_amount ?? d.amount) || 0
-    const originalAmt = Number(d.original_amount ?? d.amount) || 0
+    const walletCur = String(d.wallet_currency || d.currency || "").trim().toUpperCase()
+    const originalCur = String(d.original_currency || d.currency || "").trim().toUpperCase()
+    const rawWalletAmount = d.converted_amount ?? d.amount
+    const rawOriginalAmount = d.original_amount ?? d.amount
+    if (!walletCur || rawWalletAmount == null || String(rawWalletAmount).trim() === "") return "Not provided"
+    const walletAmt = Number(rawWalletAmount)
+    const originalAmt = rawOriginalAmount == null || String(rawOriginalAmount).trim() === ""
+      ? null
+      : Number(rawOriginalAmount)
+    if (!Number.isFinite(walletAmt) || (originalAmt != null && !Number.isFinite(originalAmt))) return "Not provided"
 
     if (walletCur === "PKR") {
-      if (originalCur === "USD" && originalAmt > 0) {
+      if (originalCur === "USD" && originalAmt != null && originalAmt > 0) {
         return formatInvestorLedgerAmount(c, walletAmt, {
           usdAmount: originalAmt,
           ledgerCurrency: "PKR",
@@ -201,9 +209,8 @@ export default function InvestDeposit() {
       return formatInvestorLedgerAmount(c, walletAmt, { ledgerCurrency: "PKR" })
     }
 
-    return formatInvestorLedgerAmount(c, Number(d.amount) || 0, {
-      ledgerCurrency: String(d.currency || depositCurrency).toUpperCase(),
-    })
+    if (!originalCur || originalAmt == null) return "Not provided"
+    return formatInvestorProjectAmount(originalAmt, originalCur)
   }
 
   function formatMethodLabel(method?: string) {
@@ -254,7 +261,14 @@ export default function InvestDeposit() {
           notify.error(walletProjectRequired || "Select a project to invest from your OG Wallet")
           return
         }
-        if (amountNum <= 0 || amountNum > walletBalance) {
+        if (
+          amountNum <= 0
+          || walletBalance == null
+          || !walletCurrency
+          || !walletProject
+          || walletProject.currency !== walletCurrency
+          || amountNum > walletBalance
+        ) {
           notify.error(walletAmountError || "Invalid investment amount")
           return
         }
@@ -263,11 +277,11 @@ export default function InvestDeposit() {
         const ref = data?.reference || (data?.id ? `INV-${data.id}` : "submitted")
         setDepositId(String(data?.id ?? ref))
         setRefNum(String(ref))
-        setLiveStatus("pending")
+        setLiveStatus(String(data?.status || data?.state || "submitted"))
         setStep("status")
-        setWalletBalance(prev => Math.max(0, prev - amountNum))
-        notify.success("Investment submitted — pending admin approval")
+        notify.success("Investment request submitted")
         void queryClient.invalidateQueries({ queryKey: ["investor", "dashboard"] })
+        void queryClient.invalidateQueries({ queryKey: ["investor", "wallet"] })
         return
       }
 
@@ -296,7 +310,7 @@ export default function InvestDeposit() {
       })
       setDepositId(submitted.reference || submitted.id)
       setRefNum(submitted.bankReference || reference || "—")
-      setLiveStatus("pending")
+      setLiveStatus(String((submitted as any)?.status || (submitted as any)?.state || "submitted"))
       setStep("status")
       void queryClient.invalidateQueries({ queryKey: ["investor", "dashboard"] })
       void refetchHistory()
@@ -352,7 +366,6 @@ export default function InvestDeposit() {
                           </div>
                           <div>
                             <span className="font-semibold">{pm.label}</span>
-                            {isWallet && <div className="flex items-center gap-1 mt-0.5"><Zap className="w-3 h-3 text-emerald-500" /><span className="text-[10px] text-emerald-500 font-semibold">Instant — No Bank Transfer</span></div>}
                           </div>
                         </div>
                         {isSelected && <CheckCircle2 className="w-5 h-5 text-primary" />}
@@ -361,7 +374,7 @@ export default function InvestDeposit() {
                       {isWallet && (
                         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/8 p-3 flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">Available Balance</span>
-                          <span className="text-lg font-heading font-bold text-emerald-500">{fmtW(walletBalance)}</span>
+                          <span className="text-lg font-heading font-bold text-emerald-500">{walletBalance == null ? "Not provided" : fmtW(walletBalance)}</span>
                         </div>
                       )}
 
@@ -369,19 +382,23 @@ export default function InvestDeposit() {
                       <div className="grid grid-cols-2 gap-2 pt-1">
                         <div>
                           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Min / Max</div>
-                          <div className="text-xs font-semibold">{c.fmt(pm.minDeposit)} / {c.fmt(pm.maxDeposit)}</div>
+                          <div className="text-xs font-semibold">
+                            {pm.minDeposit == null ? "Not published" : formatInvestorProjectAmount(pm.minDeposit, depositCurrency)}
+                            {" / "}
+                            {pm.maxDeposit == null ? "Not published" : formatInvestorProjectAmount(pm.maxDeposit, walletCurrency)}
+                          </div>
                         </div>
                         <div>
                           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Processing</div>
-                          <div className={`text-xs font-semibold ${isWallet ? "text-emerald-500" : ""}`}>{pm.processingTime}</div>
+                          <div className="text-xs font-semibold">{pm.processingTime}</div>
                         </div>
                         <div>
                           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Currency</div>
-                          <div className="text-xs font-semibold">{walletCurrency}</div>
+                          <div className="text-xs font-semibold">{walletCurrency || "Not provided"}</div>
                         </div>
                         <div>
                           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Fees</div>
-                          <div className="text-xs font-semibold text-emerald-500">{pm.fee}</div>
+                          <div className="text-xs font-semibold">{pm.fee}</div>
                         </div>
                       </div>
                     </CardContent>
@@ -414,25 +431,36 @@ export default function InvestDeposit() {
                   <Label>Amount <span className="text-red-400">*</span></Label>
                   <Input
                     type="number"
-                    placeholder={`Min ${c.fmt(method.minDeposit)}`}
+                    placeholder={method.minDeposit == null ? "Enter amount" : `Min ${formatInvestorProjectAmount(method.minDeposit, depositCurrency)}`}
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground">Max: {c.fmt(method.maxDeposit)}</p>
+                  {method.maxDeposit != null && (
+                    <p className="text-xs text-muted-foreground">
+                      Max: {formatInvestorProjectAmount(method.maxDeposit, walletCurrency)}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Deposit Currency</Label>
-                  <select
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
-                    value={depositCurrency}
-                    onChange={e => setDepositCurrency(e.target.value)}
-                  >
-                    {DEPOSIT_CURRENCIES.map(code => (
-                      <option key={code} value={code}>{code}</option>
-                    ))}
-                  </select>
+                  <Label>{isWalletMethod ? "Project Currency" : "Deposit Currency"}</Label>
+                  {isWalletMethod ? (
+                    <Input value={walletProject?.currency || "Not provided"} readOnly className="bg-muted/40 font-semibold" />
+                  ) : (
+                    <select
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-semibold"
+                      value={depositCurrency}
+                      onChange={e => setDepositCurrency(e.target.value)}
+                    >
+                      <option value="" disabled>Select currency</option>
+                      {DEPOSIT_CURRENCIES.map(code => (
+                        <option key={code} value={code}>{code}</option>
+                      ))}
+                    </select>
+                  )}
                   <p className="text-xs text-muted-foreground">
-                    Deposit recorded in {depositCurrency}. Your wallet is credited in {walletCurrency} after approval at the prevailing exchange rate.
+                    {isWalletMethod
+                      ? "Wallet investment requests use the project currency; submission is blocked if it differs from your wallet currency."
+                      : "Deposit currency is your selection. Wallet currency and any conversion are shown only when confirmed by the investor service."}
                   </p>
                 </div>
               </div>
@@ -466,11 +494,18 @@ export default function InvestDeposit() {
                     <option value="">— Select a project —</option>
                   )}
                   {liveProjects.map(p => {
-                    const pct = Math.round((p.raised / p.target) * 100)
-                    const remaining = p.target - p.raised
+                    const hasFunding = p.targetAmountAvailable === true
+                      && p.raisedAmountAvailable === true
+                      && p.target > 0
+                      && Boolean(p.currency)
+                    const pct = hasFunding ? Math.round((p.raised / p.target) * 100) : null
                     return (
                       <option key={p.id} value={p.id}>
-                        {p.title} — {p.roi} ROI — {c.fmtDual(remaining)} remaining ({pct}% funded)
+                        {p.title}
+                        {p.roi !== "—" ? ` — ${p.roi} expected return` : ""}
+                        {hasFunding
+                          ? ` — ${formatInvestorProjectAmount(p.raised, p.currency)} raised / ${formatInvestorProjectAmount(p.target, p.currency)} target (${pct}% recorded)`
+                          : " — funding figures not provided"}
                       </option>
                     )
                   })}
@@ -483,11 +518,19 @@ export default function InvestDeposit() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Target</span>
-                      <span className="font-semibold">{c.fmtDual(selectedProject.target)}</span>
+                      <span className="font-semibold">
+                        {selectedProject.targetAmountAvailable && selectedProject.currency
+                          ? formatInvestorProjectAmount(selectedProject.target, selectedProject.currency)
+                          : "Not provided"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Raised so far</span>
-                      <span className="font-semibold text-emerald-500">{c.fmtDual(selectedProject.raised)} ({Math.round((selectedProject.raised / selectedProject.target) * 100)}%)</span>
+                      <span className="font-semibold text-emerald-500">
+                        {selectedProject.raisedAmountAvailable && selectedProject.currency
+                          ? `${formatInvestorProjectAmount(selectedProject.raised, selectedProject.currency)}${selectedProject.targetAmountAvailable && selectedProject.target > 0 ? ` (${Math.round((selectedProject.raised / selectedProject.target) * 100)}%)` : ""}`
+                          : "Not provided"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Expected ROI</span>
@@ -561,9 +604,9 @@ export default function InvestDeposit() {
                 OG Wallet payments are processed internally.<br />No bank receipt or transfer proof is required.
               </p>
               <div className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl p-4 space-y-1.5 text-sm text-left">
-                <div className="flex justify-between"><span className="text-muted-foreground">Wallet Balance</span><span className="font-bold text-emerald-500">{fmtW(walletBalance)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Deduction</span><span className="font-bold text-foreground">− {amount || "0"} {depositCurrency}</span></div>
-                <div className="flex justify-between border-t border-border/50 pt-1.5 mt-1.5"><span className="text-muted-foreground">Remaining After</span><span className="font-bold">{fmtW(Math.max(0, walletBalance - amountNum))}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Wallet Balance</span><span className="font-bold text-emerald-500">{walletBalance == null ? "Not provided" : fmtW(walletBalance)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Requested Amount</span><span className="font-bold text-foreground">− {amount || "0"} {isWalletMethod ? walletCurrency : depositCurrency}</span></div>
+                <div className="flex justify-between border-t border-border/50 pt-1.5 mt-1.5"><span className="text-muted-foreground">Remaining After</span><span className="font-bold">{walletBalance == null ? "Not provided" : fmtW(Math.max(0, walletBalance - amountNum))}</span></div>
               </div>
               <div className="flex gap-3 pt-2">
                 <Button variant="outline" onClick={() => setStep("form")} className="flex-1">Back</Button>
@@ -632,7 +675,7 @@ export default function InvestDeposit() {
               <div className="rounded-xl border border-border bg-muted/20 divide-y divide-border">
                 {[
                   ["Payment Method", method.label],
-                  ["Amount", `${amount} ${depositCurrency}`],
+                  ["Amount", `${amount} ${isWalletMethod ? walletCurrency : depositCurrency}`],
                   ["Invest In", selectedProject ? selectedProject.title : "General Balance"],
                   ["Expected ROI", selectedProject ? selectedProject.roi : "—"],
                   ["Purpose", purpose],
@@ -651,7 +694,7 @@ export default function InvestDeposit() {
               <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3">
                 <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-700 dark:text-amber-400">
-                  By submitting, you confirm that the payment details are accurate and that the funds originate from a legitimate source. Our team will review and approve within {method.processingTime}.
+                  By submitting, you confirm that the payment details are accurate and that the funds originate from a legitimate source. Fees and processing time are not published here; use the status returned by the investor service for updates.
                 </p>
               </div>
 
@@ -680,15 +723,15 @@ export default function InvestDeposit() {
                 <h2 className="text-2xl font-heading font-bold">{isWalletMethod ? "Investment Submitted!" : "Deposit Submitted!"}</h2>
                 <p className="text-muted-foreground">
                   {isWalletMethod && selectedProject
-                    ? <>Your investment in <span className="font-semibold text-foreground">{selectedProject.title}</span> is pending admin approval. Funds have been reserved from your wallet.</>
+                    ? <>Your investment request for <span className="font-semibold text-foreground">{selectedProject.title}</span> was submitted. Check its returned status and wallet records for updates.</>
                     : selectedProject
-                    ? <>Your deposit for <span className="font-semibold text-foreground">{selectedProject.title}</span> is under review. You'll be notified once approved.</>
-                    : "Your deposit is under review. You'll be notified once approved."}
+                    ? <>Your deposit request for <span className="font-semibold text-foreground">{selectedProject.title}</span> was submitted. Check the status returned by the investor service for updates.</>
+                    : "Your deposit request was submitted. Check the investor records for its current status."}
                 </p>
                 <div className="flex justify-center gap-6 pt-2 flex-wrap">
                   <div>
                     <div className="text-xs text-muted-foreground uppercase tracking-wide">Deposit ID</div>
-                    <div className="font-mono font-semibold text-sm">{depositId}</div>
+                    <div className="font-mono font-semibold text-sm">{depositId || "Not provided"}</div>
                   </div>
                   {!isWalletMethod && (
                     <div>
@@ -697,9 +740,9 @@ export default function InvestDeposit() {
                     </div>
                   )}
                   <div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Amount</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Requested Amount</div>
                     <div className="font-semibold text-sm">
-                      {Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {depositCurrency}
+                      {formatInvestorProjectAmount(amountNum, isWalletMethod ? walletCurrency : depositCurrency)}
                     </div>
                   </div>
                   {selectedProject && (
@@ -720,42 +763,15 @@ export default function InvestDeposit() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm text-muted-foreground">Admin review status</p>
+                  <p className="text-sm text-muted-foreground">Status returned by investor service</p>
                   <Badge className={`border-0 text-[10px] ${paymentStatusBadgeClass(liveStatus)}`}>
-                    {paymentStatusLabel(liveStatus)}
+                    {liveStatus ? paymentStatusLabel(liveStatus) : "Not provided"}
                   </Badge>
                 </div>
-                <div className="relative">
-                  <div className="absolute left-4 top-4 bottom-4 w-px bg-border" />
-                  {STATUS_STEPS.map((s, i) => {
-                    const active = i === statusStepIndex
-                    const done = i < statusStepIndex
-                    return (
-                      <div key={s.label} className="relative flex items-start gap-4 pb-6 last:pb-0">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 shrink-0 ${
-                          active ? "bg-amber-500/20 border-2 border-amber-500"
-                            : done ? "bg-emerald-500/20 border-2 border-emerald-500"
-                              : "bg-muted border-2 border-border"
-                        }`}>
-                          {done
-                            ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                            : active
-                              ? <Clock className="w-3.5 h-3.5 text-amber-500" />
-                              : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
-                        </div>
-                        <div className="pt-1">
-                          <div className={`text-sm font-semibold ${active ? "text-amber-500" : done ? "text-emerald-600" : "text-muted-foreground"}`}>{s.label}</div>
-                          <div className="text-xs text-muted-foreground">{s.desc}</div>
-                        </div>
-                        {active && <Badge className="ml-auto mt-1 bg-amber-500/15 text-amber-600 border-0 text-xs">Current</Badge>}
-                      </div>
-                    )
-                  })}
-                </div>
                 <p className="text-xs text-muted-foreground">
-                  Status updates automatically after admin approve / reject / cancel on Investor Deposits.
+                  This is the status returned with your request. Future updates appear when returned by the investor service.
                 </p>
-                <Button size="sm" variant="outline" onClick={() => void refetchHistory()}>Refresh status</Button>
+                <Button size="sm" variant="outline" onClick={() => void refetchHistory()}>Refresh transaction history</Button>
               </CardContent>
             </Card>
 

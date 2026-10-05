@@ -9,7 +9,7 @@ import { Package, Loader2, ChevronLeft, ChevronRight, Calendar } from "lucide-re
 import { api, unwrapPage } from "@/lib/api"
 import { mapInvestProject, type AdminInvestProject } from "@/lib/admin-data"
 import { adminToContainer, adminToLongTerm, formatInvestDate } from "@/lib/invest-mappers"
-import { useCurrency } from "@/lib/use-currency"
+import { formatInvestorProjectAmount } from "@/lib/invest-format"
 
 const PER_PAGE = 9
 
@@ -25,7 +25,6 @@ function apiStatusFromFilter(filter: ContainerFilter): string | undefined {
 }
 
 export function OpenInvestmentsListing() {
-  const cur = useCurrency()
   const [tab, setTab] = useState<Tab>("containers")
   const [containerFilter, setContainerFilter] = useState<ContainerFilter>("all")
   const [page, setPage] = useState(1)
@@ -192,21 +191,22 @@ export function OpenInvestmentsListing() {
                         <FundingProgress
                           raised={c.currentFunding}
                           target={c.targetFunding}
+                          currency={c.currency}
                           variant="compact"
                         />
 
                         <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border/50">
                           <div>
                             <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Return</div>
-                            <div className="font-bold text-emerald-500">{c.expectedReturnPct}%</div>
+                            <div className="font-bold text-emerald-500">{c.expectedReturnPct == null ? "Not provided" : `${c.expectedReturnPct}%`}</div>
                           </div>
                           <div>
                             <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Term</div>
-                            <div className="font-bold text-foreground">{c.investmentPeriodDays}d</div>
+                            <div className="font-bold text-foreground">{c.investmentPeriodDays == null ? "Not provided" : `${c.investmentPeriodDays}d`}</div>
                           </div>
                           <div>
                             <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Min Inv.</div>
-                            <div className="font-bold text-foreground">{cur.fmtDual(c.minInvestment)}</div>
+                            <div className="font-bold text-foreground">{formatInvestorProjectAmount(c.minInvestment, c.currency)}</div>
                           </div>
                         </div>
                       </CardContent>
@@ -227,7 +227,7 @@ export function OpenInvestmentsListing() {
             </div>
           )}
           {longTermProjects.map(p => {
-            const raw = projectById.get(p.id)
+            const raw = projectById.get(String(p.id))
             return (
               <Link key={p.id} href={`/invest/${p.slug}`}>
                 <Card className="glass-card flex flex-col hover:border-primary/40 transition-all hover:-translate-y-1 cursor-pointer overflow-hidden">
@@ -266,6 +266,7 @@ export function OpenInvestmentsListing() {
                       <FundingProgress
                         raised={p.currentFunding}
                         target={p.fundingTarget}
+                        currency={p.currency}
                         variant="compact"
                         className="pt-2"
                       />
@@ -273,15 +274,15 @@ export function OpenInvestmentsListing() {
                     <div className="bg-muted/30 p-6 grid grid-cols-3 gap-4 border-t border-border/50 mt-auto">
                       <div>
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Annual Return</div>
-                        <div className="font-bold text-emerald-500 text-lg">{p.expectedReturnPct}%</div>
+                        <div className="font-bold text-emerald-500 text-lg">{p.expectedReturnPct == null ? "Not provided" : `${p.expectedReturnPct}%`}</div>
                       </div>
                       <div>
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Term</div>
-                        <div className="font-bold text-foreground text-lg">{p.investmentPeriodMonths}mo</div>
+                        <div className="font-bold text-foreground text-lg">{p.investmentPeriodMonths == null ? "Not provided" : `${p.investmentPeriodMonths}mo`}</div>
                       </div>
                       <div>
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Min Inv.</div>
-                        <div className="font-bold text-foreground text-lg">{cur.fmtDual(p.minInvestment)}</div>
+                        <div className="font-bold text-foreground text-lg">{formatInvestorProjectAmount(p.minInvestment, p.currency)}</div>
                       </div>
                     </div>
                   </CardContent>

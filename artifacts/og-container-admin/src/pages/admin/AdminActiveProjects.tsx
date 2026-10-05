@@ -107,8 +107,7 @@ export interface AdminActiveProjectsPageProps {
 }
 
 const STATUS_OPTIONS = CONTAINER_PROJECT_STATUSES.filter(
-  (status): status is ContainerProjectStatus =>
-    status !== "pending" && status !== "cancelled",
+  (status): status is ContainerProjectStatus => status !== "cancelled",
 )
 
 const STATUS_FILTERS: Array<{ value: "all" | ContainerProjectStatus; label: string }> = [
@@ -215,9 +214,10 @@ function mapApiRowToActiveProject(row: AdminActiveProjectApiRow): AdminActivePro
 
 function normalizeStatus(status: string): ContainerProjectStatus {
   const normalized = normalizeContainerProjectStatus(status)
-  return CONTAINER_PROJECT_STATUSES.includes(normalized as ContainerProjectStatus)
-    ? (normalized as ContainerProjectStatus)
-    : "pending"
+  if (!CONTAINER_PROJECT_STATUSES.includes(normalized as ContainerProjectStatus)) {
+    throw new Error(`Unsupported container project status: ${normalized}`)
+  }
+  return normalized as ContainerProjectStatus
 }
 
 function displayDate(value?: string) {

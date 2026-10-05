@@ -382,7 +382,7 @@ const WHY_CHOOSE = [
   { icon: FileCheck,   title: "Professional Documentation",   desc: "Complete export document packages prepared in-house by our trade team." },
   { icon: Microscope,  title: "Strict Quality Inspection",    desc: "Third-party and in-house laboratory analysis before loading." },
   { icon: Package,     title: "Customized Packaging",         desc: "Branded, private-label, and custom-weight packaging available." },
-  { icon: Truck,       title: "Timely Shipment",              desc: "Scheduled loading with real-time shipment tracking updates." },
+  { icon: Truck,       title: "Timely Shipment",              desc: "Scheduled loading with shipment milestones recorded in the portal; live carrier data is not available." },
   { icon: Users,       title: "Customer-Centric Service",     desc: "Dedicated export managers for every account, every shipment." },
   { icon: Handshake,   title: "Long-Term Relationships",      desc: "We prioritize multi-year buyer partnerships over single transactions." },
 ]

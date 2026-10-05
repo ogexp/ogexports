@@ -161,7 +161,7 @@ export function NotificationsTab() {
                         {!notif.read && <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />}
                         <h3 className={`text-sm leading-tight ${!notif.read ? 'font-bold' : 'font-semibold'}`}>{notif.title}</h3>
                         <Badge variant="outline" className={`text-[10px] capitalize ${cfg.bg.replace("bg-", "border-").replace("/10", "/30")} ${cfg.color}`}>
-                          {cfg.category}
+                          {"category" in cfg ? cfg.category : "Notification"}
                         </Badge>
                       </div>
                       <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">

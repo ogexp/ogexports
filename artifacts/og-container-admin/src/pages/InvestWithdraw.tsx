@@ -42,22 +42,13 @@ type WithdrawBank = {
   currency?: string
 }
 
-const TRACKING_STEPS = [
-  { label: "Pending", desc: "Withdrawal request submitted", done: true },
-  { label: "Verification", desc: "Identity verification in progress", done: false },
-  { label: "Finance Review", desc: "Finance team processing", done: false },
-  { label: "Approved", desc: "Withdrawal approved", done: false },
-  { label: "Transferred", desc: "Funds sent to your bank", done: false },
-  { label: "Completed", desc: "Funds received", done: false },
-]
-
 export default function InvestWithdraw() {
   const { user } = useLocalAuth()
   const c = useCurrency()
   const queryClient = useQueryClient()
   const [step, setStep] = useState<Step>("overview")
   const [amount, setAmount] = useState("")
-  const [currency, setCurrency] = useState(c.isPK ? "PKR" : "USD")
+  const [currency, setCurrency] = useState("")
   const [bankName, setBankName] = useState("")
   const [accountHolder, setAccountHolder] = useState("")
   const [accountNumber, setAccountNumber] = useState("")
@@ -68,15 +59,18 @@ export default function InvestWithdraw() {
   const [otp, setOtp] = useState("")
   const [txPassword, setTxPassword] = useState("")
   const [withdrawId, setWithdrawId] = useState("")
-  const [availableBalance, setAvailableBalance] = useState(0)
-  const [pendingBalance, setPendingBalance] = useState(0)
-  const [ledgerCurrency, setLedgerCurrency] = useState(c.walletCurrency)
-  const fmtW = (amount: number, usdAmount?: number | null) =>
-    formatInvestorLedgerAmount(c, amount, {
-      usdAmount,
-      ledgerCurrency,
-      lockedRate: c.isPK && c.rate > 0 ? c.rate : null,
-    })
+  const [withdrawStatus, setWithdrawStatus] = useState("")
+  const [availableBalance, setAvailableBalance] = useState<number | null>(null)
+  const [pendingBalance, setPendingBalance] = useState<number | null>(null)
+  const [ledgerCurrency, setLedgerCurrency] = useState("")
+  const fmtW = (amount: number | null, usdAmount?: number | null) =>
+    amount == null || !ledgerCurrency
+      ? "Not provided"
+      : formatInvestorLedgerAmount(c, amount, {
+        usdAmount,
+        ledgerCurrency,
+        lockedRate: c.isPK && c.rate > 0 ? c.rate : null,
+      })
   const [walletLoading, setWalletLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [otpSending, setOtpSending] = useState(false)
@@ -92,12 +86,9 @@ export default function InvestWithdraw() {
   const [resetSaving, setResetSaving] = useState(false)
 
   const withdrawableBalance = availableBalance
-  const minWithdrawal = 100
   const maxWithdrawal = availableBalance
-  const fee = amount ? Math.max(0, parseFloat(amount) * 0.001).toFixed(2) : "0.00"
-  const finalAmount = amount ? (parseFloat(amount) - parseFloat(fee)).toFixed(2) : "0.00"
   const amountNum = parseFloat(amount) || 0
-  const exceedsBalance = amountNum > availableBalance
+  const exceedsBalance = availableBalance == null || amountNum > availableBalance
 
   const applyWithdrawBank = useCallback((bank: WithdrawBank) => {
     setBankName(bank.bank_name || "")
@@ -114,14 +105,22 @@ export default function InvestWithdraw() {
     try {
       const walletRes: any = await api.get("/api/investor/wallet")
       const wallet = walletRes?.data ?? walletRes
-      setAvailableBalance(Number(wallet?.available_balance ?? 0))
-      setPendingBalance(Number(wallet?.pending_balance ?? 0))
-      const cur = String(wallet?.currency || c.walletCurrency || "USD").toUpperCase()
+      const parsedAvailable = wallet?.available_balance == null || String(wallet.available_balance).trim() === ""
+        ? null
+        : Number(wallet.available_balance)
+      const parsedPending = wallet?.pending_balance == null || String(wallet.pending_balance).trim() === ""
+        ? null
+        : Number(wallet.pending_balance)
+      setAvailableBalance(parsedAvailable != null && Number.isFinite(parsedAvailable) ? parsedAvailable : null)
+      setPendingBalance(parsedPending != null && Number.isFinite(parsedPending) ? parsedPending : null)
+      const cur = String(wallet?.currency || "").trim().toUpperCase()
       setLedgerCurrency(cur)
       setCurrency(cur)
     } catch {
-      setAvailableBalance(0)
-      setPendingBalance(0)
+      setAvailableBalance(null)
+      setPendingBalance(null)
+      setLedgerCurrency("")
+      setCurrency("")
     } finally {
       setWalletLoading(false)
     }
@@ -185,10 +184,17 @@ export default function InvestWithdraw() {
   })
   const withdrawalHistory = unwrapPage<any>(historyPayload).data
 
-  function formatWithdrawAmount(amt: number, lockedRate?: number | null, amountUsd?: number | null) {
+  function formatWithdrawAmount(
+    amt: number | null,
+    lockedRate?: number | null,
+    amountUsd?: number | null,
+    amountCurrency?: string | null,
+  ) {
+    const currencyCode = String(amountCurrency || ledgerCurrency).trim().toUpperCase()
+    if (amt == null || !Number.isFinite(amt) || !currencyCode) return "Not provided"
     return formatInvestorLedgerAmount(c, Number(amt) || 0, {
       usdAmount: amountUsd,
-      ledgerCurrency,
+      ledgerCurrency: currencyCode,
       lockedRate,
     })
   }
@@ -200,14 +206,15 @@ export default function InvestWithdraw() {
       const ref = w.withdraw_id || w.reference || `OGWITH-INV-${String(w.id).padStart(3, "0")}`
       const lockedRate = w.exchange_rate != null ? Number(w.exchange_rate) : null
       const amountUsd = w.amount_usd != null ? Number(w.amount_usd) : null
+      const amountCurrency = w.amount_currency || w.wallet_currency || w.currency
       return {
         id: String(w.id),
-        primary: `${bank} · ${formatWithdrawAmount(Number(w.amount ?? 0), lockedRate, amountUsd)}`,
+        primary: `${bank} · ${formatWithdrawAmount(w.amount == null ? null : Number(w.amount), lockedRate, amountUsd, amountCurrency)}`,
         reference: ref,
         date: w.created_at
           ? new Date(w.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
           : undefined,
-        status: w.status || "pending",
+        status: w.status || "unknown",
         statusLabel: paymentStatusLabel(w.status),
         pdfPath: `/api/investor/withdrawals/${w.id}/pdf`,
       }
@@ -251,7 +258,7 @@ export default function InvestWithdraw() {
 
   async function handleContinueToSecurity() {
     setFormError("")
-    if (!amount || exceedsBalance || amountNum < minWithdrawal || !bankName || !accountHolder || !accountNumber) {
+    if (!amount || amountNum <= 0 || exceedsBalance || !currency || !bankName || !accountHolder || !accountNumber) {
       setFormError("Please complete all required fields.")
       return
     }
@@ -273,7 +280,7 @@ export default function InvestWithdraw() {
       setFormError("Enter your transaction password.")
       return
     }
-    if (amountNum <= 0 || amountNum > availableBalance || amountNum < minWithdrawal) {
+    if (amountNum <= 0 || availableBalance == null || amountNum > availableBalance || !currency) {
       setFormError("Invalid withdrawal amount.")
       return
     }
@@ -300,8 +307,7 @@ export default function InvestWithdraw() {
       const data = res?.data ?? res
       const ref = data?.withdraw_id || data?.reference || ""
       setWithdrawId(ref)
-      setAvailableBalance(prev => Math.max(0, prev - amountNum))
-      setPendingBalance(prev => prev + amountNum)
+      setWithdrawStatus(String(data?.status || data?.state || "submitted"))
       setOtp("")
       setTxPassword("")
       setStep("tracking")
@@ -359,7 +365,7 @@ export default function InvestWithdraw() {
               {[
                 { label: "Available Balance", value: fmtW(availableBalance), color: "text-foreground", icon: Wallet },
                 { label: "Withdrawable Balance", value: fmtW(withdrawableBalance), color: "text-emerald-500", icon: CheckCircle2 },
-                { label: "Min / Max Withdrawal", value: `${fmtW(minWithdrawal)} / ${fmtW(Math.max(maxWithdrawal, 0))}`, color: "text-muted-foreground", icon: Info },
+                { label: "Minimum / Maximum Withdrawal", value: `Not published / ${fmtW(maxWithdrawal)}`, color: "text-muted-foreground", icon: Info },
               ].map(s => (
                 <Card key={s.label} className="glass-card">
                   <CardContent className="p-5 flex items-center gap-4">
@@ -383,10 +389,10 @@ export default function InvestWithdraw() {
                 </div>
                 <div className="grid sm:grid-cols-2 gap-3 text-sm">
                   {[
-                    ["Estimated Processing Time", "1–3 Business Days"],
-                    ["Withdrawal Charges", `0.1% (min ${c.sym}0)`],
-                    ["Tax Deduction", "None"],
-                    ["Supported Currencies", currency],
+                    ["Processing Time", "Not provided"],
+                    ["Withdrawal Fees", "Not provided"],
+                    ["Tax Treatment", "Not specified"],
+                    ["Wallet Currency", currency || "Not provided"],
                   ].map(([l, v]) => (
                     <div key={l} className="flex justify-between gap-2">
                       <span className="text-muted-foreground">{l}</span>
@@ -400,15 +406,15 @@ export default function InvestWithdraw() {
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3">
               <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
               <p className="text-xs text-amber-700 dark:text-amber-400">
-                Withdrawals from active investments require the investment to reach maturity. Only your available balance is immediately withdrawable.
+                Only the available balance returned by the investor service is considered for a withdrawal request. Any locked or pending amounts are not included as available funds.
               </p>
             </div>
 
-            {pendingBalance > 0 && (
+            {pendingBalance != null && pendingBalance > 0 && (
               <p className="text-xs text-amber-600">Pending withdrawals reserved: {fmtW(pendingBalance)}</p>
             )}
 
-            <Button className="w-full" onClick={() => void proceedToWithdrawForm()} disabled={availableBalance <= 0}>
+            <Button className="w-full" onClick={() => void proceedToWithdrawForm()} disabled={walletLoading || availableBalance == null || availableBalance <= 0 || !currency}>
               Proceed to Withdraw <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
@@ -444,7 +450,7 @@ export default function InvestWithdraw() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Withdrawal Amount <span className="text-red-400">*</span></Label>
-                  <Input type="number" min={0} max={availableBalance} placeholder="Enter amount" value={amount} onChange={e => { setAmount(e.target.value); setFormError("") }} />
+                  <Input type="number" min={0} max={availableBalance ?? undefined} placeholder="Enter amount" value={amount} onChange={e => { setAmount(e.target.value); setFormError("") }} />
                   <p className="text-xs text-muted-foreground">Max withdrawable: {fmtW(withdrawableBalance)}</p>
                   {exceedsBalance && <p className="text-xs text-red-500">Amount cannot exceed available balance.</p>}
                 </div>
@@ -511,7 +517,7 @@ export default function InvestWithdraw() {
                 <Button variant="outline" onClick={() => setStep("overview")}>Back</Button>
                 <Button
                   className="flex-1"
-                  disabled={otpSending || !amount || exceedsBalance || amountNum < minWithdrawal || !bankName || !accountHolder || !accountNumber}
+                  disabled={otpSending || !amount || amountNum <= 0 || exceedsBalance || !currency || !bankName || !accountHolder || !accountNumber}
                   onClick={() => void handleContinueToSecurity()}
                 >
                   {otpSending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
@@ -597,19 +603,17 @@ export default function InvestWithdraw() {
                   <CheckCircle2 className="w-9 h-9 text-emerald-500" />
                 </div>
                 <h2 className="text-2xl font-heading font-bold">Withdrawal Submitted!</h2>
-                <p className="text-muted-foreground">Our finance team will process your request within 1–3 business days.</p>
+                <p className="text-muted-foreground">
+                  Current status: {withdrawStatus ? paymentStatusLabel(withdrawStatus) : "Not provided"}. Fees and processing time are not included unless returned by the service.
+                </p>
                 <div className="flex justify-center gap-6 pt-2 flex-wrap">
                   <div>
                     <div className="text-xs text-muted-foreground uppercase tracking-wide">Withdraw ID</div>
                     <div className="font-mono font-semibold text-sm">{withdrawId}</div>
                   </div>
                   <div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Amount</div>
-                    <div className="font-semibold text-sm">{formatWithdrawAmount(parseFloat(finalAmount))}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">ETA</div>
-                    <div className="font-semibold text-sm">1–3 Business Days</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Requested Amount</div>
+                    <div className="font-semibold text-sm">{formatWithdrawAmount(amountNum, null, null, currency)}</div>
                   </div>
                 </div>
               </CardContent>
@@ -622,26 +626,9 @@ export default function InvestWithdraw() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="relative">
-                  <div className="absolute left-4 top-4 bottom-4 w-px bg-border" />
-                  {TRACKING_STEPS.map((s, i) => (
-                    <div key={s.label} className="relative flex items-start gap-4 pb-6 last:pb-0">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 shrink-0 ${s.done ? "bg-emerald-500/20 border-2 border-emerald-500" : i === 1 ? "bg-amber-500/20 border-2 border-amber-500" : "bg-muted border-2 border-border"}`}>
-                        {s.done
-                          ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                          : i === 1
-                          ? <Clock className="w-3.5 h-3.5 text-amber-500" />
-                          : <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                        }
-                      </div>
-                      <div className="pt-1">
-                        <div className={`text-sm font-semibold ${s.done ? "text-emerald-500" : i === 1 ? "text-amber-500" : "text-muted-foreground"}`}>{s.label}</div>
-                        <div className="text-xs text-muted-foreground">{s.desc}</div>
-                      </div>
-                      {i === 1 && <Badge className="ml-auto mt-1 bg-amber-500/15 text-amber-600 border-0 text-xs">In Progress</Badge>}
-                      {s.done && <Badge className="ml-auto mt-1 bg-emerald-500/15 text-emerald-600 border-0 text-xs">Done</Badge>}
-                    </div>
-                  ))}
+                <div className="space-y-2 text-sm">
+                  <p>Current status: <span className="font-semibold">{withdrawStatus ? paymentStatusLabel(withdrawStatus) : "Not provided"}</span></p>
+                  <p className="text-muted-foreground">Withdrawal history shows updates returned by the investor service.</p>
                 </div>
               </CardContent>
             </Card>

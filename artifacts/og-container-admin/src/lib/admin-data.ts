@@ -366,6 +366,8 @@ export interface AdminInvestProject {
   /** Export vs Import for container projects */
   tradeDirection?: "export" | "import"
   target: number; raised: number; investors: number
+  targetAmountAvailable?: boolean; raisedAmountAvailable?: boolean; investorCountAvailable?: boolean
+  currency?: string
   status: ContainerProjectStatus | AdminFacilityProjectStatus
   roi: string; location?: string; vessel?: string; etd?: string; eta?: string; completion?: string
   /** Resolved display URL for cover image */
@@ -1326,6 +1328,19 @@ function mapActivity(a: any, leadName?: string): AdminCRMActivity {
 }
 
 export function mapInvestProject(p: any): AdminInvestProject {
+  const targetRaw = p.target_amount ?? p.target
+  const raisedRaw = p.raised_amount ?? p.raised
+  const investorsRaw = p.investors_count ?? p.investors
+  const asAvailableNumber = (value: unknown) => {
+    if (value == null || String(value).trim() === "") return undefined
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+  const targetValue = asAvailableNumber(targetRaw)
+  const raisedValue = asAvailableNumber(raisedRaw)
+  const investorCount = asAvailableNumber(investorsRaw)
+  const rawCurrency = p.currency ?? p.currency_code ?? p.amount_currency
+  const currency = rawCurrency == null ? "" : String(rawCurrency).trim().toUpperCase()
   const typeRaw = String(p.type || "container").toLowerCase()
   const type: AdminInvestProject["type"] =
     typeRaw === "ricemill" || typeRaw.includes("rice_mill") ? "ricemill"
@@ -1333,9 +1348,9 @@ export function mapInvestProject(p: any): AdminInvestProject {
         : typeRaw.includes("produce") || typeRaw === "fp" ? "produce"
           : typeRaw.includes("plant") || typeRaw === "pp" ? "plant"
             : "container"
-  const statusRaw = String(p.status || "funding").toLowerCase()
+  const statusRaw = String(p.status || "").toLowerCase()
   const status: AdminInvestProject["status"] = type === "container"
-    ? normalizeContainerProjectStatus(statusRaw) as ContainerProjectStatus
+    ? (statusRaw ? normalizeContainerProjectStatus(statusRaw) : "cancelled") as ContainerProjectStatus
     : statusRaw === "draft" ? "draft"
       : statusRaw === "coming_soon" ? "coming_soon"
         : statusRaw === "fully_funded" ? "fully_funded"
@@ -1344,18 +1359,23 @@ export function mapInvestProject(p: any): AdminInvestProject {
               : statusRaw === "completed" ? "completed"
                 : statusRaw === "closed" || statusRaw === "cancelled" || statusRaw === "canceled" ? "closed"
                   : statusRaw === "active" || statusRaw === "funded" || statusRaw === "ready_to_ship" || statusRaw === "shipping" ? "active"
-                    : "funding"
+                    : "closed"
   return {
     id: String(p.id),
     title: p.title || "—",
     reference: p.reference || undefined,
     type,
-    tradeDirection: String(p.trade_direction || p.tradeDirection || "export").toLowerCase() === "import"
-      ? "import"
-      : "export",
-    target: Number(p.target_amount ?? p.target) || 0,
-    raised: Number(p.raised_amount ?? p.raised) || 0,
-    investors: Number(p.investors_count ?? p.investors) || 0,
+    tradeDirection: (() => {
+      const direction = String(p.trade_direction || p.tradeDirection || "").trim().toLowerCase()
+      return direction === "import" ? "import" : direction === "export" ? "export" : undefined
+    })(),
+    target: targetValue ?? 0,
+    raised: raisedValue ?? 0,
+    investors: investorCount ?? 0,
+    targetAmountAvailable: targetValue !== undefined,
+    raisedAmountAvailable: raisedValue !== undefined,
+    investorCountAvailable: investorCount !== undefined,
+    currency: /^[A-Z]{3}$/.test(currency) ? currency : undefined,
     status,
     roi: p.roi_label || (p.expected_return_pct != null ? `${p.expected_return_pct}%` : "—"),
     location: p.location,
@@ -1373,9 +1393,9 @@ export function mapInvestProject(p: any): AdminInvestProject {
       const raw = meta.container_no ?? meta.container_number ?? meta.containerNumber
       return raw != null && String(raw).trim() !== "" ? String(raw).trim() : undefined
     })(),
-    containerValue: p.container_value != null ? Number(p.container_value) : undefined,
-    minInvestment: p.min_investment != null ? Number(p.min_investment) : undefined,
-    maxInvestment: p.max_investment != null ? Number(p.max_investment) : null,
+    containerValue: asAvailableNumber(p.container_value),
+    minInvestment: asAvailableNumber(p.min_investment),
+    maxInvestment: asAvailableNumber(p.max_investment) ?? null,
     destination: p.destination,
     destinationFlag: p.destination_flag,
     destinationCountry: p.destination_country,

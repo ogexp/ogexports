@@ -20,7 +20,9 @@ export const LANGUAGES = [
 
 type LocaleCode = (typeof LANGUAGES)[number]['code']
 
-const localeLoaders: Record<Exclude<LocaleCode, 'en'>, () => Promise<{ default: typeof en }>> = {
+type LocaleModule = { default: unknown }
+
+const localeLoaders: Record<Exclude<LocaleCode, 'en'>, () => Promise<LocaleModule>> = {
   ur: () => import('./locales/ur'),
   zh: () => import('./locales/zh'),
   ru: () => import('./locales/ru'),
@@ -45,8 +47,9 @@ export async function loadLocale(lng: string): Promise<void> {
 
   const mod = await loader()
   const bundle = mod.default
-  for (const ns of Object.keys(bundle)) {
-    i18n.addResourceBundle(code, ns, (bundle as Record<string, unknown>)[ns], true, true)
+  if (!bundle || typeof bundle !== "object") return
+  for (const [ns, resources] of Object.entries(bundle)) {
+    i18n.addResourceBundle(code, ns, resources, true, true)
   }
   loadedLocales.add(code)
 }

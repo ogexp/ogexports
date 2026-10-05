@@ -1,15 +1,39 @@
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useSubmitCompanyKyc } from "@workspace/api-client-react"
-import type { SubmitCompanyKycBody } from "@workspace/api-zod"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { FileUploadField } from "./FileUploadField"
 import { useToast } from "@/hooks/use-toast"
-import type { z } from "zod"
+import { z } from "zod"
 
-type FormValues = z.infer<typeof SubmitCompanyKycBody>
+const companyKycSchema = z.object({
+  companyName: z.string().trim().min(1, "Company name is required"),
+  registrationNumber: z.string().trim().min(1, "Registration number is required"),
+  taxNumber: z.string().trim().min(1, "Tax number is required"),
+  businessLicenseNumber: z.string(),
+  country: z.string().trim().min(1, "Country is required"),
+  address: z.string().trim().min(1, "Registered address is required"),
+  website: z.string(),
+  directorName: z.string().trim().min(1, "Director name is required"),
+  directorTitle: z.string(),
+  authorizedRepName: z.string().trim().min(1, "Representative name is required"),
+  authorizedRepEmail: z.string().trim().email("Enter a valid email address"),
+  authorizedRepPhone: z.string(),
+  bankName: z.string().trim().min(1, "Bank name is required"),
+  bankAccountName: z.string().trim().min(1, "Bank account name is required"),
+  bankAccountNumber: z.string().trim().min(1, "Bank account number is required"),
+  bankSwiftCode: z.string(),
+  bankCountry: z.string(),
+  importExportLicenseNumber: z.string(),
+  registrationCertObjectPath: z.string().min(1, "Certificate of registration is required"),
+  taxCertObjectPath: z.string().min(1, "Tax registration certificate is required"),
+  businessLicenseObjectPath: z.string(),
+  importExportLicenseObjectPath: z.string(),
+})
+
+type FormValues = z.infer<typeof companyKycSchema>
 
 const TEXT_FIELDS: { name: keyof FormValues & string; label: string; placeholder?: string; required?: boolean }[] = [
   { name: "companyName", label: "Company Name", required: true },
@@ -37,21 +61,30 @@ export function CompanyKycForm({ retry }: { retry?: boolean }) {
   const submitKyc = useSubmitCompanyKyc()
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(SubmitCompanyKycBody),
+    resolver: zodResolver(companyKycSchema),
     defaultValues: {
       companyName: "",
       registrationNumber: "",
       taxNumber: "",
+      businessLicenseNumber: "",
       country: "",
       address: "",
+      website: "",
       directorName: "",
+      directorTitle: "",
       authorizedRepName: "",
       authorizedRepEmail: "",
+      authorizedRepPhone: "",
       bankName: "",
       bankAccountName: "",
       bankAccountNumber: "",
+      bankSwiftCode: "",
+      bankCountry: "",
+      importExportLicenseNumber: "",
       registrationCertObjectPath: "",
       taxCertObjectPath: "",
+      businessLicenseObjectPath: "",
+      importExportLicenseObjectPath: "",
     },
   })
 

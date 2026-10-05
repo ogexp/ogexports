@@ -1,21 +1,22 @@
 export interface ContainerInvestment {
   id: string; slug: string; commodity: string; variety: string;
-  tradeDirection: 'export' | 'import';           // NEW — export from PK or import into PK
-  containerType: '20ft' | '40ft' | '40ft reefer' | '20ft reefer'; containerValue: number; // USD
+  tradeDirection?: 'export' | 'import';
+  containerType?: '20ft' | '40ft' | '40ft reefer' | '20ft reefer'; containerValue?: number | null;
   containerNumber?: string;
   origin: string; portOfLoading?: string;
   destination: string; portOfDischarge?: string; destinationCountry: string; destinationFlag: string;
   fundingDeadlineDate: string; // ISO date
-  minInvestment: number; maxInvestment: number | null;
-  currentFunding: number; targetFunding: number; totalInvestors: number;
-  totalAmountInvested: number;
-  expectedReturnPct: number; investmentPeriodDays: number;
+  minInvestment: number | null; maxInvestment: number | null;
+  currentFunding: number | null; targetFunding: number | null; totalInvestors: number | null;
+  totalAmountInvested: number | null;
+  expectedReturnPct: number | null; investmentPeriodDays: number | null;
   status: 'open' | 'funded' | 'shipping' | 'completed';
-  imageUrl: string; riskLevel: 'low' | 'medium' | 'high';
+  imageUrl: string; riskLevel?: 'low' | 'medium' | 'high';
   productCategory: string;
   description: string;
-  incoterm: 'FOB' | 'CIF' | 'CNF' | 'EXW' | 'CFR' | 'Air Shipment';
-  paymentTerms: string;
+  incoterm?: 'FOB' | 'CIF' | 'CNF' | 'EXW' | 'CFR' | 'Air Shipment';
+  paymentTerms?: string;
+  currency?: string;
   shippingLine?: string;
   vesselName?: string;
   estimatedDepartureDate?: string;
@@ -149,11 +150,12 @@ export interface LongTermProject {
   id: string | number; slug: string; name: string;
   category: 'fresh-produce' | 'processing' | 'cold-storage' | 'infrastructure';
   shortDescription: string; fullDescription: string;
-  fundingTarget: number; currentFunding: number; minInvestment: number; maxInvestment: number;
-  investmentPeriodMonths: number; expectedReturnPct: number; // annual
+  fundingTarget: number | null; currentFunding: number | null; minInvestment: number | null; maxInvestment: number | null;
+  investmentPeriodMonths: number | null; expectedReturnPct: number | null; // annual
   expectedCompletionDate: string;
-  riskLevel: 'low' | 'medium' | 'high'; status: 'open' | 'funded' | 'in-progress' | 'completed';
-  totalInvestors: number; imageUrls: string[];
+  riskLevel?: 'low' | 'medium' | 'high'; status: 'open' | 'funded' | 'in-progress' | 'completed';
+  totalInvestors: number | null; imageUrls: string[];
+  currency?: string;
   highlights: string[];
   documents: Array<{ name: string; type: string; size: string }>;
 }

@@ -866,7 +866,7 @@ export default function AdminTradeIntelligence() {
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             {news.filter(n => n.status === "approved").map(n => (
-              <Card key={n.id} className={`border-0 shadow-sm transition-all ${n.featured ? "ring-2" : ""}`} style={{ ringColor: GOLD }}>
+              <Card key={n.id} className={`border-0 shadow-sm transition-all ${n.featured ? "ring-2" : ""}`} style={{ boxShadow: n.featured ? `0 0 0 2px ${GOLD}` : undefined }}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -1116,7 +1116,7 @@ export default function AdminTradeIntelligence() {
           </div>
           <div className="grid gap-3">
             {alerts.map(a => (
-              <Card key={a.id} className={`border-0 shadow-sm transition-all ${a.triggered ? "ring-1" : ""}`} style={{ ringColor: a.severity === "critical" ? "#F44336" : "#FF9800" }}>
+              <Card key={a.id} className={`border-0 shadow-sm transition-all ${a.triggered ? "ring-1" : ""}`} style={{ boxShadow: a.triggered ? `0 0 0 1px ${a.severity === "critical" ? "#F44336" : "#FF9800"}` : undefined }}>
                 <CardContent className="p-4 flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{
                     background: a.severity === "critical" ? "#F4433620" : a.severity === "high" ? "#FF980020" : "#4CAF5020"

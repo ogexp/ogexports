@@ -9,7 +9,7 @@ import { CheckCircle2, ChevronRight, ShieldCheck, Wallet, Loader2, AlertCircle }
 import { ContainerInvestment, LongTermProject } from "@/data/investments"
 import { api, ApiError } from "@/lib/api"
 import { getFundingMetrics } from "@/lib/funding-metrics"
-import { useCurrency } from "@/lib/use-currency"
+import { formatInvestorProjectAmount } from "@/lib/invest-format"
 
 interface InvestNowModalProps {
   investment: ContainerInvestment | LongTermProject
@@ -17,8 +17,8 @@ interface InvestNowModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess?: () => void
-  pendingReserved?: number
-  remainingAmount?: number
+  pendingReserved?: number | null
+  remainingAmount?: number | null
   isFull?: boolean
   redirectTo?: string
 }
@@ -31,49 +31,74 @@ export function InvestNowModal({
   isOpen,
   onClose,
   onSuccess,
-  pendingReserved = 0,
+  pendingReserved,
   remainingAmount,
   isFull = false,
   redirectTo = "/invest/containers",
 }: InvestNowModalProps) {
   const { toast } = useToast()
-  const c = useCurrency()
   const [, setLocation] = useLocation()
   const [step, setStep] = useState(0)
-  const [amount, setAmount] = useState(initialAmount.toString())
+  const [amount, setAmount] = useState(initialAmount > 0 ? initialAmount.toString() : "")
   const [agreed, setAgreed] = useState(false)
   const [investId, setInvestId] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
-  const [walletCurrency, setWalletCurrency] = useState("USD")
+  const [walletCurrency, setWalletCurrency] = useState("")
   const [walletLoading, setWalletLoading] = useState(false)
 
   const isProject = "category" in investment
-  const isContainer = !isProject
   const itemName = isProject ? investment.name : investment.commodity
   const returnPct = investment.expectedReturnPct
-  const raised = isProject ? investment.currentFunding : investment.currentFunding
+  const raised = investment.currentFunding
   const target = isProject ? investment.fundingTarget : investment.targetFunding
-  const metrics = getFundingMetrics(raised, target, pendingReserved)
-  const remaining = remainingAmount != null ? remainingAmount : metrics.remaining
-  const full = isFull || metrics.isFull
-  const usePkrWallet = c.isPK && walletCurrency === "PKR"
+  const termProvided = isProject
+    ? investment.investmentPeriodMonths != null
+    : investment.investmentPeriodDays != null
+  const metrics = raised != null && target != null && target > 0 && pendingReserved != null
+    ? getFundingMetrics(raised, target, pendingReserved)
+    : null
+  const remaining = remainingAmount ?? metrics?.remaining ?? null
+  const full = isFull === true || (remaining != null && remaining <= 0)
+  const termsProvided = Boolean(investment.currency)
+    && investment.minInvestment != null
+    && termProvided
+  const walletCurrencyMatches = Boolean(
+    investment.currency && walletCurrency
+      && investment.currency.toUpperCase() === walletCurrency,
+  )
+  const canContinue = !full
+    && termsProvided
+    && remaining != null
+    && walletBalance != null
+    && walletCurrencyMatches
 
   useEffect(() => {
     if (!isOpen) return
     setStep(0)
-    setAmount(String(initialAmount || investment.minInvestment || 100))
+    setAmount(initialAmount > 0
+      ? String(initialAmount)
+      : investment.minInvestment != null
+        ? String(investment.minInvestment)
+        : "")
     setAgreed(false)
     setInvestId("")
+    setWalletBalance(null)
+    setWalletCurrency("")
     setWalletLoading(true)
     api.get("/api/investor/wallet")
       .then((res: any) => {
         const w = res?.data ?? res
-        setWalletBalance(Number(w?.available_balance ?? 0))
-        setWalletCurrency(String(w?.currency || "USD").toUpperCase())
+        const rawBalance = w?.available_balance
+        const parsedBalance = rawBalance == null || String(rawBalance).trim() === ""
+          ? null
+          : Number(rawBalance)
+        setWalletBalance(parsedBalance != null && Number.isFinite(parsedBalance) ? parsedBalance : null)
+        setWalletCurrency(String(w?.currency || "").trim().toUpperCase())
       })
       .catch(() => {
-        setWalletBalance(0)
+        setWalletBalance(null)
+        setWalletCurrency("")
       })
       .finally(() => setWalletLoading(false))
   }, [isOpen, initialAmount, investment.minInvestment])
@@ -82,19 +107,19 @@ export function InvestNowModal({
   const handleBack = () => setStep(s => Math.max(s - 1, 0))
 
   const value = Number(amount) || 0
-  const estimatedReturn = value * (returnPct / 100)
-  const valuePkr = usePkrWallet ? c.convert(value) : null
-  const estimatedReturnPkr = usePkrWallet ? c.convert(estimatedReturn) : null
-  const walletDebitNeeded = usePkrWallet ? c.convert(value) : value
+  const walletDebitNeeded = value
 
   const amountError = (() => {
     if (full) return "This opportunity is fully subscribed."
-    if (value < investment.minInvestment) return `Minimum investment is ${c.fmtDual(investment.minInvestment)}`
-    if (investment.maxInvestment && value > investment.maxInvestment) return `Maximum investment is ${c.fmtDual(investment.maxInvestment)}`
-    if (value > remaining) return `Only ${c.fmtDual(remaining)} remaining capacity`
-    if (walletBalance != null && walletDebitNeeded > walletBalance) {
-      return `Amount cannot exceed wallet balance (${c.fmtWalletAmount(walletBalance, walletCurrency)})`
-    }
+    if (!termsProvided) return "Required investment terms or project currency are not provided."
+    if (remaining == null) return "Available funding capacity is not provided."
+    if (walletBalance == null || !walletCurrency) return "Wallet balance or currency is not available."
+    if (!walletCurrencyMatches) return "Wallet and project currencies do not match; conversion terms are not provided."
+    if (investment.minInvestment == null) return "Minimum investment is not provided."
+    if (value < investment.minInvestment) return `Minimum investment is ${formatInvestorProjectAmount(investment.minInvestment, investment.currency)}`
+    if (investment.maxInvestment != null && value > investment.maxInvestment) return `Maximum investment is ${formatInvestorProjectAmount(investment.maxInvestment, investment.currency)}`
+    if (value > remaining) return `Only ${formatInvestorProjectAmount(remaining, investment.currency)} remaining capacity`
+    if (walletDebitNeeded > walletBalance) return `Amount cannot exceed wallet balance (${formatInvestorProjectAmount(walletBalance, walletCurrency)})`
     return null
   })()
 
@@ -107,8 +132,8 @@ export function InvestNowModal({
       const ref = data?.reference || (data?.id ? `OGEXP-${data.id}` : "submitted")
       setInvestId(String(ref))
       toast({
-        title: "Investment confirmed",
-        description: `Reference ${ref}. Redirecting to your investments…`,
+        title: "Investment request submitted",
+        description: `Reference ${ref}.`,
       })
       onSuccess?.()
       onClose()
@@ -154,21 +179,27 @@ export function InvestNowModal({
               <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Expected Return</div>
-                  <div className="font-semibold text-emerald-500">{returnPct}% {isProject ? "Annual" : "Total"}</div>
+                  <div className="font-semibold text-emerald-500">
+                    {returnPct == null ? "Not provided" : `${returnPct}% ${isProject ? "Annual" : "Total"}`}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Term</div>
-                  <div className="font-semibold">{isProject ? `${investment.investmentPeriodMonths} Months` : `${investment.investmentPeriodDays} Days`}</div>
+                  <div className="font-semibold">
+                    {isProject
+                      ? (investment.investmentPeriodMonths == null ? "Not provided" : `${investment.investmentPeriodMonths} Months`)
+                      : (investment.investmentPeriodDays == null ? "Not provided" : `${investment.investmentPeriodDays} Days`)}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Remaining Capacity</div>
-                  <div className="font-semibold">{c.fmtDual(remaining)}</div>
+                  <div className="font-semibold">{formatInvestorProjectAmount(remaining, investment.currency)}</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Wallet Balance</div>
                   <div className="font-semibold flex items-center gap-1">
                     <Wallet className="w-3.5 h-3.5" />
-                    {walletLoading ? "…" : c.fmtWalletAmount(walletBalance ?? 0, walletCurrency)}
+                    {walletLoading ? "…" : formatInvestorProjectAmount(walletBalance, walletCurrency)}
                   </div>
                 </div>
               </div>
@@ -184,50 +215,34 @@ export function InvestNowModal({
           {step === 1 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Investment Amount (USD)</label>
+                <label className="text-sm font-medium">Investment Amount ({investment.currency})</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{investment.currency}</span>
                   <Input
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    min={investment.minInvestment}
-                    max={Math.min(investment.maxInvestment || Infinity, remaining)}
+                    min={investment.minInvestment ?? undefined}
+                    max={Math.min(investment.maxInvestment ?? Infinity, remaining ?? Infinity)}
                     className="pl-8 text-lg h-12"
-                    disabled={full}
+                    disabled={!canContinue}
                   />
                 </div>
-                {usePkrWallet && value > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    ≈ {c.fmtDual(value, valuePkr)}
-                  </p>
-                )}
                 <p className="text-xs text-muted-foreground">
-                  Minimum: {c.fmtDual(investment.minInvestment)}
-                  {investment.maxInvestment ? ` · Maximum: ${c.fmtDual(investment.maxInvestment)}` : ""}
-                  {" · "}Remaining: {c.fmtDual(remaining)}
+                  Minimum: {formatInvestorProjectAmount(investment.minInvestment, investment.currency)}
+                  {investment.maxInvestment != null ? ` · Maximum: ${formatInvestorProjectAmount(investment.maxInvestment, investment.currency)}` : ""}
+                  {" · "}Remaining: {formatInvestorProjectAmount(remaining, investment.currency)}
                 </p>
                 {amountError && <p className="text-xs text-red-500">{amountError}</p>}
               </div>
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
                 <div className="flex justify-between text-sm gap-2">
                   <span className="text-muted-foreground shrink-0">Investment Amount</span>
-                  <span className="font-semibold text-right">{c.fmtDual(value, valuePkr)}</span>
+                  <span className="font-semibold text-right">{formatInvestorProjectAmount(value, investment.currency)}</span>
                 </div>
-                <div className="flex justify-between text-sm gap-2">
-                  <span className="text-muted-foreground shrink-0">Estimated Return ({returnPct}%)</span>
-                  <span className="font-semibold text-emerald-500 text-right">+{c.fmtDual(estimatedReturn, estimatedReturnPkr)}</span>
-                </div>
-                <div className="h-px bg-border/50" />
-                <div className="flex justify-between font-semibold gap-2">
-                  <span className="shrink-0">Total Expected Value</span>
-                  <span className="text-right">
-                    {c.fmtDual(
-                      value + estimatedReturn,
-                      valuePkr != null && estimatedReturnPkr != null ? valuePkr + estimatedReturnPkr : null,
-                    )}
-                  </span>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  Investment outcomes and settlement amounts depend on the final project records. No return estimate is calculated here.
+                </p>
               </div>
             </div>
           )}
@@ -237,10 +252,10 @@ export function InvestNowModal({
               <h3 className="font-heading font-semibold text-lg">Investment Agreement</h3>
               <div className="h-48 overflow-y-auto p-4 bg-muted/20 border border-border/50 rounded-xl text-xs text-muted-foreground space-y-4">
                 <p className="font-semibold text-foreground">OG EXPORTS — PROFIT SHARING AGREEMENT</p>
-                <p>Funds will be deducted from your OG Wallet immediately and transferred to the platform investment pool. Your investment is confirmed on submission (first-come, first-served).</p>
+                <p>Your request will be sent to the investor service. Its returned status and wallet records are the source of truth for confirmation and any funds movement.</p>
                 <p>1. <strong>Capital at Risk:</strong> All investments involve risk. Capital is not guaranteed.</p>
-                <p>2. <strong>Returns:</strong> The stated return of {returnPct}% is an expected target.</p>
-                <p>3. <strong>Completion:</strong> When the project completes, principal plus profit will be credited back to your wallet.</p>
+                <p>2. <strong>Returns:</strong> Any published rate is an estimate, not a guarantee. If no rate is shown, consult the signed project terms.</p>
+                <p>3. <strong>Settlement:</strong> Amounts and timing are determined by the final project records and agreement.</p>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(!!checked)} />
@@ -256,9 +271,9 @@ export function InvestNowModal({
               <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-8 h-8 text-emerald-500" />
               </div>
-              <h3 className="text-xl font-heading font-bold">Investment Confirmed</h3>
+              <h3 className="text-xl font-heading font-bold">Request Submitted</h3>
               <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-                Your investment has been confirmed. Funds were deducted from your wallet and allocated to this project.
+                Your request was accepted by the investor service. Check your investor records for its current status.
               </p>
               <div className="inline-block bg-muted/50 rounded-lg px-4 py-2 font-mono text-sm border border-border/50">
                 Ref: {investId}
@@ -274,7 +289,7 @@ export function InvestNowModal({
                 {step === 0 ? "Cancel" : "Back"}
               </Button>
               {step === 0 && (
-                <Button onClick={handleNext} disabled={full}>
+                <Button onClick={handleNext} disabled={!canContinue}>
                   Continue <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               )}

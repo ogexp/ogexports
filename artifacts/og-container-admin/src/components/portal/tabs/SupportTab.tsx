@@ -115,7 +115,7 @@ export function SupportTab() {
 }
 
 function TicketChat({ ticketId, currentUserId }: { ticketId: number, currentUserId?: string }) {
-  const { data: messages, isLoading, refetch } = useListSupportTicketMessages(ticketId)
+  const { data: messages, isLoading, refetch } = useListSupportTicketMessages(String(ticketId))
   const sendMsg = useCreateSupportTicketMessage()
 
   if (isLoading) return <div className="p-8 text-center"><Skeleton className="h-48 w-full" /></div>

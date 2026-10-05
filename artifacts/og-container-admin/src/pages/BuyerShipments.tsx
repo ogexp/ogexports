@@ -296,7 +296,7 @@ export default function BuyerShipments() {
   }
 
   return (
-    <BuyerPortalLayout title="Shipment Tracking" subtitle="Real-time tracking for all your active and historical shipments">
+    <BuyerPortalLayout title="Shipment Updates" subtitle="Shipment milestones recorded for your active and historical orders">
       <div className="space-y-6">
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

@@ -7,15 +7,15 @@ const EXPORT_STEPS = [
   { icon: ShieldCheck, title: "Quality Testing", description: "Every lot undergoes rigorous laboratory analysis — moisture, purity, broken grain %, foreign matter — against EU, FDA, and Gulf standards." },
   { icon: Box, title: "Precision Packing", description: "Export-grade packaging in climate-controlled facilities. Custom branding, weight, and markings per buyer specifications." },
   { icon: Ship, title: "Port & Documentation", description: "Full customs clearance, phytosanitary certification, COA, packing lists, and LC-compliant commercial invoices prepared in-house." },
-  { icon: Anchor, title: "Global Delivery", description: "End-to-end shipment tracking from Port Qasim to destination. Real-time updates shared with buyers and investors." },
+  { icon: Anchor, title: "Global Delivery", description: "Review shipment milestones recorded in the buyer or investor portal; live carrier location is not shown." },
 ];
 
 const INVESTMENT_STEPS = [
-  { icon: UserCheck, title: "Register & KYC", description: "Create your investor account and complete our SECP-compliant identity verification in under 10 minutes." },
+  { icon: UserCheck, title: "Register & KYC", description: "Create your investor account and complete the required identity verification." },
   { icon: BarChart2, title: "Choose Investment", description: "Browse open containers, the Fresh F&V Market project, or the Potato Processing Plant. Review full transparency documents." },
-  { icon: DollarSign, title: "Deposit Funds", description: "Transfer via bank wire or SWIFT to our HBL escrow account. Minimum $100 for containers, $5,000 for long-term projects." },
-  { icon: Ship, title: "Track Progress", description: "Monitor your container's voyage, loading stages, and port clearance live from your investor dashboard." },
-  { icon: Wallet, title: "Receive Return", description: "Principal plus profit-share is credited to your wallet upon buyer settlement and verified receipt of funds." },
+  { icon: DollarSign, title: "Deposit Funds", description: "Use only the payment instructions and minimums shown in the verified investor portal for an approved project." },
+  { icon: Ship, title: "Review Milestones", description: "See loading stages and port-clearance milestones after they are recorded in your investor dashboard." },
+  { icon: Wallet, title: "Review Payout Status", description: "Check the payout status and recorded profit against the signed project terms in your investor portal." },
 ];
 
 export function ProcessTimelines() {

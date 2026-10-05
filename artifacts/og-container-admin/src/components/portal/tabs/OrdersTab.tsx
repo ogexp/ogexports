@@ -21,7 +21,7 @@ export function OrdersTab() {
         toast({ title: "Order updated" })
         refetch()
       },
-      onError: () => toast({ title: "Update failed", variant: "destructive" })
+      onError: (error) => toast({ title: "Update failed", description: error.message, variant: "destructive" })
     })
   }
 

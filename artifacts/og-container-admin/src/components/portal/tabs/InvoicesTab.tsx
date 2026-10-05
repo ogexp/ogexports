@@ -46,7 +46,7 @@ export function InvoicesTab() {
         setAmount("")
         refetchInv()
       },
-      onError: () => toast({ title: "Failed to create invoice", variant: "destructive" })
+      onError: (error) => toast({ title: "Failed to create invoice", description: error.message, variant: "destructive" })
     })
   }
 
@@ -60,7 +60,7 @@ export function InvoicesTab() {
         setPayRef("")
         refetchInv()
       },
-      onError: () => toast({ title: "Payment failed", variant: "destructive" })
+      onError: (error) => toast({ title: "Payment failed", description: error.message, variant: "destructive" })
     })
   }
 

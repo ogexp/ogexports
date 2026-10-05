@@ -5,7 +5,6 @@ const REGIONS = [
     region: "Middle East & Gulf",
     countries: ["UAE", "Saudi Arabia", "Qatar", "Kuwait", "Oman", "Bahrain"],
     commodities: ["Basmati Rice", "Fresh Mangoes", "Sesame Seeds", "Frozen Vegetables"],
-    volume: "35%",
     color: "hsl(43 85% 47%)",
     bg: "hsl(43 85% 47% / 0.08)",
     border: "hsl(43 85% 47% / 0.25)",
@@ -14,7 +13,6 @@ const REGIONS = [
     region: "Europe & United Kingdom",
     countries: ["UK", "Netherlands", "Germany", "France", "Spain", "Belgium"],
     commodities: ["Organic Basmati", "Sesame", "Yellow Corn", "Specialty Grains"],
-    volume: "25%",
     color: "hsl(158 59% 20%)",
     bg: "hsl(158 59% 15% / 0.06)",
     border: "hsl(158 59% 15% / 0.22)",
@@ -23,7 +21,6 @@ const REGIONS = [
     region: "Southeast Asia & Pacific",
     countries: ["Malaysia", "Singapore", "Indonesia", "Philippines", "Australia"],
     commodities: ["Yellow Corn", "Rice", "Chickpeas", "Dried Fruits"],
-    volume: "18%",
     color: "hsl(123 38% 42%)",
     bg: "hsl(123 38% 42% / 0.06)",
     border: "hsl(123 38% 42% / 0.20)",
@@ -32,7 +29,6 @@ const REGIONS = [
     region: "Africa",
     countries: ["Kenya", "Nigeria", "Egypt", "Ethiopia", "Tanzania", "Ghana"],
     commodities: ["Yellow Corn", "Wheat", "Rice", "Chickpeas"],
-    volume: "14%",
     color: "hsl(43 85% 47%)",
     bg: "hsl(43 85% 47% / 0.06)",
     border: "hsl(43 85% 47% / 0.20)",
@@ -41,18 +37,10 @@ const REGIONS = [
     region: "North America",
     countries: ["USA", "Canada"],
     commodities: ["Basmati Rice", "Organic Grains", "Specialty Spices"],
-    volume: "8%",
     color: "hsl(158 59% 20%)",
     bg: "hsl(158 59% 15% / 0.05)",
     border: "hsl(158 59% 15% / 0.18)",
   },
-];
-
-const MARKET_STATS = [
-  { value: "40+", label: "Active Markets" },
-  { value: "$50M+", label: "Annual Trade Volume" },
-  { value: "6", label: "Continents Reached" },
-  { value: "200+", label: "Verified Buyers" },
 ];
 
 export function LuxuryGlobalMarkets() {
@@ -76,38 +64,9 @@ export function LuxuryGlobalMarkets() {
           </h2>
           <div className="w-16 h-[3px] rounded-full mx-auto" style={{ background: "hsl(43 85% 47%)" }} />
           <p className="text-lg leading-relaxed" style={{ color: "hsl(207 16% 44%)" }}>
-            From the Middle East to Europe, Southeast Asia to Africa — OG Exports maintains
-            active trade relationships across every major commodity-importing region globally.
+            Explore example destinations and commodity categories. Confirm active routes and
+            availability against current order or project records.
           </p>
-        </div>
-
-        {/* Stats Strip */}
-        <div
-          className="grid grid-cols-2 md:grid-cols-4 gap-0 rounded-3xl mb-16 overflow-hidden border"
-          style={{
-            background: "hsl(158 59% 15%)",
-            borderColor: "hsl(158 59% 15%)",
-          }}
-        >
-          {MARKET_STATS.map((stat, i) => (
-            <div
-              key={i}
-              className="py-10 px-6 text-center"
-              style={{
-                borderRight: i < 3 ? "1px solid hsl(0 0% 100% / 0.10)" : "none",
-              }}
-            >
-              <div
-                className="text-4xl md:text-5xl font-heading font-bold mb-2"
-                style={{ color: i % 2 === 0 ? "hsl(43 88% 68%)" : "white" }}
-              >
-                {stat.value}
-              </div>
-              <div className="text-white/50 text-xs uppercase tracking-widest font-medium">
-                {stat.label}
-              </div>
-            </div>
-          ))}
         </div>
 
         {/* Regions */}
@@ -132,22 +91,6 @@ export function LuxuryGlobalMarkets() {
               }}
             >
               <div className="flex flex-col md:flex-row md:items-center gap-6">
-                {/* Volume */}
-                <div className="shrink-0 text-center md:text-left">
-                  <div
-                    className="text-4xl font-heading font-black"
-                    style={{ color: region.color }}
-                  >
-                    {region.volume}
-                  </div>
-                  <div className="text-xs uppercase tracking-widest font-medium" style={{ color: "hsl(207 16% 55%)" }}>
-                    Export Share
-                  </div>
-                </div>
-
-                {/* Divider */}
-                <div className="hidden md:block w-px h-16" style={{ background: "hsl(60 10% 86%)" }} />
-
                 {/* Region Info */}
                 <div className="flex-1 space-y-3">
                   <h3 className="text-lg font-heading font-bold" style={{ color: "hsl(207 24% 16%)" }}>

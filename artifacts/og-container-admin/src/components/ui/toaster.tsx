@@ -85,8 +85,8 @@ function ToastItem({
 }) {
   const [visible, setVisible] = useState(false)
   const [barWidth, setBarWidth] = useState(100)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
-  const intervalRef = useRef<ReturnType<typeof setInterval>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
   const key = (variant as VariantKey) in VARIANTS ? (variant as VariantKey) : "default"
   const cfg = VARIANTS[key]

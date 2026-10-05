@@ -4,7 +4,7 @@ import { ContainerStatusBadge } from "@/components/portal/status-badges"
 import { FundingProgress } from "@/components/invest/FundingProgress"
 import { Package } from "lucide-react"
 import type { ContainerInvestment } from "@/data/investments"
-import { useCurrency } from "@/lib/use-currency"
+import { formatInvestorProjectAmount } from "@/lib/invest-format"
 import { formatContainerLabel } from "@/lib/container-display"
 
 type ContainerOpportunityCardProps = {
@@ -18,7 +18,6 @@ export function ContainerOpportunityCard({
   imageFailed = false,
   onImageError,
 }: ContainerOpportunityCardProps) {
-  const cur = useCurrency()
   return (
     <Link href={`/invest/${c.slug}`}>
       <Card className="glass-card h-full hover:border-accent/40 transition-all hover:-translate-y-1 cursor-pointer overflow-hidden group">
@@ -56,21 +55,22 @@ export function ContainerOpportunityCard({
           <FundingProgress
             raised={c.currentFunding}
             target={c.targetFunding}
+            currency={c.currency}
             variant="compact"
           />
 
           <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border/50">
             <div>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Return</div>
-              <div className="font-bold text-emerald-500">{c.expectedReturnPct}%</div>
+              <div className="font-bold text-emerald-500">{c.expectedReturnPct == null ? "Not provided" : `${c.expectedReturnPct}%`}</div>
             </div>
             <div>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Term</div>
-              <div className="font-bold text-foreground">{c.investmentPeriodDays}d</div>
+              <div className="font-bold text-foreground">{c.investmentPeriodDays == null ? "Not provided" : `${c.investmentPeriodDays}d`}</div>
             </div>
             <div>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Min Inv.</div>
-              <div className="font-bold text-foreground">{cur.fmtDual(c.minInvestment)}</div>
+              <div className="font-bold text-foreground">{formatInvestorProjectAmount(c.minInvestment, c.currency)}</div>
             </div>
           </div>
         </CardContent>

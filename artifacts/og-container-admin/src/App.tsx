@@ -45,17 +45,11 @@ const InvestReports        = lazy(() => import('@/pages/InvestReports'));
 const InvestProfile        = lazy(() => import('@/pages/InvestProfile'));
 const InvestSettings       = lazy(() => import('@/pages/InvestSettings'));
 const InvestWallet         = lazy(() => import('@/pages/InvestWallet'));
-const InvestMarkets        = lazy(() => import('@/pages/InvestMarkets'));
-const InvestPlant          = lazy(() => import('@/pages/InvestPlant'));
-const InvestFeeds          = lazy(() => import('@/pages/InvestFeeds'));
-const InvestRiceMill       = lazy(() => import('@/pages/InvestRiceMill'));
 const InvestKYC            = lazy(() => import('@/pages/InvestKYC'));
 const InvestNotifications  = lazy(() => import('@/pages/InvestNotifications'));
 const InvestMessages       = lazy(() => import('@/pages/InvestMessages'));
-const InvestColdStorage    = lazy(() => import('@/pages/InvestColdStorage'));
-const InvestDomesticTrading= lazy(() => import('@/pages/InvestDomesticTrading'));
 const InvestOpportunities  = lazy(() => import('@/pages/InvestOpportunities'));
-const MarketIntelligence   = lazy(() => import('@/pages/MarketIntelligence'));
+const MarketIntelligence   = lazy(() => import('@/pages/MarketIntelligenceUnavailable'));
 const Marketplace          = lazy(() => import('@/pages/Marketplace'));
 const ExportTerms          = lazy(() => import('@/pages/ExportTerms'));
 const Certifications       = lazy(() => import('@/pages/Certifications'));
@@ -346,15 +340,15 @@ const SHARED_ROUTES = (
     <Route path="/invest/profile">{() => <GuardedInvestor Page={InvestProfile} />}</Route>
     <Route path="/invest/settings">{() => <GuardedInvestor Page={InvestSettings} />}</Route>
     <Route path="/invest/wallet">{() => <GuardedInvestor Page={InvestWallet} />}</Route>
-    <Route path="/invest/markets">{() => <GuardedInvestor Page={InvestMarkets} />}</Route>
-    <Route path="/invest/plant">{() => <GuardedInvestCategory category="plant" Page={InvestPlant} />}</Route>
-    <Route path="/invest/feeds">{() => <GuardedInvestCategory category="feeds" Page={InvestFeeds} />}</Route>
-    <Route path="/invest/ricemill">{() => <GuardedInvestCategory category="ricemill" Page={InvestRiceMill} />}</Route>
+    <Route path="/invest/markets">{() => <GuardedInvestor Page={InvestOpportunities} />}</Route>
+    <Route path="/invest/plant">{() => <GuardedInvestCategory category="plant" Page={InvestOpportunities} />}</Route>
+    <Route path="/invest/feeds">{() => <GuardedInvestCategory category="feeds" Page={InvestOpportunities} />}</Route>
+    <Route path="/invest/ricemill">{() => <GuardedInvestCategory category="ricemill" Page={InvestOpportunities} />}</Route>
     <Route path="/invest/kyc">{() => <GuardedInvestor Page={InvestKYC} />}</Route>
     <Route path="/invest/notifications">{() => <GuardedInvestor Page={InvestNotifications} />}</Route>
     <Route path="/invest/messages">{() => <GuardedInvestor Page={InvestMessages} />}</Route>
-    <Route path="/invest/cold-storage">{() => <GuardedInvestor Page={InvestColdStorage} />}</Route>
-    <Route path="/invest/domestic-trading">{() => <GuardedInvestor Page={InvestDomesticTrading} />}</Route>
+    <Route path="/invest/cold-storage">{() => <GuardedInvestor Page={InvestOpportunities} />}</Route>
+    <Route path="/invest/domestic-trading">{() => <GuardedInvestor Page={InvestOpportunities} />}</Route>
     <Route path="/invest/opportunities">{() => <GuardedInvestor Page={InvestOpportunities} />}</Route>
     <Route path="/invest/:id">{() => <GuardedInvestor Page={InvestDetail} />}</Route>
     <Route path="/market-reports" component={MarketIntelligence} />

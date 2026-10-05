@@ -234,14 +234,14 @@ const STEPS: Step[] = [
     color: "#14b8a6",
     duration: "1 – 3 days (loading) + transit time",
     cost: (isPK) => isPK
-      ? "Freight: PKR 25,000 – 120,000 per MT (FCL/LCL)\nHandling: PKR 5,000 – 15,000 per container"
-      : "Freight: $80 – $450 per MT (FCL/LCL)\nHandling: $20 – $70 per container",
+      ? "Freight and handling charges depend on route and load type; request a current quote."
+      : "Freight and handling charges depend on route and load type; request a current quote.",
     details: [
       "OG Exports coordinates with the freight forwarder",
       "Goods are loaded at the designated port under Bill of Lading",
       "Container seal numbers and BL copies are shared with you",
-      "Estimated transit time: 7 – 25 days depending on destination",
-      "Real-time shipment tracking is available through the portal",
+      "Transit time depends on destination and the current shipping schedule; confirm when booking",
+      "Shipment milestones are recorded in the portal; live carrier tracking is not available",
       "FOB terms: your responsibility ends at port of loading",
     ],
     tip: "Keep all original shipping documents — they are required for payment release.",
@@ -252,10 +252,8 @@ const STEPS: Step[] = [
     subtitle: "Receive payment after successful delivery",
     icon: Banknote,
     color: "#f59e0b",
-    duration: "7 – 21 days after delivery",
-    cost: (isPK) => isPK
-      ? "Platform Commission: 2% – 3% of shipment value (deducted)\nBank Transfer Fee: PKR 500 – 2,000"
-      : "Platform Commission: 2% – 3% of shipment value (deducted)\nInternational Wire Fee: $15 – $40",
+    duration: "As defined in the current Supply Agreement",
+    cost: () => "Any commission, bank charges, and payment terms must be confirmed in the current Supply Agreement and verified payment instructions.",
     details: [
       "Payment terms are defined in your Supply Agreement (LC / TT / CAD)",
       "Letter of Credit (LC): payment released upon document presentation to bank",

@@ -373,7 +373,7 @@ function deriveProductionFromFinance(finance: SyncDashboardInput["finance"]): Fa
 }
 
 function deriveAllocationFromFinance(finance: SyncDashboardInput["finance"], target: number): FacilityAllocationItem[] {
-  const rows: Array<[string, number]> = [
+  const sourceRows: Array<[string, number]> = [
     ["Land acquisition", num(finance.landCost)],
     ["Civil construction", num(finance.constructionCost)],
     ["Plant & machinery", num(finance.machineryCost)],
@@ -382,7 +382,8 @@ function deriveAllocationFromFinance(finance: SyncDashboardInput["finance"], tar
     ["Setup", num(finance.setupCost)],
     ["Working capital", num(finance.workingCapital)],
     ["Operational expenses", num(finance.operationalExpenses)],
-  ].filter(([, amount]) => amount > 0) as Array<[string, number]>
+  ]
+  const rows = sourceRows.filter(([, amount]) => amount > 0)
 
   const total = rows.reduce((sum, [, amount]) => sum + amount, 0) || target || 1
   return rows.map(([label, amount]) => ({

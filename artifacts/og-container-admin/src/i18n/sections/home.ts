@@ -23,7 +23,7 @@ export const home = {
       step1: 'Place Inquiry', step1Desc: 'Submit your commodity requirements, quantity, and destination.',
       step2: 'Quality Verification', step2Desc: 'Our team sources, inspects, and certifies produce to your spec.',
       step3: 'Container Loading', step3Desc: 'Goods packed, weighed, and loaded under supervised conditions.',
-      step4: 'Global Delivery', step4Desc: 'Door-to-port delivery with full documentation and live tracking.',
+      step4: 'Global Delivery', step4Desc: 'Door-to-port delivery with full documentation and shipment milestones recorded in the portal.',
     },
     community: {
       title: 'Trusted by Global Traders', subtitle: 'Join thousands of buyers and investors on the platform',
@@ -289,7 +289,7 @@ export const home = {
       step1: 'Anfrage Stellen', step1Desc: 'Übermitteln Sie Ihre Anforderungen, Menge und Zielort.',
       step2: 'Qualitätsprüfung', step2Desc: 'Unser Team beschafft, prüft und zertifiziert das Produkt.',
       step3: 'Containerbeladung', step3Desc: 'Verpackung, Wiegung und Beladung unter Aufsicht.',
-      step4: 'Globale Lieferung', step4Desc: 'Tür-zu-Hafen-Lieferung mit Dokumenten und Live-Tracking.',
+      step4: 'Globale Lieferung', step4Desc: 'Tür-zu-Hafen-Lieferung mit Dokumenten und im Portal erfassten Versandmeilensteinen.',
     },
     community: {
       title: 'Vertrauen Globaler Händler', subtitle: 'Schließen Sie sich tausenden Käufern und Investoren an',

@@ -45,7 +45,7 @@ const TABS = [
   { id: "ricemill", label: "Rice Mill", icon: Factory },
   { id: "feed", label: "Feed Mill", icon: Factory },
   { id: "withdrawals", label: "Pending Withdrawals", icon: TrendingUp },
-]
+] as const
 
 /** Maps Investments tabs to platform investCategoryVisible keys (undefined = always shown). */
 const TAB_VISIBILITY_KEY: Record<string, "produce" | "plant" | "ricemill" | "feeds" | undefined> = {

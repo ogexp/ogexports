@@ -52,8 +52,12 @@ export function AccountTypeStep({ onDone }: { onDone: () => void }) {
       { data: { accountType: accountType as any, entityType: entityType as any } },
       {
         onSuccess: () => onDone(),
-        onError: () =>
-          toast({ title: "Could not save account type", description: "Please try again.", variant: "destructive" }),
+        onError: (error) =>
+          toast({
+            title: "Could not save account type",
+            description: error.message || "Please try again.",
+            variant: "destructive",
+          }),
       },
     )
   }

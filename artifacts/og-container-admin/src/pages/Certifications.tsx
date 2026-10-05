@@ -225,7 +225,7 @@ export default function Certifications() {
                       { step: "02", label: "Warehouse processing & grading" },
                       { step: "03", label: "Pre-shipment lab testing" },
                       { step: "04", label: "Phytosanitary & customs clearance" },
-                      { step: "05", label: "Real-time shipment tracking" },
+                      { step: "05", label: "Recorded shipment milestones" },
                     ].map(item => (
                       <div key={item.step} className="flex items-center gap-4">
                         <span className="text-xs font-bold w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"

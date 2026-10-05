@@ -40,7 +40,7 @@ const REASONS = [
   {
     icon: Ship,
     title: "End-to-End Logistics",
-    desc: "Port Qasim to any destination worldwide. We handle customs clearance, sea freight booking, cargo insurance, and real-time shipment tracking.",
+    desc: "Port Qasim to destinations confirmed for each order. Shipment milestones are recorded in the portal; live carrier tracking is not provided.",
     color: "hsl(43 85% 47%)",
     bg: "hsl(43 85% 47% / 0.06)",
     border: "hsl(43 85% 47% / 0.20)",

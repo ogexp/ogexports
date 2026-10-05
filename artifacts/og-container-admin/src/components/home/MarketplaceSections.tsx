@@ -34,12 +34,6 @@ export function MarketplaceSections() {
                 borderColor: "hsl(43 88% 52% / 0.28)",
               }}
             >
-              <div
-                className="absolute top-0 right-0 text-accent-foreground text-[10px] font-bold px-3 py-1.5 rounded-bl-xl tracking-widest uppercase"
-                style={{ background: "hsl(var(--accent))", color: "hsl(var(--accent-foreground))" }}
-              >
-                Popular
-              </div>
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6"
                 style={{ background: "hsl(43 88% 52% / 0.15)", border: "1px solid hsl(43 88% 52% / 0.3)" }}
               >
@@ -47,20 +41,8 @@ export function MarketplaceSections() {
               </div>
               <h3 className="text-xl font-heading font-bold mb-3">Containerised Investment</h3>
               <p className="text-muted-foreground mb-6 flex-1 text-sm leading-relaxed">
-                Co-fund individual export containers. Each container is a discrete, insured trade. Earn fixed profit-sharing returns in 30–60 days when the buyer settles.
+                Review current container projects, supporting documents, and signed terms in the investor portal. Returns and payout timing depend on each project and its trade outcome.
               </p>
-              <div className="rounded-xl p-4 border mb-6"
-                style={{ background: "hsl(var(--background) / 0.7)", borderColor: "hsl(var(--border))" }}
-              >
-                <div className="flex justify-between text-xs mb-2">
-                  <span className="text-muted-foreground">Basmati Rice → Dubai</span>
-                  <span className="text-accent font-bold">70% Funded</span>
-                </div>
-                <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "hsl(var(--muted))" }}>
-                  <div className="h-full rounded-full w-[70%]" style={{ background: "hsl(var(--accent))" }} />
-                </div>
-                <div className="text-[10px] text-muted-foreground mt-2 text-center uppercase tracking-widest">Illustrative Example</div>
-              </div>
               <InvestmentModuleOptional>
               <Link href="/invest">
                 <Button className="w-full gap-2 bg-accent text-accent-foreground hover:bg-accent/90 border-0 shadow-[0_2px_12px_hsl(43_88%_52%_/_0.3)]">

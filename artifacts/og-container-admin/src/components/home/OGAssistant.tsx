@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Send, Bot, ChevronDown, Sparkles, Zap } from "lucide-react"
 import {
-  getProducts, getInvestProjects, getSettings, getShipments, getOrders,
-  type AdminProduct, type AdminInvestProject, type AdminSettings, type AdminShipment, type AdminOrder,
+  getProducts,
+  type AdminProduct,
 } from "@/lib/admin-data"
 import { getSiteSettings, type SiteSettings } from "@/lib/cms-data"
 
@@ -15,10 +15,6 @@ const OFFWHITE = "#F7F7F2"
 // ── Live App Snapshot ─────────────────────────────────────────────────────────
 interface AppData {
   products:  AdminProduct[]
-  projects:  AdminInvestProject[]
-  settings:  AdminSettings
-  shipments: AdminShipment[]
-  orders:    AdminOrder[]
   cms:       SiteSettings
   news:      { title: string; category: string; summary: string; priority: string }[]
   today:     string
@@ -38,10 +34,6 @@ function getAppData(): AppData {
 
   return {
     products:  getProducts().filter(p => p.status === "approved"),
-    projects:  getInvestProjects(),
-    settings:  getSettings(),
-    shipments: getShipments(),
-    orders:    getOrders(),
     cms:       getSiteSettings(),
     news,
     today:     new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
@@ -51,74 +43,69 @@ function getAppData(): AppData {
 // ── Response Builders ─────────────────────────────────────────────────────────
 
 function buildWelcome(d: AppData): string {
-  const prodCount  = d.products.length
-  const projCount  = d.projects.filter(p => p.status === "active" || p.status === "funding").length
-  const newsCount  = d.news.length
   const cms        = d.cms
   return `Welcome to **OG Exports** — ${cms.company.description.slice(0, 120)}…
 
-**What I can help you with right now:**
-🌾 **${prodCount} Live Products** — prices, specs, lead times
-💼 **${projCount} Investment Projects** — ROI, targets, minimums
-🚢 **Shipping & Logistics** — ports, carriers, active shipments
-📜 **Certifications** — HACCP, ISO, FDA, SECP, TDAP
-📰 **${newsCount} Trade News items** — latest verified alerts
-💳 **Payment Terms** — LC, TT, crypto options
-🌍 **${cms.stats.countries} Export Markets** worldwide
-📞 **Contact & Support** — direct lines
+**I can help with:**
+🌾 Product catalogue and recorded prices, when available
+💼 Investment listings and account-specific financial figures in the investor portal
+🚢 Shipment status recorded in the portal; no live carrier tracking is connected
+📄 Contact details and general order guidance
 
-Just type your question — I read live system data in real time.`
+Type a question to continue. Figures and shipment updates are shown only when recorded by the system.`
 }
 
 function buildProductList(d: AppData): string {
   if (!d.products.length)
-    return `No products available right now.\n📧 Contact: ${d.cms.contact.email}`
+    return `Product catalogue data is not available in this view.\n📧 Contact: ${d.cms.contact.email}`
 
   const lines = d.products.map(p => {
-    const price = p.fobDisplay || p.fob || p.fobRate || "On request"
-    const lead  = p.leadTime ? ` | Lead: ${p.leadTime}` : ""
-    return `• **${p.name}** — ${price} | Min: ${p.moq || p.minOrder}${lead}`
+    const price = p.fob ?? "Price not published"
+    const minimum = p.moq ?? p.minOrder ?? "Not specified"
+    const lead = p.leadTime ? ` | Lead time: ${p.leadTime}` : ""
+    return `• **${p.name}** — Recorded FOB price: ${price} | Minimum order: ${minimum}${lead}`
   }).join("\n")
 
-  return `🌾 **OG Exports Product Catalogue (${d.today}):**
+  return `🌾 **OG Exports Product Catalogue:**
 
 ${lines}
 
-_All prices FOB Karachi — updated daily_
+_Price freshness is not shown here; request a current quote before ordering._
 📧 ${d.cms.contact.emailSales} | 📱 ${d.cms.contact.whatsapp}`
 }
 
 function buildAllPrices(d: AppData): string {
   if (!d.products.length)
-    return `Prices not available right now.\n📧 ${d.cms.contact.email}`
+    return `Product price data is not available in this view.\n📧 ${d.cms.contact.email}`
 
   const lines = d.products.map(p => {
-    const price = p.fobDisplay || p.fob || p.fobRate || "On request"
+    const price = p.fob ?? "Price not published"
     const hs    = p.hsCode ? ` [HS: ${p.hsCode}]` : ""
-    return `${p.name}: **${price}**${hs} (Min: ${p.moq || p.minOrder})`
+    const minimum = p.moq ?? p.minOrder ?? "Not specified"
+    return `${p.name}: **${price}**${hs} (Minimum order: ${minimum})`
   }).join("\n")
 
-  return `💰 **Live FOB Prices (${d.today}):**
+  return `💰 **Recorded FOB Prices:**
 
 ${lines}
 
-_FOB Karachi Port — Daily Update_
+_Price freshness is not shown here; request a current quote before ordering._
 📧 ${d.cms.contact.emailSales} | 📱 ${d.cms.contact.whatsapp}
 For CIF/CFR quotes, contact our freight desk.`
 }
 
 function buildSingleProduct(p: AdminProduct, d: AppData): string {
-  const price = p.fobDisplay || p.fob || p.fobRate || "On request"
+  const price = p.fob ?? "Price not published"
   const specs = (p.specs || []).map(s => `  · ${s.label}: ${s.value}`).join("\n")
   const certs = (p.certifications || []).join(", ")
   const markets = (p.exportMarkets || []).join(", ")
 
   let txt = `📦 **${p.name}**\n\n`
-  txt += `• **Price:** ${price} (FOB Karachi)\n`
-  txt += `• **Min. Order:** ${p.moq || p.minOrder}\n`
-  txt += `• **Lead Time:** ${p.leadTime || "14–21 days"}\n`
-  txt += `• **Origin:** ${p.origin || "Pakistan"}\n`
-  txt += `• **Stock:** ${p.stock || "Available"}\n`
+  txt += `• **Recorded FOB price:** ${price}\n`
+  txt += `• **Minimum order:** ${p.moq ?? p.minOrder ?? "Not specified"}\n`
+  if (p.leadTime) txt += `• **Recorded lead time:** ${p.leadTime}\n`
+  if (p.origin) txt += `• **Origin:** ${p.origin}\n`
+  if (p.stock) txt += `• **Stock:** ${p.stock}\n`
   if (p.hsCode)           txt += `• **HS Code:** ${p.hsCode}\n`
   if (p.shelfLife)        txt += `• **Shelf Life:** ${p.shelfLife}\n`
   if (p.storageInstructions) txt += `• **Storage:** ${p.storageInstructions}\n`
@@ -135,63 +122,15 @@ function buildSingleProduct(p: AdminProduct, d: AppData): string {
 }
 
 function buildInvestment(d: AppData): string {
-  const s           = d.settings
-  const cms         = d.cms
-  const active      = d.projects.filter(p => p.status === "active" || p.status === "funding")
-  const minInv      = s.minInvestment ? `$${s.minInvestment.toLocaleString()}` : "$5,000"
-  const investOpen  = s.investmentOpen !== false
-  const methods     = (s.paymentMethods || []).filter(m => m.enabled).map(m => m.name).join(", ") || "LC, TT, USDT"
+  return `💼 **Investment Information:**
 
-  let txt = `💼 **OG Exports Investment Platform (${d.today}):**\n\n`
-  txt += `• **Status:** ${investOpen ? "✅ Open for new investors" : "⏸️ Currently closed"}\n`
-  txt += `• **Minimum:** ${minInv}\n`
-  txt += `• **Accepted:** ${methods}\n`
-  txt += `• **Regulation:** SECP Registered · KYC Required\n`
-  txt += `• **Track record:** ${cms.stats.years} years | ${cms.stats.shipments} shipments\n\n`
+Open the investor portal at /invest to see the current listing and, after sign-in, your recorded investments, balance, and profit. This assistant does not publish minimum amounts or expected returns.
 
-  if (active.length) {
-    txt += `**Active Projects:**\n`
-    active.forEach(p => {
-      const pct = p.target ? Math.round((p.raised / p.target) * 100) : 0
-      const bar = "█".repeat(Math.round(pct / 10)) + "░".repeat(10 - Math.round(pct / 10))
-      txt += `\n🔹 **${p.title}**\n`
-      txt += `   ROI: **${p.roi}** | Raised: $${p.raised.toLocaleString()} / $${p.target.toLocaleString()} (${pct}%)\n`
-      txt += `   ${bar} ${pct}%\n`
-      if (p.commodity) txt += `   Commodity: ${p.commodity}\n`
-    })
-  }
-
-  txt += `\n📋 Register: /invest\n📱 WhatsApp: **${d.cms.contact.whatsapp}**\n📧 ${d.cms.contact.email}`
-  return txt
+📱 WhatsApp: **${d.cms.contact.whatsapp}**\n📧 ${d.cms.contact.email}`
 }
 
 function buildShipping(d: AppData): string {
-  const active = d.shipments.filter(s => s.status === "in-transit" || s.status === "booking")
-  const cms    = d.cms
-
-  let txt = `🚢 **Shipping & Logistics (${d.today}):**\n\n`
-  txt += `**Load Ports:** Karachi Port (KHI) · Port Qasim (KPTE)\n`
-  txt += `**Main Carriers:** MSC · CMA CGM · Hapag-Lloyd · Evergreen · ONE\n`
-  txt += `**Incoterms:** FOB · CIF · CFR · EXW available\n\n`
-
-  if (active.length) {
-    txt += `**Active Shipments (${active.length}):**\n`
-    active.forEach(s => {
-      txt += `📦 **${s.product}** → ${s.destination}\n`
-      txt += `   Vessel: ${s.vessel} | Line: ${s.line}\n`
-      txt += `   ETD: ${s.etd} | ETA: ${s.eta} | Status: ${s.status}\n\n`
-    })
-  } else {
-    txt += `No shipments currently in transit.\n\n`
-  }
-
-  txt += `**Lead Times:**\n`
-  txt += `• Middle East (UAE/KSA): 7–12 days\n`
-  txt += `• Europe: 18–24 days\n`
-  txt += `• Asia-Pacific: 10–16 days\n`
-  txt += `• Africa: 14–22 days\n\n`
-  txt += `For freight quotes:\n📧 ${cms.contact.email} | 📱 **${cms.contact.whatsapp}**`
-  return txt
+  return `🚢 **Shipment Information:**\n\nThis assistant does not have a live carrier connection and cannot show a vessel's current location or live ETA. Sign in to see shipment milestones recorded in your account, or contact the export team for an update.\n\n📧 ${d.cms.contact.email} | 📱 **${d.cms.contact.whatsapp}**`
 }
 
 function buildContact(d: AppData): string {
@@ -205,28 +144,17 @@ function buildContact(d: AppData): string {
 📧 **Sales:** ${c.emailSales}
 📍 **Location:** ${c.address}, ${c.city}
 
-🕐 **Business Hours:** Mon–Sat · 9AM–6PM (PKT)
-
 **Social:**
 • LinkedIn: ${s.linkedin}
 • Instagram: ${s.instagram}
 
-Expect a reply within 2 hours on WhatsApp.`
+Contact the team for current availability and response times.`
 }
 
 function buildPayment(d: AppData): string {
-  const methods = d.settings.paymentMethods?.filter(m => m.enabled) || []
-  const methodList = methods.length
-    ? methods.map(m => `• **${m.name}** — ${m.desc}`).join("\n")
-    : `• **LC at Sight** — Safest for first-time buyers\n• **TT Transfer** — 30% advance + 70% before BL release\n• **USDT/USDC** — For investment transactions`
-
   return `💳 **Payment Methods:**
 
-${methodList}
-
-**Currencies accepted:** USD · EUR · GBP · AED · SAR
-**First-time buyers:** LC at Sight recommended
-**Repeat buyers:** TT or open account available
+Payment terms depend on the product and signed agreement. This assistant does not confirm payment instructions or accepted currencies. Verify the current terms with the sales team before sending funds.
 
 For payment setup:\n📧 ${d.cms.contact.emailSales} | 📱 ${d.cms.contact.whatsapp}`
 }
@@ -261,9 +189,6 @@ function buildNews(d: AppData): string {
 
 function buildCompany(d: AppData): string {
   const c   = d.cms
-  const s   = d.settings
-  const prods = d.products
-  const projs = d.projects
 
   return `🏢 **OG Exports (Pvt) Ltd:**
 
@@ -272,12 +197,10 @@ ${c.company.description}
 **Key Stats:**
 • Export markets: **${c.stats.countries}** countries
 • Commodities: **${c.stats.commodities}** product lines
-• Active products: **${prods.length}** (verified)
-• Investment projects: **${projs.length}**
 • Shipments completed: **${c.stats.shipments}**+
 • Trade partners: **${c.stats.partners}**+
 • Experience: **${c.stats.years}** years
-• Min. investment: **$${(s.minInvestment || 5000).toLocaleString()}**
+• Investor-specific balances and investment terms are available in the signed-in investor portal.
 
 **Mission:**
 ${c.company.mission}
@@ -285,18 +208,14 @@ ${c.company.mission}
 **Vision:**
 ${c.company.vision}
 
-**SECP Registered** · HACCP · ISO 9001 · FDA · TDAP
 📍 ${c.contact.city}
 📧 ${c.contact.email} | 📱 ${c.contact.whatsapp}`
 }
 
 function buildStats(d: AppData): string {
   const c = d.cms
-  const activeProjs = d.projects.filter(p => p.status === "active" || p.status === "funding")
-  const activeShips = d.shipments.filter(s => s.status === "in-transit").length
-  const pendingOrds = d.orders.filter(o => o.status === "pending" || o.status === "confirmed").length
 
-  return `📊 **OG Exports — Live Figures (${d.today}):**
+  return `📊 **OG Exports — Published Company Figures:**
 
 **Company Scale:**
 • 🌍 Export Markets: **${c.stats.countries}** countries
@@ -305,90 +224,46 @@ function buildStats(d: AppData): string {
 • 🚢 Shipments Completed: **${c.stats.shipments}**+
 • 🤝 Trade Partners: **${c.stats.partners}**+
 • 🏅 Certifications: **${c.stats.certifications}** active
-• 📅 Operating Since: **${new Date().getFullYear() - parseInt(c.stats.years.replace("+", ""))}** (${c.stats.years} years)
-
-**Today's Snapshot:**
-• Active products: **${d.products.length}**
-• Investment projects: **${activeProjs.length}** open
-• Shipments in transit: **${activeShips}**
-• Orders in progress: **${pendingOrds}**`
+• 📅 Experience: **${c.stats.years}** years`
 }
 
 function buildMarkets(d: AppData): string {
-  const c = d.cms
-  return `🌍 **OG Exports Global Markets (${c.stats.countries}):**
+  return `🌍 **Export Markets:**
 
-🇦🇪 **Middle East (Primary):** UAE, Saudi Arabia, Qatar, Kuwait, Oman, Bahrain
-🇪🇺 **Europe:** Netherlands, Germany, UK, France, Belgium, Spain
-🌏 **Asia-Pacific:** China, Vietnam, Indonesia, Japan, Singapore, Malaysia
-🌍 **Africa:** Nigeria, Kenya, Egypt, Tanzania, Ethiopia, Ghana
-🇺🇸 **North America:** USA (FDA Registered), Canada
-🌏 **South Asia:** Sri Lanka, Bangladesh, Nepal
+Destination availability and delivery terms depend on the product and current order. Ask the sales team to confirm the destination, required documents, and a current quote.
 
-**Top Export Corridors:**
-• Karachi → Dubai (7–10 days)
-• Karachi → Rotterdam (20–24 days)
-• Karachi → Shanghai (14–18 days)
-• Karachi → Mombasa (16–20 days)
-
-📱 For market-specific pricing: ${d.cms.contact.whatsapp}`
+📱 ${d.cms.contact.whatsapp} · 📧 ${d.cms.contact.emailSales}`
 }
 
 function buildCertifications(d: AppData): string {
-  return `📜 **OG Exports Certifications:**
+  return `📜 **Certificates and Compliance:**
 
-✅ **HACCP** — Hazard Analysis & Critical Control Point
-✅ **ISO 9001:2015** — Quality Management System
-✅ **ISO 22000** — Food Safety Management
-✅ **FDA Registered** — U.S. Food & Drug Administration
-✅ **SECP Registered** — Corporate compliance (Pakistan)
-✅ **TDAP Certified** — Trade Development Authority of Pakistan
-✅ **Halal Certificate** — Available on request
-✅ **Phytosanitary** — Per destination requirements
+This assistant does not verify certificate status or store current certificate copies. Request the relevant, current documents for your product and destination from the export team.
 
-**Quality Tests per Shipment:**
-• Moisture content · Aflatoxin · Pesticide residues (EU MRL)
-• Heavy metals · Microbiological · Foreign matter
-• Third-party inspection: SGS / Bureau Veritas
-
-Every shipment includes full **Certificate of Analysis (CoA)**
-📧 Request certificates: ${d.cms.contact.email}`
+📧 ${d.cms.contact.emailSales} · 📱 ${d.cms.contact.whatsapp}`
 }
 
 function buildDocs(d: AppData): string {
-  return `📄 **Export Documents Provided:**
+  return `📄 **Trade Documents:**
 
-✅ Bill of Lading (BL / HBL)
-✅ Phytosanitary Certificate
-✅ Certificate of Origin (CoO)
-✅ Certificate of Analysis (CoA)
-✅ Commercial Invoice
-✅ Packing List
-✅ Weight Certificate
-✅ Fumigation Certificate
-✅ Insurance Certificate
-✅ Halal Certificate (on request)
-✅ FORM-E (Pakistan customs)
+Required and available documents depend on the product, destination, and order. Ask the export team for the verified document list for your shipment.
 
-**Timeline:** All documents ready 7–10 business days after order confirmation.
-**Legalization:** Available for GCC/Saudi destinations (Chamber + Embassy).
-
-📧 ${d.cms.contact.email}`
+📧 ${d.cms.contact.emailSales}`
 }
 
 function buildOrderProcess(d: AppData): string {
   return `🚀 **How to Place an Order:**
 
 1️⃣ **Inquiry** — Tell us: product · quantity · destination · incoterm
-2️⃣ **Quotation** — Receive FOB/CIF quote within **48 hours**
-3️⃣ **Sample** — Free samples dispatched on request (courier charges apply)
+2️⃣ **Quotation** — Confirm the current price and terms with the sales team
+3️⃣ **Sample** — Ask the sales team whether a sample is available
 4️⃣ **Contract** — Sign Sales Purchase Agreement (SPA)
 5️⃣ **Payment** — Open LC or send TT advance payment
 6️⃣ **Production** — Grading · processing · lab testing · packing
 7️⃣ **Shipment** — Vessel booking · BL · full docs
-8️⃣ **Tracking** — Real-time updates until delivery
+8️⃣ **Shipment updates** — Review milestones recorded in your account
 
-**Average timeline:** 21–35 days from order to vessel departure
+Live carrier tracking is not connected to this assistant.
 
 📧 Start here: ${d.cms.contact.emailSales}
 📱 WhatsApp: **${d.cms.contact.whatsapp}**`
@@ -561,9 +436,9 @@ function BotMessage({ text }: { text: string }) {
 
 const QUICK_ACTIONS = [
   "Show all products",
-  "Live FOB prices",
+  "Recorded FOB prices",
   "Investment projects",
-  "Active shipments",
+  "Shipment tracking availability",
   "Latest trade news",
   "Certifications",
   "Export markets",
@@ -676,8 +551,8 @@ export function OGAssistant() {
                     <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
                   </div>
                   <div className="flex items-center gap-1 text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
-                    <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: GREEN }} />
-                    Live Data · All systems online
+                    <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: GREEN }} />
+                    Available records · No live carrier feed
                   </div>
                 </div>
               </div>

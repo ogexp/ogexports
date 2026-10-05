@@ -9,14 +9,13 @@ import { Badge } from "@/components/ui/badge"
 import { api, downloadAuthenticatedFile } from "@/lib/api"
 import { downloadInvestmentPdf } from "@/lib/investment-download"
 import { notify } from "@/lib/notify"
-import { useCurrency } from "@/lib/use-currency"
+import { formatInvestorProjectAmount } from "@/lib/invest-format"
 import { containerProjectStatusLabel } from "@/lib/container-project-statuses"
 import { investmentStatusLabel } from "@/lib/investment-statuses"
 
 export default function InvestmentPositionDetail() {
-  const params = useParams()
+  const params = useParams<{ id: string }>()
   const investmentId = Number(params.id)
-  const c = useCurrency()
   const [loading, setLoading] = useState(true)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [position, setPosition] = useState<InvestmentPositionData | null>(null)
@@ -154,23 +153,17 @@ export default function InvestmentPositionDetail() {
                   </div>
                   <div className="flex justify-between gap-4">
                     <span className="text-muted-foreground">Invested</span>
-                    <span className="font-bold">{c.fmtDual(position.amount, position.amountPkr, position.exchangeRate)}</span>
+                    <span className="font-bold">{formatInvestorProjectAmount(position.amount, position.currency)}</span>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">Expected profit</span>
-                    <span className="font-bold text-emerald-500">+{c.fmtDual(position.expectedProfit, position.expectedProfitPkr, position.exchangeRate)}</span>
+                    <span className="text-muted-foreground">Profit amount</span>
+                    <span className="font-bold text-emerald-500">
+                      {formatInvestorProjectAmount(position.expectedProfit, position.currency)}
+                    </span>
                   </div>
                   <div className="flex justify-between gap-4">
                     <span className="text-muted-foreground">Total return</span>
-                    <span className="font-bold">
-                      {c.fmtDual(
-                        position.amount + position.expectedProfit,
-                        position.amountPkr != null && position.expectedProfitPkr != null
-                          ? position.amountPkr + position.expectedProfitPkr
-                          : null,
-                        position.exchangeRate,
-                      )}
-                    </span>
+                    <span className="font-bold">Not provided</span>
                   </div>
                   {project.description && (
                     <div className="pt-2 border-t border-border">

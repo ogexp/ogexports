@@ -6,16 +6,16 @@ import { ArrowRight, Anchor, Leaf, Factory, TrendingUp, Shield, Clock } from "lu
 const INVESTMENTS = [
   {
     icon: Anchor,
-    tag: "Short Term · 30–60 Days",
+    tag: "Trade Project",
     title: "Containerised Investment",
-    desc: "Co-fund individual export containers of premium agricultural commodities. Each container is a discrete, fully insured trade transaction. Earn fixed profit-sharing returns within 30–60 days when the buyer settles.",
+    desc: "Review current container projects, source documents, and signed terms in the investor portal. Availability, outcomes, and payout timing vary by project.",
     features: [
-      "Physical commodity backing — not paper assets",
-      "Container-level transparency with voyage tracking",
-      "Minimum investment from $100",
-      "30–60 day return cycle",
+      "Review the project documents available for each listing",
+      "View shipment milestones recorded in the portal; live carrier position is not provided",
+      "Check the current minimum and payment instructions in the verified listing",
+      "Returns and timing depend on signed terms and trade outcomes",
     ],
-    highlight: "Popular",
+    highlight: null,
     highlightColor: "hsl(43 85% 47%)",
     cta: "View Open Containers",
     link: "/invest",
@@ -23,14 +23,13 @@ const INVESTMENTS = [
   },
   {
     icon: Leaf,
-    tag: "Annual Returns · Seasonal",
+    tag: "Seasonal Project",
     title: "Fresh F&V Market",
-    desc: "Invest in the operations of OG Exports' dedicated Fresh Fruits & Vegetables export processing hub. Stable annual returns from a recurring, seasonal business with established cold-chain infrastructure.",
+    desc: "Review current information about Fresh Fruits & Vegetables operations and any related investment terms in the investor portal.",
     features: [
-      "Seasonal procurement advantage",
-      "Cold-chain logistics infrastructure",
-      "Year-round export capability to UAE & Gulf",
-      "Annual return distribution",
+      "Review available project and operations documents",
+      "Confirm current availability in the investor portal",
+      "Terms and payout timing are specific to each signed project",
     ],
     highlight: null,
     cta: "View Prospectus",
@@ -39,14 +38,13 @@ const INVESTMENTS = [
   },
   {
     icon: Factory,
-    tag: "Long Term · Infrastructure",
+    tag: "Infrastructure Project",
     title: "Potato Processing Plant",
-    desc: "A state-of-the-art IQF potato processing facility targeting the GCC and European frozen food markets. Long-term institutional-grade returns from a high-value, captive-demand asset.",
+    desc: "Review current information about the potato processing project and its published documents in the investor portal.",
     features: [
-      "IQF & frozen french fry production",
-      "GCC + European export markets",
-      "High value-add on raw commodity",
-      "Long-term project investment",
+      "Review available project documents",
+      "Confirm current availability and terms in the investor portal",
+      "Returns and timing depend on signed project terms",
     ],
     highlight: null,
     cta: "View Project",
@@ -77,15 +75,15 @@ export function LuxuryInvestment() {
             className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold leading-[1.1]"
             style={{ color: "hsl(207 24% 16%)" }}
           >
-            Three Vehicles for
+            Current Agricultural
             <span className="block" style={{ color: "hsl(158 59% 15%)" }}>
-              Agricultural Returns
+              Project Information
             </span>
           </h2>
           <div className="w-16 h-[3px] rounded-full mx-auto" style={{ background: "hsl(43 85% 47%)" }} />
           <p className="text-lg leading-relaxed" style={{ color: "hsl(207 16% 44%)" }}>
-            Participate in Pakistan's agricultural export economy through three distinct,
-            transparent, and professionally managed investment vehicles.
+            Review current project descriptions and supporting documents. Only the
+            investor portal can confirm active offerings, minimums, and signed terms.
           </p>
         </div>
 
@@ -238,11 +236,11 @@ export function LuxuryInvestment() {
             </div>
             <div>
               <div className="font-heading font-bold text-lg mb-1" style={{ color: "hsl(207 24% 16%)" }}>
-                SECP-Registered Investment Platform
+                Review Project Documents
               </div>
               <div className="text-sm" style={{ color: "hsl(207 16% 46%)" }}>
-                All investments are processed through our SECP-registered entity with full KYC/KYB verification, 
-                segregated escrow accounts, and transparent reporting.
+                Before sending funds, verify the project terms, entity details, and payment
+                instructions shown in your investor account. Returns are not guaranteed.
               </div>
             </div>
           </div>
