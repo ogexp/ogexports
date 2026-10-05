@@ -3,6 +3,7 @@ import { Image, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleShe
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
@@ -279,32 +280,57 @@ export default function InvestorHome() {
       <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 3 }}>Your trade portfolio at a glance</Text>
     </View>
 
-    <Card style={{ padding: 20, paddingBottom: 19, borderRadius: 20, marginBottom: 0 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <Text style={{ color: colors.primary, opacity: 0.88, fontSize: 10, fontWeight: '600', letterSpacing: 0.9 }}>PORTFOLIO OVERVIEW</Text>
+    <LinearGradient
+      colors={[colors.balanceCardStart, colors.balanceCardEnd]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ overflow: 'hidden', padding: 19, borderRadius: 22, marginBottom: 0 }}
+    >
+      <View pointerEvents="none" style={{ position: 'absolute', top: -48, right: -17, width: 134, height: 134, borderRadius: 67, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.12)' }} />
+      <View pointerEvents="none" style={{ position: 'absolute', top: -26, right: 6, width: 88, height: 88, borderRadius: 44, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.08)' }} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={{ width: 37, height: 37, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248, 251, 248, 0.13)' }}>
+            <Feather name="credit-card" size={17} color={colors.balanceCardText} />
+          </View>
+          <View>
+            <Text style={{ color: colors.balanceCardText, opacity: 0.82, fontSize: 9, fontWeight: '700', letterSpacing: 1 }}>OG EXPORTS</Text>
+            <Text style={{ color: colors.balanceCardText, fontSize: 12, fontWeight: '600', marginTop: 2 }}>Investor wallet</Text>
+          </View>
+        </View>
         <Pressable testID="home-portfolio-selector" accessibilityRole="button" accessibilityLabel="Open portfolio" onPress={() => router.push('/(tabs)/portfolio')}
-          style={({ pressed }) => ({ minHeight: 32, borderRadius: 14, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.secondary, opacity: pressed ? 0.8 : 1 })}>
-          <Feather name="pie-chart" size={13} color={colors.primary} />
-          <Text numberOfLines={1} style={{ color: colors.primary, fontSize: 10, fontWeight: '600' }}>My portfolio</Text>
-          <Feather name="arrow-up-right" size={12} color={colors.primary} />
+          style={({ pressed }) => ({ minHeight: 33, borderRadius: 15, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(248, 251, 248, 0.13)', opacity: pressed ? 0.78 : 1 })}>
+          <Feather name="pie-chart" size={13} color={colors.balanceCardText} />
+          <Text numberOfLines={1} style={{ color: colors.balanceCardText, fontSize: 10, fontWeight: '600' }}>Portfolio</Text>
+          <Feather name="arrow-up-right" size={12} color={colors.balanceCardText} />
         </Pressable>
       </View>
 
-      <View style={{ marginTop: 17 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Total portfolio value</Text>
+      <View style={{ marginTop: 21 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ color: colors.balanceCardText, opacity: 0.8, fontSize: 10, fontWeight: '700', letterSpacing: 0.9 }}>AVAILABLE BALANCE</Text>
           <Pressable testID="home-toggle-sensitive-values" accessibilityRole="button" accessibilityLabel={balanceHidden ? 'Show account balances' : 'Hide account balances'}
-            onPress={() => setBalanceHidden(current => !current)} hitSlop={8}>
-            <Feather name={balanceHidden ? 'eye-off' : 'eye'} size={16} color={colors.primary} />
+            onPress={() => setBalanceHidden(current => !current)} hitSlop={8}
+            style={({ pressed }) => ({ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248, 251, 248, 0.12)', opacity: pressed ? 0.72 : 1 })}>
+            <Feather name={balanceHidden ? 'eye-off' : 'eye'} size={15} color={colors.balanceCardText} />
           </Pressable>
         </View>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 34, fontWeight: '600', letterSpacing: -0.8, marginTop: 5 }}>
-          {dashboard.isLoading ? '…' : displayMoney(portfolioTotal)}
+        <Text testID="home-available-balance" numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, fontSize: 33, fontWeight: '700', letterSpacing: -0.7, marginTop: 3 }}>
+          {dashboard.isLoading ? '…' : displayMoney(availableBalance)}
         </Text>
-        <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 4 }}>Reported by OG Exports</Text>
+        <Text style={{ color: colors.balanceCardText, opacity: 0.76, fontSize: 10, marginTop: 3 }}>
+          {currency ? `${currency} account` : 'Currency not provided by OG Exports'}
+        </Text>
       </View>
 
-    </Card>
+      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(248, 251, 248, 0.22)', marginTop: 16 }} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 11 }}>
+        <Text style={{ color: colors.balanceCardText, opacity: 0.78, fontSize: 11 }}>Total portfolio value</Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={{ flexShrink: 1, color: colors.balanceCardText, fontSize: 13, fontWeight: '700', textAlign: 'right' }}>
+          {dashboard.isLoading ? '…' : displayMoney(portfolioTotal)}
+        </Text>
+      </View>
+    </LinearGradient>
 
     <View style={[{ flexDirection: 'row', alignItems: 'stretch', justifyContent: 'space-between', borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingVertical: 6, paddingHorizontal: 6, marginHorizontal: 0, marginTop: 12, marginBottom: 15, zIndex: 2 }, dockShadow]}>
       {quickActions.map((action, index) => (
