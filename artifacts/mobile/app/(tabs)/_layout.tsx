@@ -1,6 +1,6 @@
 import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
@@ -23,7 +23,7 @@ function NativeLayout() {
       backgroundColor={colors.card}
     >
       <NativeTabs.Trigger name="index"><NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} /><NativeTabs.Trigger.Label>{t('Home')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
-      <NativeTabs.Trigger name="opportunities"><NativeTabs.Trigger.Icon sf={{ default: 'chart.line.uptrend.xyaxis', selected: 'chart.line.uptrend.xyaxis' }} /><NativeTabs.Trigger.Label>{t('Explore')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
+      <NativeTabs.Trigger name="opportunities"><NativeTabs.Trigger.Icon sf={{ default: 'safari', selected: 'safari.fill' }} /><NativeTabs.Trigger.Label>{t('Explore')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="portfolio"><NativeTabs.Trigger.Icon sf={{ default: 'chart.pie', selected: 'chart.pie.fill' }} /><NativeTabs.Trigger.Label>{t('Portfolio')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="wallet"><NativeTabs.Trigger.Icon sf={{ default: 'wallet.pass', selected: 'wallet.pass.fill' }} /><NativeTabs.Trigger.Label>{t('Wallet')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
     </NativeTabs>
@@ -61,12 +61,17 @@ function ClassicLayout() {
       ),
     }}>
       {([
-        ['index', t('Home'), 'home', 'house'],
-        ['opportunities', t('Explore'), 'trending-up', 'chart.line.uptrend.xyaxis'],
-        ['portfolio', t('Portfolio'), 'pie-chart', 'chart.pie'],
-        ['wallet', t('Wallet'), 'credit-card', 'wallet.pass'],
-      ] as const).map(([name, title, feather, symbol]) => (
-        <Tabs.Screen key={name} name={name} options={{ title, tabBarIcon: ({ color }) => Platform.OS === 'ios' ? <SymbolView name={symbol} tintColor={color} size={21} /> : <Feather name={feather} size={20} color={color} /> }} />
+        ['index', t('Home'), 'home-outline', 'home', 'house', 'house.fill'],
+        ['opportunities', t('Explore'), 'compass-outline', 'compass', 'safari', 'safari.fill'],
+        ['portfolio', t('Portfolio'), 'pie-chart-outline', 'pie-chart', 'chart.pie', 'chart.pie.fill'],
+        ['wallet', t('Wallet'), 'wallet-outline', 'wallet', 'wallet.pass', 'wallet.pass.fill'],
+      ] as const).map(([name, title, androidIcon, androidSelectedIcon, iosIcon, iosSelectedIcon]) => (
+        <Tabs.Screen key={name} name={name} options={{
+          title,
+          tabBarIcon: ({ color, focused }) => Platform.OS === 'ios'
+            ? <SymbolView name={focused ? iosSelectedIcon : iosIcon} tintColor={color} size={22} />
+            : <Ionicons name={focused ? androidSelectedIcon : androidIcon} size={22} color={color} />,
+        }} />
       ))}
       <Tabs.Screen name="trade" options={{ href: null }} />
     </Tabs>
