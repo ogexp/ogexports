@@ -686,6 +686,10 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Amount invested","سرمایہ کاری کی رقم","المبلغ المستثمر"],
   ["Investment reference","سرمایہ کاری کا حوالہ","مرجع الاستثمار"],
   ["Server exchange rate","سرور کی شرحِ تبادلہ","سعر الصرف من الخادم"],
+  ["Investment agreement acknowledgement","سرمایہ کاری کے معاہدے کا اقرار","الإقرار باتفاقية الاستثمار"],
+  ["This acknowledgement is required to submit the request but is not saved as a consent record in your OG Exports account.","درخواست جمع کرنے کے لیے یہ اقرار ضروری ہے، لیکن اسے آپ کے OG Exports اکاؤنٹ میں رضامندی کے ریکارڈ کے طور پر محفوظ نہیں کیا جاتا۔","هذا الإقرار مطلوب لإرسال الطلب، لكنه لا يُحفظ كسجل موافقة في حسابك لدى OG Exports."],
+  ["I acknowledge the investment details and want to submit this investment request.","میں سرمایہ کاری کی تفصیلات کا اقرار کرتا/کرتی ہوں اور یہ درخواست جمع کرنا چاہتا/چاہتی ہوں۔","أقرّ بتفاصيل الاستثمار وأرغب في إرسال طلب الاستثمار هذا."],
+  ["Read the published Terms of Service and Risk Disclosure, then acknowledge each and the investment request separately before proceeding.","شائع شدہ سروس کی شرائط اور رسک ڈسکلوزر پڑھیں، پھر آگے بڑھنے سے پہلے دونوں اور سرمایہ کاری کی درخواست کا الگ الگ اقرار کریں۔","اقرأ شروط الخدمة وإقرار المخاطر المنشورَين، ثم أقرّ بكلٍ منهما وبطلب الاستثمار بشكل منفصل قبل المتابعة."],
 ];
 
 const translations = new Map<string, Readonly<Record<Exclude<AppLanguage, 'en'>, string>>>(

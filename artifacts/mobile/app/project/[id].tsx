@@ -43,6 +43,7 @@ export default function OpportunityDetail() {
   const [stage, setStage] = useState<'details' | 'amount' | 'allocation' | 'review' | 'risk' | 'confirmation' | 'success'>('details');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [riskAccepted, setRiskAccepted] = useState(false);
+  const [agreementAccepted, setAgreementAccepted] = useState(false);
   const [pin, setPin] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
   const [error, setError] = useState('');
@@ -206,8 +207,8 @@ export default function OpportunityDetail() {
       router.push('/account/kyc');
       return;
     }
-    if (!legalContentReady || !termsAccepted || !riskAccepted) {
-      setError('Read the published Terms of Service and Risk Disclosure, then acknowledge each separately before proceeding.');
+    if (!legalContentReady || !termsAccepted || !riskAccepted || !agreementAccepted) {
+      setError('Read the published Terms of Service and Risk Disclosure, then acknowledge each and the investment request separately before proceeding.');
       return;
     }
     const userId = first(record(user), ['id']);
@@ -463,7 +464,11 @@ export default function OpportunityDetail() {
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 5, marginBottom: 16 }}>
           Your amount is checked against the opportunity and wallet values supplied by OG Exports. Missing figures remain server-authoritative.
         </Text>
-        <Field label={`Investment amount · ${currencyLabel}`} value={investAmount} onChangeText={value => setInvestAmount(value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1'))} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
+        <Field label={`Investment amount · ${currencyLabel}`} value={investAmount} onChangeText={value => {
+          const nextAmount = value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
+          if (nextAmount !== investAmount) setAgreementAccepted(false);
+          setInvestAmount(nextAmount);
+        }} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
         {currency?.toUpperCase() === 'USD' && walletCurrency.toUpperCase() === 'PKR' ? <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 9, backgroundColor: colors.lightGreen, padding: 12, borderRadius: 12, marginBottom: 14 }}>
           <Feather name="refresh-cw" size={15} color={colors.primary} style={{ marginTop: 2 }} />
           <Text style={{ flex: 1, color: colors.foreground, fontSize: 11, lineHeight: 17 }}>
@@ -559,8 +564,18 @@ export default function OpportunityDetail() {
             <Text style={{ flex: 1, color: colors.foreground, lineHeight: 19, fontSize: 12 }}>I acknowledge the published Risk Disclosure.</Text>
           </Pressable>
         </Card> : null}
+        <Card>
+          <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 8 }}>Investment agreement acknowledgement</Text>
+          <Text style={{ color: colors.mutedForeground, lineHeight: 19, fontSize: 12 }}>
+            This acknowledgement is required to submit the request but is not saved as a consent record in your OG Exports account.
+          </Text>
+          <Pressable testID="investment-agreement-acknowledgement" accessibilityRole="checkbox" accessibilityState={{ checked: agreementAccepted }} onPress={() => setAgreementAccepted(value => !value)} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 15 }}>
+            <View style={{ width: 21, height: 21, borderRadius: 6, borderWidth: 1, borderColor: agreementAccepted ? colors.primary : colors.border, backgroundColor: agreementAccepted ? colors.primary : colors.card, alignItems: 'center', justifyContent: 'center' }}>{agreementAccepted ? <Feather name="check" size={14} color={colors.primaryForeground} /> : null}</View>
+            <Text style={{ flex: 1, color: colors.foreground, lineHeight: 19, fontSize: 12 }}>I acknowledge the investment details and want to submit this investment request.</Text>
+          </Pressable>
+        </Card>
         {error ? <ErrorState message={error} /> : null}
-        <Action title="Continue to confirmation" icon="arrow-right" disabled={!legalContentReady || !termsAccepted || !riskAccepted} onPress={() => { setError(''); setStage('confirmation'); }} />
+        <Action title="Continue to confirmation" icon="arrow-right" disabled={!legalContentReady || !termsAccepted || !riskAccepted || !agreementAccepted} onPress={() => { setError(''); setStage('confirmation'); }} />
         <View style={{ marginTop: 9 }}><Action title="Back to review" secondary onPress={() => setStage('review')} /></View>
       </Card> : null}
       {kycVerified && stage === 'confirmation' ? <Card>
