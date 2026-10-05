@@ -35,11 +35,13 @@ function RootLayoutNav() {
   const { isRTL, preferences, resolvedAppearance } = useAppPreferences();
   const colors = useColors();
   const t = (value: string) => translateUi(value, preferences.language);
-  const isDarkStatusBar = resolvedAppearance === 'dark';
-  const statusBar = Platform.OS === 'android'
-    ? <NativeStatusBar barStyle={isDarkStatusBar ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-    : <ExpoStatusBar style={isDarkStatusBar ? 'light' : 'dark'} />;
   const segments = useSegments();
+  const isHomeRoute = segments[0] === '(tabs)' && !segments[1];
+  const isDarkStatusBar = resolvedAppearance === 'dark';
+  const useLightStatusBar = isHomeRoute || isDarkStatusBar;
+  const statusBar = Platform.OS === 'android'
+    ? <NativeStatusBar barStyle={useLightStatusBar ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+    : <ExpoStatusBar style={useLightStatusBar ? 'light' : 'dark'} />;
   const pathname = usePathname();
   const routeParams = useGlobalSearchParams();
   const returnTo = serializeRouteState(pathname, routeParams);

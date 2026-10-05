@@ -5,6 +5,7 @@
 - [Investor push delivery](investor-push-delivery.md) — use Expo Push with explicit opt-in; live delivery requires the real Expo project ID and business-event source.
 - [Notification preference migration](investor-notification-preference-migration.md) — category preferences override matching legacy settings without dropping old keys or changing email/push controls.
 - [Expo DevTools runtime](expo-devtools-runtime.md) — a missing libglib can break the optional debugger without blocking Metro or the app preview.
+- [Expo workflow log freshness](expo-workflow-log-freshness.md) — when Metro errors conflict with exports, restart the managed Expo workflow and inspect fresh logs before changing code.
 - [OG Exports platform principles](og-exports-platform-principles.md) — make trade traceability, verified documents/status, simple real-trade data, and financial security visible throughout the investor app.
 - [OG Exports phase workflow](og-exports-phase-workflow.md) — implement the investor app one user-provided phase at a time, then verify before moving on.
 - [OpenAPI binary uploads](openapi-binary-validation.md) — enforce upload size limits on the server; generated Zod schemas cannot apply maxLength to Blob fields.
