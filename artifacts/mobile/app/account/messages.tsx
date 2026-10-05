@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { FlatList, Linking, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGetPublicInvestorAppSettings, getGetPublicInvestorAppSettingsQueryKey, useGetInvestorAdminConversation, useGetInvestorConversationMessages, useSendInvestorConversationMessage, useGetInvestorSupportTickets, useCreateInvestorSupportTicket } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
 import { first, list, messageOf, record, unwrap } from '@/lib/data';
@@ -53,6 +55,7 @@ const ticketStatusSteps = ['Open', 'In Progress', 'Resolved'] as const;
 
 function normalizedTicketStatus(value: string) {
   const normalized = value.toLowerCase().replace(/[_-]+/g, ' ').trim();
+  if (normalized === 'pending' || normalized === 'answered') return 'In Progress';
   return ticketStatusSteps.find(status => status.toLowerCase() === normalized) ?? '';
 }
 
@@ -77,6 +80,7 @@ function TicketStatusProgress({ status }: { status: string }) {
 export default function Messages() {
   const { token } = useAuth();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<SupportMode>('help');
   const [message, setMessage] = useState('');
   const [subject, setSubject] = useState('');
@@ -110,6 +114,11 @@ export default function Messages() {
   const createTicket = useCreateInvestorSupportTicket();
   const messages = list(messagesQuery.data);
   const tickets = list(ticketsQuery.data);
+  const chatMessages = [...messages].sort((left, right) => {
+    const leftTime = Date.parse(first(left, ['created_at', 'date'], ''));
+    const rightTime = Date.parse(first(right, ['created_at', 'date'], ''));
+    return Number.isFinite(leftTime) && Number.isFinite(rightTime) ? rightTime - leftTime : 0;
+  });
 
   async function sendMessage() {
     setError('');
@@ -148,7 +157,7 @@ export default function Messages() {
     }
   }
 
-  return <Screen title="Support" subtitle="Help Center, live chat, and support tickets">
+  return <Screen title="Support" subtitle="Help Center, live chat, and support tickets" scrollable={mode !== 'chat'}>
     <View accessibilityRole="tablist" style={{ flexDirection: 'row', gap: 7, marginBottom: 14 }}>
       {([
         ['help', 'Help Center'],
@@ -219,29 +228,47 @@ export default function Messages() {
     </> : null}
 
     {mode === 'chat' ? <>
-      <Card>
-        <Text style={{ color: colors.foreground, fontWeight: '700' }}>Investor support conversation</Text>
-        <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 4 }}>
-          Replies refresh automatically while this screen is open.
-        </Text>
-      </Card>
-      {conversationQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Opening your support conversation…</Text></Card> : null}
-      {conversationQuery.isError ? <ErrorState message="Your support conversation could not be opened." onRetry={() => void conversationQuery.refetch()} /> : null}
-      {!conversationQuery.isLoading && !conversationQuery.isError && !conversationId ? <EmptyState title="Conversation unavailable" body="Use a support ticket or email instead. The support conversation could not be opened." /> : null}
-      {messagesQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading messages…</Text></Card> : null}
-      {messagesQuery.isError ? <ErrorState message="Messages could not be loaded." onRetry={() => void messagesQuery.refetch()} /> : null}
-      {messages.length === 0 && !messagesQuery.isLoading && conversationId ? <EmptyState title="Start a conversation" body="Send a message to the investor support team. Replies will appear here." /> : null}
-      {messages.map((item, index) => {
-        const own = /investor|user/i.test(first(record(item.sender), ['role', 'type'], first(item, ['sender_type', 'role'], '')));
-        return <Card key={first(item, ['id'], String(index))} style={{ backgroundColor: own ? colors.secondary : colors.card, alignSelf: own ? 'flex-end' : 'stretch', width: own ? '88%' : '100%' }}>
-          <Text style={{ color: colors.foreground, lineHeight: 20 }}>{first(item, ['message', 'body', 'content'], '')}</Text>
-          <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 7 }}>{first(item, ['created_at', 'date'], '')}</Text>
-        </Card>;
-      })}
-      {conversationId ? <Card>
-        <Field label="Message" value={message} onChangeText={setMessage} placeholder="Write to investor support…" multiline />
-        <Action title="Send message" icon="send" loading={send.isPending} disabled={!message.trim()} onPress={() => void sendMessage()} />
-      </Card> : null}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={0}>
+        <Card>
+          <Text style={{ color: colors.foreground, fontWeight: '700' }}>Investor support conversation</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 4 }}>
+            Replies refresh automatically while this screen is open.
+          </Text>
+        </Card>
+        {conversationQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Opening your support conversation…</Text></Card> : null}
+        {conversationQuery.isError ? <ErrorState message="Your support conversation could not be opened." onRetry={() => void conversationQuery.refetch()} /> : null}
+        {!conversationQuery.isLoading && !conversationQuery.isError && !conversationId ? <EmptyState title="Conversation unavailable" body="Use a support ticket or email instead. The support conversation could not be opened." /> : null}
+        {messagesQuery.isError ? <ErrorState message="Messages could not be loaded." onRetry={() => void messagesQuery.refetch()} /> : null}
+        {conversationId ? <FlatList
+          testID="support-chat-messages"
+          data={chatMessages}
+          inverted
+          keyExtractor={(item, index) => first(item, ['id'], String(index))}
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1, paddingVertical: 6 }}
+          ListEmptyComponent={
+            messagesQuery.isLoading
+              ? <Card><Text style={{ color: colors.mutedForeground }}>Loading messages…</Text></Card>
+              : messagesQuery.isError
+                ? null
+                : <EmptyState title="Start a conversation" body="Send a message to investor support. Replies will appear here." />
+          }
+          renderItem={({ item }) => {
+            const own = /investor|user/i.test(first(record(item.sender), ['role', 'type'], first(item, ['sender_type', 'role'], '')));
+            return <Card style={{ backgroundColor: own ? colors.secondary : colors.card, alignSelf: own ? 'flex-end' : 'stretch', width: own ? '88%' : '100%' }}>
+              <Text style={{ color: colors.foreground, lineHeight: 20 }}>{first(item, ['message', 'body', 'content'], '')}</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 7 }}>{first(item, ['created_at', 'date'], '')}</Text>
+            </Card>;
+          }}
+        /> : null}
+        {conversationId ? <View style={{ paddingBottom: insets.bottom }}>
+          <Card style={{ marginBottom: 0 }}>
+            <Field label="Message" value={message} onChangeText={setMessage} placeholder="Write to investor support…" multiline />
+            <Action title="Send message" icon="send" loading={send.isPending} disabled={!message.trim()} onPress={() => void sendMessage()} />
+          </Card>
+        </View> : null}
+      </KeyboardAvoidingView>
     </> : null}
 
     {mode === 'tickets' ? <>

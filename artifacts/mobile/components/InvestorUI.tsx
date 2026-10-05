@@ -7,20 +7,37 @@ import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollV
 
 type IconName = keyof typeof Feather.glyphMap;
 
-export function Screen({ title, subtitle, children, action }: { title: string; subtitle?: string; children: React.ReactNode; action?: React.ReactNode }) {
+export function Screen({ title, subtitle, children, action, scrollable = true }: { title: string; subtitle?: string; children: React.ReactNode; action?: React.ReactNode; scrollable?: boolean }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const header = (
+    <View style={s.header}>
+      <View style={{ flex: 1 }}>
+        <Text style={[s.title, { color: colors.foreground }]}>{title}</Text>
+        {subtitle ? <Text style={[s.subtitle, { color: colors.mutedForeground }]}>{subtitle}</Text> : null}
+      </View>
+      {action}
+    </View>
+  );
+  if (!scrollable) {
+    return (
+      <View style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        paddingTop: Platform.OS === 'web' ? 67 : insets.top + 10,
+        paddingBottom: Platform.OS === 'web' ? 34 : 0,
+        paddingHorizontal: 20,
+      }}>
+        {header}
+        {children}
+      </View>
+    );
+  }
   return (
     <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: colors.background }} contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled" bottomOffset={24}
       contentContainerStyle={{ paddingTop: Platform.OS === 'web' ? 67 : insets.top + 10, paddingBottom: Platform.OS === 'web' ? 110 : insets.bottom + 104, paddingHorizontal: 20 }}>
-      <View style={s.header}>
-        <View style={{ flex: 1 }}>
-           <Text style={[s.title, { color: colors.foreground }]}>{title}</Text>
-          {subtitle ? <Text style={[s.subtitle, { color: colors.mutedForeground }]}>{subtitle}</Text> : null}
-        </View>
-        {action}
-      </View>
+      {header}
       {children}
     </KeyboardAwareScrollViewCompat>
   );
