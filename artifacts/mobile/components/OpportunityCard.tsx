@@ -1,51 +1,54 @@
-import React from 'react';
-import { Pressable, View } from 'react-native';
+import React, { useState } from 'react';
+import { Image, Pressable, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { Feather } from '@expo/vector-icons';
-import { Card, Status } from '@/components/InvestorUI';
+import { Card } from '@/components/InvestorUI';
 import { amount, first, money, record } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
 
 type OpportunityCardProps = {
   item: Record<string, unknown>;
-  categoryLabel: string;
   featured: boolean;
   progress: number | null;
+  apiOrigin: string;
   onPress?: () => void;
 };
 
 const countryAliases: Record<string, string> = {
-  afghanistan: 'AF', af: 'AF', australia: 'AU', au: 'AU', bangladesh: 'BD', bd: 'BD',
-  bahrain: 'BH', bh: 'BH', belgium: 'BE', be: 'BE', brazil: 'BR', br: 'BR',
-  canada: 'CA', ca: 'CA', china: 'CN', cn: 'CN', egypt: 'EG', eg: 'EG',
-  france: 'FR', fr: 'FR', germany: 'DE', de: 'DE', india: 'IN', in: 'IN',
-  indonesia: 'ID', id: 'ID', iraq: 'IQ', iq: 'IQ', italy: 'IT', it: 'IT',
-  japan: 'JP', jp: 'JP', kenya: 'KE', ke: 'KE', kuwait: 'KW', kw: 'KW',
-  malaysia: 'MY', my: 'MY', mexico: 'MX', mx: 'MX', nepal: 'NP', np: 'NP',
-  'new zealand': 'NZ', nz: 'NZ', netherlands: 'NL', holland: 'NL', nl: 'NL', nigeria: 'NG', ng: 'NG',
-  oman: 'OM', om: 'OM', pakistan: 'PK', pk: 'PK', philippines: 'PH', ph: 'PH',
-  poland: 'PL', pl: 'PL', qatar: 'QA', qa: 'QA', russia: 'RU', ru: 'RU',
-  'saudi arabia': 'SA', saudi: 'SA', ksa: 'SA', sa: 'SA', singapore: 'SG', sg: 'SG',
-  'south africa': 'ZA', za: 'ZA', 'south korea': 'KR', 'republic of korea': 'KR', kr: 'KR',
-  spain: 'ES', es: 'ES', 'sri lanka': 'LK', lk: 'LK', thailand: 'TH', th: 'TH',
-  turkey: 'TR', turkiye: 'TR', tr: 'TR', ukraine: 'UA', ua: 'UA',
+  afghanistan: 'AF', af: 'AF', algeria: 'DZ', dz: 'DZ', australia: 'AU', au: 'AU',
+  bangladesh: 'BD', bd: 'BD', bahrain: 'BH', bh: 'BH', belgium: 'BE', be: 'BE',
+  brazil: 'BR', br: 'BR', canada: 'CA', ca: 'CA', china: 'CN', cn: 'CN',
+  egypt: 'EG', eg: 'EG', france: 'FR', fr: 'FR', germany: 'DE', de: 'DE',
+  india: 'IN', in: 'IN', indonesia: 'ID', id: 'ID', iraq: 'IQ', iq: 'IQ',
+  italy: 'IT', it: 'IT', japan: 'JP', jp: 'JP', kenya: 'KE', ke: 'KE',
+  kuwait: 'KW', kw: 'KW', malaysia: 'MY', my: 'MY', mexico: 'MX', mx: 'MX',
+  nepal: 'NP', np: 'NP', 'new zealand': 'NZ', nz: 'NZ', netherlands: 'NL',
+  holland: 'NL', nl: 'NL', nigeria: 'NG', ng: 'NG', oman: 'OM', om: 'OM',
+  pakistan: 'PK', pk: 'PK', philippines: 'PH', ph: 'PH', poland: 'PL', pl: 'PL',
+  qatar: 'QA', qa: 'QA', russia: 'RU', ru: 'RU', 'saudi arabia': 'SA',
+  saudi: 'SA', ksa: 'SA', sa: 'SA', singapore: 'SG', sg: 'SG',
+  'south africa': 'ZA', za: 'ZA', 'south korea': 'KR', kr: 'KR',
+  'republic of korea': 'KR', spain: 'ES', es: 'ES',
+  'sri lanka': 'LK', lk: 'LK', thailand: 'TH', th: 'TH', turkey: 'TR',
+  turkiye: 'TR', tr: 'TR', ukraine: 'UA', ua: 'UA',
   'united arab emirates': 'AE', uae: 'AE', emirates: 'AE', ae: 'AE',
   'united kingdom': 'GB', britain: 'GB', england: 'GB', uk: 'GB', gb: 'GB',
   'united states': 'US', usa: 'US', us: 'US', vietnam: 'VN', vn: 'VN',
   karachi: 'PK', lahore: 'PK', islamabad: 'PK', dubai: 'AE', 'abu dhabi': 'AE',
-  'jebel ali': 'AE', doha: 'QA', mumbai: 'IN', chennai: 'IN',
-  dhaka: 'BD', shanghai: 'CN', beijing: 'CN',
+  'jebel ali': 'AE', doha: 'QA', mumbai: 'IN', chennai: 'IN', dhaka: 'BD',
+  shanghai: 'CN', beijing: 'CN',
 };
 
 const countryNameByCode: Record<string, string> = {
-  AE: 'UAE', AU: 'Australia', BD: 'Bangladesh', BR: 'Brazil', CA: 'Canada',
-  CN: 'China', DE: 'Germany', EG: 'Egypt', ES: 'Spain', FR: 'France',
-  GB: 'United Kingdom', ID: 'Indonesia', IN: 'India', IT: 'Italy', JP: 'Japan',
-  KE: 'Kenya', KR: 'South Korea', KW: 'Kuwait', LK: 'Sri Lanka', MY: 'Malaysia',
-  NG: 'Nigeria', NL: 'Netherlands', NZ: 'New Zealand', OM: 'Oman', PH: 'Philippines',
+  AE: 'UAE', AF: 'Afghanistan', AU: 'Australia', BD: 'Bangladesh', BE: 'Belgium',
+  BR: 'Brazil', CA: 'Canada', CN: 'China', DE: 'Germany', DZ: 'Algeria',
+  EG: 'Egypt', ES: 'Spain', FR: 'France', GB: 'United Kingdom', ID: 'Indonesia', IN: 'India',
+  IQ: 'Iraq', IT: 'Italy', JP: 'Japan', KE: 'Kenya', KR: 'South Korea',
+  KW: 'Kuwait', LK: 'Sri Lanka', MY: 'Malaysia', NG: 'Nigeria',
+  NL: 'Netherlands', NZ: 'New Zealand', OM: 'Oman', PH: 'Philippines',
   PK: 'Pakistan', PL: 'Poland', QA: 'Qatar', RU: 'Russia', SA: 'Saudi Arabia',
-  SG: 'Singapore', TH: 'Thailand', TR: 'Türkiye', UA: 'Ukraine', US: 'United States',
-  VN: 'Vietnam', ZA: 'South Africa',
+  SG: 'Singapore', TH: 'Thailand', TR: 'Türkiye', UA: 'Ukraine',
+  US: 'United States', VN: 'Vietnam', ZA: 'South Africa',
 };
 
 function dataSources(item: Record<string, unknown>) {
@@ -60,12 +63,12 @@ function dataSources(item: Record<string, unknown>) {
   ];
 }
 
-function opportunityValue(item: Record<string, unknown>, keys: string[], fallback = '') {
+function opportunityValue(item: Record<string, unknown>, keys: string[]) {
   for (const source of dataSources(item)) {
     const value = first(source, keys);
     if (value) return value;
   }
-  return fallback;
+  return '';
 }
 
 function opportunityAmount(item: Record<string, unknown>, keys: string[]) {
@@ -79,7 +82,7 @@ function opportunityAmount(item: Record<string, unknown>, keys: string[]) {
 function countryCode(location: string) {
   const normalized = location.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
   if (countryAliases[normalized]) return countryAliases[normalized];
-  const aliases = Object.keys(countryAliases).filter(alias => alias.length > 2).sort((left, right) => right.length - left.length);
+  const aliases = Object.keys(countryAliases).filter(alias => alias.length > 2).sort((a, b) => b.length - a.length);
   const match = aliases.find(alias => ` ${normalized} `.includes(` ${alias} `));
   return match ? countryAliases[match] : '';
 }
@@ -89,7 +92,7 @@ function flagForCode(code: string) {
   return String.fromCodePoint(...Array.from(code, letter => 0x1f1e6 + letter.charCodeAt(0) - 65));
 }
 
-function locationWithFlag(location: string) {
+function countryBadgeLabel(location: string) {
   const text = location.trim();
   if (!text) return '';
   const hasFlag = Array.from(text).some(character => {
@@ -100,177 +103,168 @@ function locationWithFlag(location: string) {
   const normalized = text.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
   const code = countryCode(text);
   if (!code) return text;
-  const label = /^[a-z]{2}$/.test(normalized) ? countryNameByCode[code] ?? code : text;
-  return `${label} ${flagForCode(code)}`;
+  const name = /^[a-z]{2}$/.test(normalized) ? countryNameByCode[code] ?? code : text;
+  return `${flagForCode(code)} ${name}`;
 }
 
-function tradeReferenceLabel(value: string) {
-  const reference = value.trim();
-  if (!reference || reference === '—') return '—';
-  if (/^trade\s*#/i.test(reference)) return reference;
-  return `Trade #${reference.replace(/^trade\s*/i, '')}`;
+function countryRouteLabel(origin: string, destination: string) {
+  if (!origin && !destination) return '';
+  return `${origin ? countryBadgeLabel(origin) : 'Origin not reported'} → ${destination ? countryBadgeLabel(destination) : 'Destination not reported'}`;
+}
+
+function imageUri(item: Record<string, unknown>, apiOrigin: string) {
+  const raw = opportunityValue(item, ['image_url', 'imageUrl', 'image_path', 'imagePath']);
+  if (/^(https?:|data:)/i.test(raw)) return raw;
+  if (!raw || !apiOrigin) return '';
+  return `${apiOrigin.replace(/\/+$/, '')}/${raw.replace(/^\/+/, '')}`;
 }
 
 function durationLabel(item: Record<string, unknown>) {
   const days = opportunityAmount(item, ['investment_period_days', 'duration_days', 'trade_duration_days', 'cycle_days']);
-  if (days != null) return `${days} days`;
+  if (days != null) return `${days}d`;
   const label = opportunityValue(item, ['trade_cycle', 'estimated_trade_cycle', 'duration', 'term', 'investment_duration']);
-  return label && Number.isFinite(Number(label)) ? `${label} days` : label;
+  const match = label.match(/^(\d+(?:\.\d+)?)\s*days?$/i);
+  return match ? `${match[1]}d` : label;
 }
 
-function moneyLabel(value: number | null, currency: string) {
-  return money(value, currency || 'USD');
+function statusPresentation(status: string) {
+  const normalized = status.toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (/\b(open|funding|fundraise|available)\b/.test(normalized)) {
+    return { label: 'Open', group: 'Open' as const };
+  }
+  if (/\b(complete|completed|settled|delivered|disbursed)\b/.test(normalized)) {
+    return { label: 'Completed', group: 'Completed' as const };
+  }
+  if (/\b(ship|shipping|shipped|transit|cargo loaded|custom clearance|customs|investment confirmed|ready to ship|funded)\b/.test(normalized)) {
+    return { label: 'Shipping', group: 'Shipping' as const };
+  }
+  return { label: status ? normalized.replace(/\b\w/g, letter => letter.toUpperCase()) : '—', group: null };
 }
 
-export function OpportunityCard({ item, categoryLabel, featured, progress, onPress }: OpportunityCardProps) {
+export function OpportunityCard({ item, featured, progress, apiOrigin, onPress }: OpportunityCardProps) {
   const colors = useColors();
-  const tradeId = tradeReferenceLabel(opportunityValue(item, ['trade_id', 'trade_code', 'code', 'reference']));
-  const title = opportunityValue(item, ['commodity_name', 'commodity', 'title', 'name', 'project_name'], '—');
-  const status = opportunityValue(item, ['trade_status', 'project_status', 'status', 'state'], '—');
-  const origin = opportunityValue(item, ['origin', 'origin_country', 'from_country']);
-  const destination = opportunityValue(item, ['destination', 'destination_country', 'to_country', 'destination_market']);
-  const route = origin || destination
-    ? `${locationWithFlag(origin) || '—'} → ${locationWithFlag(destination) || '—'}`
-    : '—';
-  const currency = opportunityValue(item, ['currency']);
+  const [imageFailed, setImageFailed] = useState(false);
+  const title = opportunityValue(item, ['commodity_name', 'commodity', 'title', 'name', 'project_name']) || '—';
+  const status = statusPresentation(opportunityValue(item, ['trade_status', 'project_status', 'status', 'state']));
+  const origin = opportunityValue(item, ['origin', 'origin_country', 'from_country', 'country_of_origin', 'originCountry', 'fromCountry']);
+  const destination = opportunityValue(item, ['destination', 'destination_country', 'to_country', 'destination_market', 'destinationCountry', 'toCountry']);
+  const countryRoute = countryRouteLabel(origin, destination);
+  const image = imageUri(item, apiOrigin);
+  const currency = opportunityValue(item, ['currency', 'investment_currency']);
   const target = opportunityAmount(item, ['target_amount', 'funding_target', 'total_trade_requirement', 'investment_requirement', 'total_investment_required', 'amount']);
-  const minimum = opportunityAmount(item, ['minimum_investment', 'min_investment', 'minimum_amount', 'minimum_investment_amount']);
   const funded = opportunityAmount(item, ['funded_amount', 'raised_amount', 'current_amount', 'current_funding']);
-  const fundingAmountLabel = `${moneyLabel(funded, currency)} / ${moneyLabel(target, currency)}`;
-  const targetReturn = opportunityValue(item, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi'])
-    || (opportunityAmount(item, ['expected_return_pct']) != null ? `${opportunityAmount(item, ['expected_return_pct'])}%` : '');
-  const risk = opportunityValue(item, ['risk_level', 'risk_rating']);
-  const isContainerProject = opportunityValue(item, ['type', 'project_type']).toLowerCase() === 'container';
-  const supplied = (keys: string[]) => {
-    const value = opportunityValue(item, keys).trim();
-    return value && value !== '—' ? value : 'Not provided';
-  };
-  const containerNumber = supplied(['container_number', 'container_no', 'containerNumber']);
-  const containerType = supplied(['container_type', 'container_size_type']);
-  const containerLabel = [containerNumber, containerType].filter(value => value !== 'Not provided').join(' · ') || 'Not provided';
-  const vessel = supplied(['vessel', 'vessel_name']);
-  const voyage = supplied(['voyage', 'voyage_number']);
-  const vesselVoyage = [vessel, voyage].filter(value => value !== 'Not provided').join(' · ') || 'Not provided';
-  const details: [string, string][] = isContainerProject
-    ? [
-      ['Container', containerLabel],
-      ['Vessel / Voyage', vesselVoyage],
-      ['Shipping line', supplied(['shipping_line'])],
-      ['Port of loading', supplied(['port_of_loading', 'loading_port'])],
-      ['Port of discharge', supplied(['port_of_discharge', 'destination_port'])],
-      ['Incoterm', supplied(['incoterm', 'trade_term'])],
-    ]
-    : [
-      ['Grade', opportunityValue(item, ['grade', 'commodity_grade', 'grade_name', 'commodity_grade_name'], '—')],
-      ['Quantity', opportunityValue(item, ['quantity', 'cargo_quantity', 'quantity_tons', 'quantity_tonnes'], '—')],
-      ['Container count', opportunityValue(item, ['container_count', 'containers_count', 'number_of_containers'], '—')],
-      ['Container type', opportunityValue(item, ['container_type', 'container_size_type'], '—')],
-      ['Destination', locationWithFlag(destination) || '—'],
-      ['Incoterm', opportunityValue(item, ['incoterm', 'trade_term'], '—')],
-    ];
-  const projectUpdate: [string, string][] = [
-    ['Current project stage', supplied(['current_project_stage'])],
-    ['ETD', supplied(['etd', 'departure_date'])],
-    ['ETA', supplied(['eta', 'arrival_date'])],
-  ];
-  const cycle = durationLabel(item) || '—';
-  const progressValue = progress == null
-    ? opportunityAmount(item, ['funding_progress_percent', 'funding_progress_pct', 'progress_percentage'])
+  const remaining = opportunityAmount(item, ['remaining_amount', 'remaining_capacity', 'remaining_funding']);
+  const minimum = opportunityAmount(item, ['minimum_investment', 'min_investment', 'minimum_amount', 'minimum_investment_amount']);
+  const reference = opportunityValue(item, ['container_number', 'container_no', 'containerNumber', 'trade_id', 'trade_code', 'code', 'reference']);
+  const containerType = opportunityValue(item, ['container_type', 'container_size_type']);
+  const referenceLabel = reference
+    ? `${reference}${containerType ? ` (${containerType})` : ''}`
+    : 'Trade ID unavailable';
+  const direction = opportunityValue(item, ['trade_direction', 'tradeDirection', 'direction']);
+  const directionLabel = direction.toLowerCase() === 'import' ? 'Import'
+    : direction.toLowerCase() === 'export' ? 'Export' : '';
+  const returnRate = opportunityValue(item, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi'])
+    || (opportunityAmount(item, ['expected_return_pct']) != null ? `${opportunityAmount(item, ['expected_return_pct'])}%` : '—');
+  const currencyLabel = currency || 'USD';
+  const formatMoney = (value: number | null) => money(value, currencyLabel);
+  const fundingProgress = progress == null
+    ? opportunityAmount(item, ['funding_percentage', 'funding_progress_percent', 'funding_progress_pct', 'progress_percentage'])
     : progress;
-  const boundedProgress = progressValue == null ? null : Math.max(0, Math.min(100, Math.round(progressValue)));
+  const boundedProgress = fundingProgress == null ? null : Math.max(0, Math.min(100, Math.round(fundingProgress)));
+  const statusColor = status.group === 'Completed'
+    ? { foreground: colors.statusSuccess, background: colors.statusSuccessBackground }
+    : status.group === 'Shipping'
+      ? { foreground: colors.statusPending, background: colors.statusPendingBackground }
+      : status.group === 'Open'
+        ? { foreground: colors.primary, background: colors.lightGreen }
+        : { foreground: colors.mutedForeground, background: colors.secondary };
+  const accessibilityTitle = reference === '' ? title : reference;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`View trade ${tradeId}: ${title}`}
+      accessibilityLabel={`View opportunity ${accessibilityTitle}: ${title}`}
       onPress={onPress}
       disabled={!onPress}
+      style={({ pressed }) => ({ opacity: pressed ? 0.96 : 1, transform: [{ scale: pressed ? 0.995 : 1 }] })}
     >
-      <Card style={featured ? { borderColor: colors.accent, borderWidth: 1.5 } : undefined}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-          <Text numberOfLines={1} style={{ flex: 1, color: colors.primary, fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>{tradeId}</Text>
-          <View style={{ alignItems: 'flex-end', gap: 4 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 8, fontWeight: '700', letterSpacing: 0.5 }}>TRADE STATUS</Text>
-            <Status value={status} />
-          </View>
-        </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 11 }}>
-          <View style={{ borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: colors.secondary }}>
-            <Text style={{ color: colors.foreground, fontSize: 10, fontWeight: '700' }}>{categoryLabel}</Text>
-          </View>
-          {featured ? <View style={{ borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: colors.lightGreen }}>
-            <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700' }}>Featured</Text>
-          </View> : null}
-        </View>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', marginTop: 11 }}>{title}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
-          <Feather name="map-pin" size={12} color={colors.accent} />
-          <Text style={{ color: colors.mutedForeground, fontSize: 12, flex: 1 }}>{route}</Text>
-        </View>
-        {opportunityValue(item, ['description', 'summary']) ? <Text numberOfLines={2} style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>
-          {opportunityValue(item, ['description', 'summary'])}
-        </Text> : null}
-
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
-          {details.map(([label, value]) => <View key={label} style={{ width: '47%', minHeight: 39 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{label}</Text>
-            <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', marginTop: 4 }}>{value}</Text>
-          </View>)}
-        </View>
-
-        {isContainerProject ? <View style={{ marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: colors.secondary }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>PROJECT UPDATE</Text>
-          <View style={{ marginTop: 9 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{projectUpdate[0][0]}</Text>
-            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginTop: 3 }}>{projectUpdate[0][1]}</Text>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 16, marginTop: 9 }}>
-            {projectUpdate.slice(1).map(([label, value]) => <View key={label} style={{ flex: 1 }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{label}</Text>
-              <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', marginTop: 3 }}>{value}</Text>
-            </View>)}
-          </View>
-        </View> : null}
-
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
-          {[
-            ['Investment requirement', moneyLabel(target, currency)],
-            ['Minimum investment', moneyLabel(minimum, currency)],
-            ['Trade cycle', cycle],
-          ].map(([label, value]) => <View key={label} style={{ flex: 1, minWidth: 100 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{label}</Text>
-            <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginTop: 4 }}>{value}</Text>
-          </View>)}
-        </View>
-
-        <View style={{ marginTop: 14, padding: 12, borderRadius: 14, backgroundColor: colors.secondary }}>
-          {boundedProgress != null ? <>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '600' }}>Funding Progress</Text>
-              <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700', textAlign: 'right' }}>
-                {fundingAmountLabel}
+      <Card style={{
+        padding: 0,
+        overflow: 'hidden',
+        borderWidth: featured ? 1.5 : 1,
+        borderColor: featured ? colors.accent : colors.border,
+      }}>
+        <View style={{ height: 174, backgroundColor: colors.secondary, justifyContent: 'center', alignItems: 'center' }}>
+          {image && !imageFailed ? (
+            <Image
+              source={{ uri: image }}
+              resizeMode="cover"
+              onError={() => setImageFailed(true)}
+              accessible={false}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }}
+            />
+          ) : (
+            <Feather name="package" size={34} color={colors.mutedForeground} />
+          )}
+          <View style={{ position: 'absolute', top: 14, left: 14, right: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            {countryRoute ? <View style={{ maxWidth: '80%', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: colors.primary }}>
+              <Text numberOfLines={2} style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: '600', lineHeight: 15 }}>{countryRoute}</Text>
+            </View> : <View />}
+            <View style={{ borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: statusColor.background }}>
+              <Text style={{ color: statusColor.foreground, fontSize: 10, fontWeight: '800', letterSpacing: 0.4 }}>
+                {status.label}
               </Text>
             </View>
-            <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: boundedProgress }} style={{ height: 7, borderRadius: 5, backgroundColor: colors.border, overflow: 'hidden' }}>
-              <View style={{ width: `${boundedProgress}%`, height: 7, borderRadius: 5, backgroundColor: colors.primary }} />
-            </View>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 6 }}>{boundedProgress}% funded</Text>
-          </> : <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Funding raised / target: {fundingAmountLabel}</Text>}
+          </View>
         </View>
 
-        {targetReturn ? <View style={{ marginTop: 11, padding: 11, borderRadius: 12, backgroundColor: colors.lightGreen }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Target / projected return · not guaranteed</Text>
-          <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700', marginTop: 4 }}>{targetReturn}</Text>
-        </View> : null}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 11 }}>
-          <Feather name="shield" size={13} color={colors.accent} />
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, flex: 1 }}>
-            {`Risk information: ${risk || '—'}`}
-          </Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 15, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
-          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>View Trade</Text>
-          <Feather name="arrow-up-right" size={16} color={colors.primary} />
+        <View style={{ paddingHorizontal: 16, paddingTop: 15, paddingBottom: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+              <Feather name="box" size={19} color={colors.mutedForeground} />
+              <Text numberOfLines={1} style={{ flex: 1, color: colors.mutedForeground, fontSize: 12 }}>{referenceLabel}</Text>
+            </View>
+            {directionLabel ? <View style={{ borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: colors.lightGreen }}>
+              <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }}>
+                {directionLabel}
+              </Text>
+            </View> : null}
+          </View>
+
+          <Text numberOfLines={2} style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', marginTop: 8 }}>{title}</Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 24 }}>
+            <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '700' }}>
+              {boundedProgress == null ? 'Funding progress not reported' : `${boundedProgress}% funded`}
+            </Text>
+            <Text numberOfLines={1} style={{ flexShrink: 1, color: colors.mutedForeground, fontSize: 14, textAlign: 'right' }}>
+              {formatMoney(funded)} / {formatMoney(target)}
+            </Text>
+          </View>
+
+          {boundedProgress != null ? <View
+            accessibilityRole="progressbar"
+            accessibilityValue={{ min: 0, max: 100, now: boundedProgress }}
+            style={{ height: 7, borderRadius: 5, backgroundColor: colors.border, overflow: 'hidden', marginTop: 10 }}
+          >
+            <View style={{ width: `${boundedProgress}%`, height: 7, borderRadius: 5, backgroundColor: colors.primary }} />
+          </View> : null}
+
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', marginTop: 10 }}>
+            <Text style={{ color: colors.accent, fontSize: 15, fontWeight: '700' }}>{formatMoney(remaining)}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 14, marginLeft: 4 }}>remaining</Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', marginTop: 18, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border }}>
+            {[
+              ['Return', returnRate],
+              ['Term', durationLabel(item) || '—'],
+              ['Min. investment', formatMoney(minimum)],
+            ].map(([label, value]) => <View key={label} style={{ flex: 1, minWidth: 0, paddingRight: 6 }}>
+              <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '500' }}>{label}</Text>
+              <Text numberOfLines={1} style={{ color: label === 'Return' ? colors.primary : colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 5 }}>{value}</Text>
+            </View>)}
+          </View>
         </View>
       </Card>
     </Pressable>

@@ -21,8 +21,8 @@ const categories = [
   { value: 'Other', label: 'Other Commodities' },
 ] as const;
 type CommodityCategory = typeof categories[number]['value'];
-const opportunityTabs = ['New', 'Nearly Funded', 'Closing Soon'] as const;
-type OpportunityTab = typeof opportunityTabs[number];
+const statusFilters = ['All', 'Open', 'Shipping', 'Completed'] as const;
+type OpportunityStatusFilter = typeof statusFilters[number];
 type MarketplaceFilters = {
   maxMinimum: string;
   maxDurationDays: string;
@@ -99,12 +99,20 @@ function riskLevel(item: Record<string, unknown>) {
   return first(item, ['risk_level', 'risk_rating']);
 }
 
+function opportunityStatusGroup(item: Record<string, unknown>): Exclude<OpportunityStatusFilter, 'All'> | null {
+  const normalized = tradeStatus(item).toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (/\b(complete|completed|settled|delivered|disbursed)\b/.test(normalized)) return 'Completed';
+  if (/\b(ship|shipping|shipped|transit|cargo loaded|custom clearance|customs|investment confirmed|ready to ship|funded)\b/.test(normalized)) return 'Shipping';
+  if (/\b(open|funding|fundraise|available)\b/.test(normalized)) return 'Open';
+  return null;
+}
+
 export default function Opportunities() {
-  const { token } = useAuth();
+  const { token, apiOrigin } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [category, setCategory] = useState<CommodityCategory>('All');
-  const [tab, setTab] = useState<OpportunityTab>('New');
+  const [statusFilter, setStatusFilter] = useState<OpportunityStatusFilter>('All');
   const [search, setSearch] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<MarketplaceFilters>(emptyFilters);
@@ -119,7 +127,7 @@ export default function Opportunities() {
     if (b === 'Any') return 1;
     return a.localeCompare(b);
   })];
-  const matchingRows = sourceRows.filter(item => {
+  const rows = sourceRows.filter(item => {
     const normalizedSearch = search.trim().toLowerCase();
     const searchable = [
       first(item, ['trade_id', 'trade_code', 'code', 'reference']),
@@ -134,6 +142,7 @@ export default function Opportunities() {
     ].join(' ').toLowerCase();
     if (normalizedSearch && !searchable.includes(normalizedSearch)) return false;
     if (category !== 'All' && categoryFor(item) !== category) return false;
+    if (statusFilter !== 'All' && opportunityStatusGroup(item) !== statusFilter) return false;
 
     const minimum = amount(item, ['minimum_investment', 'min_investment', 'minimum_amount']);
     const maxMinimum = numericLimit(appliedFilters.maxMinimum);
@@ -151,16 +160,8 @@ export default function Opportunities() {
     if (appliedFilters.funding === '80–99%' && (progress == null || progress < 80 || progress >= 100)) return false;
     if (appliedFilters.funding === 'Fully funded' && (progress == null || progress < 100)) return false;
 
-    if (tab === 'Nearly Funded' && (progress == null || progress < 80 || progress >= 100)) return false;
-    if (tab === 'Closing Soon') {
-      const deadline = dateValue(item, ['funding_deadline', 'closing_date', 'closes_at', 'deadline']);
-      if (deadline == null || deadline < Date.now() || deadline - Date.now() > 7 * 86_400_000) return false;
-    }
     return true;
-  });
-  const rows = tab === 'New'
-    ? [...matchingRows].sort((left, right) => (dateValue(right, ['created_at', 'published_at', 'date']) ?? 0) - (dateValue(left, ['created_at', 'published_at', 'date']) ?? 0))
-    : matchingRows;
+  }).sort((left, right) => (dateValue(right, ['created_at', 'published_at', 'date']) ?? 0) - (dateValue(left, ['created_at', 'published_at', 'date']) ?? 0));
   const activeFilterCount = [
     appliedFilters.maxMinimum,
     appliedFilters.maxDurationDays,
@@ -169,9 +170,10 @@ export default function Opportunities() {
     appliedFilters.risk !== 'Any' ? appliedFilters.risk : '',
     appliedFilters.funding !== 'Any' ? appliedFilters.funding : '',
   ].filter(Boolean).length;
-  const activeCriteriaCount = activeFilterCount + (category !== 'All' ? 1 : 0) + (search.trim() ? 1 : 0);
+  const activeCriteriaCount = activeFilterCount + (category !== 'All' ? 1 : 0) + (statusFilter !== 'All' ? 1 : 0) + (search.trim() ? 1 : 0);
   const resetCriteria = () => {
     setCategory('All');
+    setStatusFilter('All');
     setSearch('');
     setDraftFilters(emptyFilters);
     setAppliedFilters(emptyFilters);
@@ -185,14 +187,14 @@ export default function Opportunities() {
         <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>Filter{activeCriteriaCount ? ` · ${activeCriteriaCount}` : ''}</Text>
       </Pressable>
     </View>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 10, marginBottom: 12 }}>
+      {statusFilters.map(item => <Pressable key={item} testID={`marketplace-status-${item.toLowerCase()}`} accessibilityRole="button" accessibilityState={{ selected: statusFilter === item }} onPress={() => setStatusFilter(item)} style={{ borderRadius: 13, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: statusFilter === item ? colors.primary : colors.card, borderWidth: 1, borderColor: statusFilter === item ? colors.primary : colors.border }}>
+        <Text style={{ color: statusFilter === item ? colors.primaryForeground : colors.foreground, fontWeight: '600', fontSize: 13 }}>{item}</Text>
+      </Pressable>)}
+    </ScrollView>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 10, marginBottom: 15 }}>
       {categories.map(item => <Pressable key={item.value} testID={`marketplace-category-${item.value.toLowerCase()}`} accessibilityRole="button" accessibilityState={{ selected: category === item.value }} onPress={() => setCategory(item.value)} style={{ borderRadius: 20, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: category === item.value ? colors.primary : colors.secondary }}>
         <Text style={{ color: category === item.value ? colors.primaryForeground : colors.foreground, fontWeight: '600', fontSize: 12 }}>{item.label}</Text>
-      </Pressable>)}
-    </ScrollView>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7, marginBottom: 11 }}>
-      {opportunityTabs.map(item => <Pressable key={item} testID={`marketplace-tab-${item.toLowerCase().replace(/\s+/g, '-')}`} accessibilityRole="button" accessibilityState={{ selected: tab === item }} onPress={() => setTab(item)} style={{ borderRadius: 20, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: tab === item ? colors.lightGreen : 'transparent', borderWidth: 1, borderColor: tab === item ? colors.primary : colors.border }}>
-        <Text style={{ color: tab === item ? colors.primary : colors.mutedForeground, fontWeight: '700', fontSize: 11 }}>{item}</Text>
       </Pressable>)}
     </ScrollView>
     {!query.isLoading && !query.isError ? <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -207,14 +209,12 @@ export default function Opportunities() {
     {!query.isLoading && !query.isError && rows.length === 0 ? <EmptyState title="No matching trade opportunities" body="Try another category, tab, or filter. This view only shows opportunities and details supplied by OG Exports." /> : null}
     {rows.map((item, index) => {
       const id = first(item, ['id', 'project_id'], '');
-      const commodityCategory = categoryFor(item);
-      const categoryLabel = commodityCategory === 'Other' ? 'Other Commodities' : commodityCategory === 'Unknown' ? '—' : commodityCategory;
       return <OpportunityCard
         key={id || index}
         item={item}
-        categoryLabel={categoryLabel}
         featured={isFeatured(item)}
         progress={fundingProgress(item)}
+        apiOrigin={apiOrigin}
         onPress={id ? () => router.push({ pathname: '/project/[id]', params: { id } }) : undefined}
       />;
     })}
