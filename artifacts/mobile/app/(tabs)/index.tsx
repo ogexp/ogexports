@@ -335,9 +335,9 @@ export default function InvestorHome() {
          <Text testID="home-available-balance" numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, fontSize: 40, fontWeight: '700', letterSpacing: -0.9, lineHeight: 45, marginTop: 5, textAlign: 'center' }}>
            {dashboard.isLoading ? '…' : displayMoney(availableBalance)}
          </Text>
-         <Text style={{ color: colors.balanceCardText, opacity: 0.7, fontSize: 10, marginTop: 4 }}>
-           {dashboard.isError ? 'Balance details unavailable right now' : `${currency || 'USD'} account`}
-         </Text>
+         {dashboard.isError ? <Text style={{ color: colors.balanceCardText, opacity: 0.7, fontSize: 10, marginTop: 4 }}>
+           Balance details unavailable right now
+         </Text> : null}
        </View>
     </LinearGradient>
 
