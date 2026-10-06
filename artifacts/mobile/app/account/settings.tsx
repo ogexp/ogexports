@@ -9,7 +9,6 @@ import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 import {
   useGetInvestorProfile,
-  useGetInvestorWallet,
   useGetInvestorTransactionPasswordStatus,
   useInvestorMobileLogout,
   useRegisterInvestorPushToken,
@@ -44,7 +43,6 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const userId = first(record(user), ['id']);
   const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: !!token } });
-  const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: !!token, staleTime: 30_000 } });
   const transactionPasswordQuery = useGetInvestorTransactionPasswordStatus({
     query: { queryKey: ['investor-transaction-password-status'], enabled: !!token },
   });
@@ -57,8 +55,6 @@ export default function Settings() {
   const registerPushToken = useRegisterInvestorPushToken();
   const revokePushToken = useRevokeInvestorPushToken();
   const profile = unwrap(profileQuery.data);
-  const wallet = unwrap(walletQuery.data);
-  const walletCurrency = first(wallet, ['currency', 'default_currency']);
   const transactionPasswordStatus = unwrap(transactionPasswordQuery.data);
   const hasTransactionPassword = transactionPasswordStatus.has_transaction_password === true
     || transactionPasswordStatus.set === true
@@ -320,7 +316,7 @@ export default function Settings() {
     } catch (err) { setError(messageOf(err)); }
   }
 
-  async function saveAppPreference(patch: { language?: 'en' | 'ur' | 'ar'; currency?: DisplayCurrency; appearance?: AppearancePreference }) {
+  async function saveAppPreference(patch: { language?: 'en' | 'ur' | 'ar'; appearance?: AppearancePreference }) {
     setError('');
     try {
       await appPreferences.savePreferences(patch);

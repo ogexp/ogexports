@@ -28,9 +28,6 @@ type PreferencesContextValue = {
   isSaving: boolean;
   error: string;
   rates: Record<string, number>;
-  ratesAsOf: string;
-  ratesLoading: boolean;
-  ratesError: boolean;
   walletCurrency: string;
   savePreferences: (patch: Partial<AppPreferences>) => Promise<void>;
   clearError: () => void;
@@ -105,7 +102,6 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   const rateResponse = unwrap(ratesQuery.data);
   const rates = normalizeRates(rateResponse.rates, first(rateResponse, ['base']).toUpperCase());
   const walletCurrency = first(wallet, ['currency', 'default_currency']).toUpperCase();
-  const ratesAsOf = first(rateResponse, ['as_of', 'updated_at']);
   const isRTL = preferences.language === 'ur' || preferences.language === 'ar';
   const resolvedAppearance = preferences.appearance === 'system'
     ? systemAppearance === 'dark' ? 'dark' : 'light'
@@ -176,7 +172,6 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     const next = { ...preferences, ...patch };
     const serverPatch: Json = {};
     if (patch.language !== undefined) serverPatch.language = patch.language;
-    if (patch.currency !== undefined) serverPatch.currency = patch.currency;
     if (patch.appearance !== undefined) {
       serverPatch.appearance = patch.appearance;
       serverPatch.theme = patch.appearance;
@@ -207,15 +202,12 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     isSaving,
     error,
     rates,
-    ratesAsOf,
-    ratesLoading: ratesQuery.isLoading,
-    ratesError: ratesQuery.isError,
     walletCurrency,
     savePreferences,
     clearError: () => setError(''),
   }), [
     preferences, resolvedAppearance, isRTL, preferencesLoaded, isSaving, error,
-    rates, ratesAsOf, ratesQuery.isLoading, ratesQuery.isError, walletCurrency, savePreferences,
+    rates, walletCurrency, savePreferences,
   ]);
 
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;
