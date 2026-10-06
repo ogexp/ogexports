@@ -195,17 +195,19 @@ export default function Deposit() {
         fileName = asset.name;
         mimeType = asset.mimeType ?? 'application/octet-stream';
       } else {
+        let selectedFile: ExpoFile | null = null;
         beginExternalFilePicker();
-        let result: Awaited<ReturnType<typeof ExpoFile.pickFileAsync>>;
         try {
-          result = await ExpoFile.pickFileAsync({ mimeTypes: [...INVESTOR_DOCUMENT_MIME_TYPES] });
+          const result = await ExpoFile.pickFileAsync({ mimeTypes: [...INVESTOR_DOCUMENT_MIME_TYPES] });
+          if (result.canceled) return;
+          selectedFile = result.result;
         } finally {
           endExternalFilePicker();
         }
-        if (result.canceled) return;
-        uploadSource = result.result;
-        fileName = result.result.name;
-        mimeType = result.result.type || 'application/octet-stream';
+        if (!selectedFile) return;
+        uploadSource = selectedFile;
+        fileName = selectedFile.name;
+        mimeType = selectedFile.type || 'application/octet-stream';
       }
       const path = await uploadInvestorFile(uploadSource, fileName, mimeType, 'deposit-proofs', apiOrigin);
       setProof(path);
