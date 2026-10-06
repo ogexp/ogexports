@@ -697,6 +697,30 @@ export default function InvestDeposit() {
                 ))}
               </div>
 
+              {requiresBankDetails && selectedBankAccount && (
+                <div data-testid="review-bank-details" className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Receiving account details</p>
+                    <p className="mt-1 text-sm font-semibold">{selectedBankAccount.bankName || "Bank account"}</p>
+                    {selectedBankAccount.accountTitle && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">{selectedBankAccount.accountTitle}</p>
+                    )}
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {[
+                      { label: "Account number", value: selectedBankAccount.accountNumber, testId: "review-account-number" },
+                      { label: "IBAN", value: selectedBankAccount.iban, testId: "review-iban" },
+                      { label: "SWIFT / BIC", value: selectedBankAccount.swift, testId: "review-swift" },
+                    ].map(({ label, value, testId }) => (
+                      <div key={label} data-testid={testId} className="min-w-0 rounded-lg border border-border/70 bg-background px-3 py-2.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+                        <p className="mt-1 break-all font-mono text-xs font-semibold leading-relaxed">{value || "Not provided"}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3">
                 <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-700 dark:text-amber-400">
