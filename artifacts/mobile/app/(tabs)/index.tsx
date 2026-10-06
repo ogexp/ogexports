@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import {
   useGetInvestorDashboard,
+  useGetInvestorDeposits,
   useGetInvestorInvestments,
   useGetInvestorNotifications,
   useGetInvestorProjects,
@@ -17,6 +18,7 @@ import {
 import { Card, EmptyState, ErrorState, LoadingCard, Status } from '@/components/InvestorUI';
 import { AllocationDonut, type AllocationSlice } from '@/components/AllocationDonut';
 import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap } from '@/lib/data';
+import { mergeDepositRequests } from '@/lib/deposit-activity';
 import { latestRecords } from '@/lib/latest-records';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -140,13 +142,17 @@ export default function InvestorHome() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const dashboard = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: !!token, staleTime: 30_000 } });
-  useFocusEffect(React.useCallback(() => {
-    if (token) void dashboard.refetch();
-  }, [token, dashboard.refetch]));
   const investments = useGetInvestorInvestments({ per_page: 50 }, { query: { queryKey: ['investor-positions', 50], enabled: !!token, staleTime: 30_000 } });
   const projects = useGetInvestorProjects({ per_page: 3 }, { query: { queryKey: ['investor-projects', 3], enabled: !!token, staleTime: 60_000 } });
   const transactions = useGetInvestorWalletTransactions({ page: 1, per_page: 3 }, { query: { queryKey: ['investor-wallet-transactions', 1, 3], enabled: !!token, staleTime: 30_000 } });
+  const deposits = useGetInvestorDeposits({ page: 1, per_page: 5 }, { query: { queryKey: ['investor-deposits', 1, 5], enabled: !!token, staleTime: 30_000 } });
   const notificationsQuery = useGetInvestorNotifications({ query: { queryKey: ['investor-notifications'], enabled: !!token, staleTime: 20_000 } });
+  useFocusEffect(React.useCallback(() => {
+    if (token) {
+      void dashboard.refetch();
+      void deposits.refetch();
+    }
+  }, [token, dashboard.refetch, deposits.refetch]));
   const data = unwrap(dashboard.data);
   const summary = record(data.summary);
   const wallet = record(data.wallet);
@@ -178,9 +184,11 @@ export default function InvestorHome() {
   const opportunities = list(projects.data);
   const featuredOpportunities = opportunities.slice(0, 3);
   const dashboardActivity = list(data.recent_activity ?? data.recent_transactions ?? data.activity);
-  const recent = latestRecords(dashboardActivity.length ? dashboardActivity : list(transactions.data), activityDateFields, 3);
-  const activityLoading = transactions.isLoading && dashboardActivity.length === 0;
-  const activityError = transactions.isError && dashboardActivity.length === 0;
+  const activitySource = dashboardActivity.length ? dashboardActivity : list(transactions.data);
+  const recent = latestRecords(mergeDepositRequests(activitySource, list(deposits.data)), activityDateFields, 3);
+  const activityLoading = recent.length === 0 && (dashboard.isLoading || transactions.isLoading || deposits.isLoading);
+  const activityError = recent.length === 0 && !activityLoading && (dashboard.isError || transactions.isError || deposits.isError);
+  const activityErrorDetail = deposits.isError ? deposits.error : transactions.isError ? transactions.error : dashboard.error;
   const payouts = list(data.upcoming_payouts);
   const investmentItems = latestRecords(list(investments.data), investmentDateFields, 1);
   const dashboardAlerts = list(data.notifications);
@@ -472,7 +480,11 @@ export default function InvestorHome() {
     <PortfolioHistoryCard points={series.points} currency={currency} loading={dashboard.isLoading} compact hideValues={balanceHidden} />
 
     <HomeSection title="Recent Transactions" right={<Pressable accessibilityRole="button" onPress={() => router.push('/account/transactions')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>See all</Text></Pressable>} />
-    {activityError ? <ErrorState message="Recent activity could not be loaded." error={transactions.error} onRetry={() => void transactions.refetch()} /> : null}
+    {activityError ? <ErrorState message="Recent activity could not be loaded." error={activityErrorDetail} onRetry={() => {
+      void dashboard.refetch();
+      void transactions.refetch();
+      void deposits.refetch();
+    }} /> : null}
     {activityLoading ? <LoadingCard label="Loading recent activity…" /> : null}
     {!activityLoading && !activityError && recent.length === 0 ? <EmptyState title="No recent activity" body="Investments, deposits, withdrawals, distributions and trade status updates will appear here when returned by OG Exports." /> : null}
     {groupedTransactions.map(group => <View key={group.label}>
@@ -483,9 +495,18 @@ export default function InvestorHome() {
          const date = activityDate(item) || 'Date unavailable';
         const rowAmount = amount(item, ['amount', 'total']);
         const transactionId = first(item, ['id', 'transaction_id', 'reference']);
+         const isDepositRequest = item.activity_source === 'deposit_request';
+         const depositId = first(item, ['id', 'deposit_id', 'depositId', 'reference', 'deposit_reference']);
+         const searchValue = isDepositRequest
+           ? first(item, ['reference', 'deposit_reference', 'bank_reference', 'transfer_reference', 'id'], kind)
+           : transactionId || kind;
         return <Pressable key={transactionId || `${group.label}-${index}`} accessibilityRole="button" accessibilityLabel={`View ${kind}`} onPress={() => router.push({
           pathname: '/account/transactions',
-          params: { tab: 'Wallet', search: transactionId || kind, selected: transactionId },
+           params: {
+             tab: isDepositRequest ? 'Deposits' : 'Wallet',
+             search: searchValue,
+             selected: isDepositRequest && depositId ? `deposit:${depositId}` : transactionId,
+           },
         })}
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, opacity: pressed ? 0.78 : 1 })}>
           <View style={{ width: 40, height: 40, borderRadius: 22, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>

@@ -242,7 +242,7 @@ export default function Deposit() {
       setProofName('');
       setBankId('');
       setProjectId('');
-      void depositsQuery.refetch();
+      void queryClient.invalidateQueries({ queryKey: ['investor-deposits'] });
       void queryClient.invalidateQueries({ queryKey: ['investor-wallet'] });
       void queryClient.invalidateQueries({ queryKey: ['investor-wallet-transactions'] });
       void queryClient.invalidateQueries({ queryKey: ['investor-dashboard'] });
