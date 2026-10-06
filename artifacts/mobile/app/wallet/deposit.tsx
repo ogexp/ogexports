@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { Pressable, View } from 'react-native';
-import { LocalizedText as Text } from '@/components/LocalizedText';
+import React, { useEffect, useRef, useState } from 'react';
+import { Feather } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
+import { Pressable, ScrollView, View } from 'react-native';
+import { LocalizedPressable, LocalizedText as Text } from '@/components/LocalizedText';
 import * as DocumentPicker from 'expo-document-picker';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -70,13 +72,40 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   </View>;
 }
 
+type PaymentBankDetailKey = 'account-number' | 'iban' | 'swift';
+
+function CopyableBankDetailRow({ label, value, copied, accessibilityLabel, testID, onCopy }: {
+  label: string;
+  value: string;
+  copied: boolean;
+  accessibilityLabel: string;
+  testID: string;
+  onCopy: () => void;
+}) {
+  const colors = useColors();
+  return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+    <Text style={{ color: colors.mutedForeground, fontSize: 11, width: 76 }}>{label}</Text>
+    <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} style={{ flex: 1 }}
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+      <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right', writingDirection: 'ltr', flexShrink: 0 }}>
+        {value || '—'}
+      </Text>
+    </ScrollView>
+    {value ? <LocalizedPressable accessibilityRole="button" accessibilityLabel={copied ? 'Copied' : accessibilityLabel}
+      accessibilityHint={copied ? undefined : 'Copies value to clipboard'}
+      testID={testID} onPress={onCopy} style={{ height: 44, minHeight: 44, width: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12 }}>
+      <Feather name={copied ? 'check' : 'copy'} size={14} color={colors.primary} />
+    </LocalizedPressable> : <View style={{ width: 44 }} />}
+  </View>;
+}
+
 export default function Deposit() {
   const { token, apiOrigin } = useAuth();
   const colors = useColors();
   const queryClient = useQueryClient();
   const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token) } });
   const optionsQuery = useGetInvestorDepositOptions({ query: { queryKey: ['investor-deposit-options'], enabled: Boolean(token) } });
-  const banksQuery = useGetInvestorPaymentBankAccounts({ query: { queryKey: ['investor-payment-bank-accounts'], enabled: Boolean(token) } });
+  const banksQuery = useGetInvestorPaymentBankAccounts({ query: { queryKey: ['investor-payment-bank-accounts'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const depositsQuery = useGetInvestorDeposits({ per_page: 5 }, { query: { queryKey: ['investor-deposits'], enabled: Boolean(token) } });
   const create = useCreateInvestorDeposit();
   const wallet = unwrap(walletQuery.data);
@@ -90,33 +119,56 @@ export default function Deposit() {
   const [reference, setReference] = useState('');
   const [proof, setProof] = useState('');
   const [proofName, setProofName] = useState('');
+  const [proofUploading, setProofUploading] = useState(false);
+  const [copiedBankField, setCopiedBankField] = useState<PaymentBankDetailKey | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [stage, setStage] = useState<'form' | 'review' | 'submitted'>('form');
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
   const [selectedDepositId, setSelectedDepositId] = useState('');
+  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const defaultBank = banks.find(item => isEnabled(first(item, ['is_default'])));
   const selectedBank = banks.find(item => first(item, ['id']) === bankId) ?? defaultBank;
   const selectedProject = projects.find(item => first(item, ['id']) === projectId);
   const paymentCurrency = first(selectedBank ?? {}, ['currency']).toUpperCase() || walletCurrency;
+  const bankAccountNumber = first(selectedBank ?? {}, ['account_number', 'accountNumber']);
+  const bankIban = first(selectedBank ?? {}, ['iban']);
+  const bankSwift = first(selectedBank ?? {}, ['swift', 'swift_code', 'swift_bic']);
   const proofRequired = isEnabled(first(selectedBank ?? {}, ['proof_required', 'requires_proof']));
   const timelineDeposit = confirmation ?? deposits.find(item => first(item, ['id', 'reference', 'deposit_reference']) === selectedDepositId);
   const confirmationCurrency = first(confirmation ?? {}, ['currency', 'wallet_currency'], paymentCurrency);
 
+  useEffect(() => () => {
+    if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+  }, []);
+
+  async function copyBankDetail(field: PaymentBankDetailKey, value: string) {
+    try {
+      await Clipboard.setStringAsync(value);
+      setCopiedBankField(field);
+      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+      copyResetTimer.current = setTimeout(() => setCopiedBankField(null), 1600);
+    } catch {
+      setError('Could not copy the bank detail. Select and copy the value instead.');
+    }
+  }
+
   async function pickProof() {
     setError('');
-    const result = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/*'], copyToCacheDirectory: true });
-    if (result.canceled) return;
-    const asset = result.assets[0];
-    if (asset.size && asset.size > 10 * 1024 * 1024) {
-      setError('Choose a receipt smaller than 10 MB.');
-      return;
-    }
+    setProofUploading(true);
     try {
+      const result = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/*'], copyToCacheDirectory: true });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (asset.size && asset.size > 10 * 1024 * 1024) {
+        setError('Choose a receipt smaller than 10 MB.');
+        return;
+      }
       const path = await uploadInvestorFile(asset.uri, asset.name, asset.mimeType ?? 'application/octet-stream', 'deposit-proofs', apiOrigin);
       setProof(path);
       setProofName(asset.name);
     } catch (err) { setError(messageOf(err)); }
+    finally { setProofUploading(false); }
   }
 
   function validateDeposit() {
@@ -180,7 +232,7 @@ export default function Deposit() {
     } catch (err) { setError(messageOf(err)); }
   }
 
-  return <Screen title="Add funds" subtitle={`Bank transfer to your OG Exports wallet · ${paymentCurrency || 'USD'}`}>
+  return <Screen title="Add funds" subtitle={`Bank transfer to your OG Exports wallet · ${paymentCurrency || 'USD'}`} refreshable>
     {stage === 'form' ? <>
       <Section title="1 · Amount" />
       <Card>
@@ -212,7 +264,7 @@ export default function Deposit() {
         {banks.map((item, index) => {
           const id = first(item, ['id']);
           const selected = first(selectedBank ?? {}, ['id']) === id;
-          return <Pressable key={id || String(index)} accessibilityRole="button" accessibilityState={{ selected }} testID={`deposit-bank-${id || index}`} onPress={() => setBankId(id)} style={{ paddingVertical: 11, borderTopWidth: index ? 1 : 0, borderTopColor: colors.border }}>
+          return <Pressable key={id || String(index)} accessibilityRole="button" accessibilityState={{ selected }} testID={`deposit-bank-${id || index}`} onPress={() => { setBankId(id); setCopiedBankField(null); }} style={{ paddingVertical: 11, borderTopWidth: index ? 1 : 0, borderTopColor: colors.border }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
               <Text style={{ color: selected ? colors.primary : colors.foreground, fontWeight: '700', flex: 1 }}>{first(item, ['bank_name', 'name'], 'Bank account')}</Text>
               {selected ? <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700' }}>SELECTED</Text> : null}
@@ -221,9 +273,15 @@ export default function Deposit() {
           </Pressable>;
         })}
         {selectedBank ? <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 2 }}>
-          <DetailRow label="Account number" value={first(selectedBank, ['account_number'])} />
-          <DetailRow label="IBAN" value={first(selectedBank, ['iban'])} />
-          <DetailRow label="SWIFT / BIC" value={first(selectedBank, ['swift'])} />
+          <CopyableBankDetailRow label="Account number" value={bankAccountNumber} copied={copiedBankField === 'account-number'}
+            accessibilityLabel="Copy account number" testID="copy-payment-account-number"
+            onCopy={() => void copyBankDetail('account-number', bankAccountNumber)} />
+          <CopyableBankDetailRow label="IBAN" value={bankIban} copied={copiedBankField === 'iban'}
+            accessibilityLabel="Copy IBAN" testID="copy-payment-iban"
+            onCopy={() => void copyBankDetail('iban', bankIban)} />
+          <CopyableBankDetailRow label="SWIFT / BIC" value={bankSwift} copied={copiedBankField === 'swift'}
+            accessibilityLabel="Copy SWIFT / BIC" testID="copy-payment-swift"
+            onCopy={() => void copyBankDetail('swift', bankSwift)} />
           <DetailRow label="Payment currency" value={first(selectedBank, ['currency']).toUpperCase() || walletCurrency || 'USD'} />
           {first(selectedBank, ['instructions']) ? <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 19, marginTop: 7 }}>{first(selectedBank, ['instructions'])}</Text> : null}
           {first(selectedBank, ['notes']) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 6 }}>{first(selectedBank, ['notes'])}</Text> : null}
@@ -249,15 +307,24 @@ export default function Deposit() {
       <Section title="4 · Transaction Reference" />
       <Card>
         <Field label="Bank transaction reference · Required" value={reference} onChangeText={setReference} placeholder="Reference from your transfer receipt" autoCapitalize="none" />
-        <Pressable accessibilityRole="button" testID="attach-deposit-proof" onPress={() => void pickProof()} style={{ paddingVertical: 12 }}>
-          <Text style={{ color: colors.primary, fontWeight: '700' }}>{proofName ? `Receipt attached · ${proofName}` : proofRequired ? 'Attach proof of transfer · Required' : 'Attach proof of transfer · Optional'}</Text>
-        </Pressable>
-        {proofRequired ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16 }}>The selected payment account requires proof before submission.</Text> : null}
-        {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginTop: 5, marginBottom: 10 }}>{error}</Text> : null}
-        <Action title="Review deposit" icon="arrow-right" disabled={!paymentCurrency || !amount || Number(amount) < 1 || !selectedBank || !reference.trim() || (proofRequired && !proof)} onPress={() => {
-          setError('');
-          if (validateDeposit()) setStage('review');
-        }} />
+        <View style={{ gap: 12 }}>
+          <Action title={proofUploading ? 'Uploading payment proof…' : proofName ? 'Change payment proof' : 'Upload payment proof'}
+            icon={proofName ? 'refresh-cw' : 'upload'} secondary loading={proofUploading} testID="attach-deposit-proof" onPress={() => void pickProof()} />
+          {proofName ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 11, borderWidth: 1, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.lightGreen }}>
+            <Feather name="file-text" size={17} color={colors.primary} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>Receipt attached</Text>
+              <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{proofName}</Text>
+            </View>
+            <Feather name="check-circle" size={17} color={colors.primary} />
+          </View> : null}
+          {proofRequired ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16 }}>The selected payment account requires proof before submission.</Text> : null}
+          {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, lineHeight: 18 }}>{error}</Text> : null}
+          <Action title="Review deposit" icon="arrow-right" disabled={!paymentCurrency || !amount || Number(amount) < 1 || !selectedBank || !reference.trim() || (proofRequired && !proof)} onPress={() => {
+            setError('');
+            if (validateDeposit()) setStage('review');
+          }} />
+        </View>
       </Card>
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginBottom: 12 }}>Use the selected OG Exports payment instructions and submit the transfer reference. Wallet funds are credited only after server approval.</Text>
     </> : null}
@@ -267,7 +334,7 @@ export default function Deposit() {
       <DetailRow label="Amount" value={moneyInSourceCurrency(Number(amount), paymentCurrency || 'USD')} />
       <DetailRow label="Payment method" value="Bank transfer" />
       <DetailRow label="Receiving bank" value={first(selectedBank ?? {}, ['bank_name', 'name'])} />
-      <DetailRow label="Account number / IBAN" value={first(selectedBank ?? {}, ['account_number', 'iban'])} />
+      <DetailRow label="Account number / IBAN" value={bankAccountNumber || bankIban} />
       <DetailRow label="Transaction reference" value={reference.trim()} />
       <DetailRow label="Proof of transfer" value={proofName || (proofRequired ? 'Required, but not attached' : 'Not attached')} />
       {selectedProject ? <DetailRow label="Project association" value={first(selectedProject, ['title', 'name'], 'Investment project')} /> : null}

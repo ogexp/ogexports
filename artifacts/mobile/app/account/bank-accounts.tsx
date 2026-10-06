@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Feather } from '@expo/vector-icons';
 import { View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import * as DocumentPicker from 'expo-document-picker';
@@ -30,24 +31,32 @@ export default function BankAccounts() {
   const [swift, setSwift] = useState('');
   const [branch, setBranch] = useState('');
   const [proof, setProof] = useState<{ uri: string; name: string; size?: number } | null>(null);
+  const [proofPicking, setProofPicking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
   async function chooseProof() {
     setError('');
-    const result = await DocumentPicker.getDocumentAsync({
-      type: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
-      copyToCacheDirectory: true,
-    });
-    if (result.canceled) return;
-    const file = result.assets[0];
-    if (file.size && file.size > 10 * 1024 * 1024) {
-      setProof(null);
-      setError('Choose a PDF or image smaller than 10 MB.');
-      return;
+    setProofPicking(true);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const file = result.assets[0];
+      if (file.size && file.size > 10 * 1024 * 1024) {
+        setProof(null);
+        setError('Choose a PDF or image smaller than 10 MB.');
+        return;
+      }
+      setProof({ uri: file.uri, name: file.name, size: file.size });
+    } catch (cause) {
+      setError(messageOf(cause));
+    } finally {
+      setProofPicking(false);
     }
-    setProof({ uri: file.uri, name: file.name, size: file.size });
   }
 
   async function submit() {
@@ -130,11 +139,23 @@ export default function BankAccounts() {
       <Field label="Currency" value={currency} onChangeText={setCurrency} placeholder="e.g. USD or PKR" autoCapitalize="characters" />
       <Field label="SWIFT / BIC (optional)" value={swift} onChangeText={setSwift} placeholder="SWIFT / BIC" autoCapitalize="characters" />
       <Field label="Branch (optional)" value={branch} onChangeText={setBranch} placeholder="Branch" />
-      <Action title={proof ? `Proof selected: ${proof.name}` : 'Choose statement or cancelled cheque'} secondary onPress={() => void chooseProof()} />
-      {proof?.size ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 10 }}>{(proof.size / 1024 / 1024).toFixed(1)} MB · maximum 10 MB</Text> : null}
-      <Action title="Submit for review" icon="shield" loading={busy}
-        disabled={busy || !bank.trim() || !holder.trim() || !(accountNumber.trim() || iban.trim()) || !currency.trim() || !proof}
-        onPress={() => void submit()} />
+      <View style={{ gap: 12 }}>
+        <Action title={proofPicking ? 'Selecting file…' : proof ? 'Change bank proof' : 'Select bank proof to upload'}
+          icon={proof ? 'refresh-cw' : 'upload'} secondary loading={proofPicking} testID="choose-bank-proof" onPress={() => void chooseProof()} />
+        {proof ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 11, borderWidth: 1, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.lightGreen }}>
+          <Feather name="file-text" size={17} color={colors.primary} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>{proof.name}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>
+              {proof.size ? `${(proof.size / 1024 / 1024).toFixed(1)} MB · maximum 10 MB` : 'Ready to submit'}
+            </Text>
+          </View>
+          <Feather name="check-circle" size={17} color={colors.primary} />
+        </View> : null}
+        <Action title="Submit for review" icon="shield" loading={busy}
+          disabled={busy || proofPicking || !bank.trim() || !holder.trim() || !(accountNumber.trim() || iban.trim()) || !currency.trim() || !proof}
+          onPress={() => void submit()} />
+      </View>
     </Card>
   </Screen>;
 }
