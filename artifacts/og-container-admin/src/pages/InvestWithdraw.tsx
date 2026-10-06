@@ -21,6 +21,7 @@ import { useCurrency } from "@/lib/use-currency"
 import { formatInvestorLedgerAmount } from "@/lib/format-investor-ledger"
 import { api, unwrapPage, ApiError } from "@/lib/api"
 import { paymentStatusLabel } from "@/lib/deposit-statuses"
+import { useInvestorDashboardBalance } from "@/lib/investor-balance"
 import { TransactionHistoryCard, type TransactionHistoryItem } from "@/components/invest/TransactionHistoryCard"
 import { notify } from "@/lib/notify"
 import {
@@ -46,6 +47,7 @@ export default function InvestWithdraw() {
   const { user } = useLocalAuth()
   const c = useCurrency()
   const queryClient = useQueryClient()
+  const dashboardBalanceQuery = useInvestorDashboardBalance()
   const [step, setStep] = useState<Step>("overview")
   const [amount, setAmount] = useState("")
   const [currency, setCurrency] = useState("")
@@ -60,9 +62,10 @@ export default function InvestWithdraw() {
   const [txPassword, setTxPassword] = useState("")
   const [withdrawId, setWithdrawId] = useState("")
   const [withdrawStatus, setWithdrawStatus] = useState("")
-  const [availableBalance, setAvailableBalance] = useState<number | null>(null)
+  const availableBalance = dashboardBalanceQuery.data?.availableBalance ?? null
   const [pendingBalance, setPendingBalance] = useState<number | null>(null)
-  const [ledgerCurrency, setLedgerCurrency] = useState("")
+  const [walletCurrencyFromWallet, setWalletCurrencyFromWallet] = useState("")
+  const ledgerCurrency = dashboardBalanceQuery.data?.currency || walletCurrencyFromWallet
   const fmtW = (amount: number | null, usdAmount?: number | null) =>
     amount == null || !ledgerCurrency
       ? "Not provided"
@@ -72,6 +75,8 @@ export default function InvestWithdraw() {
         lockedRate: c.isPK && c.rate > 0 ? c.rate : null,
       })
   const [walletLoading, setWalletLoading] = useState(true)
+  const balanceLoading = walletLoading || dashboardBalanceQuery.isFetching
+  const balanceUnavailable = dashboardBalanceQuery.isError || dashboardBalanceQuery.isFetching || availableBalance == null
   const [submitting, setSubmitting] = useState(false)
   const [otpSending, setOtpSending] = useState(false)
   const [otpEmail, setOtpEmail] = useState("")
@@ -88,7 +93,10 @@ export default function InvestWithdraw() {
   const withdrawableBalance = availableBalance
   const maxWithdrawal = availableBalance
   const amountNum = parseFloat(amount) || 0
-  const exceedsBalance = availableBalance == null || amountNum > availableBalance
+  const exceedsBalance =
+    dashboardBalanceQuery.isError
+    || availableBalance == null
+    || amountNum > availableBalance
 
   const applyWithdrawBank = useCallback((bank: WithdrawBank) => {
     setBankName(bank.bank_name || "")
@@ -105,22 +113,15 @@ export default function InvestWithdraw() {
     try {
       const walletRes: any = await api.get("/api/investor/wallet")
       const wallet = walletRes?.data ?? walletRes
-      const parsedAvailable = wallet?.available_balance == null || String(wallet.available_balance).trim() === ""
-        ? null
-        : Number(wallet.available_balance)
       const parsedPending = wallet?.pending_balance == null || String(wallet.pending_balance).trim() === ""
         ? null
         : Number(wallet.pending_balance)
-      setAvailableBalance(parsedAvailable != null && Number.isFinite(parsedAvailable) ? parsedAvailable : null)
       setPendingBalance(parsedPending != null && Number.isFinite(parsedPending) ? parsedPending : null)
       const cur = String(wallet?.currency || "").trim().toUpperCase()
-      setLedgerCurrency(cur)
-      setCurrency(cur)
+      setWalletCurrencyFromWallet(cur)
     } catch {
-      setAvailableBalance(null)
       setPendingBalance(null)
-      setLedgerCurrency("")
-      setCurrency("")
+      setWalletCurrencyFromWallet("")
     } finally {
       setWalletLoading(false)
     }
@@ -228,6 +229,11 @@ export default function InvestWithdraw() {
   }, [])
 
   useEffect(() => {
+    const currentCurrency = dashboardBalanceQuery.data?.currency || walletCurrencyFromWallet
+    if (currentCurrency) setCurrency(currentCurrency)
+  }, [dashboardBalanceQuery.data?.currency, walletCurrencyFromWallet])
+
+  useEffect(() => {
     if (otpCooldown <= 0) return
     const t = setTimeout(() => setOtpCooldown(v => v - 1), 1000)
     return () => clearTimeout(t)
@@ -258,6 +264,12 @@ export default function InvestWithdraw() {
 
   async function handleContinueToSecurity() {
     setFormError("")
+    if (dashboardBalanceQuery.isError || dashboardBalanceQuery.isFetching) {
+      setFormError(dashboardBalanceQuery.isError
+        ? "Available balance could not be loaded. Retry before continuing."
+        : "Please wait while the available balance is refreshed.")
+      return
+    }
     if (!amount || amountNum <= 0 || exceedsBalance || !currency || !bankName || !accountHolder || !accountNumber) {
       setFormError("Please complete all required fields.")
       return
@@ -278,6 +290,12 @@ export default function InvestWithdraw() {
     }
     if (!txPassword) {
       setFormError("Enter your transaction password.")
+      return
+    }
+    if (dashboardBalanceQuery.isError || dashboardBalanceQuery.isFetching) {
+      setFormError(dashboardBalanceQuery.isError
+        ? "Available balance could not be loaded. Retry before continuing."
+        : "Please wait while the available balance is refreshed.")
       return
     }
     if (amountNum <= 0 || availableBalance == null || amountNum > availableBalance || !currency) {
@@ -361,11 +379,19 @@ export default function InvestWithdraw() {
                 <Loader2 className="w-4 h-4 animate-spin" /> Loading wallet…
               </div>
             )}
+            {dashboardBalanceQuery.isError && (
+              <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-3 text-sm text-red-600">
+                <span>Available balance could not be loaded from the investor dashboard.</span>
+                <Button variant="outline" size="sm" onClick={() => void dashboardBalanceQuery.refetch()}>
+                  Retry
+                </Button>
+              </div>
+            )}
             <div className="grid sm:grid-cols-3 gap-4">
               {[
-                { label: "Available Balance", value: fmtW(availableBalance), color: "text-foreground", icon: Wallet },
-                { label: "Withdrawable Balance", value: fmtW(withdrawableBalance), color: "text-emerald-500", icon: CheckCircle2 },
-                { label: "Minimum / Maximum Withdrawal", value: `Not published / ${fmtW(maxWithdrawal)}`, color: "text-muted-foreground", icon: Info },
+                { label: "Available Balance", value: dashboardBalanceQuery.isError ? "Unavailable" : balanceLoading ? "…" : fmtW(availableBalance), color: "text-foreground", icon: Wallet },
+                { label: "Withdrawable Balance", value: dashboardBalanceQuery.isError ? "Unavailable" : balanceLoading ? "…" : fmtW(withdrawableBalance), color: "text-emerald-500", icon: CheckCircle2 },
+                { label: "Minimum / Maximum Withdrawal", value: `Not published / ${dashboardBalanceQuery.isError ? "Unavailable" : balanceLoading ? "…" : fmtW(maxWithdrawal)}`, color: "text-muted-foreground", icon: Info },
               ].map(s => (
                 <Card key={s.label} className="glass-card">
                   <CardContent className="p-5 flex items-center gap-4">
@@ -414,7 +440,7 @@ export default function InvestWithdraw() {
               <p className="text-xs text-amber-600">Pending withdrawals reserved: {fmtW(pendingBalance)}</p>
             )}
 
-            <Button className="w-full" onClick={() => void proceedToWithdrawForm()} disabled={walletLoading || availableBalance == null || availableBalance <= 0 || !currency}>
+            <Button className="w-full" onClick={() => void proceedToWithdrawForm()} disabled={balanceLoading || dashboardBalanceQuery.isError || availableBalance == null || availableBalance <= 0 || !currency}>
               Proceed to Withdraw <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
@@ -451,7 +477,7 @@ export default function InvestWithdraw() {
                 <div className="space-y-1.5">
                   <Label>Withdrawal Amount <span className="text-red-400">*</span></Label>
                   <Input type="number" min={0} max={availableBalance ?? undefined} placeholder="Enter amount" value={amount} onChange={e => { setAmount(e.target.value); setFormError("") }} />
-                  <p className="text-xs text-muted-foreground">Max withdrawable: {fmtW(withdrawableBalance)}</p>
+                  <p className="text-xs text-muted-foreground">Max withdrawable: {dashboardBalanceQuery.isError ? "Unavailable" : dashboardBalanceQuery.isFetching ? "Refreshing…" : fmtW(withdrawableBalance)}</p>
                   {exceedsBalance && <p className="text-xs text-red-500">Amount cannot exceed available balance.</p>}
                 </div>
                 <div className="space-y-1.5">
@@ -517,7 +543,7 @@ export default function InvestWithdraw() {
                 <Button variant="outline" onClick={() => setStep("overview")}>Back</Button>
                 <Button
                   className="flex-1"
-                  disabled={otpSending || !amount || amountNum <= 0 || exceedsBalance || !currency || !bankName || !accountHolder || !accountNumber}
+                  disabled={otpSending || balanceUnavailable || !amount || amountNum <= 0 || exceedsBalance || !currency || !bankName || !accountHolder || !accountNumber}
                   onClick={() => void handleContinueToSecurity()}
                 >
                   {otpSending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}

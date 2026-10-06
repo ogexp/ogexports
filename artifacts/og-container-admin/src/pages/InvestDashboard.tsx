@@ -29,6 +29,7 @@ import { RecentAlertsCard } from "@/components/portal/RecentAlertsCard"
 import { ContainerOpportunityCard } from "@/components/invest/ContainerOpportunityCard"
 import { adminToContainer } from "@/lib/invest-mappers"
 import { fetchInvestorOpportunities } from "@/lib/investor-opportunities"
+import { INVESTOR_DASHBOARD_QUERY_KEY } from "@/lib/investor-balance"
 
 const RANGE_OPTIONS = ["7D", "30D", "90D", "1Y", "Lifetime"] as const
 type RangeOption = (typeof RANGE_OPTIONS)[number]
@@ -259,7 +260,7 @@ export default function InvestDashboard() {
   const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set())
 
   const { data: dashPayload, isLoading, isError } = useQuery({
-    queryKey: ["investor", "dashboard"],
+    queryKey: INVESTOR_DASHBOARD_QUERY_KEY,
     queryFn: () => api.get<{ data: DashboardPayload }>("/api/investor/dashboard"),
   })
 

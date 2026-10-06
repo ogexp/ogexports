@@ -1,4 +1,4 @@
-- [OG Exports API contract](investor-api-contract.md) — Laravel is the source; absent money stays 0.00 USD, and upload size limits must align with mobile.
+- [OG Exports API contract](investor-api-contract.md) — Laravel owns financial data; align available-balance displays across web/mobile and preserve explicit missing-money rules.
 - [OG Exports mobile visual direction](og-exports-visual-direction.md) — premium light/emerald UI, five investor tabs, default-USD display currency, and source-currency transactions.
 - [Node TypeScript test imports](node-ts-test-imports.md) — native Node tests reject extensionless sibling TypeScript imports; `.ts` suffixes conflict with default `tsc`.
 - [API origin configuration](api-origin-configuration.md) — keep the API address off the login screen; use app environment or existing Settings configuration.

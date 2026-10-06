@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { useLocation } from "wouter"
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,7 @@ import { CheckCircle2, ChevronRight, ShieldCheck, Wallet, Loader2, AlertCircle }
 import { ContainerInvestment, LongTermProject } from "@/data/investments"
 import { api, ApiError } from "@/lib/api"
 import { formatInvestorProjectAmount } from "@/lib/invest-format"
+import { INVESTOR_DASHBOARD_QUERY_KEY, useInvestorDashboardBalance } from "@/lib/investor-balance"
 
 interface InvestNowModalProps {
   investment: ContainerInvestment | LongTermProject
@@ -35,6 +37,11 @@ export function InvestNowModal({
 }: InvestNowModalProps) {
   const { toast } = useToast()
   const [, setLocation] = useLocation()
+  const queryClient = useQueryClient()
+  const dashboardBalanceQuery = useInvestorDashboardBalance(isOpen)
+  const walletBalance = isOpen ? dashboardBalanceQuery.data?.availableBalance ?? null : null
+  const walletCurrency = isOpen ? dashboardBalanceQuery.data?.currency ?? "" : ""
+  const walletLoading = isOpen && dashboardBalanceQuery.isFetching
   const [step, setStep] = useState(0)
   const [amount, setAmount] = useState(initialAmount > 0 ? initialAmount.toString() : "")
   const [termsAccepted, setTermsAccepted] = useState(false)
@@ -45,9 +52,6 @@ export function InvestNowModal({
     message: string
   } | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [walletBalance, setWalletBalance] = useState<number | null>(null)
-  const [walletCurrency, setWalletCurrency] = useState("")
-  const [walletLoading, setWalletLoading] = useState(false)
 
   const isProject = "category" in investment
   const itemName = isProject ? investment.name : investment.commodity
@@ -69,6 +73,8 @@ export function InvestNowModal({
     && remaining != null
     && walletBalance != null
     && walletCurrencyMatches
+    && !walletLoading
+    && !dashboardBalanceQuery.isError
 
   useEffect(() => {
     if (!isOpen) return
@@ -81,24 +87,6 @@ export function InvestNowModal({
     setTermsAccepted(false)
     setRiskAcknowledged(false)
     setConfirmation(null)
-    setWalletBalance(null)
-    setWalletCurrency("")
-    setWalletLoading(true)
-    api.get("/api/investor/wallet")
-      .then((res: any) => {
-        const w = res?.data ?? res
-        const rawBalance = w?.available_balance
-        const parsedBalance = rawBalance == null || String(rawBalance).trim() === ""
-          ? null
-          : Number(rawBalance)
-        setWalletBalance(parsedBalance != null && Number.isFinite(parsedBalance) ? parsedBalance : null)
-        setWalletCurrency(String(w?.currency || "").trim().toUpperCase())
-      })
-      .catch(() => {
-        setWalletBalance(null)
-        setWalletCurrency("")
-      })
-      .finally(() => setWalletLoading(false))
   }, [isOpen, initialAmount, investment.minInvestment])
 
   const handleNext = () => setStep(s => Math.min(s + 1, STEPS.length - 1))
@@ -111,6 +99,8 @@ export function InvestNowModal({
     if (full) return "This opportunity is fully subscribed."
     if (!termsProvided) return "Required investment terms or project currency are not provided."
     if (remaining == null) return "Available funding capacity is not provided."
+    if (dashboardBalanceQuery.isError) return "Available balance could not be loaded from the investor dashboard."
+    if (walletLoading) return "Refreshing your available balance…"
     if (walletBalance == null || !walletCurrency) return "Wallet balance or currency is not available."
     if (!walletCurrencyMatches) return "Wallet and project currencies do not match; conversion terms are not provided."
     if (investment.minInvestment == null) return "Minimum investment is not provided."
@@ -143,6 +133,7 @@ export function InvestNowModal({
         title: "Investment confirmed",
         description: reference ? `Server reference: ${reference}` : message,
       })
+      void queryClient.invalidateQueries({ queryKey: INVESTOR_DASHBOARD_QUERY_KEY })
       onSuccess?.(body)
     } catch (e: any) {
       const msg =

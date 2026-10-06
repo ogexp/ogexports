@@ -52,3 +52,9 @@ The supplied Laravel source snapshot limits image uploads to 8 MB and permits PD
 **Why:** A mobile file can pass the 10 MB check and still be rejected by the Laravel upload endpoint when it is an image above 8 MB.
 
 **How to apply:** Confirm the deployed Laravel limits before claiming the full mobile 10 MB range works; coordinate a server-side limit change rather than silently lowering the mobile limit requested for this app.
+
+For available-balance consistency requests, inspect both the investor mobile app and web portal. Use the dashboard's `summary.available_balance`, then its `wallet.available_balance` fallback, for investor-facing available-balance displays; do not fall back to the separate wallet endpoint's available-balance field when it disagrees. Keep investment and withdrawal enforcement server-side.
+
+**Why:** A mobile-only balance correction did not resolve the user's web preview, which still showed a different wallet-endpoint amount.
+
+**How to apply:** Search both `artifacts/mobile` and `artifacts/og-container-admin` for available-balance consumers, preserve pending/breakdown data from their existing endpoints, and verify each surface against the dashboard response.

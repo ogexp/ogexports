@@ -13,6 +13,7 @@ import {
 import { api, unwrapPage, downloadAuthenticatedFile } from "@/lib/api"
 import { notify } from "@/lib/notify"
 import { paymentStatusBadgeClass, paymentStatusLabel } from "@/lib/deposit-statuses"
+import { useInvestorDashboardBalance } from "@/lib/investor-balance"
 
 const CURRENCY_META = [
   { code: "USD", name: "US Dollar",        symbol: "$",   flag: "🇺🇸" },
@@ -124,9 +125,11 @@ export default function InvestWallet() {
   const [ratesLoading, setRatesLoading] = useState(true)
   const [ratesError, setRatesError] = useState(false)
   const [lastUpdated, setLastUpdated] = useState("")
-  const [walletBalance, setWalletBalance] = useState<number | null>(null)
+  const dashboardBalanceQuery = useInvestorDashboardBalance()
+  const walletBalance = dashboardBalanceQuery.data?.availableBalance ?? null
   const [pendingBalance, setPendingBalance] = useState<number | null>(null)
-  const [walletCurrency, setWalletCurrency] = useState("")
+  const [walletCurrencyFromWallet, setWalletCurrencyFromWallet] = useState("")
+  const walletCurrency = dashboardBalanceQuery.data?.currency || walletCurrencyFromWallet
   const fmtW = (amount: number | null) => formatInvestorProjectAmount(amount, walletCurrency)
   const [depositBreakdown, setDepositBreakdown] = useState<DepositBreakdown[]>([])
   const [depositBreakdownAvailable, setDepositBreakdownAvailable] = useState(false)
@@ -225,13 +228,11 @@ export default function InvestWallet() {
     try {
       const walletRes: any = await api.get("/api/investor/wallet")
       const wallet = walletRes?.data ?? walletRes
-      const bal = parseOptionalNumber(wallet?.available_balance)
       const pending = parseOptionalNumber(wallet?.pending_balance)
       const rawCurrency = String(wallet?.currency || "").trim().toUpperCase()
       const cur = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : ""
-      setWalletBalance(bal)
       setPendingBalance(pending)
-      setWalletCurrency(cur)
+      setWalletCurrencyFromWallet(cur)
       if (!initialCurrencySetRef.current) {
         setSelectedCurrency(usdOnly ? "USD" : cur)
         initialCurrencySetRef.current = true
@@ -248,9 +249,8 @@ export default function InvestWallet() {
             .filter((item: DepositBreakdown) => /^[A-Z]{3}$/.test(item.currency))
         : [])
     } catch {
-      setWalletBalance(null)
       setPendingBalance(null)
-      setWalletCurrency("")
+      setWalletCurrencyFromWallet("")
       setDepositBreakdownAvailable(false)
       setDepositBreakdown([])
       setTxns([])
@@ -323,6 +323,14 @@ export default function InvestWallet() {
             <Loader2 className="w-4 h-4 animate-spin" /> Loading wallet…
           </div>
         )}
+        {dashboardBalanceQuery.isError && (
+          <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-3 text-sm text-red-600">
+            <span>Available balance could not be loaded from the investor dashboard.</span>
+            <Button variant="outline" size="sm" onClick={() => void dashboardBalanceQuery.refetch()}>
+              Retry
+            </Button>
+          </div>
+        )}
 
         {/* Top stat cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -336,7 +344,11 @@ export default function InvestWallet() {
                   Available Balance{walletCurrency ? ` (${walletCurrency})` : ""}
                 </p>
                 <p className="text-xl font-heading font-bold">
-                  {loading ? "…" : fmtW(walletBalance)}
+                  {dashboardBalanceQuery.isFetching
+                    ? "…"
+                    : dashboardBalanceQuery.isError
+                      ? "Unavailable"
+                      : fmtW(walletBalance)}
                 </p>
                 {pendingBalance != null && pendingBalance > 0 && (
                   <p className="text-[11px] text-amber-600 mt-0.5">
@@ -390,7 +402,7 @@ export default function InvestWallet() {
                   {ratesLoading ? "Loading rate data…" : ratesError ? "Rate data is unavailable." : lastUpdated ? `Rate data updated ${lastUpdated}.` : "Rate update time is not provided."}
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => { fetchRates(); loadWallet() }} disabled={ratesLoading}>
+              <Button variant="outline" size="sm" onClick={() => { fetchRates(); loadWallet(); void dashboardBalanceQuery.refetch() }} disabled={ratesLoading}>
                 <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${ratesLoading ? "animate-spin" : ""}`} />
                 Refresh
               </Button>
@@ -469,8 +481,10 @@ export default function InvestWallet() {
                       {effectiveSelected ? `${effectiveSelected} Balance` : "Balance"}
                     </p>
                     <p className="text-4xl font-heading font-bold mt-1">
-                      {loading
+                      {dashboardBalanceQuery.isFetching || (loading && effectiveSelected !== walletCurrency)
                         ? "…"
+                        : dashboardBalanceQuery.isError && effectiveSelected === walletCurrency
+                          ? "Unavailable"
                         : displayBalance == null
                           ? "Not provided"
                           : effectiveSelected === walletCurrency
@@ -479,7 +493,7 @@ export default function InvestWallet() {
                     </p>
                     {effectiveSelected !== walletCurrency && (
                       <p className="text-sm text-muted-foreground mt-1">
-                        Ledger: {fmtW(walletBalance)}
+                        Ledger: {dashboardBalanceQuery.isError ? "Unavailable" : fmtW(walletBalance)}
                       </p>
                     )}
                     {selectedCurrency !== walletCurrency && cur.balance != null && cur.balance > 0 && (

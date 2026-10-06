@@ -14,6 +14,7 @@ import { ArrowLeft, Ship, TrendingUp, Calendar, Lock, CheckCircle2, FileText, Al
 import { InvestNowModal } from "@/components/invest/InvestNowModal"
 import { InvestorKycGate, InvestorKycRequiredBanner } from "@/components/invest/InvestorKycGate"
 import { api, downloadAuthenticatedFile } from "@/lib/api"
+import { useInvestorDashboardBalance } from "@/lib/investor-balance"
 import { mapInvestProject, type AdminInvestProject, type AdminInvestProjectDocument } from "@/lib/admin-data"
 import {
   containerProjectStatusLabel,
@@ -35,6 +36,14 @@ export default function InvestDetail() {
   const { user: localUser } = useLocalAuth()
   const { data: me } = useGetMe({ query: { enabled: !!isSignedIn } })
   const isInvestor = me?.accountType === "investor" || localUser?.accountType === "investor"
+  const dashboardBalanceQuery = useInvestorDashboardBalance(isSignedIn && isInvestor)
+  const walletBalance = isSignedIn && isInvestor
+    ? dashboardBalanceQuery.data?.availableBalance ?? null
+    : null
+  const walletCurrency = isSignedIn && isInvestor
+    ? dashboardBalanceQuery.data?.currency ?? ""
+    : ""
+  const walletLoading = dashboardBalanceQuery.isFetching
 
   const [amount, setAmount] = useState("")
   const [modalOpen, setModalOpen] = useState(false)
@@ -43,9 +52,6 @@ export default function InvestDetail() {
   const [loadFailure, setLoadFailure] = useState<"not-found" | "unavailable" | null>(null)
   const [retryVersion, setRetryVersion] = useState(0)
   const [imageFailed, setImageFailed] = useState(false)
-  const [walletBalance, setWalletBalance] = useState<number | null>(null)
-  const [walletCurrency, setWalletCurrency] = useState("")
-  const [walletLoading, setWalletLoading] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -80,40 +86,6 @@ export default function InvestDetail() {
   useEffect(() => {
     setImageFailed(false)
   }, [slug])
-
-  useEffect(() => {
-    if (!isSignedIn || !isInvestor) {
-      setWalletBalance(null)
-        setWalletCurrency("")
-      setWalletLoading(false)
-      return
-    }
-    let cancelled = false
-    setWalletLoading(true)
-    api.get("/api/investor/wallet")
-      .then((res: unknown) => {
-        const payload = res as { data?: { available_balance?: number; currency?: string } }
-        const w = payload?.data ?? (payload as { available_balance?: number; currency?: string })
-        if (!cancelled) {
-          const rawBalance = w?.available_balance
-          const parsedBalance = rawBalance == null || String(rawBalance).trim() === ""
-            ? null
-            : Number(rawBalance)
-          setWalletBalance(parsedBalance != null && Number.isFinite(parsedBalance) ? parsedBalance : null)
-          setWalletCurrency(String(w?.currency || "").trim().toUpperCase())
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setWalletBalance(null)
-          setWalletCurrency("")
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setWalletLoading(false)
-      })
-    return () => { cancelled = true }
-  }, [isSignedIn, isInvestor])
 
   if (loading) {
     return (
@@ -178,6 +150,7 @@ export default function InvestDetail() {
   const walletDebitNeeded = val
   const investAmountDisabled =
     walletLoading
+    || dashboardBalanceQuery.isError
     || walletBalance == null
     || !walletCurrencyMatches
     || !termsReady
@@ -526,7 +499,12 @@ export default function InvestDetail() {
                         >
                           Invest Amount
                         </InvestorKycGate>
-                        {!walletLoading && walletBalance != null && walletBalance <= 0 && (
+                        {dashboardBalanceQuery.isError && (
+                          <p role="alert" className="text-xs text-center text-red-500">
+                            Available balance could not be loaded from the investor dashboard.
+                          </p>
+                        )}
+                        {!walletLoading && !dashboardBalanceQuery.isError && walletBalance != null && walletBalance <= 0 && (
                           <p className="text-xs text-center text-muted-foreground">
                             Add funds to your wallet to invest.{" "}
                             <Link href="/invest/deposit" className="text-primary font-medium hover:underline">
@@ -534,7 +512,12 @@ export default function InvestDetail() {
                             </Link>
                           </p>
                         )}
-                        {!walletLoading && walletBalance != null && walletBalance > 0 && val > 0 && walletDebitNeeded > walletBalance && (
+                        {dashboardBalanceQuery.isError && (
+                          <p role="alert" className="text-xs text-center text-red-500">
+                            Available balance could not be loaded from the investor dashboard.
+                          </p>
+                        )}
+                        {!walletLoading && !dashboardBalanceQuery.isError && walletBalance != null && walletBalance > 0 && val > 0 && walletDebitNeeded > walletBalance && (
                           <p className="text-xs text-red-500 text-center">
                             Amount exceeds available balance ({formatInvestorProjectAmount(walletBalance, walletCurrency)})
                           </p>

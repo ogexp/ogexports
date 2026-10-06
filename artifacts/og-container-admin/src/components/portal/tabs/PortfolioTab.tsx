@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { useCurrency } from "@/lib/use-currency"
 import { formatInvestorLedgerAmount } from "@/lib/format-investor-ledger"
+import { INVESTOR_DASHBOARD_QUERY_KEY } from "@/lib/investor-balance"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -118,7 +119,7 @@ function KpiCard({
 export function PortfolioTab() {
   const currencyContext = useCurrency()
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["investor", "dashboard"],
+    queryKey: INVESTOR_DASHBOARD_QUERY_KEY,
     queryFn: () => api.get<{ data: InvestorDashboard }>("/api/investor/dashboard"),
     staleTime: 30_000,
   })

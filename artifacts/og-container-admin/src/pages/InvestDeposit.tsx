@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { InvestPortalLayout } from "@/components/invest/InvestPortalLayout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,6 +19,7 @@ import { formatInvestorProjectAmount } from "@/lib/invest-format"
 import { api, unwrapPage } from "@/lib/api"
 import { notify } from "@/lib/notify"
 import { paymentStatusBadgeClass, paymentStatusLabel } from "@/lib/deposit-statuses"
+import { useInvestorDashboardBalance } from "@/lib/investor-balance"
 import { TransactionHistoryCard, type TransactionHistoryItem } from "@/components/invest/TransactionHistoryCard"
 import { type BankAccount } from "@/lib/bank-accounts"
 import { CompanyBankAccountsPanel } from "@/components/shared/CompanyBankAccountsPanel"
@@ -86,14 +87,15 @@ export default function InvestDeposit() {
   const { user } = useLocalAuth()
   const c = useCurrency()
   const queryClient = useQueryClient()
-  const [ledgerWalletCurrency, setLedgerWalletCurrency] = useState("")
-  const walletCurrency = ledgerWalletCurrency
+  const dashboardBalanceQuery = useInvestorDashboardBalance()
+  const walletBalance = dashboardBalanceQuery.data?.availableBalance ?? null
+  const walletCurrency = dashboardBalanceQuery.data?.currency ?? ""
   const fmtW = (amount: number, usdAmount?: number | null) =>
-    !ledgerWalletCurrency
+    !walletCurrency
       ? "Not provided"
       : formatInvestorLedgerAmount(c, amount, {
       usdAmount,
-      ledgerCurrency: ledgerWalletCurrency,
+      ledgerCurrency: walletCurrency,
       lockedRate: c.isPK && c.rate > 0 ? c.rate : null,
     })
   const [depositCurrency, setDepositCurrency] = useState<string>("")
@@ -110,7 +112,6 @@ export default function InvestDeposit() {
   const [selectedProjectId, setSelectedProjectId] = useState("")
   const [selectedBankAccountId, setSelectedBankAccountId] = useState("")
   const [liveStatus, setLiveStatus] = useState<string>("")
-  const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [selectedBankAccount, setSelectedBankAccount] = useState<BankAccount | undefined>()
 
@@ -136,22 +137,6 @@ export default function InvestDeposit() {
   })
   const selectedProject = liveProjects.find(p => p.id === selectedProjectId)
 
-  useEffect(() => {
-    api.get("/api/investor/wallet").then((res: any) => {
-      const wallet = res?.data ?? res
-      const rawBalance = wallet?.available_balance
-      const parsedBalance = rawBalance == null || String(rawBalance).trim() === ""
-        ? null
-        : Number(rawBalance)
-      setWalletBalance(parsedBalance != null && Number.isFinite(parsedBalance) ? parsedBalance : null)
-      const cur = String(wallet?.currency || "").trim().toUpperCase()
-      setLedgerWalletCurrency(cur)
-    }).catch(() => {
-      setWalletBalance(null)
-      setLedgerWalletCurrency("")
-    })
-  }, [])
-
   const PAYMENT_METHODS = useMemo(() => buildPaymentMethods(walletBalance), [walletBalance])
 
   const { data: historyPayload, isLoading: historyLoading, refetch: refetchHistory } = useQuery({
@@ -165,13 +150,24 @@ export default function InvestDeposit() {
   const isWalletMethod = selectedMethod === "wallet"
   const requiresBankDetails = ["bank", "wire", "swift", "online"].includes(selectedMethod)
   const walletProject = liveProjects.find(p => p.id === selectedProjectId)
-  const walletAmountError = isWalletMethod && (walletBalance == null || !walletCurrency)
-    ? "Wallet balance or currency is not available."
+  const walletAmountError = isWalletMethod && dashboardBalanceQuery.isError
+    ? "Available balance could not be loaded from the investor dashboard."
+    : isWalletMethod && dashboardBalanceQuery.isFetching
+      ? "Checking your current available balance…"
+    : isWalletMethod && (walletBalance == null || !walletCurrency)
+      ? "Wallet balance or currency is not available."
     : isWalletMethod && walletProject && (!walletProject.currency || walletProject.currency !== walletCurrency)
       ? "Wallet and project currencies do not match; conversion terms are not provided."
       : isWalletMethod && walletBalance != null && amountNum > walletBalance
         ? `Amount cannot exceed your available wallet balance (${fmtW(walletBalance)})`
         : null
+  const walletBalanceLabel = dashboardBalanceQuery.isFetching
+    ? "…"
+    : dashboardBalanceQuery.isError
+      ? "Unavailable"
+      : walletBalance == null
+        ? "Not provided"
+        : fmtW(walletBalance)
   const walletProjectRequired = isWalletMethod && !selectedProjectId
     ? "Select a project to invest from your OG Wallet"
     : null
@@ -324,6 +320,14 @@ export default function InvestDeposit() {
   return (
     <InvestPortalLayout title="Deposit Funds" subtitle="Add capital to your investment account">
       <div className="max-w-3xl mx-auto space-y-6">
+        {dashboardBalanceQuery.isError && (
+          <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-3 text-sm text-red-600">
+            <span>Available balance could not be loaded from the investor dashboard.</span>
+            <Button variant="outline" size="sm" onClick={() => void dashboardBalanceQuery.refetch()}>
+              Retry
+            </Button>
+          </div>
+        )}
         {/* Progress indicator */}
         {step !== "status" && (
           <div className="flex items-center gap-1">
@@ -374,7 +378,9 @@ export default function InvestDeposit() {
                       {isWallet && (
                         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/8 p-3 flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">Available Balance</span>
-                          <span className="text-lg font-heading font-bold text-emerald-500">{walletBalance == null ? "Not provided" : fmtW(walletBalance)}</span>
+                          <span className="text-lg font-heading font-bold text-emerald-500">
+                            {walletBalanceLabel}
+                          </span>
                         </div>
                       )}
 
@@ -604,7 +610,7 @@ export default function InvestDeposit() {
                 OG Wallet payments are processed internally.<br />No bank receipt or transfer proof is required.
               </p>
               <div className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl p-4 space-y-1.5 text-sm text-left">
-                <div className="flex justify-between"><span className="text-muted-foreground">Wallet Balance</span><span className="font-bold text-emerald-500">{walletBalance == null ? "Not provided" : fmtW(walletBalance)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Wallet Balance</span><span className="font-bold text-emerald-500">{walletBalanceLabel}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Requested Amount</span><span className="font-bold text-foreground">− {amount || "0"} {isWalletMethod ? walletCurrency : depositCurrency}</span></div>
                 <div className="flex justify-between border-t border-border/50 pt-1.5 mt-1.5"><span className="text-muted-foreground">Remaining After</span><span className="font-bold">{walletBalance == null ? "Not provided" : fmtW(Math.max(0, walletBalance - amountNum))}</span></div>
               </div>
