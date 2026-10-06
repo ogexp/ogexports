@@ -17,7 +17,7 @@ type OpportunityCardProps = {
 
 const countryAliases: Record<string, string> = {
   afghanistan: 'AF', af: 'AF', algeria: 'DZ', dz: 'DZ', australia: 'AU', au: 'AU',
-  bangladesh: 'BD', bd: 'BD', bahrain: 'BH', bh: 'BH', belgium: 'BE', be: 'BE',
+  austria: 'AT', at: 'AT', bangladesh: 'BD', bd: 'BD', bahrain: 'BH', bh: 'BH', belgium: 'BE', be: 'BE',
   brazil: 'BR', br: 'BR', canada: 'CA', ca: 'CA', china: 'CN', cn: 'CN',
   egypt: 'EG', eg: 'EG', france: 'FR', fr: 'FR', germany: 'DE', de: 'DE',
   india: 'IN', in: 'IN', indonesia: 'ID', id: 'ID', iraq: 'IQ', iq: 'IQ',
@@ -41,7 +41,7 @@ const countryAliases: Record<string, string> = {
 };
 
 const countryNameByCode: Record<string, string> = {
-  AE: 'UAE', AF: 'Afghanistan', AU: 'Australia', BD: 'Bangladesh', BE: 'Belgium',
+  AE: 'UAE', AF: 'Afghanistan', AT: 'Austria', AU: 'Australia', BD: 'Bangladesh', BE: 'Belgium',
   BR: 'Brazil', CA: 'Canada', CN: 'China', DE: 'Germany', DZ: 'Algeria',
   EG: 'Egypt', ES: 'Spain', FR: 'France', GB: 'United Kingdom', ID: 'Indonesia', IN: 'India',
   IQ: 'Iraq', IT: 'Italy', JP: 'Japan', KE: 'Kenya', KR: 'South Korea',
@@ -108,9 +108,8 @@ function countryBadgeLabel(location: string) {
   return `${flagForCode(code)} ${name}`;
 }
 
-function countryRouteLabel(origin: string, destination: string) {
-  if (!origin && !destination) return '';
-  return `${origin ? countryBadgeLabel(origin) : 'Origin not reported'} → ${destination ? countryBadgeLabel(destination) : 'Destination not reported'}`;
+function countryDestinationLabel(destination: string) {
+  return destination ? countryBadgeLabel(destination) : '';
 }
 
 function imageUri(item: Record<string, unknown>, apiOrigin: string) {
@@ -142,9 +141,8 @@ export function OpportunityCard({ item, featured, progress, apiOrigin, onPress }
   const [imageFailed, setImageFailed] = useState(false);
   const title = opportunityValue(item, ['commodity_name', 'commodity', 'title', 'name', 'project_name']) || '—';
   const status = statusPresentation(opportunityValue(item, ['trade_status', 'project_status', 'status', 'state']));
-  const origin = opportunityValue(item, ['origin', 'origin_country', 'from_country', 'country_of_origin', 'originCountry', 'fromCountry']);
   const destination = opportunityValue(item, ['destination', 'destination_country', 'to_country', 'destination_market', 'destinationCountry', 'toCountry']);
-  const countryRoute = countryRouteLabel(origin, destination);
+  const countryLabel = countryDestinationLabel(destination);
   const image = imageUri(item, apiOrigin);
   const currency = opportunityValue(item, ['currency', 'investment_currency']);
   const target = opportunityAmount(item, ['target_amount', 'funding_target', 'total_trade_requirement', 'investment_requirement', 'total_investment_required', 'amount']);
@@ -203,8 +201,8 @@ export function OpportunityCard({ item, featured, progress, apiOrigin, onPress }
             <Feather name="package" size={34} color={colors.mutedForeground} />
           )}
           <View style={{ position: 'absolute', top: 14, left: 14, right: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            {countryRoute ? <View style={{ maxWidth: '80%', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: colors.primary }}>
-              <Text numberOfLines={2} style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: '600', lineHeight: 15 }}>{countryRoute}</Text>
+            {countryLabel ? <View style={{ maxWidth: '80%', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: colors.primary }}>
+              <Text numberOfLines={2} style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: '600', lineHeight: 15 }}>{countryLabel}</Text>
             </View> : <View />}
             <View style={{ borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: statusColor.background }}>
               <Text style={{ color: statusColor.foreground, fontSize: 10, fontWeight: '800', letterSpacing: 0.4 }}>
