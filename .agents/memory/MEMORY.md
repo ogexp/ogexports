@@ -1,5 +1,5 @@
 - [OG Exports API contract](investor-api-contract.md) — Laravel is the source; absent money stays 0.00 USD, and upload size limits must align with mobile.
-- [OG Exports mobile visual direction](og-exports-visual-direction.md) — premium light/emerald UI, five investor tabs, top-right Profile, and Home-only local balance conversion.
+- [OG Exports mobile visual direction](og-exports-visual-direction.md) — premium light/emerald UI, five investor tabs, and a USD-only Home balance.
 - [Node TypeScript test imports](node-ts-test-imports.md) — native Node tests reject extensionless sibling TypeScript imports; `.ts` suffixes conflict with default `tsc`.
 - [API origin configuration](api-origin-configuration.md) — keep the API address off the login screen; use app environment or existing Settings configuration.
 - [Investor email auth & profile](investor-auth-rollout.md) — email codes cover signup verification, recovery, and optional 2FA; mobile/country stay profile-only.

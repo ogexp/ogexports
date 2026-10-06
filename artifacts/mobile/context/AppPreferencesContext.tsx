@@ -3,9 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { I18nManager, Platform, useColorScheme } from 'react-native';
 import { reloadAppAsync } from 'expo';
 import {
-  useGetInvestorExchangeRates,
   useGetInvestorProfile,
-  useGetInvestorWallet,
   useUpdateInvestorProfile,
 } from '@workspace/api-client-react';
 import { useAuth } from '@/context/AuthContext';
@@ -26,8 +24,6 @@ type PreferencesContextValue = {
   isLoading: boolean;
   isSaving: boolean;
   error: string;
-  rates: Record<string, number>;
-  walletCurrency: string;
   savePreferences: (patch: Partial<AppPreferences>) => Promise<void>;
   clearError: () => void;
 };
@@ -53,17 +49,6 @@ function parsePreferences(value: unknown): Partial<AppPreferences> {
   return next;
 }
 
-function normalizeRates(value: unknown, base: string): Record<string, number> {
-  const source = record(value);
-  const rates: Record<string, number> = {};
-  for (const [currency, rawRate] of Object.entries(source)) {
-    const rate = typeof rawRate === 'number' ? rawRate : typeof rawRate === 'string' ? Number(rawRate) : Number.NaN;
-    if (Number.isFinite(rate) && rate > 0) rates[currency.toUpperCase()] = rate;
-  }
-  if (base === 'USD') rates.USD = 1;
-  return rates;
-}
-
 export function AppPreferencesProvider({ children }: { children: React.ReactNode }) {
   const { token, user } = useAuth();
   const systemAppearance = useColorScheme();
@@ -80,27 +65,8 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
       staleTime: 60_000,
     },
   });
-  const walletQuery = useGetInvestorWallet({
-    query: {
-      queryKey: ['investor-wallet'],
-      enabled: Boolean(token && userId),
-      staleTime: 30_000,
-    },
-  });
-  const ratesQuery = useGetInvestorExchangeRates({
-    query: {
-      queryKey: ['investor-display-exchange-rates', userId],
-      enabled: Boolean(token && userId),
-      staleTime: 300_000,
-      retry: 1,
-    },
-  });
   const updateProfile = useUpdateInvestorProfile();
   const profile = unwrap(profileQuery.data);
-  const wallet = unwrap(walletQuery.data);
-  const rateResponse = unwrap(ratesQuery.data);
-  const rates = normalizeRates(rateResponse.rates, first(rateResponse, ['base']).toUpperCase());
-  const walletCurrency = first(wallet, ['currency', 'default_currency']).toUpperCase();
   const isRTL = preferences.language === 'ur' || preferences.language === 'ar';
   const resolvedAppearance = preferences.appearance === 'system'
     ? systemAppearance === 'dark' ? 'dark' : 'light'
@@ -200,13 +166,11 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     isLoading: !preferencesLoaded,
     isSaving,
     error,
-    rates,
-    walletCurrency,
     savePreferences,
     clearError: () => setError(''),
   }), [
     preferences, resolvedAppearance, isRTL, preferencesLoaded, isSaving, error,
-    rates, walletCurrency, savePreferences,
+    savePreferences,
   ]);
 
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;

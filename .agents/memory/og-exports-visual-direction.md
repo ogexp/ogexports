@@ -19,11 +19,11 @@ Country selectors in the investor mobile app should share a polished, searchable
 
 **How to apply:** route mobile country fields through the reusable selector, preserve the existing country-name string save contract, and do not convert broad “country or market” search fields into selectors.
 
-On Home only, show the available balance in USD with the user's API wallet/country currency equivalent directly underneath. Preserve the privacy toggle for both values.
+On Home, show the available balance in USD only. Do not show a wallet/local-currency equivalent underneath. Preserve the privacy toggle.
 
-**Why:** The user corrected an app-wide PKR conversion and reaffirmed that only Home should show a local-currency equivalent beneath the USD balance.
+**Why:** The user asked to reverse the local-currency line added beneath the USD balance and return to the USD-only state.
 
-**How to apply:** Convert the dashboard's API-reported balance to USD and the API wallet/country currency using valid FX data. Format both explicitly, preserve the privacy toggle, and show an unavailable state rather than inventing a conversion. Other screens must keep API-reported currencies; do not apply currency preferences through a shared formatter or restore a global display-currency control unless the user asks.
+**How to apply:** Format the Home available balance directly in USD and preserve the privacy toggle. Keep other financial amounts in their API-reported currencies; do not add a local-currency equivalent, shared FX display conversion, or global display-currency preference unless the user asks.
 
 **Why:** the user asked to match a specific Home-screen reference, including its green hero and five-item bottom navigation. The OG artwork remains the official logo; the new bank glyph is a screen-specific account icon. On 2026-10-06, the user said iOS pages still had too much top gap and twice reported that the Android tab bar remained too high. A later phone screenshot showed a large negative Android offset gets clipped by the system-navigation region; the user chose to stay on Expo Go rather than install a rebuilt app.
 
