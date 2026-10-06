@@ -10,13 +10,15 @@ import {
 } from '@workspace/api-client-react';
 import { useAuth } from '@/context/AuthContext';
 import { configureMoneyDisplay, first, record, unwrap, type Json } from '@/lib/data';
-import { configureUiLanguage } from '@/lib/strings';
+import { configureUiLanguage, translateUi } from '@/lib/strings';
 import type { AppLanguage } from '@/lib/strings';
 
 export type AppearancePreference = 'light' | 'dark' | 'system';
+export type DisplayCurrency = 'USD' | 'PKR' | 'EUR' | 'GBP';
 
 export type AppPreferences = {
   language: AppLanguage;
+  currency: DisplayCurrency;
   appearance: AppearancePreference;
 };
 
@@ -28,6 +30,9 @@ type PreferencesContextValue = {
   isSaving: boolean;
   error: string;
   rates: Record<string, number>;
+  ratesAsOf: string;
+  ratesLoading: boolean;
+  ratesError: boolean;
   walletCurrency: string;
   savePreferences: (patch: Partial<AppPreferences>) => Promise<void>;
   clearError: () => void;
@@ -35,6 +40,7 @@ type PreferencesContextValue = {
 
 const defaultPreferences: AppPreferences = {
   language: 'en',
+  currency: 'USD',
   appearance: 'light',
 };
 
@@ -46,6 +52,10 @@ function parsePreferences(value: unknown): Partial<AppPreferences> {
   const next: Partial<AppPreferences> = {};
   if (source.language === 'en' || source.language === 'ur' || source.language === 'ar') {
     next.language = source.language;
+  }
+  const currency = typeof source.currency === 'string' ? source.currency.toUpperCase() : '';
+  if (currency === 'USD' || currency === 'PKR' || currency === 'EUR' || currency === 'GBP') {
+    next.currency = currency;
   }
   const appearance = source.appearance ?? source.theme;
   if (appearance === 'light' || appearance === 'dark' || appearance === 'system') {
@@ -102,12 +112,18 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   const rateResponse = unwrap(ratesQuery.data);
   const rates = normalizeRates(rateResponse.rates, first(rateResponse, ['base']).toUpperCase());
   const walletCurrency = first(wallet, ['currency', 'default_currency']).toUpperCase();
+  const ratesAsOf = first(rateResponse, ['as_of', 'updated_at']);
   const isRTL = preferences.language === 'ur' || preferences.language === 'ar';
   const resolvedAppearance = preferences.appearance === 'system'
     ? systemAppearance === 'dark' ? 'dark' : 'light'
     : preferences.appearance;
 
-  configureMoneyDisplay({ language: preferences.language });
+  configureMoneyDisplay({
+    language: preferences.language,
+    currency: preferences.currency,
+    rates,
+    conversionUnavailableLabel: translateUi('Currency conversion unavailable', preferences.language),
+  });
   configureUiLanguage(preferences.language);
 
   useEffect(() => {
@@ -172,6 +188,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     const next = { ...preferences, ...patch };
     const serverPatch: Json = {};
     if (patch.language !== undefined) serverPatch.language = patch.language;
+    if (patch.currency !== undefined) serverPatch.currency = patch.currency;
     if (patch.appearance !== undefined) {
       serverPatch.appearance = patch.appearance;
       serverPatch.theme = patch.appearance;
@@ -202,12 +219,15 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     isSaving,
     error,
     rates,
+    ratesAsOf,
+    ratesLoading: ratesQuery.isLoading,
+    ratesError: ratesQuery.isError,
     walletCurrency,
     savePreferences,
     clearError: () => setError(''),
   }), [
     preferences, resolvedAppearance, isRTL, preferencesLoaded, isSaving, error,
-    rates, walletCurrency, savePreferences,
+    rates, ratesAsOf, ratesQuery.isLoading, ratesQuery.isError, walletCurrency, savePreferences,
   ]);
 
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;

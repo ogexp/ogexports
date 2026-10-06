@@ -1,20 +1,39 @@
 export type Json = Record<string, unknown>;
 
+type MoneyDisplayCurrency = 'USD' | 'PKR' | 'EUR' | 'GBP';
 type MoneyDisplayConfig = {
   language: 'en' | 'ur' | 'ar';
+  currency: MoneyDisplayCurrency;
+  rates: Record<string, number>;
+  conversionUnavailableLabel?: string;
 };
 
 let moneyDisplayConfig: MoneyDisplayConfig = {
   language: 'en',
+  currency: 'USD',
+  rates: {},
 };
 
 export function configureMoneyDisplay(config: MoneyDisplayConfig) {
   moneyDisplayConfig = config;
 }
 
+function convertForDisplay(value: number, sourceCode: string, targetCode: string): number | null {
+  if (sourceCode === targetCode) return value;
+  const sourceRate = moneyDisplayConfig.rates[sourceCode];
+  const targetRate = moneyDisplayConfig.rates[targetCode];
+  if (!Number.isFinite(sourceRate) || !Number.isFinite(targetRate) || sourceRate <= 0 || targetRate <= 0) return null;
+  const converted = value / sourceRate * targetRate;
+  return Number.isFinite(converted) ? converted : null;
+}
+
 export function displayCurrencyCode(currency?: string): string {
   const sourceCode = currency?.trim().toUpperCase() ?? '';
-  return /^[A-Z]{3}$/.test(sourceCode) ? sourceCode : '';
+  if (!/^[A-Z]{3}$/.test(sourceCode)) return '';
+  const targetCode = moneyDisplayConfig.currency;
+  return convertForDisplay(1, sourceCode, targetCode) == null
+    ? sourceCode
+    : targetCode;
 }
 
 export function record(value: unknown): Json {
@@ -65,13 +84,18 @@ export function amount(row: Json, keys: string[]): number | null {
   return null;
 }
 
-export function money(value: unknown, currency?: string): string {
+export function money(value: unknown, currency?: string, options: { preserveSource?: boolean } = {}): string {
   if (value === null || value === undefined || value === '') return '0.00 USD';
   const numeric = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN;
   if (!Number.isFinite(numeric)) return '0.00 USD';
   const sourceCandidate = currency?.trim().toUpperCase();
   const providedSourceCode = sourceCandidate && /^[A-Z]{3}$/.test(sourceCandidate) ? sourceCandidate : undefined;
-  const displayCode = providedSourceCode || 'USD';
+  const sourceCode = providedSourceCode || 'USD';
+  const targetCode = options.preserveSource ? sourceCode : moneyDisplayConfig.currency;
+  const converted = convertForDisplay(numeric, sourceCode, targetCode);
+  const conversionUnavailable = converted == null && sourceCode !== targetCode;
+  const displayCode = converted == null ? sourceCode : targetCode;
+  const displayAmount = converted == null ? numeric : converted;
   const locale = moneyDisplayConfig.language === 'ur' ? 'ur-PK' : moneyDisplayConfig.language === 'ar' ? 'ar-SA' : 'en-US';
   let formatted: string;
   try {
@@ -80,15 +104,17 @@ export function money(value: unknown, currency?: string): string {
       currency: displayCode,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(numeric);
+    }).format(displayAmount);
   } catch {
-    formatted = `${displayCode} ${numeric.toLocaleString(locale)}`;
+    formatted = `${displayCode} ${displayAmount.toLocaleString(locale)}`;
   }
-  return formatted;
+  return conversionUnavailable
+    ? `${formatted} · ${moneyDisplayConfig.conversionUnavailableLabel || 'Currency conversion unavailable'}`
+    : formatted;
 }
 
 export function moneyInSourceCurrency(value: unknown, currency?: string): string {
-  return money(value, currency);
+  return money(value, currency, { preserveSource: true });
 }
 
 export function messageOf(error: unknown): string {

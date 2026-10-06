@@ -21,9 +21,9 @@ Country selectors in the investor mobile app should share a polished, searchable
 
 On Home only, show the available balance in USD with the user's API wallet/country currency equivalent directly underneath. Preserve the privacy toggle for both values.
 
-**Why:** The user corrected an app-wide PKR conversion and reaffirmed that only Home should show a local-currency equivalent beneath the USD balance.
+**Why:** The user clarified that all app balances should default to USD, with a profile-controlled display-currency choice; the Home hero is the exception.
 
-**How to apply:** Convert the dashboard's API-reported balance to USD and the API wallet/country currency using valid FX data. Format both explicitly, preserve the privacy toggle, and show an unavailable state rather than inventing a conversion. Other screens must keep API-reported currencies; do not apply currency preferences through a shared formatter or restore a global display-currency control unless the user asks.
+**How to apply:** Keep the Home hero's primary available balance in USD and show its API wallet/country currency equivalent directly below using valid FX data. Other balances and dashboard amounts use the profile's display-currency preference, defaulting to USD; let the user change it in Settings/Profile. Preserve the privacy toggle and show an unavailable state rather than inventing a conversion. Keep transaction inputs and confirmations in the API-required source currency.
 
 **Why:** the user asked to match a specific Home-screen reference, including its green hero and five-item bottom navigation. The OG artwork remains the official logo; the new bank glyph is a screen-specific account icon. On 2026-10-06, the user said iOS pages still had too much top gap and twice reported that the Android tab bar remained too high. A later phone screenshot showed a large negative Android offset gets clipped by the system-navigation region; the user chose to stay on Expo Go rather than install a rebuilt app.
 
