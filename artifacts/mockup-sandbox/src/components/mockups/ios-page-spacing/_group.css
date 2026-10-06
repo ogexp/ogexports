@@ -1,0 +1,25 @@
+:root {
+  --ios-page-background: #F7F6F2;
+  --ios-page-card: #FDFDFC;
+  --ios-page-foreground: #283934;
+  --ios-page-muted: #687D76;
+  --ios-page-primary: #31634C;
+  --ios-page-border: #E0DDD7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 390px;
+  min-height: 844px;
+  margin: 0;
+}
+
+body {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--ios-page-foreground);
+}
