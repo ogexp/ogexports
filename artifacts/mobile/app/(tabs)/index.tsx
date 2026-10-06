@@ -8,23 +8,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import {
-  useGetInvestorDeposits,
   useGetInvestorDashboard,
   useGetInvestorInvestments,
   useGetInvestorNotifications,
   useGetInvestorProjects,
-  useGetInvestorWithdrawals,
   useGetInvestorWalletTransactions,
 } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Status } from '@/components/InvestorUI';
 import { AllocationDonut, type AllocationSlice } from '@/components/AllocationDonut';
 import { amount, first, list, money, record, unwrap } from '@/lib/data';
+import { latestRecords } from '@/lib/latest-records';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
 import {
   DashboardMetric,
-  FinancialHistoryPreview,
   PortfolioBenchmarkCard,
   ProfitAnalyticsCard,
   RecentAlertsPreview,
@@ -116,6 +114,13 @@ function activityLabel(item: Record<string, unknown>) {
   return first(item, ['description', 'title', 'type', 'transaction_type'], 'Account activity');
 }
 
+const investmentDateFields = ['invested_at', 'invest_date', 'investment_date', 'created_at', 'createdAt', 'date'];
+const activityDateFields = ['created_at', 'createdAt', 'occurred_at', 'transacted_at', 'transaction_date', 'date', 'timestamp'];
+
+function activityDate(item: Record<string, unknown>) {
+  return first(item, activityDateFields);
+}
+
 function HomeSection({ title, right }: { title: string; right?: React.ReactNode }) {
   const colors = useColors();
   return (
@@ -137,9 +142,7 @@ export default function InvestorHome() {
   const dashboard = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: !!token, staleTime: 30_000 } });
   const investments = useGetInvestorInvestments({ per_page: 50 }, { query: { queryKey: ['investor-positions', 50], enabled: !!token, staleTime: 30_000 } });
   const projects = useGetInvestorProjects({ per_page: 3 }, { query: { queryKey: ['investor-projects', 3], enabled: !!token, staleTime: 60_000 } });
-  const transactions = useGetInvestorWalletTransactions({ page: 1, per_page: 6 }, { query: { queryKey: ['investor-wallet-transactions', 1, 6], enabled: !!token, staleTime: 30_000 } });
-  const depositsQuery = useGetInvestorDeposits({ per_page: 5 }, { query: { queryKey: ['investor-deposits'], enabled: !!token, staleTime: 30_000 } });
-  const withdrawalsQuery = useGetInvestorWithdrawals({}, { query: { queryKey: ['investor-withdrawals'], enabled: !!token, staleTime: 30_000 } });
+  const transactions = useGetInvestorWalletTransactions({ page: 1, per_page: 3 }, { query: { queryKey: ['investor-wallet-transactions', 1, 3], enabled: !!token, staleTime: 30_000 } });
   const notificationsQuery = useGetInvestorNotifications({ query: { queryKey: ['investor-notifications'], enabled: !!token, staleTime: 20_000 } });
   const data = unwrap(dashboard.data);
   const summary = record(data.summary);
@@ -172,15 +175,11 @@ export default function InvestorHome() {
   const opportunities = list(projects.data);
   const featuredOpportunities = opportunities.slice(0, 3);
   const dashboardActivity = list(data.recent_activity ?? data.recent_transactions ?? data.activity);
-  const recent = (dashboardActivity.length ? dashboardActivity : list(transactions.data)).slice(0, 6);
+  const recent = latestRecords(dashboardActivity.length ? dashboardActivity : list(transactions.data), activityDateFields, 3);
   const activityLoading = transactions.isLoading && dashboardActivity.length === 0;
   const activityError = transactions.isError && dashboardActivity.length === 0;
   const payouts = list(data.upcoming_payouts);
-  const investmentItems = list(investments.data).slice(0, 3);
-  const dashboardDeposits = list(data.recent_deposits);
-  const recentDeposits = (dashboardDeposits.length ? dashboardDeposits : list(depositsQuery.data)).slice(0, 3);
-  const dashboardWithdrawals = list(data.withdrawals);
-  const recentWithdrawals = (dashboardWithdrawals.length ? dashboardWithdrawals : list(withdrawalsQuery.data)).slice(0, 3);
+  const investmentItems = latestRecords(list(investments.data), investmentDateFields, 1);
   const dashboardAlerts = list(data.notifications);
   const recentAlerts = (dashboardAlerts.length ? dashboardAlerts : list(notificationsQuery.data)).slice(0, 3);
   const monthlyProfitHistory = list(data.profit_monthly);
@@ -203,10 +202,6 @@ export default function InvestorHome() {
     return displayMoney(usdKey ? amount(summary, [usdKey]) : null, 'USD');
   };
   const metricCount = (value: number | null) => dashboard.isLoading ? '…' : dashboard.isError ? 'Unavailable' : value == null ? '—' : String(value);
-  const depositLoading = depositsQuery.isLoading && dashboardDeposits.length === 0;
-  const depositError = depositsQuery.isError && dashboardDeposits.length === 0;
-  const withdrawalLoading = withdrawalsQuery.isLoading && dashboardWithdrawals.length === 0;
-  const withdrawalError = withdrawalsQuery.isError && dashboardWithdrawals.length === 0;
   const alertsLoading = notificationsQuery.isLoading && dashboardAlerts.length === 0;
   const alertsError = notificationsQuery.isError && dashboardAlerts.length === 0;
   const metricItems: DashboardMetricItem[] = [
@@ -229,7 +224,7 @@ export default function InvestorHome() {
     { label: 'Tax Documents', value: first(data, ['tax_document_status', 'tax_documents_status'], '—') },
   ];
   const groupedTransactions = recent.reduce<{ label: string; items: Record<string, unknown>[] }[]>((groups, item) => {
-    const label = transactionGroup(first(item, ['created_at', 'date'], ''));
+    const label = transactionGroup(activityDate(item));
     const existing = groups.find(group => group.label === label);
     if (existing) existing.items.push(item);
     else groups.push({ label, items: [item] });
@@ -482,7 +477,7 @@ export default function InvestorHome() {
       {group.items.map((item, index) => {
         const rowCurrency = first(item, ['currency'], currency);
         const kind = activityLabel(item);
-        const date = first(item, ['created_at', 'date'], 'Date unavailable');
+         const date = activityDate(item) || 'Date unavailable';
         const rowAmount = amount(item, ['amount', 'total']);
         const transactionId = first(item, ['id', 'transaction_id', 'reference']);
         return <Pressable key={transactionId || `${group.label}-${index}`} accessibilityRole="button" accessibilityLabel={`View ${kind}`} onPress={() => router.push({
@@ -527,33 +522,6 @@ export default function InvestorHome() {
         </Pressable>;
       })}
     </ScrollView> : null}
-
-    <FinancialHistoryPreview
-      title="Recent Deposits"
-      route="/wallet/deposit"
-      icon="arrow-down-left"
-      records={recentDeposits}
-      loading={depositLoading}
-      error={depositError}
-      onRetry={() => void depositsQuery.refetch()}
-      emptyTitle="No recent deposits"
-      emptyBody="Deposit records will appear here when returned by OG Exports."
-      currency={currency}
-      hideValues={balanceHidden}
-    />
-    <FinancialHistoryPreview
-      title="Withdrawal History"
-      route="/wallet/withdraw"
-      icon="arrow-up-right"
-      records={recentWithdrawals}
-      loading={withdrawalLoading}
-      error={withdrawalError}
-      onRetry={() => void withdrawalsQuery.refetch()}
-      emptyTitle="No recent withdrawals"
-      emptyBody="Withdrawal requests will appear here when returned by OG Exports."
-      currency={currency}
-      hideValues={balanceHidden}
-    />
 
     <RecentAlertsPreview
       records={recentAlerts}
