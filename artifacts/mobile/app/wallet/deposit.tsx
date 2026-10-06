@@ -113,7 +113,7 @@ function CopyableBankDetailRow({ label, value, copied, accessibilityLabel, testI
 }
 
 export default function Deposit() {
-  const { token, apiOrigin } = useAuth();
+  const { token, apiOrigin, beginExternalFilePicker, endExternalFilePicker } = useAuth();
   const colors = useColors();
   const queryClient = useQueryClient();
   const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token) } });
@@ -195,7 +195,13 @@ export default function Deposit() {
         fileName = asset.name;
         mimeType = asset.mimeType ?? 'application/octet-stream';
       } else {
-        const result = await ExpoFile.pickFileAsync({ mimeTypes: [...INVESTOR_DOCUMENT_MIME_TYPES] });
+        beginExternalFilePicker();
+        let result: Awaited<ReturnType<typeof ExpoFile.pickFileAsync>>;
+        try {
+          result = await ExpoFile.pickFileAsync({ mimeTypes: [...INVESTOR_DOCUMENT_MIME_TYPES] });
+        } finally {
+          endExternalFilePicker();
+        }
         if (result.canceled) return;
         uploadSource = result.result;
         fileName = result.result.name;

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, Platform } from 'react-native';
 import { loadApiOrigin, loadSavedUser, getSavedToken, saveSession, clearSession, saveApiOrigin } from '@/lib/api-config';
@@ -21,6 +21,8 @@ type AuthValue = {
   setBiometricEnabled: (enabled: boolean) => Promise<void>;
   setAppPinEnabled: (enabled: boolean) => Promise<void>;
   unlockApp: () => void;
+  beginExternalFilePicker: () => void;
+  endExternalFilePicker: () => void;
   acceptSession: (token: string, user: Json) => Promise<void>;
   updateUser: (user: Json) => Promise<void>;
   signOut: () => Promise<void>;
@@ -42,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
   const [appPinEnabled, setAppPinEnabledState] = useState(false);
   const [appUnlocked, setAppUnlocked] = useState(true);
+  const externalFilePickerCount = useRef(0);
 
   useEffect(() => {
     let mounted = true;
@@ -82,12 +85,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
-      if (state === 'background' && token && (biometricEnabled || appPinEnabled)) {
+      if (state === 'background' && token && (biometricEnabled || appPinEnabled) && externalFilePickerCount.current === 0) {
         setAppUnlocked(false);
       }
     });
     return () => subscription.remove();
   }, [token, biometricEnabled, appPinEnabled]);
+
+  const beginExternalFilePicker = () => {
+    externalFilePickerCount.current += 1;
+  };
+  const endExternalFilePicker = () => {
+    externalFilePickerCount.current = Math.max(0, externalFilePickerCount.current - 1);
+  };
 
   const acceptSession = async (nextToken: string, nextUser: Json) => {
     const nextUserId = first(record(nextUser), ['id'], '');
@@ -150,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{
       ready, token, user, apiOrigin, challenge, setChallenge,
       onboardingComplete, completeOnboarding, biometricEnabled, appPinEnabled, appUnlocked,
-      setBiometricEnabled, setAppPinEnabled, unlockApp,
+      setBiometricEnabled, setAppPinEnabled, unlockApp, beginExternalFilePicker, endExternalFilePicker,
        acceptSession, updateUser, signOut, updateOrigin,
     }}>
       {children}
