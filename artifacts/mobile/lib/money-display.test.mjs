@@ -8,23 +8,28 @@ import {
   moneyInSourceCurrency,
 } from './data.ts';
 
-test('uses the dashboard wallet available balance as the shared account balance', () => {
+test('prefers dashboard summary available balance with wallet summary as fallback', () => {
   assert.equal(availableBalanceFromDashboard({
     data: {
       wallet: { available_balance: '526.00' },
       summary: { available_balance: 1.9 },
     },
-  }), 526);
+  }), 1.9);
 
   assert.equal(availableBalanceFromDashboard({
     wallet: { available_balance: 0 },
     summary: { available_balance: 526 },
-  }), 0);
+  }), 526);
 
   assert.equal(availableBalanceFromDashboard({
     wallet: { balance: 526 },
     summary: { available_balance: '1.90' },
   }), 1.9);
+
+  assert.equal(availableBalanceFromDashboard({
+    wallet: { available_balance: 0 },
+    summary: { available_balance: 0 },
+  }), 0);
 });
 
 test('USD is the default display currency while source formatting remains available', () => {

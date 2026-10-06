@@ -86,7 +86,7 @@ export function availableBalanceFromDashboard(value: unknown): number | null {
   const dashboard = unwrap(value);
   const wallet = record(dashboard.wallet);
   const summary = record(dashboard.summary);
-  return amount(wallet, ['available_balance']) ?? amount(summary, ['available_balance']);
+  return amount(summary, ['available_balance']) ?? amount(wallet, ['available_balance']);
 }
 
 export function money(value: unknown, currency?: string, options: { preserveSource?: boolean } = {}): string {
