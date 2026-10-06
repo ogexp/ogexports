@@ -59,12 +59,18 @@ export default function OpportunityDetail() {
   const kycStatus = getInvestorKycStatus(investorProfile);
   const kycVerified = !profileQuery.isLoading && !profileQuery.isFetching && !profileQuery.isError && isInvestorKycVerified(investorProfile);
   const wallet = unwrap(walletQuery.data);
+  const walletCurrency = first(wallet, ['currency', 'default_currency']);
   const remainingFunding = amount(project, ['remaining_amount', 'remaining_capacity', 'remaining_funding']);
   const minimum = amount(project, ['minimum_investment', 'min_investment']);
   const maximum = amount(project, ['maximum_investment', 'max_investment']);
   const walletBalance = amount(wallet, ['available_balance', 'balance', 'available']);
-  const currency = first(project, ['currency', 'investment_currency'], first(tradeData, ['currency', 'investment_currency']));
-  const walletCurrency = first(wallet, ['currency']);
+  const projectType = first(project, ['type'], first(tradeData, ['type'])).toLowerCase();
+  const apiCurrencyFallback = projectType === 'container' ? 'USD' : walletCurrency;
+  const currency = first(
+    project,
+    ['currency', 'investment_currency'],
+    first(tradeData, ['currency', 'investment_currency'], apiCurrencyFallback),
+  );
   const tradeCurrency = currency;
   const reportedReturn = first(project, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi']);
   const returnRate = amount(project, ['expected_return_pct']);
@@ -99,7 +105,7 @@ export default function OpportunityDetail() {
   const investmentAvailable = !fundingClosed && (openStatus || explicitCanInvest === true);
   const flowSteps = ['Amount', 'Review', 'Terms & risk', 'Secure confirmation', 'Complete'];
   const activeFlowStep = ({ details: 0, amount: 1, review: 2, risk: 3, confirmation: 4, success: 5 } as const)[stage];
-  const currencyLabel = currency || 'Currency unavailable';
+  const currencyLabel = currency || (walletQuery.isLoading || walletQuery.isFetching ? 'Loading currency…' : 'Currency unavailable');
   const remainingCapacity = remainingFunding;
   const formatTradeMoney = (value: number | null) => money(value, tradeCurrency || 'USD');
   const plainPolicyText = (value: string) => value
@@ -374,7 +380,7 @@ export default function OpportunityDetail() {
             <Text style={{ color: value === 'Unavailable' ? colors.mutedForeground : colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{value}</Text>
           </View>)}
         </View>
-        {!currency ? <Text style={{ color: colors.destructive, fontSize: 11, lineHeight: 17, marginTop: 10 }}>Confirm the trade currency before submitting an investment.</Text> : null}
+        {!currency && !walletQuery.isLoading && !walletQuery.isFetching ? <Text style={{ color: colors.destructive, fontSize: 11, lineHeight: 17, marginTop: 10 }}>OG Exports has not supplied a currency for this trade or wallet.</Text> : null}
         {walletQuery.isError ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 10 }}>Wallet balance could not be loaded. The server remains authoritative.</Text> : null}
         {error ? <ErrorState message={error} /> : null}
         <View style={{ marginTop: 15 }}><Action title="Continue to review" icon="arrow-right" disabled={!investAmount || !currency || !investmentAvailable} onPress={continueToReview} /></View>
