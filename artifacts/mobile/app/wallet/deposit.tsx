@@ -14,6 +14,7 @@ import {
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessMark } from '@/components/InvestorUI';
 import { amount as readAmount, first, list, messageOf, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
+import { DEPOSIT_PAYMENT_METHODS, type DepositPaymentMethodId } from '@/lib/deposit-methods';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
@@ -134,13 +135,15 @@ export default function Deposit() {
   const [bankDetailCopyError, setBankDetailCopyError] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [stage, setStage] = useState<'form' | 'review' | 'submitted'>('form');
+  const [stage, setStage] = useState<'method' | 'form' | 'review' | 'submitted'>('method');
+  const [paymentMethodId, setPaymentMethodId] = useState<DepositPaymentMethodId | ''>('');
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
   const [selectedDepositId, setSelectedDepositId] = useState('');
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const defaultBank = banks.find(item => isEnabled(first(item, ['is_default'])));
   const selectedBank = banks.find(item => first(item, ['id']) === bankId) ?? defaultBank;
   const selectedProject = projects.find(item => first(item, ['id']) === projectId);
+  const selectedPaymentMethod = DEPOSIT_PAYMENT_METHODS.find(item => item.id === paymentMethodId);
   const paymentCurrency = walletCurrency;
   const acceptedBankCurrencies = first(selectedBank ?? {}, ['currency']).toUpperCase() || walletCurrency;
   const bankAccountNumber = exactBankDetail(selectedBank ?? {}, ['account_number', 'accountNumber']);
@@ -190,6 +193,10 @@ export default function Deposit() {
 
   function validateDeposit() {
     const numericAmount = Number(amount);
+    if (!selectedPaymentMethod) {
+      setError('Choose a payment method before continuing.');
+      return false;
+    }
     if (!paymentCurrency || !Number.isFinite(numericAmount) || numericAmount < 1) {
       setError('Enter a valid amount after the payment currency has loaded.');
       return false;
@@ -212,6 +219,12 @@ export default function Deposit() {
   async function submit() {
     setError('');
     setNotice('');
+    const paymentMethod = selectedPaymentMethod;
+    if (!paymentMethod) {
+      setError('Choose a payment method before continuing.');
+      setStage('method');
+      return;
+    }
     if (!validateDeposit()) {
       setStage('form');
       return;
@@ -223,7 +236,7 @@ export default function Deposit() {
         data: {
           amount: Number(amount),
           currency: paymentCurrency,
-          method: 'bank_transfer',
+          method: paymentMethod.label,
           bank_account_id: Number.isFinite(selectedBankId) ? selectedBankId : undefined,
           bank_account_name: first(selectedBank ?? {}, ['bank_name', 'name']) || undefined,
           bank_reference: reference.trim(),
@@ -249,28 +262,88 @@ export default function Deposit() {
     } catch (err) { setError(messageOf(err)); }
   }
 
-  return <Screen title="Add funds" subtitle={`Bank transfer to your OG Exports wallet · ${paymentCurrency || 'USD'}`} refreshable>
+  return <Screen title="Add funds" subtitle={selectedPaymentMethod
+    ? `Deposit via ${selectedPaymentMethod.label} · ${paymentCurrency || 'USD'}`
+    : 'Choose a payment method to get started'} refreshable>
+    {stage === 'method' ? <>
+      <Section title="1 · Payment Method" />
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 4 }}>
+        Choose a deposit method. Bank details and amount fields will appear next.
+      </Text>
+      {DEPOSIT_PAYMENT_METHODS.map(method => {
+        const selected = method.id === paymentMethodId;
+        return <Pressable key={method.id} accessibilityRole="button" accessibilityState={{ selected }}
+          testID={`deposit-payment-method-${method.id}`} onPress={() => setPaymentMethodId(method.id)}
+          style={{ marginBottom: 10 }}>
+          <Card style={{
+            borderColor: selected ? colors.primary : colors.border,
+            borderWidth: selected ? 2 : 1,
+            backgroundColor: selected ? colors.lightGreen : colors.card,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11 }}>
+              <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' }}>
+                <Feather name={method.icon} size={18} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700' }}>{method.label}</Text>
+              </View>
+              {selected ? <Text style={{ color: colors.primary, fontSize: 9, fontWeight: '700' }}>SELECTED</Text> : null}
+              <Feather name={selected ? 'check-circle' : 'circle'} size={19} color={selected ? colors.primary : colors.mutedForeground} />
+            </View>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 9 }}>{method.description}</Text>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 9, letterSpacing: 0.6 }}>MIN / MAX</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 11, fontWeight: '700', marginTop: 2 }}>{method.minMax}</Text>
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 9, letterSpacing: 0.6 }}>PROCESSING</Text>
+                <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700', marginTop: 2 }}>{method.processing}</Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 9 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 9, letterSpacing: 0.6 }}>CURRENCY</Text>
+                <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700', marginTop: 2 }}>{method.currency}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 9, letterSpacing: 0.6 }}>FEES</Text>
+                <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700', marginTop: 2 }}>{method.fees}</Text>
+              </View>
+            </View>
+          </Card>
+        </Pressable>;
+      })}
+      {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 10 }}>{error}</Text> : null}
+      <Action title="Continue" icon="arrow-right" testID="continue-deposit-payment-method" disabled={!selectedPaymentMethod}
+        onPress={() => { setError(''); setStage('form'); }} />
+    </> : null}
+
     {stage === 'form' ? <>
-      <Section title="1 · Amount" />
+      <Section title="2 · Deposit Details" />
+      <Section title="Amount" />
       <Card>
         <Field label={`Deposit amount (${paymentCurrency || 'USD'})`} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
       </Card>
 
-      <Section title="2 · Payment Method" />
+      <Section title="Payment Method" right={<Pressable accessibilityRole="button" accessibilityLabel="Change payment method"
+        testID="change-deposit-payment-method" onPress={() => { setError(''); setStage('method'); }}>
+        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Change</Text>
+      </Pressable>} />
       <Card style={{ borderColor: colors.primary }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11 }}>
           <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '700' }}>✓</Text>
+            <Feather name={selectedPaymentMethod?.icon ?? 'home'} size={17} color={colors.primary} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.foreground, fontWeight: '700' }}>Bank transfer</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>The current deposit service supports bank transfers.</Text>
+            <Text style={{ color: colors.foreground, fontWeight: '700' }}>{selectedPaymentMethod?.label ?? 'Choose a method'}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 3 }}>{selectedPaymentMethod?.description ?? 'Select a deposit method to continue.'}</Text>
           </View>
-          <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700' }}>SELECTED</Text>
+          <Feather name="check-circle" size={18} color={colors.primary} />
         </View>
       </Card>
 
-      <Section title="3 · Bank / Payment Instructions" />
+      <Section title="Receiving Account & Transfer Instructions" />
       {banksQuery.isError ? <ErrorState message="OG Exports payment accounts could not be loaded." error={banksQuery.error} onRetry={() => void banksQuery.refetch()} /> : null}
       {banksQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading payment instructions…</Text></Card> : null}
       {!banksQuery.isLoading && !banksQuery.isError && banks.length === 0
@@ -322,7 +395,7 @@ export default function Deposit() {
         })}
       </Card> : null}
 
-      <Section title="4 · Transaction Reference" />
+      <Section title="Transaction Reference & Proof" />
       <Card>
         <Field label="Bank transaction reference · Required" value={reference} onChangeText={setReference} placeholder="Reference from your transfer receipt" autoCapitalize="none" />
         <View style={{ gap: 12 }}>
@@ -350,7 +423,7 @@ export default function Deposit() {
     {stage === 'review' ? <Card>
       <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Review deposit</Text>
       <DetailRow label="Amount" value={moneyInSourceCurrency(Number(amount), paymentCurrency || 'USD')} />
-      <DetailRow label="Payment method" value="Bank transfer" />
+      <DetailRow label="Payment method" value={selectedPaymentMethod?.label ?? '—'} />
       <DetailRow label="Receiving bank" value={first(selectedBank ?? {}, ['bank_name', 'name'])} />
       <View style={{ marginTop: 4, borderTopWidth: 1, borderTopColor: colors.border }}>
         {reviewBankDetails.map((detail, index) => <View
@@ -384,7 +457,14 @@ export default function Deposit() {
       <DetailRow label="Amount" value={moneyInSourceCurrency(readAmount(confirmation, ['amount']), confirmationCurrency || 'USD')} />
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 8 }}>A submitted request is not yet a wallet credit. Follow the server status below.</Text>
       <DepositProgress deposit={confirmation} />
-      <View style={{ marginTop: 14 }}><Action title="Record another deposit" secondary onPress={() => { setConfirmation(null); setSelectedDepositId(''); setNotice(''); setError(''); setStage('form'); }} /></View>
+      <View style={{ marginTop: 14 }}><Action title="Record another deposit" secondary onPress={() => {
+        setConfirmation(null);
+        setSelectedDepositId('');
+        setNotice('');
+        setError('');
+        setPaymentMethodId('');
+        setStage('method');
+      }} /></View>
     </Card> : null}
 
     <Section title="Recent deposits" right={<Pressable accessibilityRole="button" accessibilityLabel="Refresh deposit history" onPress={() => {
@@ -403,7 +483,7 @@ export default function Deposit() {
         setSelectedDepositId(selected ? '' : id);
         if (!selected) {
           setConfirmation(null);
-          setStage('form');
+          setStage('method');
         }
       }}>
         <Card style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderColor: selected ? colors.primary : colors.border }}>
