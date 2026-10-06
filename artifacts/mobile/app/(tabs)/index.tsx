@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Image, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -140,6 +140,9 @@ export default function InvestorHome() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const dashboard = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: !!token, staleTime: 30_000 } });
+  useFocusEffect(React.useCallback(() => {
+    if (token) void dashboard.refetch();
+  }, [token, dashboard.refetch]));
   const investments = useGetInvestorInvestments({ per_page: 50 }, { query: { queryKey: ['investor-positions', 50], enabled: !!token, staleTime: 30_000 } });
   const projects = useGetInvestorProjects({ per_page: 3 }, { query: { queryKey: ['investor-projects', 3], enabled: !!token, staleTime: 60_000 } });
   const transactions = useGetInvestorWalletTransactions({ page: 1, per_page: 3 }, { query: { queryKey: ['investor-wallet-transactions', 1, 3], enabled: !!token, staleTime: 30_000 } });
