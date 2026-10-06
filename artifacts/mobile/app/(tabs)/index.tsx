@@ -182,9 +182,6 @@ export default function InvestorHome() {
     rates,
     dashboardUsdToPkrRate,
   );
-  const showLocalBalanceEquivalent = !dashboard.isLoading
-    && !dashboard.isError
-    && localBalanceEquivalent != null;
   const name = first(record(user), ['name', 'first_name'], 'Investor');
   const firstName = name.split(/\s+/)[0] || 'Investor';
   const greeting = 'Hi';
@@ -207,6 +204,14 @@ export default function InvestorHome() {
   const benchmarkAvailable = data.benchmark_available === true;
   const displayMoney = (value: number | null, unit = currency) =>
     balanceHidden ? '••••••' : dashboard.isError ? 'Unavailable' : money(value, unit || 'USD');
+  const displayWalletBalance = (value: number | null) => {
+    if (balanceHidden) return '••••••';
+    if (dashboard.isError) return 'Unavailable';
+    if (localBalanceEquivalent != null) {
+      return moneyInSourceCurrency(localBalanceEquivalent, localCurrency);
+    }
+    return moneyInSourceCurrency(value, sourceCurrency || 'USD');
+  };
   const displayRoi = balanceHidden ? '••••' : dashboard.isError ? 'Unavailable' : roi == null ? '—' : `${roi.toFixed(2)}%`;
   const metricMoney = (value: number | null, unit = currency) =>
     dashboard.isLoading ? '…' : dashboard.isError ? 'Unavailable' : displayMoney(value, unit);
@@ -349,11 +354,8 @@ export default function InvestorHome() {
            <Feather name={balanceHidden ? 'eye-off' : 'eye'} size={15} color={colors.balanceCardText} />
          </Pressable>
          <Text testID="home-available-balance" numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, fontSize: 40, fontWeight: '700', letterSpacing: -0.9, lineHeight: 45, marginTop: 5, textAlign: 'center' }}>
-           {dashboard.isLoading ? '…' : displayMoney(availableBalance)}
+            {dashboard.isLoading ? '…' : displayWalletBalance(availableBalance)}
          </Text>
-          {showLocalBalanceEquivalent ? <Text testID="home-local-balance-equivalent" numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, opacity: 0.78, fontSize: 12, marginTop: 2, textAlign: 'center' }}>
-            {balanceHidden ? '••••••' : moneyInSourceCurrency(localBalanceEquivalent, localCurrency)}
-          </Text> : null}
          {dashboard.isError ? <Text style={{ color: colors.balanceCardText, opacity: 0.7, fontSize: 10, marginTop: 4 }}>
            Balance details unavailable right now
          </Text> : null}
