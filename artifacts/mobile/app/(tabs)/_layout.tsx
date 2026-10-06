@@ -38,12 +38,15 @@ function ClassicLayout() {
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === 'web';
   const isAndroid = Platform.OS === 'android';
+  const androidTabBarLowering = isAndroid
+    ? Math.min(Math.max(insets.bottom * 0.5, 12), 16)
+    : 0;
   return (
     <Tabs screenOptions={{
       headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.mutedForeground,
       tabBarStyle: {
         position: 'absolute', left: isAndroid ? 0 : 14, right: isAndroid ? 0 : 14,
-        bottom: isWeb || isAndroid ? 0 : Math.max(insets.bottom, 10),
+        bottom: isWeb ? 0 : isAndroid ? -androidTabBarLowering : Math.max(insets.bottom, 10),
         height: isWeb ? 84 : isAndroid ? 64 : 70,
         paddingTop: isWeb ? 2 : isAndroid ? 0 : 4,
         paddingBottom: isWeb ? 34 : 0,
