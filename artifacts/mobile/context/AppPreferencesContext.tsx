@@ -13,12 +13,10 @@ import { configureMoneyDisplay, first, record, unwrap, type Json } from '@/lib/d
 import { configureUiLanguage } from '@/lib/strings';
 import type { AppLanguage } from '@/lib/strings';
 
-export type DisplayCurrency = 'wallet' | 'USD' | 'PKR' | 'EUR' | 'GBP';
 export type AppearancePreference = 'light' | 'dark' | 'system';
 
 export type AppPreferences = {
   language: AppLanguage;
-  currency: DisplayCurrency;
   appearance: AppearancePreference;
 };
 
@@ -40,7 +38,6 @@ type PreferencesContextValue = {
 
 const defaultPreferences: AppPreferences = {
   language: 'en',
-  currency: 'wallet',
   appearance: 'light',
 };
 
@@ -52,11 +49,6 @@ function parsePreferences(value: unknown): Partial<AppPreferences> {
   const next: Partial<AppPreferences> = {};
   if (source.language === 'en' || source.language === 'ur' || source.language === 'ar') {
     next.language = source.language;
-  }
-  const currency = typeof source.currency === 'string' ? source.currency.toUpperCase() : '';
-  if (currency === 'WALLET' || currency === 'ACCOUNT') next.currency = 'wallet';
-  else if (currency === 'USD' || currency === 'PKR' || currency === 'EUR' || currency === 'GBP') {
-    next.currency = currency;
   }
   const appearance = source.appearance ?? source.theme;
   if (appearance === 'light' || appearance === 'dark' || appearance === 'system') {
@@ -119,12 +111,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     ? systemAppearance === 'dark' ? 'dark' : 'light'
     : preferences.appearance;
 
-  configureMoneyDisplay({
-    language: preferences.language,
-    currency: preferences.currency,
-    walletCurrency,
-    rates,
-  });
+  configureMoneyDisplay({ language: preferences.language });
   configureUiLanguage(preferences.language);
 
   useEffect(() => {

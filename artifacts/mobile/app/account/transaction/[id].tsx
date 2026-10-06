@@ -44,7 +44,7 @@ export default function TransactionDetails() {
   const title = first(transaction, ['description', 'title'], first(transaction, ['type', 'transaction_type'], 'Transaction'));
   const currency = first(transaction, ['currency'], first(meta, ['currency', 'wallet_currency']));
   const reportedAmount = amount(transaction, ['amount']);
-  const amountLabel = money(reportedAmount, currency || 'USD', { preserveSource: true });
+  const amountLabel = money(reportedAmount, currency || 'USD');
   const status = first(transaction, ['status', 'state'], unavailable);
 
   return <Screen title="Transaction details" subtitle="Transaction information reported by OG Exports">
