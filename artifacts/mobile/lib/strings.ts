@@ -446,6 +446,8 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["No posted wallet movements for this month.","اس مہینے والیٹ میں کوئی لین دین درج نہیں ہوا۔","لا توجد حركات محفظة مسجلة لهذا الشهر."],
   ["No trade documents are available from OG Exports for this opportunity.","اس موقع کے لیے OG Exports کی جانب سے کوئی تجارتی دستاویزات دستیاب نہیں ہیں۔","لا تتوفر أي مستندات تجارية من OG Exports لهذه الفرصة."],
   ["No verified bank account available","کوئی تصدیق شدہ بینک اکاؤنٹ دستیاب نہیں","لا يتوفر حساب بنكي موثق"],
+  ["Not provided","فراہم نہیں کیا گیا","لم يتم تقديمه"],
+  ["Not specified","متعین نہیں","غير محدد"],
   ["Not returned by OG Exports","OG Exports کی طرف سے واپس نہیں کیا گیا","لم يتم إرجاعه من قبل OG Exports"],
   ["Notification preferences could not be loaded. Retry Settings before changing them.","اطلاعات کی ترجیحات لوڈ نہیں کی جا سکیں۔ تبدیل کرنے سے پہلے سیٹنگز کو دوبارہ آزمائیں۔","تعذر تحميل تفضيلات الإشعارات. يرجى إعادة محاولة الإعدادات قبل تغييرها."],
   ["OG Exports does not return a separate withdrawable total; requests are reserved from the reported available balance.","OG Exports رقم نکلوانے کے لیے الگ مجموعی دستیاب بیلنس نہیں دیتا؛ درخواست کی رقم رپورٹ کردہ دستیاب بیلنس میں سے محفوظ کی جاتی ہے۔","لا تعيد OG Exports إجمالي منفصل قابل للسحب؛ يتم حجز الطلبات من الرصيد المتاح المبلغ عنه."],

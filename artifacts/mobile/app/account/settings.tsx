@@ -9,17 +9,15 @@ import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 import {
   useGetInvestorProfile,
-  useGetInvestorTransactionPasswordStatus,
   useInvestorMobileLogout,
   useRegisterInvestorPushToken,
   useRevokeInvestorPushToken,
-  useResetInvestorTransactionPassword,
-  useSetInvestorTransactionPassword,
   useUpdateInvestorMe,
   useUpdateInvestorPassword,
   useUpdateInvestorProfile,
 } from '@workspace/api-client-react';
 import { Action, Card, ConfirmationSheet, Field, Screen } from '@/components/InvestorUI';
+import { TransactionPasswordSettingsCard } from '@/components/TransactionPasswordSettingsCard';
 import { CountryPicker } from '@/components/CountryPicker';
 import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap, type Json } from '@/lib/data';
@@ -46,23 +44,13 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const userId = first(record(user), ['id']);
   const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: !!token } });
-  const transactionPasswordQuery = useGetInvestorTransactionPasswordStatus({
-    query: { queryKey: ['investor-transaction-password-status'], enabled: !!token },
-  });
   const updateProfile = useUpdateInvestorProfile();
   const updateMe = useUpdateInvestorMe();
   const updatePassword = useUpdateInvestorPassword();
-  const setTransactionPassword = useSetInvestorTransactionPassword();
-  const resetTransactionPassword = useResetInvestorTransactionPassword();
   const logout = useInvestorMobileLogout();
   const registerPushToken = useRegisterInvestorPushToken();
   const revokePushToken = useRevokeInvestorPushToken();
   const profile = unwrap(profileQuery.data);
-  const transactionPasswordStatus = unwrap(transactionPasswordQuery.data);
-  const hasTransactionPassword = transactionPasswordStatus.has_transaction_password === true
-    || transactionPasswordStatus.set === true
-    || transactionPasswordStatus.is_set === true
-    || transactionPasswordStatus.configured === true;
   const [server, setServer] = useState(apiOrigin);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -70,9 +58,6 @@ export default function Settings() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loginPasswordForTransaction, setLoginPasswordForTransaction] = useState('');
-  const [newTransactionPassword, setNewTransactionPassword] = useState('');
-  const [confirmTransactionPassword, setConfirmTransactionPassword] = useState('');
   const [error, setError] = useState('');
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [notificationPrefs, setNotificationPrefs] = useState<Record<string, unknown>>({});
@@ -271,42 +256,6 @@ export default function Settings() {
     } catch (err) { setError(messageOf(err)); }
   }
 
-  async function saveTransactionPassword() {
-    setError('');
-    if (newTransactionPassword.length < 6) {
-      setError('Use at least 6 characters for the transaction password.');
-      return;
-    }
-    if (newTransactionPassword !== confirmTransactionPassword) {
-      setError('The transaction password and confirmation do not match.');
-      return;
-    }
-    try {
-      if (hasTransactionPassword) {
-        await resetTransactionPassword.mutateAsync({
-          data: {
-            password: loginPasswordForTransaction,
-            transaction_password: newTransactionPassword,
-            transaction_password_confirmation: confirmTransactionPassword,
-          },
-        });
-      } else {
-        await setTransactionPassword.mutateAsync({
-          data: {
-            password: loginPasswordForTransaction,
-            transaction_password: newTransactionPassword,
-            transaction_password_confirmation: confirmTransactionPassword,
-          },
-        });
-      }
-      setLoginPasswordForTransaction('');
-      setNewTransactionPassword('');
-      setConfirmTransactionPassword('');
-      await transactionPasswordQuery.refetch();
-      Alert.alert('Transaction password updated', 'You can use it to confirm withdrawals.');
-    } catch (err) { setError(messageOf(err)); }
-  }
-
   async function changeServer() {
     setError('');
     if (!validOrigin(server)) {
@@ -351,7 +300,6 @@ export default function Settings() {
     router.replace('/(auth)/login');
   }
 
-  const transactionPasswordBusy = setTransactionPassword.isPending || resetTransactionPassword.isPending;
   return <Screen title="Settings" subtitle="Profile, security and server connection">
     <Card>
       <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Profile details</Text>
@@ -536,17 +484,7 @@ export default function Settings() {
       <Action title="Update sign-in password" icon="lock" loading={updatePassword.isPending} disabled={!currentPassword || newPassword.length < 8 || !confirmPassword} onPress={() => void savePassword()} />
     </Card>
 
-    <Card>
-      <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 6 }}>Withdrawal transaction password</Text>
-      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>
-        {transactionPasswordQuery.isLoading ? 'Checking security settings…' : hasTransactionPassword ? 'A transaction password is set. Confirm the change with your sign-in password.' : 'Set a transaction password to confirm withdrawals.'}
-      </Text>
-      <Field label="Sign-in password to confirm" value={loginPasswordForTransaction} onChangeText={setLoginPasswordForTransaction} placeholder="Your sign-in password" secureTextEntry autoCapitalize="none" />
-      <Field label="New transaction password" value={newTransactionPassword} onChangeText={setNewTransactionPassword} placeholder="At least 6 characters" secureTextEntry autoCapitalize="none" />
-      <Field label="Confirm transaction password" value={confirmTransactionPassword} onChangeText={setConfirmTransactionPassword} placeholder="Re-enter password" secureTextEntry autoCapitalize="none" />
-      {transactionPasswordQuery.isError ? <Text style={{ color: colors.destructive, marginBottom: 10 }}>Security status could not be loaded. Retry the screen before changing this password.</Text> : null}
-      <Action title={hasTransactionPassword ? 'Reset transaction password' : 'Set transaction password'} icon="shield" loading={transactionPasswordBusy} disabled={!transactionPasswordQuery.data || transactionPasswordQuery.isError || !loginPasswordForTransaction || newTransactionPassword.length < 6 || !confirmTransactionPassword} onPress={() => void saveTransactionPassword()} />
-    </Card>
+    <TransactionPasswordSettingsCard />
 
     <Card>
       <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 6 }}>Investor API server</Text>

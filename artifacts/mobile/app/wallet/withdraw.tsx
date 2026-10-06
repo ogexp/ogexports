@@ -1,23 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LocalizedText as Text } from '@/components/LocalizedText';
-import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreateInvestorWithdrawal,
   useGetInvestorDashboard,
   useGetInvestorProfile,
-  useGetInvestorTransactionPasswordStatus,
   useGetInvestorWallet,
   useGetInvestorWithdrawals,
-  useResetInvestorTransactionPassword,
-  useSetInvestorTransactionPassword,
   useSendInvestorWithdrawalOtp,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessMark } from '@/components/InvestorUI';
+import { TransactionPasswordResetModal } from '@/components/TransactionPasswordResetModal';
 import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, money, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -131,22 +127,31 @@ function CheckRow({ checked, disabled, title, detail, onPress, testID }: {
   </Pressable>;
 }
 
+function TransactionPasswordEntryField({ onValueChange }: { onValueChange: (value: string) => void }) {
+  const [value, setValue] = useState('');
+  return <Field
+    label="Transaction password"
+    value={value}
+    onChangeText={next => {
+      setValue(next);
+      onValueChange(next);
+    }}
+    placeholder="Transaction password"
+    secureTextEntry
+    autoCapitalize="none"
+  />;
+}
+
 export default function Withdraw() {
   const { token, appPinEnabled, biometricEnabled } = useAuth();
   const colors = useColors();
-  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const dashboardQuery = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
   const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const historyQuery = useGetInvestorWithdrawals({}, { query: { queryKey: ['investor-withdrawals'], enabled: Boolean(token), refetchOnMount: 'always' } });
-  const transactionPasswordQuery = useGetInvestorTransactionPasswordStatus({
-    query: { queryKey: ['investor-transaction-password-status'], enabled: Boolean(token) },
-  });
   const create = useCreateInvestorWithdrawal();
   const sendOtp = useSendInvestorWithdrawalOtp();
-  const resetTransactionPassword = useResetInvestorTransactionPassword();
-  const setTransactionPasswordMutation = useSetInvestorTransactionPassword();
   const wallet = unwrap(walletQuery.data);
   const dashboard = unwrap(dashboardQuery.data);
   const profile = unwrap(profileQuery.data);
@@ -165,7 +170,7 @@ export default function Withdraw() {
   const processingTime = first(dashboard, ['estimated_processing_time', 'processing_time'],
     first(wallet, ['estimated_processing_time', 'processing_time']));
   const taxTreatment = first(dashboard, ['tax_treatment', 'tax_status'],
-    first(wallet, ['tax_treatment', 'tax_status'], 'Not returned by OG Exports'));
+    first(wallet, ['tax_treatment', 'tax_status']));
   const deviceSecurityConfigured = appPinEnabled || biometricEnabled;
   const firstWithdrawalSecurityRequired = !deviceSecurityConfigured && withdrawals.length === 0;
   const firstWithdrawalHistoryPending = firstWithdrawalSecurityRequired && (historyQuery.isLoading || historyQuery.isFetching);
@@ -187,21 +192,15 @@ export default function Withdraw() {
   const [otp, setOtp] = useState('');
   const [otpEmail, setOtpEmail] = useState('');
   const [otpCooldown, setOtpCooldown] = useState(0);
-  const [transactionPassword, setTransactionPassword] = useState('');
+  const transactionPasswordRef = useRef('');
+  const [hasTransactionPasswordInput, setHasTransactionPasswordInput] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
-  const [resetForm, setResetForm] = useState({ login: '', transaction: '', confirm: '' });
-  const [resetError, setResetError] = useState('');
   const [submittedAmount, setSubmittedAmount] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [stage, setStage] = useState<'overview' | 'form' | 'security' | 'submitted'>('overview');
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
   const [selectedWithdrawalId, setSelectedWithdrawalId] = useState('');
-  const transactionPasswordStatus = unwrap(transactionPasswordQuery.data);
-  const hasTransactionPassword = transactionPasswordStatus.has_transaction_password === true
-    || transactionPasswordStatus.set === true
-    || transactionPasswordStatus.is_set === true
-    || transactionPasswordStatus.configured === true;
   const withdrawalCurrency = walletCurrency;
   const amountNumber = parseWithdrawalAmount(amount, availableBalance);
   const historySelection = withdrawals.find(item => first(item, ['id', 'reference', 'withdraw_id']) === selectedWithdrawalId);
@@ -277,6 +276,12 @@ export default function Withdraw() {
     await requestOtp();
   }
 
+  function updateTransactionPassword(value: string) {
+    transactionPasswordRef.current = value;
+    setHasTransactionPasswordInput(value.length > 0);
+    setError('');
+  }
+
   async function submit() {
     setError('');
     setNotice('');
@@ -296,13 +301,13 @@ export default function Withdraw() {
       setStage('form');
       return;
     }
-    if (otp.trim().length !== 6 || !transactionPassword) {
+    if (otp.trim().length !== 6 || !transactionPasswordRef.current) {
       setError('Enter the emailed code and your transaction password.');
       return;
     }
     try {
       const response = record(await create.mutateAsync({
-        data: buildWithdrawalRequest(validAmount, otp, transactionPassword, {
+        data: buildWithdrawalRequest(validAmount, otp, transactionPasswordRef.current, {
           bank_name: bankName,
           account_holder: accountHolder,
           account_number: accountNumber,
@@ -320,44 +325,14 @@ export default function Withdraw() {
       setOtp('');
       setOtpEmail('');
       setOtpCooldown(0);
-      setTransactionPassword('');
+      transactionPasswordRef.current = '';
+      setHasTransactionPasswordInput(false);
       void historyQuery.refetch();
       void queryClient.invalidateQueries({ queryKey: ['investor-wallet'] });
       void queryClient.invalidateQueries({ queryKey: ['investor-wallet-transactions'] });
       void queryClient.invalidateQueries({ queryKey: ['investor-dashboard'] });
       void queryClient.invalidateQueries({ queryKey: ['investor-profile'] });
     } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
-  }
-
-  async function saveTransactionPassword() {
-    setResetError('');
-    if (transactionPasswordQuery.isLoading || transactionPasswordQuery.isFetching || transactionPasswordQuery.isError) {
-      setResetError('Transaction-password status could not be checked. Please retry or use account settings.');
-      return;
-    }
-    if (!resetForm.login || resetForm.transaction.length < 6) {
-      setResetError('Enter your login password and use at least 6 characters for the new transaction password.');
-      return;
-    }
-    if (resetForm.transaction !== resetForm.confirm) {
-      setResetError('The transaction password and confirmation do not match.');
-      return;
-    }
-    const data = {
-      password: resetForm.login,
-      transaction_password: resetForm.transaction,
-      transaction_password_confirmation: resetForm.confirm,
-    };
-    try {
-      if (hasTransactionPassword) await resetTransactionPassword.mutateAsync({ data });
-      else await setTransactionPasswordMutation.mutateAsync({ data });
-      setResetForm({ login: '', transaction: '', confirm: '' });
-      setShowResetModal(false);
-      await transactionPasswordQuery.refetch();
-      setNotice('Transaction password updated. You can use it to confirm withdrawals.');
-    } catch (err) {
-      setResetError(messageOf(err));
-    }
   }
 
   return <Screen title="Withdraw" subtitle="Request a payout from your OG Exports wallet">
@@ -407,13 +382,18 @@ export default function Withdraw() {
         <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 3 }}>Withdrawal limits</Text>
         <DetailRow label="Minimum withdrawal" value={moneyInSourceCurrency(0, 'USD')} />
         <DetailRow label="Maximum withdrawal" value={availableBalance == null ? 'Unavailable' : moneyInSourceCurrency(availableBalance, withdrawalCurrency || 'USD')} />
-        <DetailRow label="Wallet currency" value={withdrawalCurrency || 'Not returned by OG Exports'} />
       </Card>
-      <Card>
-        <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 4 }}>Processing information</Text>
-        <DetailRow label="Processing time" value={processingTime || 'Not returned by OG Exports'} />
+      <Card testID="withdraw-processing-info">
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 4 }}>
+          <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
+            <Feather name="clock" size={15} color={colors.primary} />
+          </View>
+          <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 14 }}>Processing information</Text>
+        </View>
+        <DetailRow label="Processing time" value={processingTime || 'Not provided'} />
         <DetailRow label="Withdrawal fees" value={fee == null ? moneyInSourceCurrency(0, 'USD') : moneyInSourceCurrency(fee, withdrawalCurrency || 'USD')} />
-        <DetailRow label="Tax treatment" value={taxTreatment} />
+        <DetailRow label="Tax treatment" value={taxTreatment || 'Not specified'} />
+        <DetailRow label="Wallet currency" value={withdrawalCurrency || 'Not provided'} />
       </Card>
       {pendingBalance != null && pendingBalance > 0 ? <Card>
         <DetailRow label="Pending withdrawals reserved" value={money(pendingBalance, withdrawalCurrency || 'USD')} />
@@ -461,7 +441,7 @@ export default function Withdraw() {
         }}
       />
       <Field label="Withdrawal amount" value={amount} onChangeText={value => { setAmount(value); setError(''); }} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
-      <DetailRow label="Wallet currency" value={withdrawalCurrency || 'Not returned by OG Exports'} />
+      <DetailRow label="Wallet currency" value={withdrawalCurrency || 'Not provided'} />
       {amount.trim() && amountNumber == null ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 11, lineHeight: 16, marginTop: 3 }}>
         Enter a valid amount within the withdrawable balance reported by OG Exports.
       </Text> : null}
@@ -544,10 +524,10 @@ export default function Withdraw() {
       </View>
       <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 14, padding: 14, marginBottom: 12 }}>
         <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700', marginBottom: 10 }}>Transaction password</Text>
-        <Field label="Transaction password" value={transactionPassword} onChangeText={value => { setTransactionPassword(value); setError(''); }} placeholder="Transaction password" secureTextEntry autoCapitalize="none" />
+        <TransactionPasswordEntryField onValueChange={updateTransactionPassword} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Forgot password?</Text>
-          <Pressable accessibilityRole="button" onPress={() => { setResetError(''); setShowResetModal(true); }}>
+          <Pressable accessibilityRole="button" onPress={() => setShowResetModal(true)}>
             <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>Reset here</Text>
           </Pressable>
           <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>or set one in</Text>
@@ -559,13 +539,18 @@ export default function Withdraw() {
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
       {notice ? <Text style={{ color: colors.primary, lineHeight: 19, marginBottom: 12 }}>{notice}</Text> : null}
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <View style={{ flex: 0.8 }}><Action title="Back" secondary disabled={create.isPending} onPress={() => { setError(''); setStage('form'); }} /></View>
+        <View style={{ flex: 0.8 }}><Action title="Back" secondary disabled={create.isPending} onPress={() => {
+          transactionPasswordRef.current = '';
+          setHasTransactionPasswordInput(false);
+          setError('');
+          setStage('form');
+        }} /></View>
         <View style={{ flex: 1.4 }}>
           <Action
             title="Verify & Continue"
             icon="arrow-right"
             loading={create.isPending}
-            disabled={otp.length !== 6 || !transactionPassword}
+            disabled={otp.length !== 6 || !hasTransactionPasswordInput}
             onPress={() => void submit()}
           />
         </View>
@@ -602,7 +587,8 @@ export default function Withdraw() {
         setPurpose('');
         setOtp('');
         setOtpEmail('');
-        setTransactionPassword('');
+        transactionPasswordRef.current = '';
+        setHasTransactionPasswordInput(false);
         setStage('overview');
       }} /></View>
     </Card> : null}
@@ -638,53 +624,10 @@ export default function Withdraw() {
     })}
     {progressWithdrawal && stage !== 'submitted' ? <WithdrawalProgress withdrawal={progressWithdrawal} /> : null}
 
-    <Modal
+    <TransactionPasswordResetModal
       visible={showResetModal}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      onRequestClose={() => setShowResetModal(false)}
-    >
-      <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 18, backgroundColor: 'rgba(8, 18, 13, 0.48)' }}>
-        <Pressable accessible={false} importantForAccessibility="no" onPress={() => setShowResetModal(false)} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
-        <View style={{
-          alignSelf: 'center',
-          width: '100%',
-          maxWidth: 480,
-          maxHeight: '88%',
-          borderRadius: 22,
-          borderWidth: 1,
-          borderColor: colors.border,
-          backgroundColor: colors.card,
-          padding: 20,
-          paddingBottom: Math.max(insets.bottom, 16) + 10,
-        }}>
-          <KeyboardAwareScrollViewCompat keyboardShouldPersistTaps="handled" bottomOffset={24} showsVerticalScrollIndicator={false}>
-            <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', marginBottom: 5 }}>Reset transaction password</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 16 }}>
-              Confirm your login password, then choose and confirm a new transaction password.
-            </Text>
-            {transactionPasswordQuery.isError ? <Text style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>
-              Transaction-password status could not be checked. Retry the status check or use account settings.
-            </Text> : null}
-            <Field label="Login password" value={resetForm.login} onChangeText={value => { setResetForm(form => ({ ...form, login: value })); setResetError(''); }} secureTextEntry autoCapitalize="none" />
-            <Field label="New transaction password" value={resetForm.transaction} onChangeText={value => { setResetForm(form => ({ ...form, transaction: value })); setResetError(''); }} secureTextEntry autoCapitalize="none" />
-            <Field label="Confirm transaction password" value={resetForm.confirm} onChangeText={value => { setResetForm(form => ({ ...form, confirm: value })); setResetError(''); }} secureTextEntry autoCapitalize="none" />
-            {resetError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>{resetError}</Text> : null}
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <View style={{ flex: 0.8 }}><Action title="Cancel" secondary disabled={resetTransactionPassword.isPending || setTransactionPasswordMutation.isPending} onPress={() => setShowResetModal(false)} /></View>
-              <View style={{ flex: 1.2 }}>
-                <Action
-                  title="Update password"
-                  loading={resetTransactionPassword.isPending || setTransactionPasswordMutation.isPending}
-                  disabled={transactionPasswordQuery.isLoading || transactionPasswordQuery.isFetching || transactionPasswordQuery.isError || !resetForm.login || resetForm.transaction.length < 6 || !resetForm.confirm}
-                  onPress={() => void saveTransactionPassword()}
-                />
-              </View>
-            </View>
-          </KeyboardAwareScrollViewCompat>
-        </View>
-      </View>
-    </Modal>
+      onClose={() => setShowResetModal(false)}
+      onSuccess={() => setNotice('Transaction password updated. You can use it to confirm withdrawals.')}
+    />
   </Screen>;
 }
