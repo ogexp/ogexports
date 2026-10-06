@@ -410,3 +410,28 @@ export function countryLabelForValue(value: string): string {
   if (!needle) return '';
   return COUNTRIES.find(country => country.searchTerms.some(term => normalize(term) === needle))?.label ?? value;
 }
+
+export function countryForApi(value: string): string {
+  return countryLabelForValue(value.trim()).trim();
+}
+
+function recordValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function stringField(value: Record<string, unknown>, key: string): string {
+  const field = value[key];
+  return typeof field === 'string' ? field.trim() : '';
+}
+
+export function profileUserCountry(user: unknown): string {
+  return stringField(recordValue(user), 'country');
+}
+
+export function kycProfileCountry(profileValue: unknown): string {
+  const profile = recordValue(profileValue);
+  const address = recordValue(profile.address);
+  return stringField(address, 'country') || stringField(profile, 'country');
+}

@@ -23,6 +23,7 @@ import { Action, Card, ConfirmationSheet, Field, Screen } from '@/components/Inv
 import { CountryPicker } from '@/components/CountryPicker';
 import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap, type Json } from '@/lib/data';
+import { countryForApi, profileUserCountry } from '@/lib/countries';
 import { validOrigin } from '@/lib/api-config';
 import { useColors } from '@/hooks/useColors';
 import { useAppPreferences, type AppearancePreference, type DisplayCurrency } from '@/context/AppPreferencesContext';
@@ -93,7 +94,7 @@ export default function Settings() {
     const account = record(user);
     setName(first(account, ['name']));
     setPhone(first(account, ['mobile']));
-    setCountry(first(account, ['country']));
+    setCountry(profileUserCountry(account));
   }, [user]);
 
   useEffect(() => {
@@ -242,7 +243,7 @@ export default function Settings() {
     setError('');
     try {
       const saved = record(await updateMe.mutateAsync({
-        data: { name: name.trim(), mobile: phone.trim(), country: country.trim() },
+        data: { name: name.trim(), mobile: phone.trim(), country: countryForApi(country) },
       }));
       const savedUser = record(saved.user);
       if (!first(savedUser, ['id'])) throw new Error('The server did not return the updated profile.');

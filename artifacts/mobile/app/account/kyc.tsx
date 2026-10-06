@@ -8,6 +8,7 @@ import { useGetInvestorProfile, useSubmitInvestorKyc, useUpdateInvestorProfile, 
 import { Action, Card, ErrorState, Field, Screen, Status } from '@/components/InvestorUI';
 import { CountryPicker } from '@/components/CountryPicker';
 import { first, list, messageOf, record, unwrap } from '@/lib/data';
+import { countryForApi, kycProfileCountry } from '@/lib/countries';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
@@ -111,7 +112,7 @@ export default function Kyc() {
     setDob(first(personal, ['dob', 'date_of_birth'], first(profile, ['dob', 'date_of_birth'])));
     setNationality(first(personal, ['nationality'], first(profile, ['nationality'])));
     setIdNumber(first(personal, ['cnic', 'id_number'], first(profile, ['cnic', 'id_number'])));
-    setCountry(first(address, ['country'], first(profile, ['country'])));
+    setCountry(kycProfileCountry(profile));
     setCity(first(address, ['city'], first(profile, ['city'])));
     setStreetAddress(first(address, ['address', 'street'], flatStreetAddress));
     setProvince(first(address, ['province', 'state'], first(profile, ['province', 'state'])));
@@ -138,7 +139,7 @@ export default function Kyc() {
           phone: phone.trim(),
           dob: normalizedDob,
           nationality: nationality.trim(),
-          country: country.trim(),
+          country: countryForApi(country),
           city: city.trim(),
           address: streetAddress.trim(),
           province: province.trim(),
@@ -203,7 +204,7 @@ export default function Kyc() {
           phone: phone.trim(),
           dob: normalizedDob,
           nationality: nationality.trim(),
-          country: country.trim(),
+          country: countryForApi(country),
           city: city.trim(),
           address: streetAddress.trim(),
           province: province.trim(),
@@ -213,7 +214,7 @@ export default function Kyc() {
       const result = record(await submitKyc.mutateAsync({
         data: {
           type: 'investor',
-          country: country.trim(),
+          country: countryForApi(country),
           payload: {
             name: name.trim(),
             phone: phone.trim(),
