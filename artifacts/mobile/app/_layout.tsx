@@ -24,6 +24,7 @@ import { serializeRouteState } from '@/lib/post-auth-route';
 import { notificationHref } from '@/lib/notification-routing';
 import { record } from '@/lib/data';
 import { translateUi } from '@/lib/strings';
+import { MOTION, MotionProvider, useMotion } from '@/lib/motion';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -31,6 +32,7 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
+  const { reduceMotion } = useMotion();
   const { ready, token, user, apiOrigin, appUnlocked } = useAuth();
   const sessionQueryClient = useQueryClient();
   const { isRTL, preferences, resolvedAppearance } = useAppPreferences();
@@ -104,7 +106,7 @@ function RootLayoutNav() {
   if (token && !appUnlocked) {
     return <>
       {statusBar}
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background, direction: isRTL ? 'rtl' : 'ltr' } }}>
+      <Stack screenOptions={{ headerShown: false, animation: reduceMotion ? 'fade' : 'slide_from_right', animationDuration: MOTION.page, contentStyle: { backgroundColor: colors.background, direction: isRTL ? 'rtl' : 'ltr' } }}>
         <Stack.Screen name="lock" />
         <Stack.Screen name="(auth)" options={{ presentation: 'modal', headerShown: false }} />
       </Stack>
@@ -115,7 +117,8 @@ function RootLayoutNav() {
     <>
       {statusBar}
       <Stack screenOptions={{
-        animation: 'slide_from_right',
+        animation: reduceMotion ? 'fade' : 'slide_from_right',
+        animationDuration: MOTION.page,
         gestureEnabled: true,
         headerBackTitle: t('Back'),
         headerTintColor: colors.primary,
@@ -175,7 +178,9 @@ export default function RootLayout() {
             <KeyboardProvider>
               <AuthProvider>
                 <AppPreferencesProvider>
-                  <RootLayoutNav />
+                  <MotionProvider>
+                    <RootLayoutNav />
+                  </MotionProvider>
                 </AppPreferencesProvider>
               </AuthProvider>
             </KeyboardProvider>

@@ -14,6 +14,7 @@ import {
 import { resolvePostAuthHref } from '@/lib/post-auth-route';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MotionReveal, motionHaptic } from '@/lib/motion';
 
 export default function Verify() {
   const { challenge, acceptSession } = useAuth();
@@ -53,6 +54,7 @@ export default function Verify() {
       router.replace(destination);
     } catch (err) {
       postAuthRedirect.current = false;
+      motionHaptic('error');
       setError(messageOf(err));
     }
   }
@@ -87,6 +89,7 @@ export default function Verify() {
     bottomOffset={70}
     keyboardShouldPersistTaps="handled"
   >
+    <MotionReveal>
     <Text style={{ fontSize: 27, fontWeight: '700', color: colors.foreground }}>
       {isTwoFactor ? 'Confirm your sign-in' : 'Verify your email'}
     </Text>
@@ -130,5 +133,6 @@ export default function Verify() {
         <Text style={{ color: colors.primary, fontWeight: '600' }}>Back to sign in</Text>
       </Pressable>}
     </Card>
+    </MotionReveal>
   </KeyboardAwareScrollViewCompat>;
 }

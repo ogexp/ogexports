@@ -9,6 +9,7 @@ import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Sta
 import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap, type Json } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { MotionReveal } from '@/lib/motion';
 
 type WalletCategory = 'All' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
 const walletCategories: WalletCategory[] = ['All', 'Deposits', 'Investments', 'Withdrawals', 'Distributions'];
@@ -100,9 +101,11 @@ export default function Wallet() {
         <Feather name="credit-card" size={21} color={colors.primaryForeground} />
       </View>
       <Text style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: '600', letterSpacing: 0.6, marginTop: 26 }}>AVAILABLE BALANCE</Text>
+      <MotionReveal key={balanceLabel(available, currency, dashboard.isLoading, dashboard.isError)}>
       <Text adjustsFontSizeToFit numberOfLines={1} style={{ color: colors.primaryForeground, fontSize: 33, fontWeight: '700', marginTop: 7 }}>
         {balanceLabel(available, currency, dashboard.isLoading, dashboard.isError)}
       </Text>
+      </MotionReveal>
       <Text style={{ color: colors.primaryForeground, fontSize: 11, opacity: 0.82, marginTop: 7 }}>
         {currency || 'USD'} account
       </Text>

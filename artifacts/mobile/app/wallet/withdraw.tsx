@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LocalizedText as Text } from '@/components/LocalizedText';
@@ -7,11 +8,13 @@ import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollV
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreateInvestorWithdrawal,
-  getGetInvestorBankAccountsQueryKey,
-  useGetInvestorBankAccounts,
   useGetInvestorDashboard,
+  useGetInvestorProfile,
+  useGetInvestorTransactionPasswordStatus,
   useGetInvestorWallet,
   useGetInvestorWithdrawals,
+  useResetInvestorTransactionPassword,
+  useSetInvestorTransactionPassword,
   useSendInvestorWithdrawalOtp,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessMark } from '@/components/InvestorUI';
@@ -19,69 +22,67 @@ import { amount as readAmount, availableBalanceFromDashboard, first, list, messa
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { buildWithdrawalRequest, parseWithdrawalAmount } from '@/lib/withdrawal-flow';
+import { motionHaptic } from '@/lib/motion';
 
-const withdrawalStages = ['Requested', 'Processing', 'Approved', 'Completed'] as const;
-const finishedStatuses = new Set(['approved', 'completed']);
-const processingStatuses = new Set(['pending', 'requested', 'processing', 'review', 'in review']);
 const withdrawalPurposes = ['Profit Withdrawal', 'Principal Return', 'Business Expense', 'Personal Use'] as const;
 
-function verifiedBankAccount(account: Record<string, unknown>) {
-  const status = first(account, ['verification_status']).toLowerCase();
-  const hasDestination = Boolean(
-    bankKey(account)
-    &&
-    first(account, ['bank_name'])
-    && first(account, ['account_holder', 'account_title'])
-    && first(account, ['masked_account_identifier']),
-  );
-  return status === 'verified' && hasDestination;
+type WithdrawalBankDetails = {
+  bank_name: string;
+  account_holder: string;
+  account_number: string;
+  iban: string;
+  swift: string;
+  branch: string;
+};
+
+function normalizeWithdrawalBank(value: Record<string, unknown>): WithdrawalBankDetails {
+  return {
+    bank_name: first(value, ['bank_name', 'bank']),
+    account_holder: first(value, ['account_holder', 'account_title']),
+    account_number: first(value, ['account_number']),
+    iban: first(value, ['iban']),
+    swift: first(value, ['swift', 'swift_code', 'bic']),
+    branch: first(value, ['branch', 'branch_name']),
+  };
 }
 
-function bankKey(account: Record<string, unknown>) {
-  return first(account, ['id', 'account_id']);
+function hasUsableWithdrawalBank(value: WithdrawalBankDetails) {
+  return Boolean(value.bank_name && value.account_holder && value.account_number);
 }
 
-function maskAccount(account: Record<string, unknown>) {
-  return first(account, ['masked_account_identifier'], '—');
+function savedWithdrawalBank(profile: Record<string, unknown>): WithdrawalBankDetails | null {
+  const accounts = list(profile.bank_accounts).map(account => record(account));
+  const isDefault = (account: Record<string, unknown>) => {
+    const flag = first(account, ['is_default', 'default']).toLowerCase();
+    return flag === 'true' || flag === '1';
+  };
+  const candidates = [
+    record(profile.default_bank_account),
+    accounts.find(isDefault) ?? {},
+    record(profile.withdraw_bank),
+    ...accounts,
+  ];
+  for (const candidate of candidates) {
+    const bank = normalizeWithdrawalBank(candidate);
+    if (hasUsableWithdrawalBank(bank)) return bank;
+  }
+  return null;
 }
 
 function WithdrawalProgress({ withdrawal }: { withdrawal: Record<string, unknown> }) {
   const colors = useColors();
-  const rawStatus = first(withdrawal, ['status', 'withdrawal_status'], '—');
-  const status = rawStatus.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
-  const finished = finishedStatuses.has(status);
-  const processing = processingStatuses.has(status);
-  const stopped = ['rejected', 'cancelled', 'canceled'].includes(status);
-  const completedCount = finished ? 4 : stopped ? (status === 'rejected' ? 2 : 1) : processing ? 1 : status === 'submitted' ? 0 : 0;
-  const activeIndex = finished || stopped ? -1 : processing ? 1 : status === 'submitted' ? 0 : -1;
-  const explanation = rawStatus === '—'
-    ? 'Withdrawal status details will appear here when available.'
-    : finished
-      ? 'OG Exports records the withdrawal approval and its completed wallet transaction together.'
-      : processing
-        ? 'The withdrawal request is with OG Exports for processing. Follow the server status for updates.'
-        : stopped
-          ? `OG Exports reports this request as ${rawStatus}. Later steps are not shown as complete.`
-          : `OG Exports reports ${rawStatus}. Later steps are not inferred.`;
+  const rawStatus = first(withdrawal, ['status', 'withdrawal_status'], 'Not provided');
+  const explanation = first(withdrawal, ['status_message', 'status_description', 'progress_note']);
 
   return <Card style={{ marginTop: 12 }}>
-    <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>Withdrawal progress</Text>
-    <View style={{ marginTop: 13 }}>
-      {withdrawalStages.map((label, index) => {
-        const done = index < completedCount;
-        const active = index === activeIndex;
-        return <View key={label} style={{ flexDirection: 'row', gap: 11, minHeight: index === withdrawalStages.length - 1 ? 34 : 45 }}>
-          <View style={{ width: 20, alignItems: 'center' }}>
-            <View style={{ width: 19, height: 19, borderRadius: 10, borderWidth: done || active ? 0 : 1, borderColor: colors.border, backgroundColor: done ? colors.statusSuccess : active ? colors.primary : colors.card, alignItems: 'center', justifyContent: 'center' }}>
-              {done ? <Text style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: '700' }}>✓</Text> : active ? <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: colors.primaryForeground }} /> : null}
-            </View>
-            {index < withdrawalStages.length - 1 ? <View style={{ width: 1, flex: 1, marginTop: 3, backgroundColor: done ? colors.statusSuccess : colors.border }} /> : null}
-          </View>
-          <Text style={{ color: done || active ? colors.foreground : colors.mutedForeground, fontSize: 12, fontWeight: done || active ? '700' : '400', paddingTop: 2 }}>{label}{active ? ' · Current' : ''}</Text>
-        </View>;
-      })}
+    <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>Withdrawal tracking</Text>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 13 }}>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Current status</Text>
+      <Status value={rawStatus} />
     </View>
-    <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 4 }}>{explanation}</Text>
+    <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 12 }}>
+      {explanation || 'Withdrawal history shows updates returned by OG Exports.'}
+    </Text>
   </Card>;
 }
 
@@ -93,6 +94,43 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   </View>;
 }
 
+function CheckRow({ checked, disabled, title, detail, onPress, testID }: {
+  checked: boolean;
+  disabled?: boolean;
+  title: string;
+  detail?: string;
+  onPress: () => void;
+  testID?: string;
+}) {
+  const colors = useColors();
+  return <Pressable
+    accessibilityRole="checkbox"
+    accessibilityState={{ checked, disabled }}
+    testID={testID}
+    disabled={disabled}
+    onPress={onPress}
+    style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 11, opacity: disabled ? 0.55 : 1 }}
+  >
+    <View style={{
+      width: 21,
+      height: 21,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: checked ? colors.primary : colors.border,
+      backgroundColor: checked ? colors.primary : colors.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 1,
+    }}>
+      {checked ? <Feather name="check" size={14} color={colors.primaryForeground} /> : null}
+    </View>
+    <View style={{ flex: 1 }}>
+      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '600' }}>{title}</Text>
+      {detail ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 3 }}>{detail}</Text> : null}
+    </View>
+  </Pressable>;
+}
+
 export default function Withdraw() {
   const { token, appPinEnabled, biometricEnabled } = useAuth();
   const colors = useColors();
@@ -100,16 +138,19 @@ export default function Withdraw() {
   const queryClient = useQueryClient();
   const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const dashboardQuery = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
-  const bankAccountsQuery = useGetInvestorBankAccounts({
-    query: { queryKey: getGetInvestorBankAccountsQueryKey(), enabled: Boolean(token), refetchOnMount: 'always' },
-  });
+  const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const historyQuery = useGetInvestorWithdrawals({}, { query: { queryKey: ['investor-withdrawals'], enabled: Boolean(token), refetchOnMount: 'always' } });
+  const transactionPasswordQuery = useGetInvestorTransactionPasswordStatus({
+    query: { queryKey: ['investor-transaction-password-status'], enabled: Boolean(token) },
+  });
   const create = useCreateInvestorWithdrawal();
   const sendOtp = useSendInvestorWithdrawalOtp();
+  const resetTransactionPassword = useResetInvestorTransactionPassword();
+  const setTransactionPasswordMutation = useSetInvestorTransactionPassword();
   const wallet = unwrap(walletQuery.data);
   const dashboard = unwrap(dashboardQuery.data);
+  const profile = unwrap(profileQuery.data);
   const dashboardWallet = record(dashboard.wallet);
-  const explicitWithdrawableBalance = readAmount(record(wallet), ['withdrawable_balance']);
   const walletCurrency = first(
     dashboard,
     ['currency', 'wallet_currency'],
@@ -117,16 +158,14 @@ export default function Withdraw() {
   ).toUpperCase();
   const availableBalance = availableBalanceFromDashboard(dashboardQuery.data);
   const pendingBalance = readAmount(wallet, ['pending_balance']);
-  const bankAccountData = unwrap(bankAccountsQuery.data);
-  const bankAccounts = list(bankAccountData.bank_accounts);
-  const verifiedAccounts = bankAccounts.filter(verifiedBankAccount);
-  const defaultVerified = verifiedAccounts.find(account => first(account, ['is_default']).toLowerCase() === 'true')
-    ?? verifiedAccounts[0];
-  const [selectedBankKey, setSelectedBankKey] = useState('');
-  const selectedBank = verifiedAccounts.find(account => bankKey(account) === selectedBankKey) ?? defaultVerified;
+  const savedBankDetails = useMemo(() => savedWithdrawalBank(profile), [profile]);
   const withdrawals = list(historyQuery.data);
-  const fee = readAmount(selectedBank ?? {}, ['withdrawal_fee', 'transaction_fee', 'fee']);
-  const processingTime = first(selectedBank ?? {}, ['estimated_processing_time', 'processing_time']);
+  const fee = readAmount(dashboard, ['withdrawal_fee', 'transaction_fee', 'fee'])
+    ?? readAmount(wallet, ['withdrawal_fee', 'transaction_fee', 'fee']);
+  const processingTime = first(dashboard, ['estimated_processing_time', 'processing_time'],
+    first(wallet, ['estimated_processing_time', 'processing_time']));
+  const taxTreatment = first(dashboard, ['tax_treatment', 'tax_status'],
+    first(wallet, ['tax_treatment', 'tax_status'], 'Not returned by OG Exports'));
   const deviceSecurityConfigured = appPinEnabled || biometricEnabled;
   const firstWithdrawalSecurityRequired = !deviceSecurityConfigured && withdrawals.length === 0;
   const firstWithdrawalHistoryPending = firstWithdrawalSecurityRequired && (historyQuery.isLoading || historyQuery.isFetching);
@@ -135,16 +174,34 @@ export default function Withdraw() {
     && !historyQuery.isLoading && !historyQuery.isFetching && !historyQuery.isError;
   const withdrawalFlowBlocked = firstWithdrawalSecurityRequired;
   const [amount, setAmount] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [accountHolder, setAccountHolder] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [iban, setIban] = useState('');
+  const [swift, setSwift] = useState('');
+  const [branch, setBranch] = useState('');
+  const [autoFillBank, setAutoFillBank] = useState(false);
+  const [saveBankDetails, setSaveBankDetails] = useState(true);
+  const [bankDetailsTouched, setBankDetailsTouched] = useState(false);
   const [purpose, setPurpose] = useState('');
   const [otp, setOtp] = useState('');
   const [otpEmail, setOtpEmail] = useState('');
   const [otpCooldown, setOtpCooldown] = useState(0);
   const [transactionPassword, setTransactionPassword] = useState('');
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetForm, setResetForm] = useState({ login: '', transaction: '', confirm: '' });
+  const [resetError, setResetError] = useState('');
+  const [submittedAmount, setSubmittedAmount] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [stage, setStage] = useState<'overview' | 'form' | 'security' | 'review' | 'submitted'>('overview');
+  const [stage, setStage] = useState<'overview' | 'form' | 'security' | 'submitted'>('overview');
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
   const [selectedWithdrawalId, setSelectedWithdrawalId] = useState('');
+  const transactionPasswordStatus = unwrap(transactionPasswordQuery.data);
+  const hasTransactionPassword = transactionPasswordStatus.has_transaction_password === true
+    || transactionPasswordStatus.set === true
+    || transactionPasswordStatus.is_set === true
+    || transactionPasswordStatus.configured === true;
   const withdrawalCurrency = walletCurrency;
   const amountNumber = parseWithdrawalAmount(amount, availableBalance);
   const historySelection = withdrawals.find(item => first(item, ['id', 'reference', 'withdraw_id']) === selectedWithdrawalId);
@@ -155,6 +212,17 @@ export default function Withdraw() {
     const timer = setTimeout(() => setOtpCooldown(value => value - 1), 1000);
     return () => clearTimeout(timer);
   }, [otpCooldown]);
+
+  useEffect(() => {
+    if (stage !== 'form' || profileQuery.isLoading || bankDetailsTouched || !savedBankDetails) return;
+    setAutoFillBank(true);
+    setBankName(savedBankDetails.bank_name);
+    setAccountHolder(savedBankDetails.account_holder);
+    setAccountNumber(savedBankDetails.account_number);
+    setIban(savedBankDetails.iban);
+    setSwift(savedBankDetails.swift);
+    setBranch(savedBankDetails.branch);
+  }, [stage, profileQuery.isLoading, savedBankDetails, bankDetailsTouched]);
 
   function canContinueWithdrawal() {
     if (!withdrawalFlowBlocked) return true;
@@ -180,14 +248,8 @@ export default function Withdraw() {
       setNotice(first(result, ['message'], 'Verification code requested. Check the email registered to your account.'));
       setStage('security');
     } catch (err) {
-      setStage('form');
       setError(messageOf(err));
     }
-  }
-
-  function closeOtpModal() {
-    setError('');
-    setStage('form');
   }
 
   async function continueToSecurity() {
@@ -204,8 +266,8 @@ export default function Withdraw() {
       setError('Enter a valid amount within the withdrawable balance reported by OG Exports.');
       return;
     }
-    if (!selectedBank || !bankKey(selectedBank)) {
-      setError('Select a bank account that OG Exports has marked as verified.');
+    if (!bankName.trim() || !accountHolder.trim() || !accountNumber.trim()) {
+      setError('Complete the required bank name, account holder, and account number fields.');
       return;
     }
     if (otpCooldown > 0) {
@@ -215,31 +277,6 @@ export default function Withdraw() {
     await requestOtp();
   }
 
-  function review() {
-    setError('');
-    setNotice('');
-    if (!canContinueWithdrawal()) return;
-    if (dashboardQuery.isError || dashboardQuery.isFetching) {
-      setError(dashboardQuery.isError
-        ? 'Available balance could not be loaded. Retry before continuing.'
-        : 'Please wait while the available balance is refreshed.');
-      return;
-    }
-    if (amountNumber == null || !withdrawalCurrency) {
-      setError('Enter a valid amount within the withdrawable balance reported by OG Exports.');
-      return;
-    }
-    if (!selectedBank || !bankKey(selectedBank)) {
-      setError('Select a bank account that OG Exports has marked as verified.');
-      return;
-    }
-    if (otp.trim().length !== 6 || !transactionPassword) {
-      setError('Enter the emailed code and your transaction password.');
-      return;
-    }
-    setStage('review');
-  }
-
   async function submit() {
     setError('');
     setNotice('');
@@ -247,23 +284,39 @@ export default function Withdraw() {
       setStage('form');
       return;
     }
+    if (dashboardQuery.isError || dashboardQuery.isFetching) {
+      setError(dashboardQuery.isError
+        ? 'Available balance could not be loaded. Retry before continuing.'
+        : 'Please wait while the available balance is refreshed.');
+      return;
+    }
     const validAmount = parseWithdrawalAmount(amount, availableBalance);
-    if (validAmount == null || !selectedBank || !bankKey(selectedBank)) {
-      setError('The amount or verified destination account is no longer available. Review the withdrawal details.');
+    if (validAmount == null || !withdrawalCurrency || !bankName.trim() || !accountHolder.trim() || !accountNumber.trim()) {
+      setError('Review the amount and complete the required bank details.');
       setStage('form');
+      return;
+    }
+    if (otp.trim().length !== 6 || !transactionPassword) {
+      setError('Enter the emailed code and your transaction password.');
       return;
     }
     try {
       const response = record(await create.mutateAsync({
-        data: buildWithdrawalRequest(validAmount, otp, transactionPassword, bankKey(selectedBank), purpose),
+        data: buildWithdrawalRequest(validAmount, otp, transactionPassword, {
+          bank_name: bankName,
+          account_holder: accountHolder,
+          account_number: accountNumber,
+          iban,
+          swift,
+          branch,
+        }, saveBankDetails, purpose, withdrawalCurrency),
       }));
       const withdrawal = record(response.data);
       setConfirmation(withdrawal);
       setSelectedWithdrawalId(first(withdrawal, ['id', 'reference', 'withdraw_id']));
+      setSubmittedAmount(validAmount);
       setNotice(first(response, ['message'], 'Withdrawal request received from OG Exports.'));
       setStage('submitted');
-      setAmount('');
-      setPurpose('');
       setOtp('');
       setOtpEmail('');
       setOtpCooldown(0);
@@ -272,7 +325,39 @@ export default function Withdraw() {
       void queryClient.invalidateQueries({ queryKey: ['investor-wallet'] });
       void queryClient.invalidateQueries({ queryKey: ['investor-wallet-transactions'] });
       void queryClient.invalidateQueries({ queryKey: ['investor-dashboard'] });
-    } catch (err) { setError(messageOf(err)); }
+      void queryClient.invalidateQueries({ queryKey: ['investor-profile'] });
+    } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
+  }
+
+  async function saveTransactionPassword() {
+    setResetError('');
+    if (transactionPasswordQuery.isLoading || transactionPasswordQuery.isFetching || transactionPasswordQuery.isError) {
+      setResetError('Transaction-password status could not be checked. Please retry or use account settings.');
+      return;
+    }
+    if (!resetForm.login || resetForm.transaction.length < 6) {
+      setResetError('Enter your login password and use at least 6 characters for the new transaction password.');
+      return;
+    }
+    if (resetForm.transaction !== resetForm.confirm) {
+      setResetError('The transaction password and confirmation do not match.');
+      return;
+    }
+    const data = {
+      password: resetForm.login,
+      transaction_password: resetForm.transaction,
+      transaction_password_confirmation: resetForm.confirm,
+    };
+    try {
+      if (hasTransactionPassword) await resetTransactionPassword.mutateAsync({ data });
+      else await setTransactionPasswordMutation.mutateAsync({ data });
+      setResetForm({ login: '', transaction: '', confirm: '' });
+      setShowResetModal(false);
+      await transactionPasswordQuery.refetch();
+      setNotice('Transaction password updated. You can use it to confirm withdrawals.');
+    } catch (err) {
+      setResetError(messageOf(err));
+    }
   }
 
   return <Screen title="Withdraw" subtitle="Request a payout from your OG Exports wallet">
@@ -282,70 +367,59 @@ export default function Withdraw() {
     {!dashboardQuery.isLoading && !dashboardQuery.isError && availableBalance == null
       ? <ErrorState message="Available balance was not returned by OG Exports." onRetry={() => void dashboardQuery.refetch()} />
       : null}
-    {bankAccountsQuery.isError ? <ErrorState message="Bank account details could not be loaded." error={bankAccountsQuery.error} onRetry={() => void bankAccountsQuery.refetch()} /> : null}
-    <Card style={{ borderLeftWidth: 3, borderLeftColor: colors.primary }}>
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>WITHDRAWABLE BALANCE</Text>
-      <Text style={{ color: colors.foreground, fontSize: 27, fontWeight: '700', marginTop: 7 }}>
-        {availableBalance == null
-          ? walletQuery.isLoading || dashboardQuery.isLoading ? 'Loading…' : 'Unavailable'
-          : money(availableBalance, withdrawalCurrency || 'USD')}
-      </Text>
-      {explicitWithdrawableBalance == null && availableBalance != null
-        ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 6 }}>OG Exports does not return a separate withdrawable total; requests are reserved from the reported available balance.</Text>
-        : null}
-    </Card>
-
-    {bankAccountsQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading saved bank accounts…</Text></Card> : null}
-    {!bankAccountsQuery.isLoading && !bankAccountsQuery.isError && verifiedAccounts.length === 0
-      ? <EmptyState title="No verified bank account available" body="OG Exports has not returned a verified payout account. Add and verify a bank account with OG Exports before requesting a withdrawal." />
-      : null}
 
     {firstWithdrawalHistoryPending ? <Card>
       <View testID="withdraw-security-history-loading">
-      <Text style={{ color: colors.mutedForeground, lineHeight: 19 }}>Checking withdrawal history to confirm whether device security setup is needed…</Text>
+        <Text style={{ color: colors.mutedForeground, lineHeight: 19 }}>Checking withdrawal history to confirm whether device security setup is needed…</Text>
       </View>
     </Card> : null}
     {firstWithdrawalHistoryError ? <ErrorState message="Your withdrawal history could not be checked. Retry before continuing." onRetry={() => void historyQuery.refetch()} error={historyQuery.error} /> : null}
     {needsFirstWithdrawalSecuritySetup ? <Card>
       <View testID="withdraw-first-time-security-setup">
-      <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 17 }}>Set up device security before your first withdrawal</Text>
-      <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7, marginBottom: 13 }}>
-        Set an app PIN or enable device biometrics in Account security. This setup is only required before your first withdrawal.
-      </Text>
-      <Action title="Set up device security" icon="shield" onPress={() => router.push('/account/security')} testID="withdraw-first-time-security-action" />
+        <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 17 }}>Set up device security before your first withdrawal</Text>
+        <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7, marginBottom: 13 }}>
+          Set an app PIN or enable device biometrics in Account security. This setup is only required before your first withdrawal.
+        </Text>
+        <Action title="Set up device security" icon="shield" onPress={() => router.push('/account/security')} testID="withdraw-first-time-security-action" />
       </View>
     </Card> : null}
 
     {stage === 'overview' && !withdrawalFlowBlocked ? <>
       {dashboardQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading available balance…</Text></Card> : null}
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Card style={{ flex: 1, borderTopWidth: 3, borderTopColor: colors.border }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '600' }}>Available balance</Text>
+          <Text style={{ color: colors.foreground, fontSize: 19, fontWeight: '700', marginTop: 7 }}>
+            {availableBalance == null ? 'Unavailable' : money(availableBalance, withdrawalCurrency || 'USD')}
+          </Text>
+        </Card>
+        <Card style={{ flex: 1, borderTopWidth: 3, borderTopColor: colors.primary }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '600' }}>Withdrawable balance</Text>
+          <Text style={{ color: colors.primary, fontSize: 19, fontWeight: '700', marginTop: 7 }}>
+            {availableBalance == null ? 'Unavailable' : money(availableBalance, withdrawalCurrency || 'USD')}
+          </Text>
+        </Card>
+      </View>
+      {availableBalance != null ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: -2, marginBottom: 12 }}>
+        The withdrawable balance matches the available balance currently returned by OG Exports.
+      </Text> : null}
       <Card>
-        <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>Available balance</Text>
-        <Text style={{ color: colors.foreground, fontSize: 27, fontWeight: '700', marginTop: 7 }}>
-          {availableBalance == null ? 'Unavailable' : money(availableBalance, withdrawalCurrency || 'USD')}
-        </Text>
-        <View style={{ marginTop: 10 }}>
-          <DetailRow label="Minimum withdrawal" value={moneyInSourceCurrency(1, withdrawalCurrency || 'USD')} />
-          <DetailRow label="Maximum withdrawal" value={availableBalance == null ? 'Unavailable' : moneyInSourceCurrency(availableBalance, withdrawalCurrency || 'USD')} />
-          <DetailRow label="Wallet currency" value={withdrawalCurrency || 'Not returned by OG Exports'} />
-        </View>
+        <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 3 }}>Withdrawal limits</Text>
+        <DetailRow label="Minimum withdrawal" value={moneyInSourceCurrency(0, 'USD')} />
+        <DetailRow label="Maximum withdrawal" value={availableBalance == null ? 'Unavailable' : moneyInSourceCurrency(availableBalance, withdrawalCurrency || 'USD')} />
+        <DetailRow label="Wallet currency" value={withdrawalCurrency || 'Not returned by OG Exports'} />
       </Card>
       <Card>
         <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 4 }}>Processing information</Text>
         <DetailRow label="Processing time" value={processingTime || 'Not returned by OG Exports'} />
-        <DetailRow label="Withdrawal fees" value={fee == null ? 'Not returned by OG Exports' : moneyInSourceCurrency(fee, withdrawalCurrency || 'USD')} />
-        <DetailRow label="Tax treatment" value="Not returned by OG Exports" />
+        <DetailRow label="Withdrawal fees" value={fee == null ? moneyInSourceCurrency(0, 'USD') : moneyInSourceCurrency(fee, withdrawalCurrency || 'USD')} />
+        <DetailRow label="Tax treatment" value={taxTreatment} />
       </Card>
       {pendingBalance != null && pendingBalance > 0 ? <Card>
         <DetailRow label="Pending withdrawals reserved" value={money(pendingBalance, withdrawalCurrency || 'USD')} />
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 6 }}>
           Pending requests are reserved funds, not completed wallet movements.
         </Text>
-      </Card> : null}
-      {verifiedAccounts.length === 0 && !bankAccountsQuery.isLoading && !bankAccountsQuery.isError ? <Card>
-        <EmptyState title="No verified bank account available" body="OG Exports has not returned a verified payout account. Add and verify a bank account with OG Exports before requesting a withdrawal." />
-        <View style={{ marginTop: 12 }}>
-          <Action title="Manage bank accounts & verification" icon="credit-card" secondary onPress={() => router.push('/account/bank-accounts' as never)} />
-        </View>
       </Card> : null}
       <Card>
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginBottom: 12 }}>
@@ -354,15 +428,39 @@ export default function Withdraw() {
         <Action
           title="Proceed to Withdraw"
           icon="arrow-right"
-          disabled={dashboardQuery.isLoading || dashboardQuery.isFetching || dashboardQuery.isError || availableBalance == null || availableBalance < 1 || !withdrawalCurrency || bankAccountsQuery.isLoading || bankAccountsQuery.isError || verifiedAccounts.length === 0}
-          onPress={() => { setError(''); setNotice(''); setStage('form'); }}
+          disabled={dashboardQuery.isLoading || dashboardQuery.isFetching || dashboardQuery.isError || availableBalance == null || availableBalance <= 0 || !withdrawalCurrency}
+          onPress={() => { setError(''); setNotice(''); setBankDetailsTouched(false); setStage('form'); }}
         />
       </Card>
     </> : null}
 
     {stage === 'form' && !withdrawalFlowBlocked ? <Card>
-      <Section title="Withdrawal amount" />
-      <Field label="Withdrawal amount" value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
+      <Section title="Bank Details & Amount" />
+      {profileQuery.isError ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginBottom: 8 }}>
+        Saved bank details could not be loaded. You can still enter them below.
+      </Text> : null}
+      <CheckRow
+        checked={autoFillBank}
+        disabled={!savedBankDetails}
+        title="Use saved default account"
+        detail={savedBankDetails ? 'Details are filled from your investor profile and can be edited.' : 'No saved default account is available; enter the bank details manually.'}
+        testID="withdraw-autofill-bank"
+        onPress={() => {
+          if (!savedBankDetails) return;
+          const next = !autoFillBank;
+          setAutoFillBank(next);
+          if (next) {
+            setBankDetailsTouched(false);
+            setBankName(savedBankDetails.bank_name);
+            setAccountHolder(savedBankDetails.account_holder);
+            setAccountNumber(savedBankDetails.account_number);
+            setIban(savedBankDetails.iban);
+            setSwift(savedBankDetails.swift);
+            setBranch(savedBankDetails.branch);
+          }
+        }}
+      />
+      <Field label="Withdrawal amount" value={amount} onChangeText={value => { setAmount(value); setError(''); }} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
       <DetailRow label="Wallet currency" value={withdrawalCurrency || 'Not returned by OG Exports'} />
       {amount.trim() && amountNumber == null ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 11, lineHeight: 16, marginTop: 3 }}>
         Enter a valid amount within the withdrawable balance reported by OG Exports.
@@ -371,23 +469,19 @@ export default function Withdraw() {
         <Text>Maximum request:</Text>
         <Text> {availableBalance == null ? 'Unavailable' : moneyInSourceCurrency(availableBalance, withdrawalCurrency || 'USD')}</Text>
       </Text>
-      <Section title="Verified destination account" />
-      {verifiedAccounts.map((account, index) => {
-        const key = bankKey(account);
-        const selected = bankKey(selectedBank ?? {}) === key;
-        return <Pressable key={key || String(index)} accessibilityRole="button" accessibilityState={{ selected }} testID={`withdraw-bank-${index}`} onPress={() => setSelectedBankKey(key)} style={{ paddingVertical: 11, borderTopWidth: index ? 1 : 0, borderTopColor: colors.border }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: selected ? colors.primary : colors.foreground, fontWeight: '700' }}>{first(account, ['bank_name'])}</Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{first(account, ['account_holder', 'account_title'])} · {maskAccount(account)}</Text>
-            </View>
-            <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700' }}>{selected ? 'SELECTED' : 'VERIFIED'}</Text>
-          </View>
-        </Pressable>;
-      })}
-      {selectedBank ? <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 9 }}>
-        <DetailRow label="Destination" value={`${first(selectedBank, ['bank_name'])} · ${first(selectedBank, ['account_holder', 'account_title'])} · ${maskAccount(selectedBank)}`} />
-      </View> : null}
+      <Field label="Bank name *" value={bankName} onChangeText={value => { setBankDetailsTouched(true); setAutoFillBank(false); setBankName(value); setError(''); }} placeholder="Bank name" autoCapitalize="words" maxLength={255} />
+      <Field label="Account holder *" value={accountHolder} onChangeText={value => { setBankDetailsTouched(true); setAutoFillBank(false); setAccountHolder(value); setError(''); }} placeholder="Account holder name" autoCapitalize="words" maxLength={255} />
+      <Field label="Account number *" value={accountNumber} onChangeText={value => { setBankDetailsTouched(true); setAutoFillBank(false); setAccountNumber(value); setError(''); }} placeholder="Account number" keyboardType="default" autoCapitalize="none" maxLength={100} />
+      <Field label="IBAN" value={iban} onChangeText={value => { setBankDetailsTouched(true); setAutoFillBank(false); setIban(value); setError(''); }} placeholder="IBAN" autoCapitalize="characters" maxLength={100} />
+      <Field label="SWIFT / BIC" value={swift} onChangeText={value => { setBankDetailsTouched(true); setAutoFillBank(false); setSwift(value); setError(''); }} placeholder="SWIFT / BIC" autoCapitalize="characters" maxLength={50} />
+      <Field label="Branch" value={branch} onChangeText={value => { setBankDetailsTouched(true); setAutoFillBank(false); setBranch(value); setError(''); }} placeholder="Branch" autoCapitalize="words" maxLength={255} />
+      <CheckRow
+        checked={saveBankDetails}
+        title="Save bank details to my profile for future withdrawals"
+        detail="OG Exports will receive your choice with this withdrawal request."
+        testID="withdraw-save-bank-details"
+        onPress={() => setSaveBankDetails(value => !value)}
+      />
       <Section title="Withdrawal purpose (optional)" />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
         {withdrawalPurposes.map(option => {
@@ -413,140 +507,98 @@ export default function Withdraw() {
             title="Continue to Security"
             icon="arrow-right"
             loading={sendOtp.isPending}
-            disabled={amountNumber == null || !selectedBank || dashboardQuery.isFetching || dashboardQuery.isError}
+            disabled={dashboardQuery.isFetching || dashboardQuery.isError}
             onPress={() => void continueToSecurity()}
           />
         </View>
       </View>
     </Card> : null}
 
-    {stage === 'security' && !withdrawalFlowBlocked ? <Modal
-      visible
-      transparent
-      animationType="slide"
-      statusBarTranslucent
-      onRequestClose={closeOtpModal}
-    >
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 18, 13, 0.48)' }}>
-        <Pressable
-          accessible={false}
-          importantForAccessibility="no"
-          onPress={closeOtpModal}
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+    {stage === 'security' && !withdrawalFlowBlocked ? <Card testID="withdraw-security-step">
+      <Section title="Security verification" />
+      <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginBottom: 14 }}>
+        {otpEmail ? <><Text>Code sent to</Text><Text> {otpEmail}</Text></> : 'Enter the six-digit code sent to your registered email.'}
+      </Text>
+      <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 14, padding: 14, marginBottom: 14 }}>
+        <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700', marginBottom: 10 }}>OTP verification</Text>
+        <Field
+          label="Six-digit email code"
+          value={otp}
+          onChangeText={value => { setOtp(value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+          placeholder="000000"
+          keyboardType="numeric"
+          autoCapitalize="none"
+          autoFocus
+          maxLength={6}
         />
-        <View
-          testID="withdraw-otp-modal"
-          accessibilityViewIsModal
-          style={{
-            alignSelf: 'center',
-            width: '100%',
-            maxWidth: 560,
-            maxHeight: '92%',
-            backgroundColor: colors.card,
-            borderColor: colors.border,
-            borderWidth: 1,
-            borderBottomWidth: 0,
-            borderTopLeftRadius: 26,
-            borderTopRightRadius: 26,
-            paddingHorizontal: 22,
-            paddingTop: 12,
-            paddingBottom: Math.max(insets.bottom, 18) + 8,
-          }}
-        >
-          <View style={{ width: 38, height: 4, borderRadius: 3, backgroundColor: colors.border, alignSelf: 'center', marginBottom: 16 }} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.foreground, fontSize: 19, lineHeight: 25, fontWeight: '700' }}>Security verification</Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>Enter the code to continue with this withdrawal.</Text>
-            </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Close OTP verification" onPress={closeOtpModal} style={{ width: 38, height: 38, borderRadius: 20, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 23, lineHeight: 25 }}>×</Text>
-            </Pressable>
-          </View>
-          <KeyboardAwareScrollViewCompat
-            style={{ flexShrink: 1 }}
-            contentContainerStyle={{ paddingBottom: 8 }}
-            bottomOffset={26}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={{ color: colors.mutedForeground, lineHeight: 18, marginBottom: 12 }}>
-              {otpEmail ? <><Text>Code sent to</Text><Text> {otpEmail}</Text></> : 'Enter the six-digit code sent to your registered email.'}
-            </Text>
-            <Field
-              label="Six-digit email code"
-              value={otp}
-              onChangeText={value => setOtp(value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="000000"
-              keyboardType="numeric"
-              autoCapitalize="none"
-              autoFocus
-              maxLength={6}
-            />
-            <Action
-              title="Resend verification code"
-              secondary
-              loading={sendOtp.isPending}
-              disabled={otpCooldown > 0}
-              onPress={() => void requestOtp()}
-            />
-            {otpCooldown > 0 ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 7, marginBottom: 12 }}>
-              <Text>Resend available in</Text>
-              <Text> {otpCooldown}s</Text>
-            </Text> : <View style={{ height: 12 }} />}
-            <Field label="Transaction password" value={transactionPassword} onChangeText={setTransactionPassword} placeholder="Transaction password" secureTextEntry autoCapitalize="none" />
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginBottom: 12 }}>
-              Forgot or need to set your transaction password? Manage it in account settings.
-            </Text>
-            <Action title="Manage transaction password" icon="key" secondary onPress={() => router.push('/account/settings' as never)} />
-            {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginTop: 12 }}>{error}</Text> : null}
-            {notice ? <Text style={{ color: colors.primary, lineHeight: 19, marginTop: 10 }}>{notice}</Text> : null}
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
-              <View style={{ flex: 0.8 }}><Action title="Back" secondary onPress={closeOtpModal} /></View>
-              <View style={{ flex: 1.4 }}>
-                <Action title="Review withdrawal" icon="arrow-right" disabled={otp.length !== 6 || !transactionPassword} onPress={review} />
-              </View>
-            </View>
-          </KeyboardAwareScrollViewCompat>
+        <Action
+          title="Resend verification code"
+          secondary
+          loading={sendOtp.isPending}
+          disabled={otpCooldown > 0}
+          onPress={() => void requestOtp()}
+        />
+        {otpCooldown > 0 ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 7 }}>
+          <Text>Resend available in</Text><Text> {otpCooldown}s</Text>
+        </Text> : null}
+      </View>
+      <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 14, padding: 14, marginBottom: 12 }}>
+        <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700', marginBottom: 10 }}>Transaction password</Text>
+        <Field label="Transaction password" value={transactionPassword} onChangeText={value => { setTransactionPassword(value); setError(''); }} placeholder="Transaction password" secureTextEntry autoCapitalize="none" />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Forgot password?</Text>
+          <Pressable accessibilityRole="button" onPress={() => { setResetError(''); setShowResetModal(true); }}>
+            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>Reset here</Text>
+          </Pressable>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>or set one in</Text>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/account/settings' as never)}>
+            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>Settings</Text>
+          </Pressable>
         </View>
       </View>
-    </Modal> : null}
-
-    {stage === 'review' && selectedBank && !withdrawalFlowBlocked ? <Card>
-      <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 17 }}>Confirm withdrawal</Text>
-      <DetailRow label="Amount" value={amountNumber == null ? 'Unavailable' : moneyInSourceCurrency(amountNumber, withdrawalCurrency || 'USD')} />
-      <DetailRow label="Fees" value={fee == null ? 'Not returned by OG Exports' : moneyInSourceCurrency(fee, withdrawalCurrency || 'USD')} />
-      <DetailRow label="Estimated processing time" value={processingTime || 'Not returned by OG Exports'} />
-      <DetailRow label="Destination account" value={`${first(selectedBank, ['bank_name'])} · ${first(selectedBank, ['account_holder', 'account_title'])} · ${maskAccount(selectedBank)}`} />
-      {purpose ? <DetailRow label="Purpose" value={purpose} /> : null}
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 9, marginBottom: 13 }}>The email code and transaction password will be verified by OG Exports when you submit. Fee and processing estimates are shown only when the server supplies them.</Text>
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
-      <Action title="Submit withdrawal request" icon="lock" loading={create.isPending} onPress={() => void submit()} />
-      <View style={{ marginTop: 10 }}><Action title="Edit withdrawal" secondary onPress={() => { setError(''); setStage('form'); }} /></View>
-      <View style={{ marginTop: 10 }}><Action title="Back to verification" secondary onPress={() => { setError(''); setStage('security'); }} /></View>
+      {notice ? <Text style={{ color: colors.primary, lineHeight: 19, marginBottom: 12 }}>{notice}</Text> : null}
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 0.8 }}><Action title="Back" secondary disabled={create.isPending} onPress={() => { setError(''); setStage('form'); }} /></View>
+        <View style={{ flex: 1.4 }}>
+          <Action
+            title="Verify & Continue"
+            icon="arrow-right"
+            loading={create.isPending}
+            disabled={otp.length !== 6 || !transactionPassword}
+            onPress={() => void submit()}
+          />
+        </View>
+      </View>
     </Card> : null}
 
-    {stage === 'submitted' && confirmation ? <Card style={{ borderColor: colors.primary }}>
-      <SuccessMark />
-      <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Withdrawal request submitted</Text>
-      {notice ? <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>{notice}</Text> : null}
-      <DetailRow label="Server status" value={first(confirmation, ['status'], '—')} />
-      <DetailRow label="Reference" value={first(confirmation, ['reference', 'withdraw_id'])} />
-      <DetailRow label="Requested amount" value={moneyInSourceCurrency(readAmount(confirmation, ['amount']), withdrawalCurrency || 'USD')} />
+    {stage === 'submitted' && confirmation ? <Card style={{ borderColor: colors.primary }} testID="withdraw-submitted">
+      <SuccessMark feedback="ack" />
+      <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', marginTop: 10 }}>Withdrawal submitted</Text>
+      <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>
+        <Text>Current status:</Text><Text> {first(confirmation, ['status', 'state'], 'Not provided')}.</Text>
+        <Text> Fees and processing time are shown only when returned by the service.</Text>
+      </Text>
+      <DetailRow label="Reference" value={first(confirmation, ['withdraw_id', 'reference', 'id'], 'Not provided')} />
+      <DetailRow
+        label="Requested amount"
+        value={moneyInSourceCurrency(readAmount(confirmation, ['amount']) ?? submittedAmount, first(confirmation, ['currency'], withdrawalCurrency || 'USD'))}
+      />
       <DetailRow
         label="Fee"
         value={readAmount(confirmation, ['fee', 'fees', 'transaction_fee']) == null
-          ? 'Not returned by OG Exports'
-          : moneyInSourceCurrency(readAmount(confirmation, ['fee', 'fees', 'transaction_fee']), withdrawalCurrency || 'USD')}
+          ? moneyInSourceCurrency(0, 'USD')
+          : moneyInSourceCurrency(readAmount(confirmation, ['fee', 'fees', 'transaction_fee']), first(confirmation, ['currency'], withdrawalCurrency || 'USD'))}
       />
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 8 }}>A submitted withdrawal is not yet completed. Check the server status in your withdrawal history.</Text>
       <WithdrawalProgress withdrawal={confirmation} />
+      {notice ? <Text style={{ color: colors.primary, lineHeight: 19, marginTop: 10 }}>{notice}</Text> : null}
       <View style={{ marginTop: 14 }}><Action title="Request another withdrawal" secondary onPress={() => {
         setConfirmation(null);
         setSelectedWithdrawalId('');
         setNotice('');
         setError('');
         setAmount('');
+        setBankDetailsTouched(false);
         setPurpose('');
         setOtp('');
         setOtpEmail('');
@@ -580,10 +632,59 @@ export default function Withdraw() {
             <Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(item, ['reference', 'withdraw_id'], 'Withdrawal request')}</Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{moneyInSourceCurrency(readAmount(item, ['amount']), first(item, ['currency'], withdrawalCurrency || 'USD'))} · {first(item, ['created_at', 'date'], '—')}</Text>
           </View>
-          <Status value={first(item, ['status'], '—')} />
+          <Status value={first(item, ['status', 'state'], '—')} />
         </Card>
       </Pressable>;
     })}
     {progressWithdrawal && stage !== 'submitted' ? <WithdrawalProgress withdrawal={progressWithdrawal} /> : null}
+
+    <Modal
+      visible={showResetModal}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={() => setShowResetModal(false)}
+    >
+      <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 18, backgroundColor: 'rgba(8, 18, 13, 0.48)' }}>
+        <Pressable accessible={false} importantForAccessibility="no" onPress={() => setShowResetModal(false)} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
+        <View style={{
+          alignSelf: 'center',
+          width: '100%',
+          maxWidth: 480,
+          maxHeight: '88%',
+          borderRadius: 22,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.card,
+          padding: 20,
+          paddingBottom: Math.max(insets.bottom, 16) + 10,
+        }}>
+          <KeyboardAwareScrollViewCompat keyboardShouldPersistTaps="handled" bottomOffset={24} showsVerticalScrollIndicator={false}>
+            <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', marginBottom: 5 }}>Reset transaction password</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 16 }}>
+              Confirm your login password, then choose and confirm a new transaction password.
+            </Text>
+            {transactionPasswordQuery.isError ? <Text style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>
+              Transaction-password status could not be checked. Retry the status check or use account settings.
+            </Text> : null}
+            <Field label="Login password" value={resetForm.login} onChangeText={value => { setResetForm(form => ({ ...form, login: value })); setResetError(''); }} secureTextEntry autoCapitalize="none" />
+            <Field label="New transaction password" value={resetForm.transaction} onChangeText={value => { setResetForm(form => ({ ...form, transaction: value })); setResetError(''); }} secureTextEntry autoCapitalize="none" />
+            <Field label="Confirm transaction password" value={resetForm.confirm} onChangeText={value => { setResetForm(form => ({ ...form, confirm: value })); setResetError(''); }} secureTextEntry autoCapitalize="none" />
+            {resetError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>{resetError}</Text> : null}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 0.8 }}><Action title="Cancel" secondary disabled={resetTransactionPassword.isPending || setTransactionPasswordMutation.isPending} onPress={() => setShowResetModal(false)} /></View>
+              <View style={{ flex: 1.2 }}>
+                <Action
+                  title="Update password"
+                  loading={resetTransactionPassword.isPending || setTransactionPasswordMutation.isPending}
+                  disabled={transactionPasswordQuery.isLoading || transactionPasswordQuery.isFetching || transactionPasswordQuery.isError || !resetForm.login || resetForm.transaction.length < 6 || !resetForm.confirm}
+                  onPress={() => void saveTransactionPassword()}
+                />
+              </View>
+            </View>
+          </KeyboardAwareScrollViewCompat>
+        </View>
+      </View>
+    </Modal>
   </Screen>;
 }

@@ -12,6 +12,7 @@ import { Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } fr
 import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { MOTION, MotionProgress, MotionReveal } from '@/lib/motion';
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
 
 type PortfolioTab = 'Active' | 'Pending' | 'Completed';
@@ -98,7 +99,7 @@ export default function Portfolio() {
   const visibleRows = assignedRows.filter(row => row.category === selectedTab);
   const uncategorizedRows = assignedRows.filter(row => row.category == null);
 
-  const renderInvestment = (entry: typeof assignedRows[number]) => {
+  const renderInvestment = (entry: typeof assignedRows[number], index = 0) => {
     const { item, trade, container, dashboardInvestment } = entry;
     const serverId = first(item, ['investment_id', 'id']);
     const tradeId = first(item, ['trade_id', 'trade_code'], first(trade, ['trade_id', 'trade_code', 'project_code', 'code']));
@@ -158,7 +159,8 @@ export default function Portfolio() {
       ? `Investment period${daysElapsed != null && totalDays != null ? ` · ${daysElapsed} of ${totalDays} days` : ''}`
       : 'Trade progress, as reported';
 
-    return <Card key={entry.key} style={{ padding: 0, borderRadius: 20, overflow: 'hidden', borderColor: colors.border }}>
+    return <MotionReveal key={entry.key} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}>
+    <Card style={{ padding: 0, borderRadius: 20, overflow: 'hidden', borderColor: colors.border }}>
       <View style={{ paddingHorizontal: 17, paddingTop: 16, paddingBottom: 15, backgroundColor: colors.lightGreen }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}>
@@ -220,9 +222,7 @@ export default function Portfolio() {
             {boundedProgress != null ? <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>{boundedProgress.toFixed(1)}%</Text> : null}
           </View>
           {boundedProgress != null
-            ? <View style={{ height: 6, borderRadius: 4, backgroundColor: colors.secondary, overflow: 'hidden' }}>
-              <View style={{ width: `${boundedProgress}%`, height: 6, borderRadius: 4, backgroundColor: colors.primary }} />
-            </View>
+            ? <MotionProgress value={boundedProgress} height={6} color={colors.primary} trackColor={colors.secondary} accessibilityLabel="Reported investment progress" />
             : <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Progress has not been reported.</Text>}
           {currentStage !== '—' ? <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 7 }}>Current milestone: {currentStage}</Text> : null}
         </View>
@@ -262,7 +262,8 @@ export default function Portfolio() {
         <Text style={{ color: serverId ? colors.primary : colors.mutedForeground, fontSize: 13, fontWeight: '700' }}>View shipment & investment details</Text>
         <Feather name="arrow-right" size={15} color={serverId ? colors.primary : colors.mutedForeground} />
       </Pressable>
-    </Card>;
+    </Card>
+    </MotionReveal>;
   };
 
   const summaryValue = (value: number | null) => {

@@ -13,6 +13,7 @@ import { first, list, record } from '@/lib/data';
 import { TradeProgressCard } from '@/components/TradeProgressCard';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { MOTION, MotionReveal } from '@/lib/motion';
 
 type JourneyStep = {
   label: string;
@@ -107,6 +108,7 @@ export default function ContainerTracking() {
     </Card> : null}
     {query.isError ? <ErrorState message="Container information could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
     {!query.isLoading && !query.isError ? <>
+      <MotionReveal key={`shipment-${containerNumber}`} delay={MOTION.revealStagger}>
       <Card style={{ padding: 0, overflow: 'hidden', borderColor: colors.border }}>
         <View style={{ backgroundColor: colors.primary, paddingHorizontal: 18, paddingTop: 17, paddingBottom: 19 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -138,6 +140,7 @@ export default function ContainerTracking() {
           <DetailRow label="Last Updated" value={lastUpdated} />
         </View>
       </Card>
+      </MotionReveal>
 
       <TradeProgressCard
         stageUpdates={stageUpdates}
@@ -150,7 +153,7 @@ export default function ContainerTracking() {
         {journey.map((step, index) => {
           const kind = statusKind(step.status);
           const markerColor = kind === 'completed' ? colors.statusSuccess : kind === 'in-progress' ? colors.primary : colors.border;
-          return <View key={step.label} style={{ flexDirection: 'row', gap: 12, minHeight: index === journey.length - 1 ? 57 : 77 }}>
+          return <MotionReveal key={`${step.label}-${step.status}-${step.date}`} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)} style={{ flexDirection: 'row', gap: 12, minHeight: index === journey.length - 1 ? 57 : 77 }}>
             <View style={{ width: 26, alignItems: 'center' }}>
               <View style={{ width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: kind === 'other' ? 1.5 : 0, borderColor: markerColor, backgroundColor: kind === 'completed' ? colors.statusSuccess : kind === 'in-progress' ? colors.primary : colors.secondary }}>
                 {kind === 'completed' ? <Feather name="check" size={14} color={colors.primaryForeground} /> : null}
@@ -166,7 +169,7 @@ export default function ContainerTracking() {
               {step.date ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{step.date}</Text> : null}
               {step.detail ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 4 }}>{step.detail}</Text> : null}
             </View>
-          </View>;
+          </MotionReveal>;
         })}
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 }}>
           Stage labels are a reference sequence. Only stage details supplied by OG Exports are shown; missing stages are not inferred.

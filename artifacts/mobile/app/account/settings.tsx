@@ -33,6 +33,7 @@ import {
   isNotificationPreferenceEnabled,
   type NotificationCategoryKey,
 } from '@/lib/notification-categories';
+import { useMotion } from '@/lib/motion';
 
 const pushEnabledKey = (userId: string) => `og-investor-push-enabled:${userId}`;
 const pushTokenKey = (userId: string) => `og-investor-push-token:${userId}`;
@@ -40,6 +41,7 @@ const pushTokenKey = (userId: string) => `og-investor-push-token:${userId}`;
 export default function Settings() {
   const { token, user, apiOrigin, updateOrigin, updateUser, signOut } = useAuth();
   const appPreferences = useAppPreferences();
+  const motion = useMotion();
   const colors = useColors();
   const queryClient = useQueryClient();
   const userId = first(record(user), ['id']);
@@ -433,6 +435,24 @@ export default function Settings() {
         })}
       </View>
       {appPreferences.isSaving ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 8 }}>Saving app preferences…</Text> : null}
+      <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 14, marginTop: 2, marginBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '600' }}>Reduce motion</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 3 }}>
+            Use minimal movement in the app. Your device accessibility setting is always respected.
+          </Text>
+        </View>
+        <Pressable
+          testID="reduce-motion-toggle"
+          accessibilityRole="switch"
+          accessibilityLabel="Reduce motion"
+          accessibilityState={{ checked: motion.reduceMotionPreference }}
+          onPress={() => void motion.setReduceMotionPreference(!motion.reduceMotionPreference)}
+          style={{ width: 48, height: 28, borderRadius: 16, padding: 3, justifyContent: 'center', backgroundColor: motion.reduceMotionPreference ? colors.primary : colors.border }}
+        >
+          <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: colors.card, alignSelf: motion.reduceMotionPreference ? 'flex-end' : 'flex-start' }} />
+        </Pressable>
+      </View>
       <Action title="Data preferences" icon="shield" secondary onPress={() => router.push('/account/data-preferences' as never)} />
     </Card>
 

@@ -15,6 +15,7 @@ import {
 } from '@/lib/notification-categories';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
 
 const categoryFilters: NotificationCategoryFilter[] = [
   'All',
@@ -29,11 +30,11 @@ export default function Notifications() {
   const query = useGetInvestorNotifications({ query: { queryKey: ['investor-notifications'], enabled: !!token, staleTime: 20_000 } });
   const markAll = useMarkAllInvestorNotificationsRead({ mutation: {
     onSuccess: () => { setActionError(''); void query.refetch(); },
-    onError: error => setActionError(messageOf(error)),
+    onError: error => { motionHaptic('error'); setActionError(messageOf(error)); },
   } });
   const markOne = useMarkInvestorNotificationRead({ mutation: {
     onSuccess: () => { setActionError(''); void query.refetch(); },
-    onError: error => setActionError(messageOf(error)),
+    onError: error => { motionHaptic('error'); setActionError(messageOf(error)); },
   } });
   const notifications = list(query.data);
   const unreadCount = notifications.filter(item => !item.read_at && item.is_read !== true && item.read !== true).length;
@@ -68,7 +69,7 @@ export default function Notifications() {
           testID={`notification-filter-${category.toLowerCase()}`}
           accessibilityRole="button"
           accessibilityState={{ selected }}
-          onPress={() => setSelectedCategory(category)}
+          onPress={() => { motionHaptic('micro'); setSelectedCategory(category); }}
           style={{ borderWidth: 1, borderColor: selected ? colors.primary : colors.border, borderRadius: 18, paddingVertical: 7, paddingHorizontal: 11, backgroundColor: selected ? colors.secondary : colors.card }}
         >
           <Text style={{ color: selected ? colors.primary : colors.mutedForeground, fontSize: 12, fontWeight: selected ? '700' : '500' }}>{category}</Text>
@@ -123,9 +124,14 @@ export default function Notifications() {
           </Pressable> : null}
         </View>
       </Card>;
-      return unread
-        ? <SwipeAction key={id || index} label="Mark as read" disabled={!id || markOne.isPending} onAction={() => id && markOne.mutate({ id })}>{notificationCard}</SwipeAction>
-        : <React.Fragment key={id || index}>{notificationCard}</React.Fragment>;
+      return <MotionReveal
+        key={`${id || index}-${unread ? 'unread' : 'read'}`}
+        delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}
+      >
+        {unread
+          ? <SwipeAction label="Mark as read" disabled={!id || markOne.isPending} onAction={() => id && markOne.mutate({ id })}>{notificationCard}</SwipeAction>
+          : notificationCard}
+      </MotionReveal>;
     })}
   </Screen>;
 }

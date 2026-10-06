@@ -12,6 +12,7 @@ import { Card, EmptyState, ErrorState, Field, LoadingCard, Screen, Section, Stat
 import { amount, first, list, money, record } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { MOTION, MotionReveal } from '@/lib/motion';
 
 type ResultKind = 'trade' | 'investment' | 'transaction' | 'document';
 
@@ -262,8 +263,11 @@ export default function InvestorSearch() {
         {group.isError ? <ErrorState message={`${group.title} could not be searched.`} error={group.error} onRetry={() => { void group.refetch(); }} /> : null}
         {!group.isLoading && !group.isError && group.results.length === 0 ? null : group.results.map((result, index) => {
           const hasDestination = result.kind !== 'trade' || Boolean(result.id);
-          return <Pressable
+          return <MotionReveal
             key={`${result.kind}-${result.id || index}`}
+            delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}
+          >
+          <Pressable
             testID={`search-result-${result.kind}-${index}`}
             accessibilityRole="button"
             accessibilityLabel={`Open ${result.title}`}
@@ -287,7 +291,8 @@ export default function InvestorSearch() {
                 <Status value={result.status} />
               </View>
             </Card>
-          </Pressable>;
+          </Pressable>
+          </MotionReveal>;
         })}
       </View>)}
       <View>

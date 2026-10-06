@@ -1,0 +1,1599 @@
+OG EXPORTS — PREMIUM MOTION, ANIMATION & INTERACTION SYSTEM
+
+Upgrade the existing OG Exports Investment Mobile App with a complete, modern, luxury-grade Motion & Animation System.
+
+The app is an investment platform focused on Import/Export Container Investment Opportunities.
+
+Do NOT make the animations childish, flashy, gaming-style, or excessive.
+
+The desired visual direction is:
+
+Luxury + Premium + Professional + Modern Fintech + International Trade + Trust + Precision
+
+Think of the interaction quality of a premium fintech/investment platform, combined with the corporate identity of a global trading/export company.
+
+The animation system must feel:
+
+* Smooth
+* Fast
+* Elegant
+* Sophisticated
+* Minimal
+* Responsive
+* Trustworthy
+* Expensive/premium
+* Purposeful
+
+Every animation must communicate an action, state, hierarchy, confirmation, transition, or progress.
+
+⸻
+
+1. CORE MOTION LANGUAGE
+
+Create a centralized motion system instead of manually creating random animations on individual screens.
+
+Define reusable animation tokens/components for:
+
+* Micro interactions
+* Button interactions
+* Card interactions
+* Page transitions
+* Modal transitions
+* Bottom sheets
+* Loading states
+* Success states
+* Error states
+* Warning states
+* Empty states
+* Onboarding
+* Authentication
+* KYC
+* Wallet
+* Deposits
+* Withdrawals
+* Investments
+* Portfolio
+* Transactions
+* Notifications
+* Support tickets
+* Live chat
+* Navigation
+* Data updates
+* Progress indicators
+* Celebrations
+
+Use consistent easing, duration, spring behavior and transitions throughout the entire application.
+
+Do NOT use a different animation style on every screen.
+
+⸻
+
+2. MOTION SPEED SYSTEM
+
+Create consistent timing tokens.
+
+Suggested baseline:
+
+Micro interaction:
+100–150ms
+
+Button/card interaction:
+120–180ms
+
+Small component transition:
+180–250ms
+
+Modal/bottom sheet:
+250–350ms
+
+Page transition:
+250–400ms
+
+Major success state:
+400–700ms
+
+Hero/celebration animation:
+600–1000ms maximum
+
+Avoid unnecessarily long animations.
+
+The user should always feel that the app is extremely responsive.
+
+⸻
+
+3. GLOBAL APP OPENING / SPLASH SCREEN
+
+Create a premium animated splash screen.
+
+Sequence:
+
+1. Premium OG Exports background appears.
+2. OG Exports logo fades in.
+3. Logo performs a subtle scale/reveal animation.
+4. Add a very subtle premium light/shimmer movement around the logo.
+5. “OG Exports” brand text appears elegantly.
+6. Minimal loading/progress indication.
+7. Once app initialization is complete:
+    * logo gently scales/fades
+    * splash transitions smoothly into the onboarding/login/dashboard screen.
+
+Do NOT make the splash too long.
+
+Do NOT use spinning logos.
+
+Do NOT use flashy 3D effects.
+
+The splash must immediately communicate:
+
+“Premium International Trade & Investment Platform.”
+
+⸻
+
+4. ONBOARDING ANIMATION SYSTEM
+
+Create premium onboarding screens.
+
+Each onboarding card must have:
+
+* Animated illustration/icon
+* Card entrance animation
+* Text reveal
+* Subtitle reveal
+* CTA animation
+* Progress indicator animation
+* Smooth swipe transition
+
+When the user swipes:
+
+The current card should move naturally with the finger/gesture and the next card should enter smoothly.
+
+Do not simply fade between onboarding screens.
+
+Use subtle depth/parallax where appropriate.
+
+Suggested onboarding structure:
+
+Screen 1:
+“Invest in Global Trade”
+
+Screen 2:
+“Access Import & Export Opportunities”
+
+Screen 3:
+“Track Your Investments”
+
+Screen 4:
+“Secure. Transparent. Professional.”
+
+Final CTA:
+“Get Started”
+
+On the final onboarding screen:
+
+CTA should have a subtle premium emphasis animation.
+
+⸻
+
+5. AUTHENTICATION ANIMATIONS
+
+Apply professional motion to:
+
+* Login
+* Sign Up
+* Forgot Password
+* Reset Password
+* OTP
+* Email verification
+* Phone verification
+
+Input field:
+
+Idle
+→ Focus
+→ Active
+→ Filled
+→ Valid/Error
+
+Use subtle border/background transitions.
+
+Login button:
+
+Idle
+→ Pressed
+→ Loading
+→ Success/Error
+
+Do NOT replace the entire screen with a generic spinner.
+
+Instead transform the button into:
+
+“Signing In…”
+
+then:
+
+✓ “Welcome Back”
+
+then transition to Dashboard.
+
+⸻
+
+6. OTP ANIMATION
+
+Each OTP digit should have a subtle entry animation.
+
+When OTP is complete:
+
+Verifying…
+
+→ animated verification indicator
+
+Successful:
+
+✓ Verification Complete
+
+Then transition smoothly to the next screen.
+
+Incorrect OTP:
+
+Subtle horizontal shake of OTP container + clear error message.
+
+Do not use aggressive shaking.
+
+⸻
+
+7. KYC ANIMATION SYSTEM
+
+KYC must feel like a professional financial platform.
+
+Create a visual progress system:
+
+Step 1 → Personal Information
+Step 2 → Identity Document
+Step 3 → Selfie/Verification
+Step 4 → Review
+Step 5 → Approved
+
+Progress indicator should animate between stages.
+
+Document upload:
+
+Select File
+→ Uploading
+→ Processing
+→ Uploaded ✓
+
+Show upload progress where technically possible.
+
+KYC under review:
+
+Use an elegant processing animation.
+
+KYC approved:
+
+Create a premium verification success animation:
+
+✓
+“KYC Verified”
+
+Then show the verified badge.
+
+KYC rejected:
+
+Subtle error animation + clear reason + “Try Again”.
+
+⸻
+
+8. DASHBOARD ENTRY ANIMATION
+
+When Dashboard opens:
+
+Do NOT animate every element aggressively.
+
+Use a subtle stagger:
+
+1. Header
+2. Wallet/portfolio balance
+3. Main investment card
+4. Active investment cards
+5. Quick actions
+6. Recent activity
+
+Use very subtle upward fade/slide transitions.
+
+Dashboard should feel calm and premium.
+
+⸻
+
+9. WALLET ANIMATIONS
+
+Wallet balance should animate intelligently.
+
+When balance changes:
+
+Do not instantly replace the number.
+
+Use a smooth number transition/count animation.
+
+Example:
+
+$10,000
+→ $12,500
+
+Animate the number smoothly.
+
+For wallet cards:
+
+* Deposit
+* Withdraw
+* Available Balance
+* Invested Balance
+* Earnings
+
+Use subtle transitions when values update.
+
+⸻
+
+10. DEPOSIT FLOW
+
+Deposit flow:
+
+Deposit
+→ Select Method
+→ Enter Amount
+→ Review
+→ Confirm
+→ Processing
+→ Completed
+
+During processing:
+
+Show a professional progress state.
+
+When successful:
+
+Create a premium success modal/full-screen state.
+
+Animation:
+
+Processing indicator
+→ circular completion
+→ checkmark reveal
+→ subtle glow
+→ transaction information appears.
+
+Display:
+
+“Deposit Successful”
+
+Amount
+
+Transaction ID
+
+Updated Balance
+
+Date/Time
+
+CTA:
+
+“View Transaction”
+
+Secondary:
+
+“Done”
+
+Do not use excessive confetti.
+
+If celebration is used, make it extremely subtle and premium.
+
+⸻
+
+11. WITHDRAWAL FLOW
+
+Withdrawal:
+
+Enter Amount
+→ Select Method
+→ Review
+→ Confirm
+→ Processing
+→ Completed
+
+Successful withdrawal:
+
+Animated processing ring
+→ completed checkmark
+
+Show:
+
+“Withdrawal Successful”
+
+Amount
+
+Destination
+
+Transaction ID
+
+Remaining Balance
+
+CTA:
+
+“View Transaction”
+
+For failed withdrawal:
+
+Processing
+→ Error state
+
+Show:
+
+“Withdrawal Failed”
+
+Clear reason
+
+“Try Again”
+
+“Contact Support”
+
+⸻
+
+12. INVESTMENT OPPORTUNITY CARD ANIMATION
+
+Every Import/Export investment opportunity card should have premium interaction.
+
+Normal state:
+
+Static, clean and elegant.
+
+Press:
+
+Very subtle scale/depth effect.
+
+Release:
+
+Return smoothly.
+
+Do NOT make cards continuously float or bounce.
+
+Opportunity cards can include:
+
+* Project image
+* Product
+* Origin
+* Destination
+* Container quantity
+* Investment amount
+* Minimum investment
+* Expected return/target information where applicable
+* Project status
+* Funding progress
+* Investment deadline
+* CTA
+
+Progress bars should animate when entering the screen.
+
+⸻
+
+13. INVESTMENT PROJECT DETAIL TRANSITION
+
+When user taps an investment opportunity:
+
+Use a premium shared-element style transition where possible.
+
+The selected card should visually expand into the project detail page.
+
+Transition:
+
+Opportunity Card
+→ Project Detail
+
+Do not simply reload the next page.
+
+Project detail elements should appear progressively:
+
+1. Project visual
+2. Project title
+3. Trade route
+4. Investment information
+5. Funding progress
+6. Key details
+7. Documents
+8. Investment CTA
+
+⸻
+
+14. INVESTMENT AMOUNT SELECTOR
+
+Investment amount changes should update values in real time.
+
+For example:
+
+Investment Amount:
+$1,000
+→ $2,000
+→ $5,000
+
+Projected values should animate smoothly.
+
+Do not instantly replace financial figures.
+
+Use smooth number transitions.
+
+Important:
+
+Do NOT visually imply guaranteed returns.
+
+Use neutral/professional financial terminology and preserve all existing compliance/disclaimer language.
+
+⸻
+
+15. INVESTMENT CONFIRMATION
+
+Investment confirmation must feel like one of the most important moments in the application.
+
+Flow:
+
+Invest Now
+→ Review Investment
+→ Confirm Investment
+→ Processing
+→ Investment Confirmed
+
+Confirmation button:
+
+“Confirm Investment”
+
+Press:
+
+→ “Processing…”
+
+Then:
+
+✓ “Investment Confirmed”
+
+Create a premium success animation.
+
+Display:
+
+“Investment Confirmed”
+
+Project Name
+
+Invested Amount
+
+Investment ID
+
+Date
+
+Status
+
+CTA:
+
+“View Investment”
+
+⸻
+
+16. INVESTMENT SUCCESS ANIMATION
+
+This is a major milestone.
+
+Animation sequence:
+
+1. Processing indicator completes.
+2. Circular ring completes.
+3. Checkmark draws itself.
+4. Very subtle glow.
+5. Investment/project icon appears.
+6. Confirmation information fades upward.
+7. CTA becomes active.
+
+Optional:
+
+Use extremely subtle particles only for major investment confirmation.
+
+No fireworks.
+
+No cartoon confetti.
+
+No excessive bouncing.
+
+⸻
+
+17. PORTFOLIO ANIMATION
+
+Portfolio screen:
+
+When opened:
+
+* Total portfolio value counts up smoothly.
+* Allocation/progress bars animate.
+* Investment cards appear with subtle stagger.
+* Status indicators animate once.
+
+Portfolio updates:
+
+Old value
+→ transition
+→ new value
+
+Investment added:
+
+New investment card should smoothly enter the portfolio.
+
+Investment completed:
+
+Active
+→ Completed
+
+with a professional status transition.
+
+⸻
+
+18. INVESTMENT STATUS TIMELINE
+
+For each container investment create an animated timeline.
+
+Example:
+
+Investment Confirmed
+↓
+Processing
+↓
+Cargo/Container Prepared
+↓
+In Transit
+↓
+Arrived
+↓
+Completed
+
+Completed steps:
+
+✓
+
+Current step:
+
+Animated subtle pulse/progress.
+
+Upcoming steps:
+
+Static/neutral.
+
+When status changes:
+
+Animate only the affected stage.
+
+Do not animate the whole timeline unnecessarily.
+
+⸻
+
+19. TRANSACTION HISTORY
+
+Transaction list should feel dynamic but controlled.
+
+New transaction:
+
+Fade + slide into list.
+
+Transaction status:
+
+Pending
+→ Processing
+→ Completed
+
+Use animated status transition.
+
+Transaction details page:
+
+Transaction information should reveal progressively.
+
+Include:
+
+* Transaction ID
+* Type
+* Amount
+* Date
+* Status
+* Method
+* Related Investment where applicable
+
+⸻
+
+20. NOTIFICATIONS
+
+Notification bell:
+
+Unread count should animate when a new notification arrives.
+
+Example:
+
+2
+→ 3
+
+Use subtle badge animation.
+
+Notification opened:
+
+Unread
+→ Read
+
+Notification cards should use a subtle entrance transition.
+
+⸻
+
+21. SUPPORT TICKET ANIMATION
+
+Support ticket creation:
+
+Create Ticket
+→ Enter Details
+→ Submit
+→ Processing
+→ Ticket Created
+
+Successful creation:
+
+Show:
+
+✓ Ticket Created
+
+Ticket Number:
+
+#OG-XXXXXX
+
+Status:
+
+Open
+
+Then CTA:
+
+“View Ticket”
+
+Ticket status timeline:
+
+Open
+→ In Review
+→ Agent Responded
+→ Resolved
+
+Animate only the newly updated status.
+
+⸻
+
+22. LIVE CHAT ANIMATION
+
+Create premium real-time chat interactions.
+
+Message send:
+
+Typing
+→ Send
+→ Message bubble enters conversation
+→ Sent indicator
+
+Agent typing:
+
+Use elegant three-dot typing indicator.
+
+New incoming message:
+
+Bubble smoothly appears.
+
+Attachment:
+
+Selecting file
+→ Uploading
+→ Uploaded
+
+Image/document preview should appear smoothly.
+
+When support agent responds:
+
+New message notification can appear subtly.
+
+Do NOT use distracting chat animations.
+
+⸻
+
+23. SUPPORT MESSAGE ANIMATION
+
+When user sends a support message:
+
+Message should smoothly enter the conversation.
+
+Send icon:
+
+Send
+→ Sent
+
+Use a tiny checkmark/state transition.
+
+Do not display a large popup for every message.
+
+⸻
+
+24. BUTTON MICRO-INTERACTIONS
+
+Every primary button must have:
+
+Idle
+→ Pressed
+→ Loading
+→ Success/Error
+
+Pressed state:
+
+Very subtle scale/depth response.
+
+Loading:
+
+Button content transitions to loading state.
+
+Success:
+
+Loading indicator
+→ Checkmark
+
+Error:
+
+Loading indicator
+→ Error icon
+
+Maintain button dimensions to avoid layout jumping.
+
+⸻
+
+25. CARDS
+
+All major cards should support:
+
+* Press state
+* Selected state
+* Disabled state
+* Loading state
+* Success state
+* Error state
+* Expand/collapse
+* Navigation transition
+
+Use subtle shadows/depth.
+
+Do NOT overanimate cards.
+
+⸻
+
+26. BOTTOM SHEETS & MODALS
+
+Bottom sheets:
+
+Enter:
+Slide upward + fade.
+
+Exit:
+Slide down + fade.
+
+Background:
+Smooth dimming.
+
+Modal:
+
+Scale slightly from approximately 96–98%
+→ 100%
+
+with opacity transition.
+
+Do not use aggressive zoom effects.
+
+⸻
+
+27. NAVIGATION
+
+Bottom navigation should have animated active states.
+
+When switching tabs:
+
+* Active icon changes smoothly.
+* Indicator moves smoothly.
+* Page content transitions naturally.
+
+Do not reload the entire application.
+
+Avoid excessive horizontal page sliding.
+
+⸻
+
+28. SEARCH
+
+Search bar:
+
+Tap
+→ expands/focuses
+
+Results:
+
+Appear smoothly.
+
+Clear:
+
+Results collapse/transition naturally.
+
+No results:
+
+Show premium empty-state animation.
+
+⸻
+
+29. FILTERS & SORTING
+
+Filter bottom sheet:
+
+Open:
+Slide up.
+
+Select filter:
+Chip/state animation.
+
+Apply:
+
+Sheet closes
+→ results update smoothly.
+
+Reset:
+
+Selected filters animate back to default.
+
+⸻
+
+30. PULL TO REFRESH
+
+Create premium pull-to-refresh behavior.
+
+Use OG Exports branding subtly.
+
+Pull:
+
+Brand/icon reacts to gesture.
+
+Release:
+
+Refresh animation.
+
+Content:
+
+Old data
+→ loading state
+→ updated data
+
+Do not use a generic spinning wheel if a contextual refresh animation can be used.
+
+⸻
+
+31. LOADING SYSTEM
+
+Create a unified loading system.
+
+Use:
+
+* Skeleton screens
+* Skeleton cards
+* Progress indicators
+* Circular progress
+* Button loaders
+* Inline loaders
+* Contextual processing states
+
+Avoid using generic spinners everywhere.
+
+Examples:
+
+Loading investment opportunities:
+
+Skeleton cards.
+
+Processing payment:
+
+Contextual progress animation.
+
+Loading wallet:
+
+Skeleton balance/card.
+
+⸻
+
+32. ERROR STATES
+
+Create professional error animations.
+
+Examples:
+
+* Network Error
+* Payment Failed
+* Deposit Failed
+* Withdrawal Failed
+* Investment Failed
+* KYC Failed
+* Session Expired
+* Server Error
+* Insufficient Balance
+
+Animation:
+
+Subtle state transition/shake
+→ Error icon
+→ Clear explanation
+→ Recovery action
+
+Every error must tell the user what to do next.
+
+⸻
+
+33. EMPTY STATES
+
+Create premium animated empty states.
+
+Examples:
+
+“No Investments Yet”
+
+“No Transactions”
+
+“No Notifications”
+
+“No Support Tickets”
+
+“No Search Results”
+
+Use subtle illustrations/icons with a very small entrance animation.
+
+Each empty state should have a useful CTA where appropriate.
+
+⸻
+
+34. SESSION EXPIRY
+
+Do not suddenly log the user out.
+
+Show:
+
+“Your session is about to expire.”
+
+Countdown.
+
+CTA:
+
+“Continue Session”
+
+If expired:
+
+Smooth transition to login.
+
+⸻
+
+35. LOGOUT
+
+Logout:
+
+Confirmation bottom sheet/modal.
+
+After confirmation:
+
+Logout processing
+→ successful logout
+→ smooth transition to authentication screen.
+
+⸻
+
+36. SUCCESS SYSTEM
+
+Create reusable premium SuccessModal / SuccessScreen component.
+
+It should support:
+
+* Deposit Successful
+* Withdrawal Successful
+* Investment Successful
+* KYC Approved
+* Profile Updated
+* Password Changed
+* Support Ticket Created
+* Document Uploaded
+* Payment Completed
+
+Animation:
+
+Progress
+→ Checkmark
+→ Confirmation
+→ Details
+→ CTA
+
+The component should be reusable across the entire app.
+
+⸻
+
+37. ERROR SYSTEM
+
+Create reusable ErrorModal / ErrorState component.
+
+Support:
+
+* Payment Failed
+* Withdrawal Failed
+* Investment Failed
+* Upload Failed
+* KYC Failed
+* Network Error
+* Server Error
+
+Animation must remain professional and subtle.
+
+⸻
+
+38. HAPTIC FEEDBACK
+
+Where the mobile platform supports haptics, implement subtle haptic feedback.
+
+Use:
+
+Light:
+
+* Button press
+* Tab selection
+* Filter selection
+
+Medium:
+
+* Important confirmation
+* Investment confirmation
+* Deposit completion
+
+Success:
+
+* Successful transaction
+* KYC approval
+
+Error:
+
+* Failed payment/action
+
+Do NOT overuse haptics.
+
+⸻
+
+39. REDUCED MOTION ACCESSIBILITY
+
+Implement a global Reduced Motion preference.
+
+If enabled:
+
+Replace large movements with:
+
+* Fade
+* Opacity
+* Small transitions
+
+Disable:
+
+* Large parallax
+* Excessive scaling
+* Long transitions
+* Particle effects
+* Decorative motion
+
+The app must remain fully functional without animation.
+
+⸻
+
+40. PERFORMANCE REQUIREMENTS
+
+Animations must be performance optimized.
+
+Prioritize:
+
+* Transform
+* Opacity
+* Native/optimized animations
+* GPU-friendly transitions where applicable
+
+Avoid expensive animations that cause:
+
+* Frame drops
+* Lag
+* Battery drain
+* Slow scrolling
+* Delayed interactions
+
+Target smooth 60 FPS where possible and support higher refresh-rate devices when the platform allows it.
+
+Animations must never block critical user actions.
+
+⸻
+
+41. NETWORK-AWARE ANIMATION
+
+Do not fake transaction completion.
+
+If the backend is still processing:
+
+Show:
+
+“Processing…”
+
+If backend confirms success:
+
+Show:
+
+“Completed”
+
+If backend returns failure:
+
+Show:
+
+“Failed”
+
+Animation must reflect the REAL application state.
+
+Never show a successful investment/deposit/withdrawal animation before backend confirmation.
+
+⸻
+
+42. FINANCIAL TRUST PRINCIPLE
+
+Because this is an investment application:
+
+Animation must NEVER create misleading financial impressions.
+
+Do not use:
+
+* Guaranteed profit animations
+* Fake profit increases
+* Artificial earnings counters
+* Misleading celebration
+* Fake transaction confirmations
+
+All financial numbers must come from real application data.
+
+Use animation to improve clarity and confidence—not to manipulate the user.
+
+⸻
+
+43. PREMIUM VISUAL STYLE
+
+Use the existing OG Exports brand identity.
+
+Primary visual direction:
+
+* Deep Emerald Green
+* Premium Green
+* Off-White / White
+* Charcoal
+* Subtle Gold only as a restrained accent where appropriate
+
+Avoid excessive gold.
+
+Avoid neon.
+
+Avoid gradients everywhere.
+
+Use gradients only when they genuinely improve the premium appearance.
+
+The application should feel like a serious international investment/trade platform.
+
+⸻
+
+44. ANIMATION HIERARCHY
+
+Not everything should have the same animation intensity.
+
+LEVEL 1 — Micro
+
+Buttons
+Icons
+Tabs
+Inputs
+
+Very subtle.
+
+LEVEL 2 — Component
+
+Cards
+Bottom sheets
+Filters
+Transaction rows
+
+Moderate.
+
+LEVEL 3 — Important Actions
+
+Deposit
+Withdrawal
+KYC
+Investment
+
+Strong but elegant.
+
+LEVEL 4 — Major Milestones
+
+Investment Confirmed
+KYC Approved
+Major transaction completion
+
+Premium hero animation.
+
+This hierarchy is extremely important.
+
+⸻
+
+45. DO NOT OVERANIMATE
+
+Strictly avoid:
+
+* Constant floating cards
+* Infinite bouncing
+* Excessive particles
+* Excessive confetti
+* Cartoon checkmarks
+* Giant spinning loaders
+* Flashing elements
+* Random zoom effects
+* Slow transitions
+* Animation on every text element
+* Animation that delays user interaction
+
+The app should feel luxury, not like a game.
+
+⸻
+
+46. CREATE REUSABLE COMPONENTS
+
+Build reusable components such as:
+
+AnimatedSplash
+
+AnimatedOnboardingCard
+
+AnimatedButton
+
+AnimatedCard
+
+AnimatedModal
+
+AnimatedBottomSheet
+
+SuccessAnimation
+
+ErrorAnimation
+
+ProcessingAnimation
+
+AnimatedCheckmark
+
+AnimatedProgress
+
+AnimatedNumber
+
+AnimatedStatusBadge
+
+AnimatedTimeline
+
+AnimatedTransaction
+
+AnimatedNotification
+
+AnimatedTicket
+
+AnimatedChatMessage
+
+AnimatedSkeleton
+
+AnimatedEmptyState
+
+AnimatedPageTransition
+
+AnimatedTabBar
+
+AnimatedKYCProgress
+
+AnimatedInvestmentConfirmation
+
+AnimatedDepositSuccess
+
+AnimatedWithdrawalSuccess
+
+This will ensure consistency throughout the application.
+
+⸻
+
+47. GLOBAL DESIGN TOKENS
+
+Create centralized constants/configuration for:
+
+animation durations
+
+easing curves
+
+spring values
+
+opacity
+
+scale
+
+translation distance
+
+haptic intensity
+
+reduced-motion behavior
+
+Do not hard-code different values everywhere.
+
+⸻
+
+48. FINAL USER EXPERIENCE
+
+The final experience should feel like:
+
+Open App
+↓
+Premium OG Exports Splash
+↓
+Smooth Onboarding
+↓
+Professional Authentication
+↓
+Elegant Dashboard
+↓
+Interactive Wallet
+↓
+Premium Investment Opportunities
+↓
+Smooth Project Detail
+↓
+Confident Investment Confirmation
+↓
+Beautiful Success Feedback
+↓
+Animated Portfolio
+↓
+Real-Time Investment Status
+↓
+Professional Transactions
+↓
+Premium Support & Live Chat
+
+Every interaction should feel connected.
+
+The user should feel that they are using a high-end international investment platform, not a basic CRUD mobile application.
+
+⸻
+
+49. IMPLEMENTATION RULE
+
+IMPORTANT:
+
+Do not rebuild or break existing application functionality.
+
+First inspect the existing project structure and identify:
+
+* Existing navigation
+* Screens
+* Components
+* Investment flow
+* Wallet
+* Deposit
+* Withdrawal
+* KYC
+* Authentication
+* Notifications
+* Support
+* Live Chat
+* Backend/API state
+* Existing design system
+
+Then implement this Motion System on top of the existing architecture.
+
+Reuse existing components where practical.
+
+Do not duplicate functionality.
+
+Do not create fake backend states.
+
+Do not replace real API data with mock data.
+
+Do not break authentication, investment, wallet, KYC, support or transaction functionality.
+
+⸻
+
+50. FINAL QUALITY CHECK
+
+Before completing the implementation, test every major flow:
+
+✓ Splash
+
+✓ Onboarding
+
+✓ Login
+
+✓ Signup
+
+✓ OTP
+
+✓ KYC
+
+✓ Dashboard
+
+✓ Wallet
+
+✓ Deposit
+
+✓ Deposit Success
+
+✓ Withdrawal
+
+✓ Withdrawal Success
+
+✓ Investment Opportunity
+
+✓ Project Details
+
+✓ Investment Confirmation
+
+✓ Investment Success
+
+✓ Portfolio
+
+✓ Investment Status
+
+✓ Transactions
+
+✓ Notifications
+
+✓ Support Ticket
+
+✓ Support Message
+
+✓ Live Chat
+
+✓ Search
+
+✓ Filters
+
+✓ Empty States
+
+✓ Error States
+
+✓ Network Loading
+
+✓ Session Expiry
+
+✓ Logout
+
+✓ Reduced Motion
+
+✓ Haptic Feedback
+
+✓ Dark/Light compatibility if already supported
+
+✓ iOS performance
+
+✓ Android performance
+
+Ensure there are no animation glitches, layout jumps, excessive delays, broken navigation transitions, duplicate animations, or inconsistent motion behavior.
+
+⸻
+
+FINAL DESIGN PRINCIPLE
+
+The OG Exports Investment App should follow one simple rule:
+
+“Every motion has a purpose.”
+
+The result should be:
+
+Luxury + Precision + Trust + Speed + Professionalism + Modern Fintech UX
+
+Not flashy.
+
+Not childish.
+
+Not overanimated.
+
+Just exceptionally polished.

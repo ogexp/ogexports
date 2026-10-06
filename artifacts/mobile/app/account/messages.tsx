@@ -10,6 +10,7 @@ import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status } 
 import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
 
 type SupportMode = 'help' | 'chat' | 'tickets';
 
@@ -137,7 +138,7 @@ export default function Messages() {
       await send.mutateAsync({ conversation: conversationId, data: { message: message.trim() } });
       setMessage('');
       await messagesQuery.refetch();
-    } catch (err) { setError(messageOf(err)); }
+    } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
   }
 
   async function openTicket() {
@@ -154,7 +155,7 @@ export default function Messages() {
       setNotice('Your support ticket was sent. Its latest status will appear in ticket history.');
       setMode('tickets');
       void ticketsQuery.refetch();
-    } catch (err) { setError(messageOf(err)); }
+    } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
   }
 
   async function emailSupport() {
@@ -178,7 +179,7 @@ export default function Messages() {
           testID={`support-tab-${value}`}
           accessibilityRole="tab"
           accessibilityState={{ selected: mode === value }}
-          onPress={() => { setMode(value); setError(''); setNotice(''); }}
+          onPress={() => { motionHaptic('micro'); setMode(value); setError(''); setNotice(''); }}
           style={{ flex: 1, alignItems: 'center', borderRadius: 18, paddingHorizontal: 8, paddingVertical: 10, backgroundColor: mode === value ? colors.primary : colors.secondary }}
         >
           <Text style={{ color: mode === value ? colors.primaryForeground : colors.foreground, fontWeight: '700', fontSize: 11 }}>{label}</Text>
@@ -265,10 +266,12 @@ export default function Messages() {
           }
           renderItem={({ item }) => {
             const own = /investor|user/i.test(first(record(item.sender), ['role', 'type'], first(item, ['sender_type', 'role'], '')));
-            return <Card style={{ backgroundColor: own ? colors.secondary : colors.card, alignSelf: own ? 'flex-end' : 'stretch', width: own ? '88%' : '100%' }}>
+            return <MotionReveal key={first(item, ['id'], first(item, ['created_at', 'date']))}>
+              <Card style={{ backgroundColor: own ? colors.secondary : colors.card, alignSelf: own ? 'flex-end' : 'stretch', width: own ? '88%' : '100%' }}>
               <Text style={{ color: colors.foreground, lineHeight: 20 }}>{first(item, ['message', 'body', 'content'], '')}</Text>
               <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 7 }}>{first(item, ['created_at', 'date'], '')}</Text>
-            </Card>;
+              </Card>
+            </MotionReveal>;
           }}
         /> : null}
         {conversationId ? <View style={{ paddingBottom: insets.bottom }}>
@@ -293,7 +296,8 @@ export default function Messages() {
       {tickets.length === 0 && !ticketsQuery.isLoading && !ticketsQuery.isError ? <EmptyState title="No tickets yet" body="Tickets you create will appear here with their latest status." /> : null}
       {tickets.map((item, index) => {
         const status = first(item, ['status'], '');
-        return <Card key={first(item, ['id'], String(index))}>
+        return <MotionReveal key={first(item, ['id'], String(index))} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}>
+        <Card>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
             <Text style={{ color: colors.foreground, fontWeight: '700', flex: 1 }}>{first(item, ['subject', 'title'], 'Support ticket')}</Text>
             <Status value={normalizedTicketStatus(status) || status || '—'} />
@@ -304,7 +308,8 @@ export default function Messages() {
           {normalizedTicketStatus(status)
             ? <TicketStatusProgress status={status} />
             : null}
-        </Card>;
+        </Card>
+        </MotionReveal>;
       })}
     </> : null}
   </Screen>;

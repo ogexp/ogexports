@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Platform, Pressable, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Image, PanResponder, Platform, Pressable, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Action, Card } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { MOTION, MotionProgress, motionHaptic, useMotion } from '@/lib/motion';
 
 const slides = [
   {
@@ -104,20 +105,52 @@ function OnboardingIllustration({ kind }: { kind: (typeof slides)[number]['illus
 export default function Onboarding() {
   const { completeOnboarding } = useAuth();
   const colors = useColors();
+  const { reduceMotion } = useMotion();
   const [step, setStep] = useState(0);
   const [error, setError] = useState('');
   const opacity = useRef(new Animated.Value(1)).current;
   const translateX = useRef(new Animated.Value(0)).current;
+  const swipeDirection = useRef(1);
   const slide = slides[step];
 
   useEffect(() => {
-    opacity.setValue(0);
-    translateX.setValue(14);
+    if (reduceMotion) {
+      opacity.setValue(1);
+      translateX.setValue(0);
+      return;
+    }
+    opacity.setValue(0.82);
+    translateX.setValue(MOTION.revealY * swipeDirection.current);
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 260, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(translateX, { toValue: 0, duration: 260, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(opacity, { toValue: 1, duration: MOTION.component, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(translateX, { toValue: 0, duration: MOTION.component, easing: MOTION.easeOut, useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
-  }, [step, opacity, translateX]);
+  }, [step, opacity, reduceMotion, translateX]);
+
+  const swipeResponder = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gesture) => !reduceMotion && Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
+    onPanResponderMove: (_, gesture) => {
+      translateX.setValue(Math.max(-90, Math.min(90, gesture.dx * 0.42)));
+    },
+    onPanResponderRelease: (_, gesture) => {
+      if (Math.abs(gesture.dx) < 54 || Math.abs(gesture.dx) < Math.abs(gesture.dy) * 1.25) {
+        Animated.spring(translateX, { toValue: 0, ...MOTION.spring, useNativeDriver: Platform.OS !== 'web' }).start();
+        return;
+      }
+      const next = gesture.dx < 0 ? Math.min(slides.length - 1, step + 1) : Math.max(0, step - 1);
+      if (next === step) {
+        Animated.spring(translateX, { toValue: 0, ...MOTION.spring, useNativeDriver: Platform.OS !== 'web' }).start();
+        return;
+      }
+      motionHaptic('micro');
+      swipeDirection.current = gesture.dx < 0 ? 1 : -1;
+      setStep(next);
+    },
+    onPanResponderTerminate: () => {
+      if (reduceMotion) translateX.setValue(0);
+      else Animated.spring(translateX, { toValue: 0, ...MOTION.spring, useNativeDriver: Platform.OS !== 'web' }).start();
+    },
+  }), [reduceMotion, step, translateX]);
 
   async function finish(destination: '/(auth)/register' | '/(auth)/login') {
     setError('');
@@ -136,7 +169,7 @@ export default function Onboarding() {
         <View><Text style={{ color: colors.primary, fontWeight: '700', fontSize: 16 }}>OG Exports</Text><Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 1 }}>Global Trade. Digital Investment.</Text></View>
       </View>
       <View style={{ flex: 1, justifyContent: 'center' }}>
-        <Animated.View style={{ opacity, transform: [{ translateX }] }}>
+        <Animated.View {...swipeResponder.panHandlers} style={{ opacity, transform: [{ translateX }] }}>
           <Card style={{ height: 218, padding: 0, overflow: 'hidden', backgroundColor: colors.secondary, borderColor: colors.border, marginBottom: 23 }}>
             <OnboardingIllustration kind={slide.illustration} />
           </Card>
@@ -145,11 +178,9 @@ export default function Onboarding() {
         </Animated.View>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-        <View style={{ flexDirection: 'row', gap: 7 }}>
-          {slides.map((item, index) => <View key={item.title} style={{ width: index === step ? 22 : 7, height: 7, borderRadius: 5, backgroundColor: index === step ? colors.primary : colors.border }} />)}
-        </View>
         <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{step + 1} of {slides.length}</Text>
       </View>
+      <MotionProgress value={((step + 1) / slides.length) * 100} height={4} color={colors.primary} trackColor={colors.secondary} style={{ marginBottom: 16 }} accessibilityLabel={`Onboarding step ${step + 1} of ${slides.length}`} />
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 10 }}>{error}</Text> : null}
       <Action
         title={step === slides.length - 1 ? 'Get Started' : 'Continue'}

@@ -1689,21 +1689,32 @@ components:
     InvestorWithdrawalInput:
       type: object
       additionalProperties: true
-      required: [amount, otp, transaction_password]
+      required: [amount, otp, transaction_password, bank_details]
       properties:
-        amount: { type: number, minimum: 1 }
+        amount: { type: number, exclusiveMinimum: 0 }
         bank_account_id:
           type: ["string", "null"]
           maxLength: 64
-          description: Saved bank account identifier; the server accepts it only when OG Exports currently marks that account verified.
+          deprecated: true
+          description: Legacy saved-account reference. New web and mobile clients should send editable bank_details instead.
         otp: { type: string, minLength: 6, maxLength: 6 }
         transaction_password: { type: string, minLength: 1 }
         note: { type: ["string", "null"] }
         bank_details:
-          type: ["object", "null"]
-          additionalProperties: true
-          description: Legacy client field. The server resolves this only to a saved account that is currently verified.
-        save_bank_details: { type: ["boolean", "null"] }
+          type: object
+          additionalProperties: false
+          required: [bank_name, account_holder, account_number, currency]
+          description: Payout account details entered or selected by the investor, matching the website withdrawal form.
+          properties:
+            bank_name: { type: string, minLength: 1, maxLength: 255 }
+            account_holder: { type: string, minLength: 1, maxLength: 255 }
+            account_number: { type: string, minLength: 1, maxLength: 100 }
+            iban: { type: string, maxLength: 100 }
+            swift: { type: string, maxLength: 50 }
+            branch: { type: string, maxLength: 255 }
+            purpose: { type: string, maxLength: 255 }
+            currency: { type: string, minLength: 3, maxLength: 3 }
+        save_bank_details: { type: boolean }
     InvestorBankAccountInput:
       type: object
       additionalProperties: false

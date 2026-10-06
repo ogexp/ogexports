@@ -17,18 +17,18 @@ import { useSegments } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { useQueryClient } from '@tanstack/react-query';
-import * as Haptics from 'expo-haptics';
 import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { translateUi } from '@/lib/strings';
+import { MOTION, MotionReveal, motionHaptic, useMotion } from '@/lib/motion';
 
 type IconName = keyof typeof Feather.glyphMap;
 
 function selectionFeedback() {
-  if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => undefined);
+  motionHaptic('micro');
 }
 
 function actionFeedback() {
-  if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+  motionHaptic('action');
 }
 
 export function Screen({ title, subtitle, children, action, scrollable = true, refreshable = false }: {
@@ -61,6 +61,7 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
     }
   }, [queryClient, refreshable, refreshing]);
   const header = (
+    <MotionReveal testID="screen-header-reveal">
     <View style={[s.header, Platform.OS === 'ios' ? { marginBottom: 16 } : undefined]}>
       <View style={{ flex: 1 }}>
         <Text style={[s.title, { color: colors.foreground }]}>{title}</Text>
@@ -68,6 +69,7 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
       </View>
       {action}
     </View>
+    </MotionReveal>
   );
   if (!scrollable) {
     return (
@@ -79,7 +81,7 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
         paddingHorizontal: 20,
       }}>
         {header}
-        {children}
+        <MotionReveal delay={35} style={{ flex: 1 }} testID="screen-content-reveal">{children}</MotionReveal>
       </View>
     );
   }
@@ -96,17 +98,17 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
       /> : undefined}
       contentContainerStyle={{ paddingTop: topPadding, paddingBottom: Platform.OS === 'web' ? 110 : insets.bottom + 104, paddingHorizontal: 20 }}>
       {header}
-      {children}
+      <MotionReveal delay={35} testID="screen-content-reveal">{children}</MotionReveal>
     </KeyboardAwareScrollViewCompat>
   );
 }
 
-export function Card({ children, style }: { children: React.ReactNode; style?: object }) {
+export function Card({ children, style, testID }: { children: React.ReactNode; style?: object; testID?: string }) {
   const colors = useColors();
   const cardShadow = Platform.OS === 'web'
     ? { boxShadow: `0 6px 20px ${colors.shadow}` }
     : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 };
-  return <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }, cardShadow, style]}>{children}</View>;
+  return <View testID={testID} style={[s.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }, cardShadow, style]}>{children}</View>;
 }
 
 export function Action({ title, onPress, icon, secondary = false, destructive = false, disabled = false, loading = false, testID }: {
@@ -120,6 +122,7 @@ export function Action({ title, onPress, icon, secondary = false, destructive = 
   testID?: string;
 }) {
   const colors = useColors();
+  const { reduceMotion } = useMotion();
   const buttonSurface = destructive
     ? { backgroundColor: colors.destructive, borderWidth: 1, borderColor: colors.destructive }
     : secondary
@@ -135,7 +138,7 @@ export function Action({ title, onPress, icon, secondary = false, destructive = 
     }} disabled={disabled || loading}
       style={({ pressed }) => [s.button, buttonSurface, {
         opacity: disabled ? 0.48 : pressed ? 0.9 : 1,
-        transform: [{ scale: pressed ? 0.985 : 1 }],
+         transform: [{ scale: pressed && !reduceMotion ? MOTION.pressScale : 1 }],
       }]}>
       {loading ? <ActivityIndicator color={buttonTextColor} /> : icon ? <Feather name={icon} size={16} color={buttonTextColor} /> : null}
       <Text style={[s.buttonText, { color: buttonTextColor }]}>{title}</Text>
@@ -148,21 +151,49 @@ export function Field({ label, value, onChangeText, placeholder, secureTextEntry
 }) {
   const colors = useColors();
   const [focused, setFocused] = React.useState(false);
+  const { reduceMotion } = useMotion();
+  const focusOpacity = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    if (reduceMotion) {
+      focusOpacity.setValue(focused ? 1 : 0);
+      return;
+    }
+    const animation = Animated.timing(focusOpacity, {
+      toValue: focused ? 1 : 0,
+      duration: MOTION.micro,
+      useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [focusOpacity, focused, reduceMotion]);
   return (
     <View style={{ gap: 7, marginBottom: 14 }}>
       <Text style={[s.label, { color: colors.foreground }]}>{label}</Text>
-      <TextInput accessibilityLabel={label} value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.mutedForeground}
-        autoFocus={autoFocus} maxLength={maxLength}
-        secureTextEntry={secureTextEntry} keyboardType={keyboardType} autoCapitalize={autoCapitalize} multiline={multiline}
-        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-        selectionColor={colors.primary} underlineColorAndroid={focused ? colors.primary : colors.input}
-        style={[s.input, {
-          backgroundColor: colors.card,
-          borderColor: focused ? colors.primary : colors.input,
-          borderWidth: focused ? 1.5 : 1,
-          color: colors.foreground,
-          outlineWidth: 0,
-        }, multiline ? { minHeight: 92, textAlignVertical: 'top' } : null]} />
+      <View>
+        <TextInput accessibilityLabel={label} value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.mutedForeground}
+          autoFocus={autoFocus} maxLength={maxLength}
+          secureTextEntry={secureTextEntry} keyboardType={keyboardType} autoCapitalize={autoCapitalize} multiline={multiline}
+          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          selectionColor={colors.primary} underlineColorAndroid={colors.input}
+          style={[s.input, {
+            backgroundColor: colors.card,
+            borderColor: colors.input,
+            borderWidth: 1,
+            color: colors.foreground,
+            outlineWidth: 0,
+          }, multiline ? { minHeight: 92, textAlignVertical: 'top' } : null]} />
+        <Animated.View pointerEvents="none" style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+          borderRadius: 10,
+          borderWidth: 1.5,
+          borderColor: colors.primary,
+          opacity: focusOpacity,
+        }} />
+      </View>
     </View>
   );
 }
@@ -209,11 +240,13 @@ export function Status({ value }: { value: string }) {
       : tone === 'error' ? 'close-circle'
         : 'information-circle-outline';
   const accessibleLabel = `${translateUi('Status', language)}: ${translateUi(label, language)}`;
-  return <View accessible accessibilityRole="text" accessibilityLabel={accessibleLabel}
+  return <MotionReveal key={`${tone}:${label}`} style={{ alignSelf: 'flex-start' }}>
+    <View accessible accessibilityRole="text" accessibilityLabel={accessibleLabel}
     style={[s.status, { backgroundColor: background, flexDirection: 'row', alignItems: 'center', gap: 5, maxWidth: 190 }]}>
     <Ionicons name={icon} size={13} color={foreground} />
     <Text numberOfLines={1} style={{ color: foreground, fontSize: 11, fontWeight: '700', flexShrink: 1 }}>{label}</Text>
-  </View>;
+    </View>
+  </MotionReveal>;
 }
 
 function isOfflineFailure(error: unknown, message: string) {
@@ -228,7 +261,8 @@ function isOfflineFailure(error: unknown, message: string) {
 export function ErrorState({ message, onRetry, error }: { message: string; onRetry?: () => void; error?: unknown }) {
   const colors = useColors();
   const offline = isOfflineFailure(error, message);
-  return <Card style={{ padding: 18 }}>
+  return <MotionReveal>
+  <Card style={{ padding: 18 }}>
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 8 }}>
       <Feather name={offline ? 'wifi-off' : 'alert-circle'} size={17} color={offline ? colors.destructive : colors.mutedForeground} />
       {offline ? <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700' }}>Connection unavailable</Text> : null}
@@ -237,15 +271,21 @@ export function ErrorState({ message, onRetry, error }: { message: string; onRet
       {offline ? 'Unable to reach OG Exports. Check your internet connection and try again.' : message}
     </Text>
     {onRetry ? <View style={{ marginTop: 14 }}><Action title="Try again" icon="refresh-cw" secondary onPress={onRetry} /></View> : null}
-  </Card>;
+  </Card>
+  </MotionReveal>;
 }
 
 export function EmptyState({ title, body, icon = 'inbox' }: { title: string; body: string; icon?: IconName }) {
   const colors = useColors();
+  const { reduceMotion } = useMotion();
   const opacity = React.useRef(new Animated.Value(0)).current;
   React.useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      return;
+    }
     Animated.timing(opacity, { toValue: 1, duration: 220, useNativeDriver: Platform.OS !== 'web' }).start();
-  }, [opacity]);
+  }, [opacity, reduceMotion]);
   return <Animated.View style={{ opacity, transform: [{ translateY: opacity.interpolate({ inputRange: [0, 1], outputRange: [5, 0] }) }] }}>
     <Card style={{ alignItems: 'center', padding: 24 }}>
       <View style={{ width: 44, height: 44, borderRadius: 16, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' }}>
@@ -260,15 +300,20 @@ export function EmptyState({ title, body, icon = 'inbox' }: { title: string; bod
 export function LoadingCard({ label = 'Loading…', lines = 3 }: { label?: string; lines?: number }) {
   const colors = useColors();
   const { preferences } = useAppPreferences();
+  const { reduceMotion } = useMotion();
   const opacity = React.useRef(new Animated.Value(0.58)).current;
   React.useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(0.72);
+      return;
+    }
     const pulse = Animated.loop(Animated.sequence([
       Animated.timing(opacity, { toValue: 0.92, duration: 850, useNativeDriver: Platform.OS !== 'web' }),
       Animated.timing(opacity, { toValue: 0.58, duration: 850, useNativeDriver: Platform.OS !== 'web' }),
     ]));
     pulse.start();
     return () => pulse.stop();
-  }, [opacity]);
+  }, [opacity, reduceMotion]);
   return <Card>
     <View accessibilityRole="progressbar" accessibilityLabel={translateUi(label, preferences.language)} style={{ gap: 12 }}>
       <Animated.View style={{ opacity, width: '40%', height: 13, borderRadius: 7, backgroundColor: colors.secondary }} />
@@ -285,17 +330,27 @@ export function LoadingCard({ label = 'Loading…', lines = 3 }: { label?: strin
   </Card>;
 }
 
-export function SuccessMark({ icon = 'check' }: { icon?: IconName }) {
+export function SuccessMark({ icon = 'check', feedback = 'success' }: { icon?: IconName; feedback?: 'success' | 'ack' | 'none' }) {
   const colors = useColors();
-  const scale = React.useRef(new Animated.Value(0.72)).current;
+  const { reduceMotion } = useMotion();
+  const scale = React.useRef(new Animated.Value(reduceMotion ? 1 : 0.94)).current;
   const opacity = React.useRef(new Animated.Value(0)).current;
+  const feedbackFired = React.useRef(false);
   React.useEffect(() => {
+    if (!feedbackFired.current) {
+      feedbackFired.current = true;
+      if (feedback !== 'none') motionHaptic(feedback === 'success' ? 'success' : 'micro');
+    }
+    if (reduceMotion) {
+      scale.setValue(1);
+      opacity.setValue(1);
+      return;
+    }
     Animated.parallel([
-      Animated.spring(scale, { toValue: 1, damping: 12, stiffness: 180, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.spring(scale, { toValue: 1, ...MOTION.successSpring, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(opacity, { toValue: 1, duration: MOTION.micro, useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
-    if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
-  }, [opacity, scale]);
+  }, [feedback, opacity, reduceMotion, scale]);
   return <Animated.View style={{
     width: 48,
     height: 48,
@@ -335,10 +390,11 @@ export function ConfirmationSheet({
 }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { reduceMotion } = useMotion();
   return <Modal
     visible={visible}
     transparent
-    animationType="slide"
+    animationType={reduceMotion ? 'none' : 'slide'}
     statusBarTranslucent
     onRequestClose={loading ? undefined : onCancel}
   >
@@ -387,12 +443,13 @@ export function SwipeAction({ children, label, onAction, disabled = false }: {
 }) {
   const colors = useColors();
   const { preferences } = useAppPreferences();
+  const { reduceMotion } = useMotion();
   const rtl = preferences.language !== 'en';
   const actionWidth = 92;
   const translateX = React.useRef(new Animated.Value(0)).current;
   const isOpen = React.useRef(false);
   const panResponder = React.useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gesture) => !disabled && Math.abs(gesture.dx) > 12 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
+    onMoveShouldSetPanResponder: (_, gesture) => !disabled && !reduceMotion && Math.abs(gesture.dx) > 12 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
     onPanResponderMove: (_, gesture) => {
       const progress = Math.max(0, Math.min(actionWidth, (isOpen.current ? actionWidth : 0) + (rtl ? gesture.dx : -gesture.dx)));
       translateX.setValue(rtl ? progress : -progress);
@@ -411,12 +468,14 @@ export function SwipeAction({ children, label, onAction, disabled = false }: {
     },
     onPanResponderTerminate: () => {
       isOpen.current = false;
-      Animated.spring(translateX, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start();
+      if (reduceMotion) translateX.setValue(0);
+      else Animated.spring(translateX, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start();
     },
-  }), [actionWidth, disabled, rtl, translateX]);
+  }), [actionWidth, disabled, reduceMotion, rtl, translateX]);
   const close = () => {
     isOpen.current = false;
-    Animated.spring(translateX, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start();
+    if (reduceMotion) translateX.setValue(0);
+    else Animated.spring(translateX, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start();
   };
   return <View style={{ overflow: 'hidden', borderRadius: 18, marginBottom: 14 }}>
     <View style={[StyleSheet.absoluteFill, { alignItems: rtl ? 'flex-start' : 'flex-end', justifyContent: 'center', paddingHorizontal: 12, backgroundColor: colors.lightGreen }]}>

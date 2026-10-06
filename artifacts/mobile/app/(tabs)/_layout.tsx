@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Animated, Platform, StyleSheet, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { translateUi } from '@/lib/strings';
+import { MOTION, useMotion } from '@/lib/motion';
 
 function NativeLayout() {
   const colors = useColors();
@@ -29,6 +30,26 @@ function NativeLayout() {
       <NativeTabs.Trigger name="profile"><NativeTabs.Trigger.Icon sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }} /><NativeTabs.Trigger.Label>{t('Profile')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
     </NativeTabs>
   );
+}
+
+function AnimatedTabIcon({ focused, children }: { focused: boolean; children: React.ReactNode }) {
+  const { reduceMotion } = useMotion();
+  const progress = React.useRef(new Animated.Value(focused ? 1 : 0)).current;
+  React.useEffect(() => {
+    if (reduceMotion) {
+      progress.setValue(focused ? 1 : 0);
+      return;
+    }
+    Animated.timing(progress, {
+      toValue: focused ? 1 : 0,
+      duration: MOTION.micro,
+      useNativeDriver: true,
+    }).start();
+  }, [focused, progress, reduceMotion]);
+  return <Animated.View style={{
+    opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }),
+    transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }],
+  }}>{children}</Animated.View>;
 }
 
 function ClassicLayout() {
@@ -81,13 +102,15 @@ function ClassicLayout() {
       ] as const).map(([name, title, androidIcon, androidSelectedIcon, iosIcon, iosSelectedIcon]) => (
         <Tabs.Screen key={name} name={name} options={{
           title,
-          tabBarIcon: ({ color, focused }) => Platform.OS === 'ios'
-            ? <SymbolView name={focused ? iosSelectedIcon : iosIcon} tintColor={color} size={22} />
-            : name === 'wallet'
-              ? <MaterialCommunityIcons name={focused ? 'wallet-bifold' : 'wallet-bifold-outline'} size={22} color={color} />
-            : Platform.OS === 'android' && name === 'index'
-              ? <MaterialCommunityIcons name={focused ? 'home-circle' : 'home-circle-outline'} size={22} color={color} />
-            : <Ionicons name={focused ? androidSelectedIcon : androidIcon} size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => <AnimatedTabIcon focused={focused}>
+            {Platform.OS === 'ios'
+              ? <SymbolView name={focused ? iosSelectedIcon : iosIcon} tintColor={color} size={22} />
+              : name === 'wallet'
+                ? <MaterialCommunityIcons name={focused ? 'wallet-bifold' : 'wallet-bifold-outline'} size={22} color={color} />
+              : Platform.OS === 'android' && name === 'index'
+                ? <MaterialCommunityIcons name={focused ? 'home-circle' : 'home-circle-outline'} size={22} color={color} />
+              : <Ionicons name={focused ? androidSelectedIcon : androidIcon} size={22} color={color} />}
+          </AnimatedTabIcon>,
         }} />
       ))}
       <Tabs.Screen name="trade" options={{ href: null }} />

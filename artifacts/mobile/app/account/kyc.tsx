@@ -15,6 +15,7 @@ import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { getInvestorKycStatus, investorKycProgressStep } from '@/lib/kyc';
+import { MotionProgress, motionHaptic } from '@/lib/motion';
 
 const documentLabels: Record<string, string> = {
   passport: 'Passport',
@@ -151,6 +152,7 @@ export default function Kyc() {
       setStep(2);
       await query.refetch();
     } catch (err) {
+      motionHaptic('error');
       setError(messageOf(err));
     }
   }
@@ -181,7 +183,7 @@ export default function Kyc() {
       const uploadResult = record(await upload.mutateAsync({ data: { doc_type: selectedDocumentType, path, original_name: fileName } }));
       setNotice(first(uploadResult, ['message'], 'Document uploaded. Its review status will be updated by OG Exports.'));
       await query.refetch();
-    } catch (err) { setError(messageOf(err)); }
+    } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
     finally { setDocumentPicking(false); }
   }
 
@@ -247,6 +249,7 @@ export default function Kyc() {
       setNotice(first(result, ['message'], 'Your application was submitted to OG Exports.'));
       await query.refetch();
     } catch (err) {
+      motionHaptic('error');
       setError(messageOf(err));
     }
   }
@@ -351,7 +354,7 @@ export default function Kyc() {
         <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>Verification progress</Text>
         <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>Step {progressStep} of 4</Text>
       </View>
-      <View accessibilityRole="progressbar" accessibilityLabel={`KYC progress: step ${progressStep} of 4`} accessibilityValue={{ min: 1, max: 4, now: progressStep }} style={{ flexDirection: 'row', gap: 5 }}>
+      <View style={{ flexDirection: 'row', gap: 5 }}>
         {stageLabels.map((label, index) => {
           const stageNumber = index + 1;
           const complete = stageNumber < progressStep || (isVerified && stageNumber === 4);
@@ -366,9 +369,14 @@ export default function Kyc() {
           </Pressable>;
         })}
       </View>
-      <View style={{ flexDirection: 'row', gap: 5, marginTop: 9 }}>
-        {stageLabels.map((label, index) => <View key={label} style={{ flex: 1, height: 4, borderRadius: 3, backgroundColor: index + 1 <= progressStep ? colors.primary : colors.secondary }} />)}
-      </View>
+      <MotionProgress
+        value={Math.max(0, Math.min(100, ((progressStep - 1) / 3) * 100))}
+        height={4}
+        color={colors.primary}
+        trackColor={colors.secondary}
+        style={{ marginTop: 9 }}
+        accessibilityLabel={`KYC progress: step ${progressStep} of 4`}
+      />
     </Card>
 
     {notice ? <Card><Text style={{ color: colors.primary, lineHeight: 20 }}>{notice}</Text></Card> : null}

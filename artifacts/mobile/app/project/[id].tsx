@@ -28,6 +28,7 @@ import { useColors } from '@/hooks/useColors';
 import { shareInvestorFile } from '@/lib/file-download';
 import { getInvestorKycStatus, isInvestorKycVerified } from '@/lib/kyc';
 import { verifyAppPin } from '@/lib/app-pin';
+import { motionHaptic } from '@/lib/motion';
 
 function formatEstimatedDistributionDate(value: string): string {
   const raw = value.trim();
@@ -307,7 +308,7 @@ export default function OpportunityDetail() {
         queryClient.invalidateQueries({ queryKey: ['investor-positions'] }),
         queryClient.invalidateQueries({ queryKey: ['investor-wallet-transactions'] }),
       ]);
-    } catch (err) { setError(messageOf(err)); }
+    } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
     finally { setAuthBusy(false); setPin(''); }
   }
 
@@ -555,7 +556,7 @@ export default function OpportunityDetail() {
           <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center', marginBottom: 13 }}>
             <Feather name={serverConfirmed ? 'check' : 'send'} size={21} color={colors.primary} />
           </View>
-          <SuccessMark icon={serverConfirmed ? 'check' : 'clock'} />
+          <SuccessMark icon={serverConfirmed ? 'check' : 'clock'} feedback={serverConfirmed ? 'success' : 'ack'} />
           <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>{serverConfirmed ? 'Investment Confirmed' : 'Investment request submitted'}</Text>
           {first(confirmation, ['message']) ? <Text style={{ color: colors.mutedForeground, marginTop: 7, lineHeight: 19 }}>{first(confirmation, ['message'])}</Text> : null}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: colors.border }}><Text style={{ color: colors.mutedForeground }}>Server status</Text><Status value={status} /></View>

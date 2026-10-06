@@ -6,6 +6,7 @@ import { Card } from '@/components/InvestorUI';
 import { amount, first, money, record } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
 import { opportunityStatusGroup } from '@/lib/opportunities';
+import { MOTION, MotionProgress, useMotion } from '@/lib/motion';
 
 type OpportunityCardProps = {
   item: Record<string, unknown>;
@@ -138,6 +139,7 @@ function statusPresentation(status: string) {
 
 export function OpportunityCard({ item, featured, progress, apiOrigin, onPress }: OpportunityCardProps) {
   const colors = useColors();
+  const { reduceMotion } = useMotion();
   const [imageFailed, setImageFailed] = useState(false);
   const title = opportunityValue(item, ['commodity_name', 'commodity', 'title', 'name', 'project_name']) || '—';
   const status = statusPresentation(opportunityValue(item, ['trade_status', 'project_status', 'status', 'state']));
@@ -180,7 +182,7 @@ export function OpportunityCard({ item, featured, progress, apiOrigin, onPress }
       accessibilityLabel={`View opportunity ${accessibilityTitle}: ${title}`}
       onPress={onPress}
       disabled={!onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.96 : 1, transform: [{ scale: pressed ? 0.995 : 1 }] })}
+      style={({ pressed }) => ({ opacity: pressed ? 0.96 : 1, transform: [{ scale: pressed && !reduceMotion ? MOTION.pressScale : 1 }] })}
     >
       <Card style={{
         padding: 0,
@@ -236,13 +238,7 @@ export function OpportunityCard({ item, featured, progress, apiOrigin, onPress }
             </Text>
           </View>
 
-          {boundedProgress != null ? <View
-            accessibilityRole="progressbar"
-            accessibilityValue={{ min: 0, max: 100, now: boundedProgress }}
-            style={{ height: 7, borderRadius: 5, backgroundColor: colors.border, overflow: 'hidden', marginTop: 10 }}
-          >
-            <View style={{ width: `${boundedProgress}%`, height: 7, borderRadius: 5, backgroundColor: colors.primary }} />
-          </View> : null}
+          {boundedProgress != null ? <MotionProgress value={boundedProgress} height={7} color={colors.primary} trackColor={colors.border} style={{ marginTop: 10 }} /> : null}
 
           <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', marginTop: 10 }}>
             <Text style={{ color: colors.accent, fontSize: 15, fontWeight: '700' }}>{formatMoney(remaining)}</Text>

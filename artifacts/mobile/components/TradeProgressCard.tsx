@@ -6,6 +6,7 @@ import { Card, Section } from '@/components/InvestorUI';
 import { amount, first, record, type Json } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
 import { resolveTradeProgress, TRADE_STAGES } from '@/lib/trade-progress';
+import { MotionProgress, MotionReveal } from '@/lib/motion';
 
 type Props = {
   stageUpdates: Json[];
@@ -75,7 +76,7 @@ export function TradeProgressCard({
           const markerColor = completed ? colors.statusSuccess : inProgress ? colors.primary : colors.border;
           const statusLabel = update?.statusLabel ?? 'No admin update yet.';
 
-          return <View key={stage.key} style={{ flexDirection: 'row', gap: 12, minHeight: index === TRADE_STAGES.length - 1 ? 58 : 75 }}>
+          return <MotionReveal key={`${stage.key}-${statusLabel}`} style={{ flexDirection: 'row', gap: 12, minHeight: index === TRADE_STAGES.length - 1 ? 58 : 75 }}>
             <View style={{ width: 25, alignItems: 'center' }}>
               <View style={{
                 width: 23,
@@ -120,7 +121,7 @@ export function TradeProgressCard({
                   </Text>
                 : null}
             </View>
-          </View>;
+          </MotionReveal>;
         })}
       </View>
 
@@ -139,9 +140,7 @@ export function TradeProgressCard({
           ) : null}
         </View>
         {hasPeriodProgress ? (
-          <View style={{ height: 7, overflow: 'hidden', borderRadius: 5, backgroundColor: colors.secondary, marginTop: 9 }}>
-            <View style={{ width: `${barPercent}%`, height: '100%', borderRadius: 5, backgroundColor: colors.primary }} />
-          </View>
+          <MotionProgress value={barPercent} height={7} color={colors.primary} trackColor={colors.secondary} style={{ marginTop: 9 }} accessibilityLabel="Investment period progress" />
         ) : (
           <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 6 }}>
             Investment period progress is not available.

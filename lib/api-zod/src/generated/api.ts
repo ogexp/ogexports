@@ -1260,6 +1260,7 @@ export const GetInvestorWithdrawalsResponse = zod.record(zod.string(), zod.unkno
 /**
  * @summary Submit a withdrawal request
  */
+export const createInvestorWithdrawalBodyAmountExclusiveMin = 0;
 
 export const createInvestorWithdrawalBodyBankAccountIdMax = 64;
 
@@ -1267,16 +1268,42 @@ export const createInvestorWithdrawalBodyOtpMin = 6;
 export const createInvestorWithdrawalBodyOtpMax = 6;
 
 
+export const createInvestorWithdrawalBodyBankDetailsBankNameMax = 255;
+
+export const createInvestorWithdrawalBodyBankDetailsAccountHolderMax = 255;
+
+export const createInvestorWithdrawalBodyBankDetailsAccountNumberMax = 100;
+
+export const createInvestorWithdrawalBodyBankDetailsIbanMax = 100;
+
+export const createInvestorWithdrawalBodyBankDetailsSwiftMax = 50;
+
+export const createInvestorWithdrawalBodyBankDetailsBranchMax = 255;
+
+export const createInvestorWithdrawalBodyBankDetailsPurposeMax = 255;
+
+export const createInvestorWithdrawalBodyBankDetailsCurrencyMin = 3;
+export const createInvestorWithdrawalBodyBankDetailsCurrencyMax = 3;
+
 
 
 export const CreateInvestorWithdrawalBody = zod.object({
-  "amount": zod.number().min(1),
-  "bank_account_id": zod.string().max(createInvestorWithdrawalBodyBankAccountIdMax).nullish().describe('Saved bank account identifier; the server accepts it only when OG Exports currently marks that account verified.'),
+  "amount": zod.number().gt(createInvestorWithdrawalBodyAmountExclusiveMin),
+  "bank_account_id": zod.string().max(createInvestorWithdrawalBodyBankAccountIdMax).nullish().describe('Legacy saved-account reference. New web and mobile clients should send editable bank_details instead.'),
   "otp": zod.string().min(createInvestorWithdrawalBodyOtpMin).max(createInvestorWithdrawalBodyOtpMax),
   "transaction_password": zod.string().min(1),
   "note": zod.string().nullish(),
-  "bank_details": zod.record(zod.string(), zod.unknown()).nullish().describe('Legacy client field. The server resolves this only to a saved account that is currently verified.'),
-  "save_bank_details": zod.boolean().nullish()
+  "bank_details": zod.object({
+  "bank_name": zod.string().min(1).max(createInvestorWithdrawalBodyBankDetailsBankNameMax),
+  "account_holder": zod.string().min(1).max(createInvestorWithdrawalBodyBankDetailsAccountHolderMax),
+  "account_number": zod.string().min(1).max(createInvestorWithdrawalBodyBankDetailsAccountNumberMax),
+  "iban": zod.string().max(createInvestorWithdrawalBodyBankDetailsIbanMax).optional(),
+  "swift": zod.string().max(createInvestorWithdrawalBodyBankDetailsSwiftMax).optional(),
+  "branch": zod.string().max(createInvestorWithdrawalBodyBankDetailsBranchMax).optional(),
+  "purpose": zod.string().max(createInvestorWithdrawalBodyBankDetailsPurposeMax).optional(),
+  "currency": zod.string().min(createInvestorWithdrawalBodyBankDetailsCurrencyMin).max(createInvestorWithdrawalBodyBankDetailsCurrencyMax)
+}).describe('Payout account details entered or selected by the investor, matching the website withdrawal form.'),
+  "save_bank_details": zod.boolean().optional()
 })
 
 export const CreateInvestorWithdrawalResponse = zod.record(zod.string(), zod.unknown())

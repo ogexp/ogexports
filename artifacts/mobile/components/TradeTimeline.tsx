@@ -6,6 +6,7 @@ import { Card, Section, Status } from '@/components/InvestorUI';
 import { first, messageOf, type Json } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
 import { shareInvestorFile } from '@/lib/file-download';
+import { MOTION, MotionReveal } from '@/lib/motion';
 
 function updateTime(event: Json): number | null {
   const value = first(event, ['occurred_at']);
@@ -84,15 +85,11 @@ export function TradeTimeline({
         const attachmentMime = first(event, ['attachment_mime']);
         const isImage = attachmentMime.toLowerCase().startsWith('image/');
 
-        return <View
+        return <MotionReveal
           key={key}
-          testID={`trade-update-${key}`}
-          style={{
-            paddingVertical: 13,
-            borderBottomWidth: index < orderedEvents.length - 1 ? 1 : 0,
-            borderBottomColor: colors.border,
-          }}
+          delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}
         >
+          <View testID={`trade-update-${key}`} style={{ paddingVertical: 13, borderBottomWidth: index < orderedEvents.length - 1 ? 1 : 0, borderBottomColor: colors.border }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
             <View style={{ flex: 1, flexDirection: 'row', gap: 7, alignItems: 'center' }}>
               <Feather name="clock" size={13} color={colors.mutedForeground} />
@@ -133,7 +130,8 @@ export function TradeTimeline({
               {attachmentError.message}
             </Text>
           ) : null}
-        </View>;
+          </View>
+        </MotionReveal>;
       })}
       <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 16, marginTop: 8 }}>
         Update times, statuses, descriptions, and supporting files are provided by OG Exports.

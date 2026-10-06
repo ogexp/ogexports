@@ -20,6 +20,7 @@ import { uploadInvestorFile } from '@/lib/file-upload';
 import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { motionHaptic } from '@/lib/motion';
 
 const depositStages = ['Submitted', 'Under Review', 'Verified', 'Credited'] as const;
 const completedStatuses = new Set(['approved', 'verified', 'credited', 'completed']);
@@ -202,7 +203,7 @@ export default function Deposit() {
       const path = await uploadInvestorFile(uploadSource, fileName, mimeType, 'deposit-proofs', apiOrigin);
       setProof(path);
       setProofName(fileName);
-    } catch (err) { setError(messageOf(err)); }
+    } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
     finally { setProofUploading(false); }
   }
 
@@ -274,7 +275,7 @@ export default function Deposit() {
       void queryClient.invalidateQueries({ queryKey: ['investor-wallet'] });
       void queryClient.invalidateQueries({ queryKey: ['investor-wallet-transactions'] });
       void queryClient.invalidateQueries({ queryKey: ['investor-dashboard'] });
-    } catch (err) { setError(messageOf(err)); }
+    } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
   }
 
   return <Screen key={stage} title="Add funds" subtitle={selectedPaymentMethod
@@ -461,7 +462,7 @@ export default function Deposit() {
     </Card> : null}
 
     {stage === 'submitted' && confirmation ? <Card style={{ borderColor: colors.primary }}>
-      <SuccessMark />
+      <SuccessMark feedback="ack" />
       <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Deposit request submitted</Text>
       {notice ? <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>{notice}</Text> : null}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9, marginTop: 6 }}>

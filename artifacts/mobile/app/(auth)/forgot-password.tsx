@@ -8,6 +8,7 @@ import { messageOf } from '@/lib/data';
 import { useInvestorForgotPassword, useInvestorResetPassword, useInvestorVerifyResetCode } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
 
 export default function ForgotPassword() {
   const colors = useColors();
@@ -34,7 +35,7 @@ export default function ForgotPassword() {
         await reset.mutateAsync({ data: { email, password, password_confirmation: confirmPassword } });
         setStep(3);
       }
-    } catch (err) { setError(messageOf(err)); }
+    } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
   }
   async function resendCode() {
     setError('');
@@ -44,10 +45,11 @@ export default function ForgotPassword() {
       setNotice(typeof response === 'object' && response !== null && 'message' in response && typeof response.message === 'string'
         ? response.message
         : 'If the account exists, a reset code has been sent to its email address.');
-    } catch (err) { setError(messageOf(err)); }
+    } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
   }
   const title = ['Reset your password', 'Enter your email code', 'Choose a new password', 'Password updated'][step];
   return <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: colors.background }} contentInsetAdjustmentBehavior="never" contentContainerStyle={{ flexGrow: 1, paddingTop: Platform.OS === 'ios' ? 0 : insets.top + 30, paddingBottom: insets.bottom + 24, paddingHorizontal: 20, justifyContent: 'center' }} bottomOffset={72} keyboardShouldPersistTaps="handled">
+    <MotionReveal key={`recovery-heading-${step}`} style={{ alignSelf: 'stretch' }}>
     <Text style={{ color: colors.foreground, fontSize: 27, fontWeight: '700' }}>{title}</Text>
     <Text style={{ color: colors.mutedForeground, marginTop: 8, marginBottom: 20, lineHeight: 21 }}>
       {step === 0
@@ -56,7 +58,8 @@ export default function ForgotPassword() {
           ? 'You can now sign in with your new password.'
           : `Reset code sent to: ${email}`}
     </Text>
-    {step < 3 ? <Card>
+    </MotionReveal>
+    {step < 3 ? <MotionReveal key={`recovery-form-${step}`} delay={MOTION.revealStagger} style={{ alignSelf: 'stretch' }}><Card>
       {step === 0 ? <Field label="Email address" value={email} onChangeText={setEmail} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" /> : null}
       {step === 1 ? <Field label="Six-digit verification code" value={code} onChangeText={value => setCode(value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" keyboardType="numeric" autoCapitalize="none" /> : null}
       {step === 2 ? <Field label="New password" value={password} onChangeText={setPassword} placeholder="At least 8 characters" secureTextEntry autoCapitalize="none" /> : null}
@@ -65,9 +68,9 @@ export default function ForgotPassword() {
       {error ? <Text style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
       <Action title={step === 0 ? 'Send code' : step === 1 ? 'Verify code' : 'Update password'} loading={request.isPending || verify.isPending || reset.isPending} onPress={() => void submit()} disabled={step === 0 ? !email.trim() : step === 1 ? code.length !== 6 : password.length < 8 || !confirmPassword} />
       {step === 1 ? <Text onPress={() => void resendCode()} style={{ color: colors.primary, textAlign: 'center', padding: 14, fontWeight: '600' }}>Resend code</Text> : null}
-    </Card> : <Card>
+    </Card></MotionReveal> : <MotionReveal key="recovery-complete" delay={MOTION.revealStagger}><Card>
       <Text style={{ color: colors.foreground, lineHeight: 21, marginBottom: 14 }}>Your password has been updated. Sign in with the new password to continue.</Text>
       <Action title="Back to sign in" icon="arrow-right" onPress={() => router.replace('/(auth)/login')} />
-    </Card>}
+    </Card></MotionReveal>}
   </KeyboardAwareScrollViewCompat>;
 }

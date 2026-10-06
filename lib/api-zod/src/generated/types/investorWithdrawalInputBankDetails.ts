@@ -7,7 +7,35 @@
  */
 
 /**
- * Legacy client field. The server resolves this only to a saved account that is currently verified.
- * @nullable
+ * Payout account details entered or selected by the investor, matching the website withdrawal form.
  */
-export type InvestorWithdrawalInputBankDetails = { [key: string]: unknown } | null;
+export type InvestorWithdrawalInputBankDetails = {
+  /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  bank_name: string;
+  /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  account_holder: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  account_number: string;
+  /** @maxLength 100 */
+  iban?: string;
+  /** @maxLength 50 */
+  swift?: string;
+  /** @maxLength 255 */
+  branch?: string;
+  /** @maxLength 255 */
+  purpose?: string;
+  /**
+     * @minLength 3
+     * @maxLength 3
+     */
+  currency: string;
+};

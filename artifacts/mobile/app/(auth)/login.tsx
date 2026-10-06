@@ -12,6 +12,7 @@ import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { resolvePostAuthHref } from '@/lib/post-auth-route';
 import { authenticateWithBiometrics, getBiometricInfo, type BiometricInfo } from '@/lib/biometrics';
+import { MotionReveal, motionHaptic } from '@/lib/motion';
 
 export default function Login() {
   const { apiOrigin, token, biometricEnabled, acceptSession, setChallenge, unlockApp } = useAuth();
@@ -75,6 +76,7 @@ export default function Login() {
         router.push('/(auth)/verify');
         return;
       }
+      motionHaptic('error');
       setError(messageOf(err));
     }
   }
@@ -111,6 +113,7 @@ export default function Login() {
 
   return (
     <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: colors.background }} contentInsetAdjustmentBehavior="never" contentContainerStyle={{ flexGrow: 1, paddingTop: Platform.OS === 'ios' ? insets.top : insets.top + 18, paddingBottom: insets.bottom + 24, paddingHorizontal: 22, justifyContent: 'center' }} bottomOffset={72} keyboardShouldPersistTaps="handled">
+      <MotionReveal>
       <View style={{ alignItems: 'center', marginBottom: 22 }}>
         <Image source={require('../../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 112, height: 82 }} />
         <Text style={{ color: colors.primary, fontSize: 25, fontWeight: '700', marginTop: 18 }}>OG Exports</Text>
@@ -154,6 +157,7 @@ export default function Login() {
         </Pressable> : null}
         <Pressable onPress={() => router.push('/(auth)/forgot-password')} style={{ alignSelf: 'center', padding: 14 }}><Text style={{ color: colors.primary, fontWeight: '600' }}>Forgot password?</Text></Pressable>
       </Card>
+      </MotionReveal>
       <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 5 }}>
         <Text style={{ color: colors.mutedForeground }}>New to OG Exports?</Text>
         <Pressable onPress={() => router.push('/(auth)/register')}><Text style={{ color: colors.primary, fontWeight: '700' }}>Create account</Text></Pressable>

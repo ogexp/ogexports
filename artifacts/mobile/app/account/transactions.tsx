@@ -14,6 +14,7 @@ import { amount as readAmount, first, Json, list, messageOf, money, record, unwr
 import { shareInvestorFile } from '@/lib/file-download';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
 
 type Filter = 'All' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
 type Category = Exclude<Filter, 'All'> | 'Other';
@@ -323,6 +324,7 @@ export default function Transactions() {
       {filters.map(item => {
         const active = filter === item;
         return <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => {
+          motionHaptic('micro');
           setFilter(item);
           setSelectedId('');
           setPage(1);
@@ -344,10 +346,11 @@ export default function Transactions() {
     {isLoading ? <LoadingCard label="Loading transactions from OG Exports…" /> : null}
     {!isLoading && !filteredRows.length && !failedSources.length ? <EmptyState title={search ? 'No matching transactions' : `No ${filter.toLowerCase()} found`} body={search ? 'Try a different ID, reference or search term.' : 'Records returned by OG Exports will appear here.'} /> : null}
 
-    {filteredRows.map(row => {
+    {filteredRows.map((row, index) => {
       const active = selectedRow?.key === row.key;
       const amountLabel = money(row.amount, row.currency || 'USD');
-      return <Pressable key={row.key} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => {
+      return <MotionReveal key={`${row.key}-${active}`} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}>
+      <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => {
         setSelectedId(active ? '' : row.key);
         setPdfError('');
       }}>
@@ -385,7 +388,8 @@ export default function Transactions() {
             </Pressable>
           </View> : null}
         </Card>
-      </Pressable>;
+      </Pressable>
+      </MotionReveal>;
     })}
 
     <View style={{ marginTop: 4, marginBottom: 18 }}>

@@ -762,16 +762,45 @@ export interface InvestorProfileUpdate {
 }
 
 /**
- * Legacy client field. The server resolves this only to a saved account that is currently verified.
- * @nullable
+ * Payout account details entered or selected by the investor, matching the website withdrawal form.
  */
-export type InvestorWithdrawalInputBankDetails = { [key: string]: unknown } | null;
+export type InvestorWithdrawalInputBankDetails = {
+  /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  bank_name: string;
+  /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  account_holder: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  account_number: string;
+  /** @maxLength 100 */
+  iban?: string;
+  /** @maxLength 50 */
+  swift?: string;
+  /** @maxLength 255 */
+  branch?: string;
+  /** @maxLength 255 */
+  purpose?: string;
+  /**
+     * @minLength 3
+     * @maxLength 3
+     */
+  currency: string;
+};
 
 export interface InvestorWithdrawalInput {
-  /** @minimum 1 */
+  /** @exclusiveMinimum 0 */
   amount: number;
   /**
-     * Saved bank account identifier; the server accepts it only when OG Exports currently marks that account verified.
+     * Legacy saved-account reference. New web and mobile clients should send editable bank_details instead.
+     * @deprecated
      * @maxLength 64
      * @nullable
      */
@@ -785,13 +814,9 @@ export interface InvestorWithdrawalInput {
   transaction_password: string;
   /** @nullable */
   note?: string | null;
-  /**
-     * Legacy client field. The server resolves this only to a saved account that is currently verified.
-     * @nullable
-     */
-  bank_details?: InvestorWithdrawalInputBankDetails;
-  /** @nullable */
-  save_bank_details?: boolean | null;
+  /** Payout account details entered or selected by the investor, matching the website withdrawal form. */
+  bank_details: InvestorWithdrawalInputBankDetails;
+  save_bank_details?: boolean;
   [key: string]: unknown;
  }
 

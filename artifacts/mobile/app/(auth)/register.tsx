@@ -10,6 +10,7 @@ import { messageOf, record } from '@/lib/data';
 import { useInvestorRegister } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
 
 type RegisterFieldProps = {
   label: string;
@@ -131,6 +132,7 @@ export default function Register() {
         router.replace('/(auth)/verify');
         return;
       }
+      motionHaptic('error');
       setError(messageOf(err));
     }
   }
@@ -162,13 +164,16 @@ export default function Register() {
         </View>
       </View>
 
-      <View style={s.intro}>
-        <Text style={[s.title, { color: colors.foreground }]}>Create Account</Text>
-        <Text style={[s.subtitle, { color: colors.mutedForeground }]}>
-          Create your OG Exports investor account.
-        </Text>
-      </View>
+      <MotionReveal delay={MOTION.revealStagger}>
+        <View style={s.intro}>
+          <Text style={[s.title, { color: colors.foreground }]}>Create Account</Text>
+          <Text style={[s.subtitle, { color: colors.mutedForeground }]}>
+            Create your OG Exports investor account.
+          </Text>
+        </View>
+      </MotionReveal>
 
+      <MotionReveal delay={MOTION.revealStagger * 2}>
       <View style={s.form}>
         <Card style={s.registerCard}>
         <RegisterField
@@ -257,6 +262,7 @@ export default function Register() {
         />
         </Card>
       </View>
+      </MotionReveal>
 
       <View style={s.footer}>
         <Text style={[s.footerText, { color: colors.mutedForeground }]}>Already have an account?</Text>

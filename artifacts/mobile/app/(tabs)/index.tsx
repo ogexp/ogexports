@@ -6,7 +6,6 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
-import * as Haptics from 'expo-haptics';
 import {
   useGetInvestorDashboard,
   useGetInvestorDeposits,
@@ -30,6 +29,7 @@ import {
   RecentAlertsPreview,
   type DashboardMetricItem,
 } from '@/components/DashboardWidgets';
+import { MOTION, MotionProgress, MotionReveal, motionHaptic } from '@/lib/motion';
 
 const accountMenuSections = [
   {
@@ -250,7 +250,7 @@ export default function InvestorHome() {
   const refreshDashboard = async () => {
     if (refreshing) return;
     setRefreshing(true);
-    if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => undefined);
+    motionHaptic('micro');
     try {
       await queryClient.refetchQueries({ type: 'active' });
     } finally {
@@ -287,6 +287,7 @@ export default function InvestorHome() {
     }}
     showsVerticalScrollIndicator={false}
   >
+    <MotionReveal>
     <LinearGradient
        colors={[colors.balanceCardEnd, colors.balanceCardStart]}
       start={{ x: 0, y: 0 }}
@@ -351,8 +352,10 @@ export default function InvestorHome() {
          </Text> : null}
        </View>
     </LinearGradient>
+    </MotionReveal>
 
     <View style={{ marginHorizontal: -18, paddingHorizontal: 20, paddingTop: 1, backgroundColor: colors.background }}>
+    <MotionReveal delay={MOTION.revealStagger}>
     <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 2, borderRadius: 23, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingVertical: 9, paddingHorizontal: 8, marginTop: -31, marginBottom: 20, zIndex: 2 }, dockShadow]}>
       {quickActions.map((action, index) => {
         const isPrimary = action.title === 'Deposit Funds';
@@ -391,6 +394,7 @@ export default function InvestorHome() {
         );
       })}
     </View>
+    </MotionReveal>
 
     {dashboard.isError ? <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 4, paddingVertical: 5 }}>
       <Text style={{ flex: 1, color: colors.mutedForeground, fontSize: 11 }}>Portfolio data is unavailable.</Text>
@@ -398,6 +402,7 @@ export default function InvestorHome() {
     </View> : null}
 
     <HomeSection title="Account Overview" />
+    <MotionReveal delay={MOTION.revealStagger * 2}>
     <View style={{ gap: 9 }}>
       {Array.from({ length: Math.ceil(metricItems.length / 2) }, (_, rowIndex) => (
         <View key={rowIndex} style={{ flexDirection: 'row', gap: 9 }}>
@@ -405,6 +410,7 @@ export default function InvestorHome() {
         </View>
       ))}
     </View>
+    </MotionReveal>
 
     <HomeSection title="Verification Status" right={<Pressable accessibilityRole="button" onPress={() => router.push('/account/kyc')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>View details</Text></Pressable>} />
     <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -434,7 +440,8 @@ export default function InvestorHome() {
       const investmentAmount = amount(position, ['amount', 'investment_amount', 'principal']);
       const positionId = first(position, ['investment_id', 'id'], '');
       const positionCurrency = first(position, ['currency'], first(trade, ['currency'], currency));
-      return <Card key={positionId || `${tradeId}-${index}`} style={{ borderRadius: 22, padding: 18 }}>
+      return <MotionReveal key={positionId || `${tradeId}-${index}`} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}>
+      <Card style={{ borderRadius: 22, padding: 18 }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text numberOfLines={1} style={{ color: colors.primary, fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>{tradeLabel}</Text>
@@ -464,20 +471,19 @@ export default function InvestorHome() {
             <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Trade cycle progress</Text>
             <Text style={{ color: colors.foreground, fontSize: 10, fontWeight: '700' }}>{boundedProgress.toFixed(0)}%</Text>
           </View>
-          <View style={{ height: 6, borderRadius: 4, backgroundColor: colors.secondary, overflow: 'hidden' }}>
-            <View style={{ width: `${boundedProgress}%`, height: 6, backgroundColor: colors.primary, borderRadius: 4 }} />
-          </View>
+          <MotionProgress value={boundedProgress} height={6} color={colors.primary} trackColor={colors.secondary} accessibilityLabel="Trade cycle progress" />
         </View> : <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 12 }}>Trade cycle progress has not been provided.</Text>}
         <Pressable testID={`home-track-trade-${index}`} accessibilityRole="button" accessibilityLabel={`Track ${title}`} disabled={!positionId} onPress={() => router.push({ pathname: '/position/[id]', params: { id: positionId } })}
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 42, borderRadius: 12, backgroundColor: positionId ? colors.primary : colors.secondary, marginTop: 14, opacity: pressed ? 0.82 : 1 })}>
           <Text style={{ color: positionId ? colors.primaryForeground : colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>Track Trade</Text>
           <Feather name="arrow-up-right" size={14} color={positionId ? colors.primaryForeground : colors.mutedForeground} />
         </Pressable>
-      </Card>;
+      </Card>
+      </MotionReveal>;
     })}
 
     <HomeSection title="Portfolio Performance" right={<Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/portfolio')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Portfolio</Text></Pressable>} />
-    <PortfolioHistoryCard points={series.points} currency={currency} loading={dashboard.isLoading} compact hideValues={balanceHidden} />
+    <MotionReveal delay={MOTION.revealStagger * 3}><PortfolioHistoryCard points={series.points} currency={currency} loading={dashboard.isLoading} compact hideValues={balanceHidden} /></MotionReveal>
 
     <HomeSection title="Recent Transactions" right={<Pressable accessibilityRole="button" onPress={() => router.push('/account/transactions')}><Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>See all</Text></Pressable>} />
     {activityError ? <ErrorState message="Recent activity could not be loaded." error={activityErrorDetail} onRetry={() => {
@@ -500,7 +506,7 @@ export default function InvestorHome() {
          const searchValue = isDepositRequest
            ? first(item, ['reference', 'deposit_reference', 'bank_reference', 'transfer_reference', 'id'], kind)
            : transactionId || kind;
-        return <Pressable key={transactionId || `${group.label}-${index}`} accessibilityRole="button" accessibilityLabel={`View ${kind}`} onPress={() => router.push({
+        return <MotionReveal key={transactionId || `${group.label}-${index}`} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}><Pressable accessibilityRole="button" accessibilityLabel={`View ${kind}`} onPress={() => router.push({
           pathname: '/account/transactions',
            params: {
              tab: isDepositRequest ? 'Deposits' : 'Wallet',
@@ -520,7 +526,7 @@ export default function InvestorHome() {
             <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700' }}>{displayMoney(rowAmount, rowCurrency || 'USD')}</Text>
             <Status value={first(item, ['status'], '—')} />
           </View>
-        </Pressable>;
+        </Pressable></MotionReveal>;
       })}
     </View>)}
 
@@ -531,7 +537,7 @@ export default function InvestorHome() {
     {featuredOpportunities.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 8 }}>
       {featuredOpportunities.map((item, index) => {
         const id = first(item, ['id', 'project_id'], '');
-        return <Pressable key={id || index} disabled={!id} onPress={() => router.push({ pathname: '/project/[id]', params: { id } })}>
+        return <MotionReveal key={id || index} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}><Pressable disabled={!id} onPress={() => router.push({ pathname: '/project/[id]', params: { id } })}>
           <Card style={{ width: 250, minHeight: 132, marginBottom: 5, borderRadius: 20, padding: 17 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
               <View style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}><Feather name="briefcase" size={16} color={colors.primary} /></View>
@@ -543,7 +549,7 @@ export default function InvestorHome() {
               <Feather name="arrow-up-right" size={14} color={colors.primary} />
             </View>
           </Card>
-        </Pressable>;
+        </Pressable></MotionReveal>;
       })}
     </ScrollView> : null}
 

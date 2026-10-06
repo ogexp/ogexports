@@ -12,6 +12,7 @@ import { amount, first, list } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { createOpportunityPressHandler, matchesOpportunityStatus, tradeStatus, type OpportunityStatusFilter } from '@/lib/opportunities';
+import { MOTION, MotionReveal, motionHaptic, useMotion } from '@/lib/motion';
 
 const categories = [
   { value: 'All', label: 'All' },
@@ -98,6 +99,7 @@ function riskLevel(item: Record<string, unknown>) {
 export default function Opportunities() {
   const { token, apiOrigin } = useAuth();
   const colors = useColors();
+  const { reduceMotion } = useMotion();
   const insets = useSafeAreaInsets();
   const [category, setCategory] = useState<CommodityCategory>('All');
   const [statusFilter, setStatusFilter] = useState<OpportunityStatusFilter>('All');
@@ -176,12 +178,12 @@ export default function Opportunities() {
       </Pressable>
     </View>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 10, marginBottom: 12 }}>
-      {statusFilters.map(item => <Pressable key={item} testID={`marketplace-status-${item.toLowerCase()}`} accessibilityRole="button" accessibilityState={{ selected: statusFilter === item }} onPress={() => setStatusFilter(item)} style={{ borderRadius: 13, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: statusFilter === item ? colors.primary : colors.card, borderWidth: 1, borderColor: statusFilter === item ? colors.primary : colors.border }}>
+      {statusFilters.map(item => <Pressable key={item} testID={`marketplace-status-${item.toLowerCase()}`} accessibilityRole="button" accessibilityState={{ selected: statusFilter === item }} onPress={() => { motionHaptic('micro'); setStatusFilter(item); }} style={{ borderRadius: 13, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: statusFilter === item ? colors.primary : colors.card, borderWidth: 1, borderColor: statusFilter === item ? colors.primary : colors.border }}>
         <Text style={{ color: statusFilter === item ? colors.primaryForeground : colors.foreground, fontWeight: '600', fontSize: 13 }}>{item}</Text>
       </Pressable>)}
     </ScrollView>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 10, marginBottom: 15 }}>
-      {categories.map(item => <Pressable key={item.value} testID={`marketplace-category-${item.value.toLowerCase()}`} accessibilityRole="button" accessibilityState={{ selected: category === item.value }} onPress={() => setCategory(item.value)} style={{ borderRadius: 20, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: category === item.value ? colors.primary : colors.secondary }}>
+      {categories.map(item => <Pressable key={item.value} testID={`marketplace-category-${item.value.toLowerCase()}`} accessibilityRole="button" accessibilityState={{ selected: category === item.value }} onPress={() => { motionHaptic('micro'); setCategory(item.value); }} style={{ borderRadius: 20, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: category === item.value ? colors.primary : colors.secondary }}>
         <Text style={{ color: category === item.value ? colors.primaryForeground : colors.foreground, fontWeight: '600', fontSize: 12 }}>{item.label}</Text>
       </Pressable>)}
     </ScrollView>
@@ -195,19 +197,20 @@ export default function Opportunities() {
     {query.isLoading ? <LoadingCard label="Loading trade opportunities…" /> : null}
     {query.isError ? <ErrorState message="Trade opportunities could not be loaded from OG Exports." error={query.error} onRetry={() => void query.refetch()} /> : null}
     {!query.isLoading && !query.isError && rows.length === 0 ? <EmptyState title="No matching trade opportunities" body="Try another category, tab, or filter. This view only shows opportunities and details supplied by OG Exports." /> : null}
-    {rows.map((item, index) => {
+      {rows.map((item, index) => {
       const id = first(item, ['id', 'project_id'], '');
-      return <OpportunityCard
-        key={id || index}
-        item={item}
-        featured={isFeatured(item)}
-        progress={fundingProgress(item)}
-        apiOrigin={apiOrigin}
-        onPress={createOpportunityPressHandler(item, route => router.push(route))}
-      />;
+      return <MotionReveal key={id || index} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}>
+        <OpportunityCard
+          item={item}
+          featured={isFeatured(item)}
+          progress={fundingProgress(item)}
+          apiOrigin={apiOrigin}
+          onPress={createOpportunityPressHandler(item, route => router.push(route))}
+        />
+      </MotionReveal>;
     })}
 
-    <Modal visible={filtersOpen} transparent animationType="slide" onRequestClose={() => setFiltersOpen(false)}>
+    <Modal visible={filtersOpen} transparent animationType={reduceMotion ? 'none' : 'slide'} onRequestClose={() => setFiltersOpen(false)}>
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(10,20,16,0.38)' }}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close filters" onPress={() => setFiltersOpen(false)} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
         <View style={{ maxHeight: '90%', borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: 20, paddingTop: 18, paddingBottom: Math.max(insets.bottom, 18), backgroundColor: colors.background }}>
@@ -222,7 +225,7 @@ export default function Opportunities() {
             <Field label="Destination" value={draftFilters.destination} onChangeText={value => setDraftFilters(current => ({ ...current, destination: value }))} placeholder="Country or market" />
             <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginTop: 4, marginBottom: 8 }}>Risk level</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 15 }}>
-              {riskOptions.map(item => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: draftFilters.risk === item }} onPress={() => setDraftFilters(current => ({ ...current, risk: item }))} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: draftFilters.risk === item ? colors.primary : colors.secondary }}>
+              {riskOptions.map(item => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: draftFilters.risk === item }} onPress={() => { motionHaptic('micro'); setDraftFilters(current => ({ ...current, risk: item })); }} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: draftFilters.risk === item ? colors.primary : colors.secondary }}>
                 <Text style={{ color: draftFilters.risk === item ? colors.primaryForeground : colors.foreground, fontSize: 11, fontWeight: '600' }}>{item}</Text>
               </Pressable>)}
             </View>
@@ -230,23 +233,23 @@ export default function Opportunities() {
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 15 }}>
               {statusOptions.map(item => {
                 const selected = item === 'Any' ? !draftFilters.status : draftFilters.status === item;
-                return <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => setDraftFilters(current => ({ ...current, status: item === 'Any' ? '' : item }))} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: selected ? colors.primary : colors.secondary }}>
+                return <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => { motionHaptic('micro'); setDraftFilters(current => ({ ...current, status: item === 'Any' ? '' : item })); }} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: selected ? colors.primary : colors.secondary }}>
                   <Text style={{ color: selected ? colors.primaryForeground : colors.foreground, fontSize: 11, fontWeight: '600' }}>{item === 'Any' ? 'Any status' : item}</Text>
                 </Pressable>;
               })}
             </View>
             <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginBottom: 8 }}>Funding progress</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 15 }}>
-              {['Any', 'Under 50%', '50–79%', '80–99%', 'Fully funded'].map(item => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: draftFilters.funding === item }} onPress={() => setDraftFilters(current => ({ ...current, funding: item }))} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: draftFilters.funding === item ? colors.primary : colors.secondary }}>
+              {['Any', 'Under 50%', '50–79%', '80–99%', 'Fully funded'].map(item => <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: draftFilters.funding === item }} onPress={() => { motionHaptic('micro'); setDraftFilters(current => ({ ...current, funding: item })); }} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: draftFilters.funding === item ? colors.primary : colors.secondary }}>
                 <Text style={{ color: draftFilters.funding === item ? colors.primaryForeground : colors.foreground, fontSize: 11, fontWeight: '600' }}>{item}</Text>
               </Pressable>)}
             </View>
           </KeyboardAwareScrollViewCompat>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-            <Pressable accessibilityRole="button" onPress={() => { resetCriteria(); setFiltersOpen(false); }} style={{ flex: 1, minHeight: 46, borderRadius: 13, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
+            <Pressable accessibilityRole="button" onPress={() => { motionHaptic('action'); resetCriteria(); setFiltersOpen(false); }} style={{ flex: 1, minHeight: 46, borderRadius: 13, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>Clear all</Text>
             </Pressable>
-            <Pressable testID="marketplace-apply-filters" accessibilityRole="button" onPress={() => { setAppliedFilters(draftFilters); setFiltersOpen(false); }} style={{ flex: 1.4, minHeight: 46, borderRadius: 13, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+            <Pressable testID="marketplace-apply-filters" accessibilityRole="button" onPress={() => { motionHaptic('action'); setAppliedFilters(draftFilters); setFiltersOpen(false); }} style={{ flex: 1.4, minHeight: 46, borderRadius: 13, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: colors.primaryForeground, fontSize: 12, fontWeight: '700' }}>Apply filters</Text>
             </Pressable>
           </View>
