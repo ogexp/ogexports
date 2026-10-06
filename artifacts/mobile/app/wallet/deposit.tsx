@@ -262,7 +262,7 @@ export default function Deposit() {
     } catch (err) { setError(messageOf(err)); }
   }
 
-  return <Screen title="Add funds" subtitle={selectedPaymentMethod
+  return <Screen key={stage} title="Add funds" subtitle={selectedPaymentMethod
     ? `Deposit via ${selectedPaymentMethod.label} · ${paymentCurrency || 'USD'}`
     : 'Choose a payment method to get started'} refreshable>
     {stage === 'method' ? <>
