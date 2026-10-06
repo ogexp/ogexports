@@ -11,8 +11,22 @@ import { TradeProgressCard } from '@/components/TradeProgressCard';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { shareInvestorFile } from '@/lib/file-download';
+import {
+  calculateExpectedProfitFromRoi,
+  formatDistributionStatus,
+  formatReportedPayoutDate,
+  parseRoiPercentageLabel,
+} from '@/lib/investment-metrics';
 
 const notProvided = '—';
+
+function firstAvailable(sources: Record<string, unknown>[], keys: string[], fallback = ''): string {
+  for (const source of sources) {
+    const value = first(source, keys, '').trim();
+    if (value && value !== notProvided) return value;
+  }
+  return fallback;
+}
 
 export default function PositionDetail() {
   const { id: raw } = useLocalSearchParams<{ id: string }>();
@@ -27,6 +41,11 @@ export default function PositionDetail() {
   const trade = record(row.trade ?? row.project ?? row.trade_details);
   const container = record(row.container ?? row.container_details ?? project.container ?? project.container_details ?? trade.container ?? trade.container_details);
   const projectMeta = record(project.meta ?? trade.meta ?? row.meta);
+  const rowMeta = record(row.meta);
+  const tradeMeta = record(trade.meta);
+  const distributionRecord = record(row.profit_distribution ?? row.distribution
+    ?? project.profit_distribution ?? project.distribution
+    ?? trade.profit_distribution ?? trade.distribution);
   const currency = first(row, ['currency', 'amount_currency'], first(project, ['currency'], first(trade, ['currency'])));
   const tradeId = first(row, ['trade_id', 'trade_code'], first(trade, ['trade_id', 'trade_code', 'project_code', 'code', 'reference'], first(project, ['trade_id', 'trade_code', 'project_code', 'code', 'reference'], notProvided)));
   const investmentId = first(row, ['investment_id', 'reference', 'id'], notProvided);
@@ -39,12 +58,13 @@ export default function PositionDetail() {
   const stageUpdates = list(project.stage_updates);
   const investmentPeriodProgress = record(row.investment_period_progress);
   const documents = list(project.documents ?? row.documents ?? trade.documents);
-  const investedUsd = amount(row, ['amount', 'investment_amount', 'principal']);
+  const investedAmount = amount(row, ['amount', 'investment_amount', 'principal']);
   const investedPkr = amount(row, ['amount_pkr']);
   const investedAmountText = [
-    investedUsd != null ? money(investedUsd, 'USD') : null,
+    investedAmount != null ? money(investedAmount, currency || 'USD') : null,
     investedPkr != null ? money(investedPkr, 'PKR') : null,
   ].filter(Boolean).join(' · ') || notProvided;
+  const amountText = (value: number | null) => money(value, currency || 'USD');
   const tradeCycle = first(row, ['trade_cycle', 'estimated_trade_cycle', 'duration'], first(project, ['trade_cycle', 'estimated_trade_cycle', 'duration'], first(trade, ['trade_cycle', 'estimated_trade_cycle', 'duration'], '')));
   const tradeCycleDays = first(row, ['investment_period_days', 'trade_cycle_days', 'duration_days'], first(project, ['investment_period_days', 'trade_cycle_days', 'duration_days'], first(trade, ['investment_period_days', 'trade_cycle_days', 'duration_days'], '')));
   const projectedAmount = amount(row, ['projected_return_amount', 'estimated_return_amount', 'target_return_amount', 'projected_distribution', 'estimated_distribution'])
@@ -53,9 +73,6 @@ export default function PositionDetail() {
   const projectedPercent = amount(row, ['projected_return_percentage', 'projected_return_pct', 'expected_return_pct', 'estimated_return_percentage', 'target_return_percentage'])
     ?? amount(project, ['projected_return_pct', 'expected_return_pct', 'projected_return_percentage', 'expected_return_percentage', 'estimated_return_percentage', 'target_return_percentage'])
     ?? amount(trade, ['projected_return_pct', 'expected_return_pct', 'projected_return_percentage', 'expected_return_percentage', 'estimated_return_percentage', 'target_return_percentage']);
-  const amountText = (value: number | null) => {
-    return money(value, currency || 'USD');
-  };
   const actualReturn = amount(row, ['actual_return_amount', 'actual_distribution_amount', 'returned_amount', 'amount_returned', 'distributed_amount'])
     ?? amount(project, ['actual_return_amount', 'actual_distribution_amount', 'returned_amount', 'amount_returned', 'distributed_amount'])
     ?? amount(trade, ['actual_return_amount', 'actual_distribution_amount', 'returned_amount', 'amount_returned', 'distributed_amount']);
@@ -70,24 +87,54 @@ export default function PositionDetail() {
   if (actualReturn != null) actualPerformance.push(['Returned or distributed amount', amountText(actualReturn)]);
   if (totalReturn != null) actualPerformance.push(['Total return recorded', amountText(totalReturn)]);
 
-  const expectedPayoutDate = first(row, ['next_payout_date', 'payout_date', 'next_distribution_date'], first(project, ['next_payout_date', 'payout_date', 'next_distribution_date'], first(trade, ['next_payout_date', 'payout_date', 'next_distribution_date'], notProvided)));
-  const reportedRoi = amount(row, ['roi', 'expected_return_pct'])
-    ?? amount(project, ['expected_return_pct'])
-    ?? amount(trade, ['expected_return_pct']);
+  const payoutDateKeys = ['next_payout_date', 'next_distribution_date', 'scheduled_payout_date', 'scheduled_distribution_date', 'payout_date'];
+  const expectedPayoutDate = firstAvailable(
+    [row, distributionRecord, project, trade, rowMeta, projectMeta, tradeMeta],
+    payoutDateKeys,
+  );
+  const estimatedPayoutDate = firstAvailable(
+    [row, project, trade, rowMeta, projectMeta, tradeMeta],
+    ['target_distribution_date', 'estimated_distribution_date', 'expected_distribution_date', 'expected_payout_date', 'distribution_date', 'profit_payout_date'],
+  );
+  const payoutDateValue = expectedPayoutDate || estimatedPayoutDate;
+  const payoutDateIsEstimated = !expectedPayoutDate && Boolean(estimatedPayoutDate);
+  const payoutDateText = formatReportedPayoutDate(payoutDateValue) ?? 'Date not announced';
+  const payoutDateLabel = payoutDateIsEstimated ? 'Next payout date · estimated' : 'Next payout date';
+  const reportedRoi = amount(row, ['roi', 'expected_return_pct', 'projected_return_pct', 'projected_return_percentage', 'estimated_return_percentage', 'target_return_percentage'])
+    ?? amount(project, ['roi', 'expected_return_pct', 'projected_return_pct', 'projected_return_percentage', 'expected_return_percentage', 'estimated_return_percentage', 'target_return_percentage'])
+    ?? amount(trade, ['roi', 'expected_return_pct', 'projected_return_pct', 'projected_return_percentage', 'expected_return_percentage', 'estimated_return_percentage', 'target_return_percentage']);
+  const roiLabel = firstAvailable([row, project, trade], ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi']);
+  const roiForCalculation = reportedRoi ?? parseRoiPercentageLabel(roiLabel);
   const reportedExpectedProfit = amount(row, ['expected_profit'])
     ?? amount(project, ['expected_profit'])
     ?? amount(trade, ['expected_profit']);
+  const reportedExpectedProfitPkr = amount(row, ['expected_profit_pkr'])
+    ?? amount(project, ['expected_profit_pkr'])
+    ?? amount(trade, ['expected_profit_pkr']);
+  const primaryInvestmentAmount = investedAmount ?? (currency.toUpperCase() === 'PKR' ? investedPkr : null);
+  const expectedProfit = calculateExpectedProfitFromRoi(primaryInvestmentAmount, roiForCalculation) ?? reportedExpectedProfit;
+  const expectedProfitPkr = calculateExpectedProfitFromRoi(investedPkr, roiForCalculation) ?? reportedExpectedProfitPkr;
+  const expectedProfitText = [
+    expectedProfit != null ? amountText(expectedProfit) : null,
+    currency.toUpperCase() !== 'PKR' && expectedProfitPkr != null ? money(expectedProfitPkr, 'PKR') : null,
+  ].filter(Boolean).join(' · ') || amountText(null);
+  const distributionStatusRaw = firstAvailable([row], ['distribution_status', 'payout_status', 'profit_distribution_status'])
+    || firstAvailable([distributionRecord], ['distribution_status', 'payout_status', 'status'])
+    || firstAvailable([project], ['distribution_status', 'payout_status', 'profit_distribution_status'])
+    || firstAvailable([trade], ['distribution_status', 'payout_status', 'profit_distribution_status']);
+  const distributionStatus = formatDistributionStatus(distributionStatusRaw);
+  const investmentDate = first(row, ['investment_date', 'invested_at', 'created_at', 'date'], notProvided);
   const investmentDetails: [string, string][] = [
     ['Investment ID', investmentId],
     ['Trade ID', tradeId],
-    ['Investment Date', first(row, ['investment_date', 'invested_at', 'created_at', 'date'], notProvided)],
+    ['Investment Date', formatReportedPayoutDate(investmentDate) ?? investmentDate],
     ['Amount Invested', investedAmountText],
-    ['Expected profit', reportedExpectedProfit != null ? amountText(reportedExpectedProfit) : notProvided],
-    ['ROI', reportedRoi != null ? `${reportedRoi.toFixed(2)}%` : first(project, ['roi_label'], first(trade, ['roi_label'], notProvided))],
-    ['Next payout date', expectedPayoutDate],
+    ['Expected profit', expectedProfitText],
+    ['ROI', roiForCalculation != null ? `${roiForCalculation.toFixed(2)}%` : roiLabel || notProvided],
+    [payoutDateLabel, payoutDateText],
     ['Current Status', status],
     ['Trade Cycle', tradeCycle || (tradeCycleDays ? `${tradeCycleDays} days` : notProvided)],
-    ['Distribution status', first(row, ['distribution_status', 'payout_status'], first(project, ['distribution_status', 'payout_status'], first(trade, ['distribution_status', 'payout_status'], notProvided)))],
+    ['Distribution status', distributionStatus],
   ];
   const tradeDetails: [string, string][] = [
     ['Commodity', first(row, ['commodity_name', 'commodity'], first(project, ['commodity_name', 'commodity', 'title', 'name'], first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(row, ['project_name', 'title'], notProvided))))],
@@ -162,9 +209,11 @@ export default function PositionDetail() {
     {!query.isLoading && !query.isError ? <>
       <Section title="Investment Summary" />
       <Card>
-        {investmentDetails.map(([label, value], index) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 11, borderBottomWidth: index < investmentDetails.length - 1 ? 1 : 0, borderBottomColor: colors.border }}>
+        {investmentDetails.map(([label, value], index) => <View key={label} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14, paddingVertical: 11, borderBottomWidth: index < investmentDetails.length - 1 ? 1 : 0, borderBottomColor: colors.border }}>
           <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text>
-          <Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
+          {label === 'Distribution status'
+            ? <Status value={value} />
+            : <Text style={{ color: label === 'Expected profit' ? colors.primary : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>}
         </View>)}
       </Card>
 

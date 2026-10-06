@@ -747,6 +747,18 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Checking withdrawal history. Wait before continuing.","رقم نکلوانے کی ہسٹری چیک ہو رہی ہے۔ آگے بڑھنے سے پہلے انتظار کریں۔","يجري التحقق من سجل السحب. انتظر قبل المتابعة."],
   ["Withdrawal history could not be confirmed. Retry before continuing.","رقم نکلوانے کی ہسٹری کی تصدیق نہیں ہو سکی۔ آگے بڑھنے سے پہلے دوبارہ کوشش کریں۔","تعذر تأكيد سجل السحب. أعد المحاولة قبل المتابعة."],
   ["Set up device security before your first withdrawal.","پہلی بار رقم نکلوانے سے پہلے ڈیوائس سکیورٹی سیٹ اپ کریں۔","أعدّ أمان الجهاز قبل أول عملية سحب."],
+  ["Expected profit","متوقع منافع","الربح المتوقع"],
+  ["Next payout date","اگلی ادائیگی کی تاریخ","تاريخ الدفعة التالية"],
+  ["Next payout date · estimated","اگلی ادائیگی کی تاریخ · تخمینی","تاريخ الدفعة التالية · تقديري"],
+  ["Distribution status","تقسیم کی حیثیت","حالة التوزيع"],
+  ["Date not announced","تاریخ کا اعلان نہیں ہوا","لم يُعلن عن التاريخ بعد"],
+  ["Awaiting update","اپ ڈیٹ کا انتظار ہے","بانتظار التحديث"],
+  ["Scheduled","طے شدہ","مجدول"],
+  ["Pending","زیرِ التوا","قيد الانتظار"],
+  ["Paid","ادا شدہ","مدفوع"],
+  ["Distributed","تقسیم شدہ","تم التوزيع"],
+  ["Processing","زیرِ عمل","قيد المعالجة"],
+  ["Failed","ناکام","فشل"],
 ];
 
 const translations = new Map<string, Readonly<Record<Exclude<AppLanguage, 'en'>, string>>>(

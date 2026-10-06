@@ -249,6 +249,7 @@ class ProjectController extends Controller
                 'project.containerTracking',
                 'project.tradeUpdates' => fn ($query) => $query->orderBy('occurred_at')->orderBy('id'),
                 'project.stageUpdates' => fn ($query) => $query->orderBy('created_at')->orderBy('id'),
+                'profitDistribution',
             ])
             ->findOrFail($id);
 

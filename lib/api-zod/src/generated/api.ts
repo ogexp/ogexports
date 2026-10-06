@@ -1087,6 +1087,12 @@ export const GetInvestorInvestmentResponse = zod.object({
 })).optional().describe('Explicit admin records for the project\'s standard container milestones.')
 }).optional().describe('Associated project record included with a portfolio position.')
 }).describe('Opportunity or investment detail fields with reported container details and append-only OG Exports trade updates when available.'),
+  "expected_profit": zod.number().optional().describe('Server-calculated expected profit in the investment currency, using invested amount multiplied by the project\'s reported ROI percentage.'),
+  "expected_profit_pkr": zod.number().nullish().describe('Server-calculated expected profit for the PKR investment amount, using the project\'s reported ROI percentage.'),
+  "profit_distribution": zod.union([zod.object({
+  "status": zod.string().nullish().describe('Distributed only when a confirmed distribution timestamp is recorded.'),
+  "distributed_at": zod.coerce.date().nullish()
+}),zod.null()]).optional(),
   "investment_period_progress": zod.union([zod.object({
   "days_elapsed": zod.number().int().min(getInvestorInvestmentResponseDataInvestmentPeriodProgressOneDaysElapsedMin),
   "total_days": zod.number().int().min(1),

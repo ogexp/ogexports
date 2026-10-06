@@ -22,6 +22,19 @@ class InvestmentResource extends JsonResource
             'investor' => $this->whenLoaded('investor', fn () => UserDisplayCurrency::userPayload($this->investor)),
             'amount' => (float) $this->amount,
             'amount_pkr' => $this->amount_pkr !== null ? (float) $this->amount_pkr : null,
+            'expected_profit' => $this->whenLoaded(
+                'project',
+                fn () => round(
+                    (float) $this->amount * ((float) ($this->project?->expected_return_pct ?: 0) / 100),
+                    2,
+                ),
+            ),
+            'expected_profit_pkr' => $this->whenLoaded(
+                'project',
+                fn () => $this->amount_pkr !== null
+                    ? round((float) $this->amount_pkr * ((float) ($this->project?->expected_return_pct ?: 0) / 100), 2)
+                    : null,
+            ),
             'profit_amount' => $this->profit_amount !== null ? (float) $this->profit_amount : null,
             'profit_amount_pkr' => $this->profit_amount_pkr !== null ? (float) $this->profit_amount_pkr : null,
             'exchange_rate' => $this->exchange_rate !== null ? (float) $this->exchange_rate : null,
@@ -35,6 +48,17 @@ class InvestmentResource extends JsonResource
             'approved_at' => $this->approved_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
             'project' => new InvestmentProjectResource($this->whenLoaded('project')),
+            'profit_distribution' => $this->whenLoaded('profitDistribution', function (): ?array {
+                $distribution = $this->profitDistribution;
+                if (! $distribution) {
+                    return null;
+                }
+
+                return [
+                    'status' => $distribution->distributed_at ? 'distributed' : null,
+                    'distributed_at' => $distribution->distributed_at?->toIso8601String(),
+                ];
+            }),
             'investment_period_progress' => $this->whenLoaded(
                 'project',
                 fn () => $this->investmentPeriodProgress(),

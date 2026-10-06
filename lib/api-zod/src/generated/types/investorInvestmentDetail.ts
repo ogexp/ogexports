@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { InvestmentPeriodProgress } from './investmentPeriodProgress';
+import type { InvestorInvestmentDetailProfitDistribution } from './investorInvestmentDetailProfitDistribution';
 import type { InvestorProjectDetail } from './investorProjectDetail';
 
 /**
@@ -13,6 +14,14 @@ import type { InvestorProjectDetail } from './investorProjectDetail';
  */
 export interface InvestorInvestmentDetail {
   project: InvestorProjectDetail;
+  /** Server-calculated expected profit in the investment currency, using invested amount multiplied by the project's reported ROI percentage. */
+  expected_profit?: number;
+  /**
+     * Server-calculated expected profit for the PKR investment amount, using the project's reported ROI percentage.
+     * @nullable
+     */
+  expected_profit_pkr?: number | null;
+  profit_distribution?: InvestorInvestmentDetailProfitDistribution;
   /** Server-computed elapsed investment period; null unless the investment date and configured period are both available. */
   investment_period_progress?: InvestmentPeriodProgress | null;
   [key: string]: unknown;

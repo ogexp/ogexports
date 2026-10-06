@@ -189,8 +189,8 @@ export function Status({ value }: { value: string }) {
   const language = useAppPreferences().preferences.language;
   const label = value.trim() || '—';
   const normalized = label.toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
-  const successStatuses = new Set(['approved', 'active', 'complete', 'completed', 'paid', 'verified', 'success', 'successful', 'settled', 'delivered', 'released', 'disbursed']);
-  const pendingStatuses = new Set(['pending', 'review', 'under review', 'processing', 'submitted', 'initiated', 'awaiting', 'in transit', 'shipped', 'scheduled', 'queued', 'in progress']);
+  const successStatuses = new Set(['approved', 'active', 'complete', 'completed', 'paid', 'verified', 'success', 'successful', 'settled', 'delivered', 'distributed', 'released', 'disbursed']);
+  const pendingStatuses = new Set(['pending', 'review', 'under review', 'processing', 'submitted', 'initiated', 'awaiting', 'awaiting update', 'in transit', 'shipped', 'scheduled', 'queued', 'in progress']);
   const errorStatuses = new Set(['rejected', 'failed', 'error', 'declined', 'cancelled', 'canceled', 'expired', 'blocked', 'suspended', 'overdue', 'returned']);
   const tone = successStatuses.has(normalized) ? 'success'
     : pendingStatuses.has(normalized) ? 'pending'

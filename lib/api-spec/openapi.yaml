@@ -1384,6 +1384,20 @@ components:
       properties:
         project:
           $ref: "#/components/schemas/InvestorProjectDetail"
+        expected_profit:
+          type: number
+          description: Server-calculated expected profit in the investment currency, using invested amount multiplied by the project's reported ROI percentage.
+        expected_profit_pkr:
+          type: ["number", "null"]
+          description: Server-calculated expected profit for the PKR investment amount, using the project's reported ROI percentage.
+        profit_distribution:
+          anyOf:
+            - type: object
+              additionalProperties: true
+              properties:
+                status: { type: ["string", "null"], description: "Distributed only when a confirmed distribution timestamp is recorded." }
+                distributed_at: { type: ["string", "null"], format: date-time }
+            - type: "null"
         investment_period_progress:
           anyOf:
             - $ref: "#/components/schemas/InvestmentPeriodProgress"

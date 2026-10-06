@@ -42,6 +42,7 @@ export * from './investorDashboardDataWallet';
 export * from './investorDashboardResponse';
 export * from './investorDashboardSummary';
 export * from './investorInvestmentDetail';
+export * from './investorInvestmentDetailProfitDistribution';
 export * from './investorInvestmentDetailResponse';
 export * from './investorNotification';
 export * from './investorNotificationCategory';
