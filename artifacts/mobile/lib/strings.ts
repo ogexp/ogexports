@@ -736,6 +736,17 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["This acknowledgement is required to submit the request but is not saved as a consent record in your OG Exports account.","درخواست جمع کرنے کے لیے یہ اقرار ضروری ہے، لیکن اسے آپ کے OG Exports اکاؤنٹ میں رضامندی کے ریکارڈ کے طور پر محفوظ نہیں کیا جاتا۔","هذا الإقرار مطلوب لإرسال الطلب، لكنه لا يُحفظ كسجل موافقة في حسابك لدى OG Exports."],
   ["I acknowledge the investment details and want to submit this investment request.","میں سرمایہ کاری کی تفصیلات کا اقرار کرتا/کرتی ہوں اور یہ درخواست جمع کرنا چاہتا/چاہتی ہوں۔","أقرّ بتفاصيل الاستثمار وأرغب في إرسال طلب الاستثمار هذا."],
   ["Read the published Terms of Service and Risk Disclosure, then acknowledge each and the investment request separately before proceeding.","شائع شدہ سروس کی شرائط اور رسک ڈسکلوزر پڑھیں، پھر آگے بڑھنے سے پہلے دونوں اور سرمایہ کاری کی درخواست کا الگ الگ اقرار کریں۔","اقرأ شروط الخدمة وإقرار المخاطر المنشورَين، ثم أقرّ بكلٍ منهما وبطلب الاستثمار بشكل منفصل قبل المتابعة."],
+  ["Confirm investment","سرمایہ کاری کی تصدیق کریں","تأكيد الاستثمار"],
+  ["You can submit this investment using your signed-in account. Device security setup is offered during your first withdrawal.","آپ اپنے لاگ اِن اکاؤنٹ سے یہ سرمایہ کاری جمع کرا سکتے ہیں۔ ڈیوائس سکیورٹی کا سیٹ اپ پہلی بار رقم نکلوانے کے دوران پیش کیا جائے گا۔","يمكنك إرسال هذا الاستثمار باستخدام حسابك المسجل. سيُعرض إعداد أمان الجهاز أثناء أول عملية سحب."],
+  ["Confirm & submit request","تصدیق کریں اور درخواست جمع کروائیں","أكّد وأرسل الطلب"],
+  ["Set up device security before your first withdrawal","پہلی بار رقم نکلوانے سے پہلے ڈیوائس سکیورٹی سیٹ اپ کریں","أعدّ أمان الجهاز قبل أول عملية سحب"],
+  ["Set an app PIN or enable device biometrics in Account security. This setup is only required before your first withdrawal.","اکاؤنٹ سکیورٹی میں ایپ PIN سیٹ کریں یا ڈیوائس بائیومیٹرکس فعال کریں۔ یہ سیٹ اپ صرف پہلی بار رقم نکلوانے سے پہلے درکار ہے۔","أنشئ رمز PIN للتطبيق أو فعّل المقاييس الحيوية للجهاز من إعدادات أمان الحساب. هذا الإعداد مطلوب مرة واحدة فقط قبل أول عملية سحب."],
+  ["Set up device security","ڈیوائس سکیورٹی سیٹ اپ کریں","إعداد أمان الجهاز"],
+  ["Checking withdrawal history to confirm whether device security setup is needed…","یہ جانچنے کے لیے رقم نکلوانے کی ہسٹری دیکھی جا رہی ہے کہ ڈیوائس سکیورٹی سیٹ اپ درکار ہے یا نہیں…","يجري التحقق من سجل السحب لمعرفة ما إذا كان إعداد أمان الجهاز مطلوبًا…"],
+  ["Your withdrawal history could not be checked. Retry before continuing.","آپ کی رقم نکلوانے کی ہسٹری چیک نہیں ہو سکی۔ آگے بڑھنے سے پہلے دوبارہ کوشش کریں۔","تعذر التحقق من سجل السحب. أعد المحاولة قبل المتابعة."],
+  ["Checking withdrawal history. Wait before continuing.","رقم نکلوانے کی ہسٹری چیک ہو رہی ہے۔ آگے بڑھنے سے پہلے انتظار کریں۔","يجري التحقق من سجل السحب. انتظر قبل المتابعة."],
+  ["Withdrawal history could not be confirmed. Retry before continuing.","رقم نکلوانے کی ہسٹری کی تصدیق نہیں ہو سکی۔ آگے بڑھنے سے پہلے دوبارہ کوشش کریں۔","تعذر تأكيد سجل السحب. أعد المحاولة قبل المتابعة."],
+  ["Set up device security before your first withdrawal.","پہلی بار رقم نکلوانے سے پہلے ڈیوائس سکیورٹی سیٹ اپ کریں۔","أعدّ أمان الجهاز قبل أول عملية سحب."],
 ];
 
 const translations = new Map<string, Readonly<Record<Exclude<AppLanguage, 'en'>, string>>>(

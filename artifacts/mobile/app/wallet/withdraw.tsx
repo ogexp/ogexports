@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { router } from 'expo-router';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -86,7 +87,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function Withdraw() {
-  const { token } = useAuth();
+  const { token, appPinEnabled, biometricEnabled } = useAuth();
   const colors = useColors();
   const queryClient = useQueryClient();
   const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token) } });
@@ -108,6 +109,13 @@ export default function Withdraw() {
   const [selectedBankKey, setSelectedBankKey] = useState('');
   const selectedBank = verifiedAccounts.find(account => bankKey(account) === selectedBankKey) ?? defaultVerified;
   const withdrawals = list(historyQuery.data);
+  const deviceSecurityConfigured = appPinEnabled || biometricEnabled;
+  const firstWithdrawalSecurityRequired = !deviceSecurityConfigured && withdrawals.length === 0;
+  const firstWithdrawalHistoryPending = firstWithdrawalSecurityRequired && (historyQuery.isLoading || historyQuery.isFetching);
+  const firstWithdrawalHistoryError = firstWithdrawalSecurityRequired && historyQuery.isError;
+  const needsFirstWithdrawalSecuritySetup = firstWithdrawalSecurityRequired
+    && !historyQuery.isLoading && !historyQuery.isFetching && !historyQuery.isError;
+  const withdrawalFlowBlocked = firstWithdrawalSecurityRequired;
   const [amount, setAmount] = useState('');
   const [otp, setOtp] = useState('');
   const [transactionPassword, setTransactionPassword] = useState('');
@@ -122,6 +130,18 @@ export default function Withdraw() {
   const fee = readAmount(selectedBank ?? {}, ['withdrawal_fee', 'transaction_fee', 'fee']);
   const processingTime = first(selectedBank ?? {}, ['estimated_processing_time', 'processing_time']);
 
+  function canContinueWithdrawal() {
+    if (!withdrawalFlowBlocked) return true;
+    if (historyQuery.isLoading || historyQuery.isFetching) {
+      setError('Checking withdrawal history. Wait before continuing.');
+    } else if (historyQuery.isError) {
+      setError('Withdrawal history could not be confirmed. Retry before continuing.');
+    } else {
+      setError('Set up device security before your first withdrawal.');
+    }
+    return false;
+  }
+
   async function requestOtp() {
     setError('');
     setNotice('');
@@ -134,6 +154,7 @@ export default function Withdraw() {
   function review() {
     setError('');
     setNotice('');
+    if (!canContinueWithdrawal()) return;
     const amountNumber = Number(amount);
     if (availableBalance == null || !withdrawalCurrency || !Number.isFinite(amountNumber) || amountNumber < 1 || amountNumber > availableBalance) {
       setError('Enter a valid amount within the withdrawable balance reported by OG Exports.');
@@ -153,6 +174,10 @@ export default function Withdraw() {
   async function submit() {
     setError('');
     setNotice('');
+    if (!canContinueWithdrawal()) {
+      setStage('form');
+      return;
+    }
     const amountNumber = Number(amount);
     if (availableBalance == null || amountNumber < 1 || amountNumber > availableBalance || !selectedBank) {
       setError('The amount or verified destination account is no longer available. Review the withdrawal details.');
@@ -201,7 +226,23 @@ export default function Withdraw() {
       ? <EmptyState title="No verified bank account available" body="OG Exports has not returned a verified payout account. Add and verify a bank account with OG Exports before requesting a withdrawal." />
       : null}
 
-    {stage === 'form' ? <Card>
+    {firstWithdrawalHistoryPending ? <Card>
+      <View testID="withdraw-security-history-loading">
+      <Text style={{ color: colors.mutedForeground, lineHeight: 19 }}>Checking withdrawal history to confirm whether device security setup is needed…</Text>
+      </View>
+    </Card> : null}
+    {firstWithdrawalHistoryError ? <ErrorState message="Your withdrawal history could not be checked. Retry before continuing." onRetry={() => void historyQuery.refetch()} error={historyQuery.error} /> : null}
+    {needsFirstWithdrawalSecuritySetup ? <Card>
+      <View testID="withdraw-first-time-security-setup">
+      <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 17 }}>Set up device security before your first withdrawal</Text>
+      <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7, marginBottom: 13 }}>
+        Set an app PIN or enable device biometrics in Account security. This setup is only required before your first withdrawal.
+      </Text>
+      <Action title="Set up device security" icon="shield" onPress={() => router.push('/account/security')} testID="withdraw-first-time-security-action" />
+      </View>
+    </Card> : null}
+
+    {stage === 'form' && !withdrawalFlowBlocked ? <Card>
       <Section title="Withdrawal amount" />
       <Field label={`Amount (${withdrawalCurrency || 'USD'})`} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
       <Section title="Verified destination account" />
@@ -231,7 +272,7 @@ export default function Withdraw() {
       <Action title="Review withdrawal" icon="arrow-right" disabled={!amount || !otp || !transactionPassword || !selectedBank || availableBalance == null} onPress={review} />
     </Card> : null}
 
-    {stage === 'review' && selectedBank ? <Card>
+    {stage === 'review' && selectedBank && !withdrawalFlowBlocked ? <Card>
       <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 17 }}>Confirm withdrawal</Text>
       <DetailRow label="Amount" value={moneyInSourceCurrency(Number(amount), withdrawalCurrency || 'USD')} />
       <DetailRow label="Fees" value={moneyInSourceCurrency(fee, withdrawalCurrency || 'USD')} />
@@ -262,7 +303,7 @@ export default function Withdraw() {
     }} style={{ width: 38, height: 36, alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ color: colors.primary, fontSize: 18 }}>↻</Text>
     </Pressable>} />
-    {historyQuery.isError ? <ErrorState message="Withdrawal history could not be loaded." error={historyQuery.error} onRetry={() => void historyQuery.refetch()} /> : null}
+    {historyQuery.isError && !firstWithdrawalHistoryError ? <ErrorState message="Withdrawal history could not be loaded." error={historyQuery.error} onRetry={() => void historyQuery.refetch()} /> : null}
     {historyQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading withdrawal history…</Text></Card> : null}
     {!historyQuery.isLoading && !historyQuery.isError && withdrawals.length === 0 ? <EmptyState title="No withdrawals yet" body="Your payout requests will appear here with their review status." /> : null}
     {withdrawals.map((item, index) => {

@@ -229,10 +229,6 @@ export default function OpportunityDetail() {
     }
     const userId = first(record(user), ['id']);
     if (!userId) { setError('Your signed-in account could not be verified. Sign in again before investing.'); return; }
-    if (!appPinEnabled && !biometricEnabled) {
-      setError('Set up an app PIN or enable biometric sign-in in Account security before confirming an investment.');
-      return;
-    }
     setAuthBusy(true);
     try {
       let authenticated = false;
@@ -261,7 +257,9 @@ export default function OpportunityDetail() {
         if (!authResult.success) throw new Error('Device authentication was not completed.');
         authenticated = true;
       }
-      if (!authenticated) throw new Error('Investment confirmation requires your app PIN or enabled device biometrics.');
+      if ((appPinEnabled || biometricEnabled) && !authenticated) {
+        throw new Error('Investment confirmation requires your configured app PIN or enabled device biometrics.');
+      }
       const response = record(await invest.mutateAsync({ id, data: { amount: Number(investAmount) } }));
       const payload = record(response.data);
       const investment = record(payload.investment ?? payload.position ?? response.investment ?? payload);
@@ -502,15 +500,14 @@ export default function OpportunityDetail() {
         </View>
       </Card> : null}
       {kycVerified && stage === 'confirmation' ? <Card>
-        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', letterSpacing: -0.25 }}>Secure confirmation</Text>
-        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 6, marginBottom: 13 }}>
-          Authenticate locally before the investment request is sent. This device confirmation is separate from account sign-in verification.
+        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', letterSpacing: -0.25 }}>
+          {appPinEnabled || biometricEnabled ? 'Secure confirmation' : 'Confirm investment'}
         </Text>
-        {!appPinEnabled && !biometricEnabled ? <Card style={{ borderColor: colors.destructive }}>
-          <Text style={{ color: colors.foreground, fontWeight: '700' }}>Device confirmation is not configured</Text>
-          <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 5 }}>Set an app PIN or enable device biometrics in Account security before investing.</Text>
-          <View style={{ marginTop: 12 }}><Action title="Open Account security" icon="shield" onPress={() => router.push('/account/security')} /></View>
-        </Card> : null}
+        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 6, marginBottom: 13 }}>
+          {appPinEnabled || biometricEnabled
+            ? 'Authenticate locally before the investment request is sent. This device confirmation is separate from account sign-in verification.'
+            : 'You can submit this investment using your signed-in account. Device security setup is offered during your first withdrawal.'}
+        </Text>
         {appPinEnabled ? <Field label="Six-digit app PIN" value={pin} onChangeText={value => setPin(value.replace(/\D/g, '').slice(0, 6))} placeholder="Enter your six-digit PIN" keyboardType="numeric" secureTextEntry autoCapitalize="none" /> : null}
         {biometricEnabled ? <View style={{ backgroundColor: colors.lightGreen, borderRadius: 12, padding: 12, marginBottom: 13, flexDirection: 'row', alignItems: 'center', gap: 9 }}>
           <Feather name="smartphone" size={17} color={colors.primary} />
@@ -524,9 +521,14 @@ export default function OpportunityDetail() {
           <Text style={{ color: colors.foreground, fontSize: 12 }}>Payment method: Wallet balance</Text>
         </View>
         {error ? <ErrorState message={error} /> : null}
-        <Action title="Authenticate & submit request" icon="lock" loading={authBusy || invest.isPending} disabled={(!appPinEnabled && !biometricEnabled) || (appPinEnabled && !biometricEnabled && pin.length !== 6)} onPress={() => void submit()} />
+        <Action
+          title={appPinEnabled || biometricEnabled ? 'Authenticate & submit request' : 'Confirm & submit request'}
+          icon={appPinEnabled || biometricEnabled ? 'lock' : 'check'}
+          loading={authBusy || invest.isPending}
+          disabled={appPinEnabled && !biometricEnabled && pin.length !== 6}
+          onPress={() => void submit()}
+        />
         <View style={{ marginTop: 9 }}><Action title="Back to Terms & risk" secondary icon="arrow-left" onPress={() => { setPin(''); setStage('risk'); }} /></View>
-        <Pressable onPress={() => router.push('/account/security')} style={{ alignSelf: 'center', padding: 12 }}><Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>Manage confirmation methods</Text></Pressable>
       </Card> : null}
       {kycVerified && stage === 'success' && confirmation ? (() => {
         const status = first(confirmation, ['status'], '—');
