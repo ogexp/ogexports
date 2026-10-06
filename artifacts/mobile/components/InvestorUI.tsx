@@ -143,8 +143,8 @@ export function Action({ title, onPress, icon, secondary = false, destructive = 
   );
 }
 
-export function Field({ label, value, onChangeText, placeholder, secureTextEntry, keyboardType, autoCapitalize = 'sentences', multiline }: {
-  label: string; value: string; onChangeText: (value: string) => void; placeholder?: string; secureTextEntry?: boolean; keyboardType?: 'default' | 'email-address' | 'numeric' | 'decimal-pad' | 'phone-pad'; autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters'; multiline?: boolean;
+export function Field({ label, value, onChangeText, placeholder, secureTextEntry, keyboardType, autoCapitalize = 'sentences', multiline, autoFocus, maxLength }: {
+  label: string; value: string; onChangeText: (value: string) => void; placeholder?: string; secureTextEntry?: boolean; keyboardType?: 'default' | 'email-address' | 'numeric' | 'decimal-pad' | 'phone-pad'; autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters'; multiline?: boolean; autoFocus?: boolean; maxLength?: number;
 }) {
   const colors = useColors();
   const [focused, setFocused] = React.useState(false);
@@ -152,6 +152,7 @@ export function Field({ label, value, onChangeText, placeholder, secureTextEntry
     <View style={{ gap: 7, marginBottom: 14 }}>
       <Text style={[s.label, { color: colors.foreground }]}>{label}</Text>
       <TextInput accessibilityLabel={label} value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.mutedForeground}
+        autoFocus={autoFocus} maxLength={maxLength}
         secureTextEntry={secureTextEntry} keyboardType={keyboardType} autoCapitalize={autoCapitalize} multiline={multiline}
         onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
         selectionColor={colors.primary} underlineColorAndroid={focused ? colors.primary : colors.input}

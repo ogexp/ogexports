@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Modal, Pressable, View } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LocalizedText as Text } from '@/components/LocalizedText';
+import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreateInvestorWithdrawal,
@@ -94,6 +96,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 export default function Withdraw() {
   const { token, appPinEnabled, biometricEnabled } = useAuth();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const dashboardQuery = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
@@ -177,6 +180,11 @@ export default function Withdraw() {
       setNotice(first(result, ['message'], 'Verification code requested. Check the email registered to your account.'));
       setStage('security');
     } catch (err) { setError(messageOf(err)); }
+  }
+
+  function closeOtpModal() {
+    setError('');
+    setStage('form');
   }
 
   async function continueToSecurity() {
@@ -409,37 +417,97 @@ export default function Withdraw() {
       </View>
     </Card> : null}
 
-    {stage === 'security' && !withdrawalFlowBlocked ? <Card>
-      <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700', marginBottom: 5 }}>Security verification</Text>
-      <Text style={{ color: colors.mutedForeground, lineHeight: 18, marginBottom: 12 }}>
-        {otpEmail ? <><Text>Code sent to</Text><Text> {otpEmail}</Text></> : 'Enter the six-digit code sent to your registered email.'}
-      </Text>
-      <Field label="Six-digit email code" value={otp} onChangeText={value => setOtp(value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" keyboardType="numeric" autoCapitalize="none" />
-      <Action
-        title="Resend verification code"
-        secondary
-        loading={sendOtp.isPending}
-        disabled={otpCooldown > 0}
-        onPress={() => void requestOtp()}
-      />
-      {otpCooldown > 0 ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 7, marginBottom: 12 }}>
-        <Text>Resend available in</Text>
-        <Text> {otpCooldown}s</Text>
-      </Text> : <View style={{ height: 12 }} />}
-      <Field label="Transaction password" value={transactionPassword} onChangeText={setTransactionPassword} placeholder="Transaction password" secureTextEntry autoCapitalize="none" />
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginBottom: 12 }}>
-        Forgot or need to set your transaction password? Manage it in account settings.
-      </Text>
-      <Action title="Manage transaction password" icon="key" secondary onPress={() => router.push('/account/settings' as never)} />
-      {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginTop: 12 }}>{error}</Text> : null}
-      {notice ? <Text style={{ color: colors.primary, lineHeight: 19, marginTop: 10 }}>{notice}</Text> : null}
-      <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
-        <View style={{ flex: 0.8 }}><Action title="Back" secondary onPress={() => { setError(''); setStage('form'); }} /></View>
-        <View style={{ flex: 1.4 }}>
-          <Action title="Review withdrawal" icon="arrow-right" disabled={otp.length !== 6 || !transactionPassword} onPress={review} />
+    {stage === 'security' && !withdrawalFlowBlocked ? <Modal
+      visible
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={closeOtpModal}
+    >
+      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(8, 18, 13, 0.48)' }}>
+        <Pressable
+          accessible={false}
+          importantForAccessibility="no"
+          onPress={closeOtpModal}
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+        />
+        <View
+          testID="withdraw-otp-modal"
+          accessibilityViewIsModal
+          style={{
+            alignSelf: 'center',
+            width: '100%',
+            maxWidth: 560,
+            maxHeight: '92%',
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            borderWidth: 1,
+            borderBottomWidth: 0,
+            borderTopLeftRadius: 26,
+            borderTopRightRadius: 26,
+            paddingHorizontal: 22,
+            paddingTop: 12,
+            paddingBottom: Math.max(insets.bottom, 18) + 8,
+          }}
+        >
+          <View style={{ width: 38, height: 4, borderRadius: 3, backgroundColor: colors.border, alignSelf: 'center', marginBottom: 16 }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.foreground, fontSize: 19, lineHeight: 25, fontWeight: '700' }}>Security verification</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>Enter the code to continue with this withdrawal.</Text>
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel="Close OTP verification" onPress={closeOtpModal} style={{ width: 38, height: 38, borderRadius: 20, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 23, lineHeight: 25 }}>×</Text>
+            </Pressable>
+          </View>
+          <KeyboardAwareScrollViewCompat
+            style={{ flexShrink: 1 }}
+            contentContainerStyle={{ paddingBottom: 8 }}
+            bottomOffset={26}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={{ color: colors.mutedForeground, lineHeight: 18, marginBottom: 12 }}>
+              {otpEmail ? <><Text>Code sent to</Text><Text> {otpEmail}</Text></> : 'Enter the six-digit code sent to your registered email.'}
+            </Text>
+            <Field
+              label="Six-digit email code"
+              value={otp}
+              onChangeText={value => setOtp(value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              keyboardType="numeric"
+              autoCapitalize="none"
+              autoFocus
+              maxLength={6}
+            />
+            <Action
+              title="Resend verification code"
+              secondary
+              loading={sendOtp.isPending}
+              disabled={otpCooldown > 0}
+              onPress={() => void requestOtp()}
+            />
+            {otpCooldown > 0 ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 7, marginBottom: 12 }}>
+              <Text>Resend available in</Text>
+              <Text> {otpCooldown}s</Text>
+            </Text> : <View style={{ height: 12 }} />}
+            <Field label="Transaction password" value={transactionPassword} onChangeText={setTransactionPassword} placeholder="Transaction password" secureTextEntry autoCapitalize="none" />
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginBottom: 12 }}>
+              Forgot or need to set your transaction password? Manage it in account settings.
+            </Text>
+            <Action title="Manage transaction password" icon="key" secondary onPress={() => router.push('/account/settings' as never)} />
+            {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginTop: 12 }}>{error}</Text> : null}
+            {notice ? <Text style={{ color: colors.primary, lineHeight: 19, marginTop: 10 }}>{notice}</Text> : null}
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+              <View style={{ flex: 0.8 }}><Action title="Back" secondary onPress={closeOtpModal} /></View>
+              <View style={{ flex: 1.4 }}>
+                <Action title="Review withdrawal" icon="arrow-right" disabled={otp.length !== 6 || !transactionPassword} onPress={review} />
+              </View>
+            </View>
+          </KeyboardAwareScrollViewCompat>
         </View>
       </View>
-    </Card> : null}
+    </Modal> : null}
 
     {stage === 'review' && selectedBank && !withdrawalFlowBlocked ? <Card>
       <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 17 }}>Confirm withdrawal</Text>
