@@ -258,11 +258,12 @@ SS|South Sudan
 `.trim();
 
 const DISPLAY_NAMES: Record<string, string> = {
-  AE: 'United Arab Emirates',
+  AE: 'UAE',
   BN: 'Brunei',
   BO: 'Bolivia',
   CD: 'DR Congo',
   CI: "Côte d'Ivoire",
+  CZ: 'Czech Republic',
   FK: 'Falkland Islands',
   FM: 'Micronesia',
   IR: 'Iran',
@@ -279,6 +280,7 @@ const DISPLAY_NAMES: Record<string, string> = {
   SH: 'Saint Helena',
   SY: 'Syria',
   TC: 'Turks and Caicos Islands',
+  TR: 'Turkey',
   TW: 'Taiwan',
   TZ: 'Tanzania',
   US: 'United States',
@@ -349,7 +351,11 @@ const countryOptions: CountryOption[] = COUNTRY_ROWS.split(/\r?\n/)
     };
   })
   .filter(country => country.code !== 'XZ')
-  .sort((a, b) => a.label.localeCompare(b.label));
+  .sort((a, b) => {
+    if (a.code === 'PK') return -1;
+    if (b.code === 'PK') return 1;
+    return a.label.localeCompare(b.label);
+  });
 
 countryOptions.push({
   code: '',
@@ -360,6 +366,19 @@ countryOptions.push({
 
 export const COUNTRIES = countryOptions;
 
+const POPULAR_MARKET_CODES = ['PK', 'AE', 'SA', 'GB', 'US', 'CA', 'AU', 'CN', 'IN', 'MY', 'SG', 'QA'];
+const popularMarketCodeSet = new Set(POPULAR_MARKET_CODES);
+const countryByCode = new Map(COUNTRIES.map(country => [country.code, country]));
+
+export const POPULAR_COUNTRIES = POPULAR_MARKET_CODES
+  .map(code => countryByCode.get(code))
+  .filter((country): country is CountryOption => Boolean(country));
+
+export type CountrySection = {
+  title: 'Popular markets' | 'All countries' | 'Search results';
+  data: CountryOption[];
+};
+
 export function searchCountries(query: string): CountryOption[] {
   const needle = normalize(query);
   if (!needle) return COUNTRIES;
@@ -369,6 +388,21 @@ export function searchCountries(query: string): CountryOption[] {
       return normalizedTerm === needle || (normalizedTerm.length >= 3 && normalizedTerm.includes(needle));
     }),
   );
+}
+
+export function countrySections(query: string): CountrySection[] {
+  if (query.trim()) {
+    const results = searchCountries(query);
+    return results.length ? [{ title: 'Search results', data: results }] : [];
+  }
+
+  return [
+    { title: 'Popular markets', data: POPULAR_COUNTRIES },
+    {
+      title: 'All countries',
+      data: COUNTRIES.filter(country => !popularMarketCodeSet.has(country.code)),
+    },
+  ];
 }
 
 export function countryLabelForValue(value: string): string {

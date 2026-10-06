@@ -19,6 +19,12 @@ Country selectors in the investor mobile app should share a polished, searchable
 
 **How to apply:** route mobile country fields through the reusable selector, preserve the existing country-name string save contract, and do not convert broad “country or market” search fields into selectors.
 
+Keep the full mobile country directory rather than narrowing it to the sibling website’s smaller signup list. Put Pakistan and common export markets first, retain the alphabetical remainder, and keep aliases resolving older saved names.
+
+**Why:** the website is a visual and labeling reference, while existing mobile profile and KYC data can contain country names outside that signup subset.
+
+**How to apply:** when labels are standardized to match the website, keep previous official names and abbreviations searchable so stored values still display as selected.
+
 Use USD as the default display currency across the investor app. Let users choose USD, PKR, EUR, or GBP in account settings; do not show a second local-currency equivalent beneath Home's balance.
 
 **Why:** The user clarified that balances should default to USD but follow the currency selected in Profile.
