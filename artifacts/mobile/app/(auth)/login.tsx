@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { resolvePostAuthHref } from '@/lib/post-auth-route';
 import { authenticateWithBiometrics, getBiometricInfo, type BiometricInfo } from '@/lib/biometrics';
 import { MotionReveal, motionHaptic } from '@/lib/motion';
+import { normalizeAuthResponse, readTwoFactorLoginChallenge } from '@/lib/auth-response';
 
 export default function Login() {
   const { apiOrigin, token, biometricEnabled, acceptSession, setChallenge, unlockApp } = useAuth();
@@ -47,14 +48,16 @@ export default function Login() {
       return;
     }
     try {
-      const result = record(await login.mutateAsync({
+      const response = await login.mutateAsync({
         data: { email: email.trim(), password, device_name: 'OG Exports mobile' },
-      }));
-      if (result.requires_2fa === true && typeof result.email === 'string') {
+      });
+      const result = normalizeAuthResponse(response);
+      const twoFactorChallenge = readTwoFactorLoginChallenge(response);
+      if (twoFactorChallenge) {
         setChallenge({
-          email: result.email,
+          email: twoFactorChallenge.email,
           mode: '2fa',
-          message: typeof result.message === 'string' ? result.message : '',
+          message: twoFactorChallenge.message,
           ...(postAuthPath ? { returnTo: postAuthPath } : {}),
         });
         router.push('/(auth)/verify');
@@ -65,7 +68,7 @@ export default function Login() {
       await acceptSession(result.token, user);
       router.replace(resolvePostAuthHref(returnTo));
     } catch (err) {
-      const payload = record(record(err).data);
+      const payload = normalizeAuthResponse(record(err).data);
       if (payload.requires_email_verification === true && typeof payload.email === 'string') {
         setChallenge({
           email: payload.email,
