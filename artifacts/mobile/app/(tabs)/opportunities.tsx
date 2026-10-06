@@ -11,6 +11,7 @@ import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollV
 import { amount, first, list } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { createOpportunityPressHandler, matchesOpportunityStatus, tradeStatus, type OpportunityStatusFilter } from '@/lib/opportunities';
 
 const categories = [
   { value: 'All', label: 'All' },
@@ -22,7 +23,6 @@ const categories = [
 ] as const;
 type CommodityCategory = typeof categories[number]['value'];
 const statusFilters = ['All', 'Open', 'Shipping', 'Completed'] as const;
-type OpportunityStatusFilter = typeof statusFilters[number];
 type MarketplaceFilters = {
   maxMinimum: string;
   maxDurationDays: string;
@@ -91,20 +91,8 @@ function isFeatured(item: Record<string, unknown>) {
   return ['true', '1', 'yes'].includes(first(item, ['is_featured', 'featured'], '').toLowerCase());
 }
 
-function tradeStatus(item: Record<string, unknown>) {
-  return first(item, ['trade_status', 'project_status', 'status', 'state']);
-}
-
 function riskLevel(item: Record<string, unknown>) {
   return first(item, ['risk_level', 'risk_rating']);
-}
-
-function opportunityStatusGroup(item: Record<string, unknown>): Exclude<OpportunityStatusFilter, 'All'> | null {
-  const normalized = tradeStatus(item).toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
-  if (/\b(complete|completed|settled|delivered|disbursed)\b/.test(normalized)) return 'Completed';
-  if (/\b(ship|shipping|shipped|transit|cargo loaded|custom clearance|customs|investment confirmed|ready to ship|funded)\b/.test(normalized)) return 'Shipping';
-  if (/\b(open|funding|fundraise|available)\b/.test(normalized)) return 'Open';
-  return null;
 }
 
 export default function Opportunities() {
@@ -142,7 +130,7 @@ export default function Opportunities() {
     ].join(' ').toLowerCase();
     if (normalizedSearch && !searchable.includes(normalizedSearch)) return false;
     if (category !== 'All' && categoryFor(item) !== category) return false;
-    if (statusFilter !== 'All' && opportunityStatusGroup(item) !== statusFilter) return false;
+    if (!matchesOpportunityStatus(item, statusFilter)) return false;
 
     const minimum = amount(item, ['minimum_investment', 'min_investment', 'minimum_amount']);
     const maxMinimum = numericLimit(appliedFilters.maxMinimum);
@@ -215,7 +203,7 @@ export default function Opportunities() {
         featured={isFeatured(item)}
         progress={fundingProgress(item)}
         apiOrigin={apiOrigin}
-        onPress={id ? () => router.push({ pathname: '/project/[id]', params: { id } }) : undefined}
+        onPress={createOpportunityPressHandler(item, route => router.push(route))}
       />;
     })}
 

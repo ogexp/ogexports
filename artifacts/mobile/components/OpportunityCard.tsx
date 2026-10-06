@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { Card } from '@/components/InvestorUI';
 import { amount, first, money, record } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
+import { opportunityStatusGroup } from '@/lib/opportunities';
 
 type OpportunityCardProps = {
   item: Record<string, unknown>;
@@ -129,16 +130,11 @@ function durationLabel(item: Record<string, unknown>) {
 
 function statusPresentation(status: string) {
   const normalized = status.toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
-  if (/\b(open|funding|fundraise|available)\b/.test(normalized)) {
-    return { label: 'Open', group: 'Open' as const };
-  }
-  if (/\b(complete|completed|settled|delivered|disbursed)\b/.test(normalized)) {
-    return { label: 'Completed', group: 'Completed' as const };
-  }
-  if (/\b(ship|shipping|shipped|transit|cargo loaded|custom clearance|customs|investment confirmed|ready to ship|funded)\b/.test(normalized)) {
-    return { label: 'Shipping', group: 'Shipping' as const };
-  }
-  return { label: status ? normalized.replace(/\b\w/g, letter => letter.toUpperCase()) : '—', group: null };
+  const group = opportunityStatusGroup({ trade_status: status });
+  return {
+    label: group ?? (status ? normalized.replace(/\b\w/g, letter => letter.toUpperCase()) : '—'),
+    group,
+  };
 }
 
 export function OpportunityCard({ item, featured, progress, apiOrigin, onPress }: OpportunityCardProps) {
