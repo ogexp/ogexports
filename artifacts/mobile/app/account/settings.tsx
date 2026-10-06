@@ -25,7 +25,7 @@ import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap, type Json } from '@/lib/data';
 import { validOrigin } from '@/lib/api-config';
 import { useColors } from '@/hooks/useColors';
-import { useAppPreferences, type AppearancePreference, type DisplayCurrency } from '@/context/AppPreferencesContext';
+import { useAppPreferences, type AppearancePreference } from '@/context/AppPreferencesContext';
 import { localizedAlert as Alert, translateUi } from '@/lib/strings';
 import {
   NOTIFICATION_CATEGORIES,
@@ -316,7 +316,7 @@ export default function Settings() {
     } catch (err) { setError(messageOf(err)); }
   }
 
-  async function saveAppPreference(patch: { language?: 'en' | 'ur' | 'ar'; currency?: DisplayCurrency; appearance?: AppearancePreference }) {
+  async function saveAppPreference(patch: { language?: 'en' | 'ur' | 'ar'; appearance?: AppearancePreference }) {
     setError('');
     try {
       await appPreferences.savePreferences(patch);
@@ -384,36 +384,6 @@ export default function Settings() {
           </Pressable>;
         })}
       </View>
-
-      <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>Display currency</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 7 }}>
-        {([
-          ['USD', 'USD'],
-          ['PKR', 'PKR'],
-          ['EUR', 'EUR'],
-          ['GBP', 'GBP'],
-        ] as const).map(([currency, label]) => {
-          const selected = appPreferences.preferences.currency === currency;
-          return <Pressable
-            key={currency}
-            testID={`currency-option-${currency}`}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: selected, disabled: appPreferences.isSaving }}
-            disabled={appPreferences.isSaving}
-            onPress={() => void saveAppPreference({ currency: currency as DisplayCurrency })}
-            style={{ paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, borderRadius: 18, backgroundColor: selected ? colors.lightGreen : colors.card }}
-          >
-            <Text style={{ color: selected ? colors.primary : colors.foreground, fontSize: 13, fontWeight: selected ? '700' : '500' }}>{label}</Text>
-          </Pressable>;
-        })}
-      </View>
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginBottom: 14 }}>
-        {appPreferences.ratesLoading
-          ? translateUi('Loading authenticated OG Exports exchange rates. Until rates are available, amounts stay in their source currency.', appLanguage)
-          : appPreferences.ratesError
-            ? translateUi('Exchange rates are unavailable. Amounts stay in their source currency and are marked as unavailable for conversion.', appLanguage)
-            : <>{translateUi('Display-only conversion uses authenticated OG Exports rates', appLanguage)}{appPreferences.ratesAsOf ? ` as of ${appPreferences.ratesAsOf}` : ''}. {translateUi('Transaction amounts are submitted in their original currency.', appLanguage)}</>}
-      </Text>
 
       <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>Appearance</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>

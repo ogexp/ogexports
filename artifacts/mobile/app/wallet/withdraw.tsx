@@ -12,7 +12,7 @@ import {
   useSendInvestorWithdrawalOtp,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessMark } from '@/components/InvestorUI';
-import { amount as readAmount, first, list, messageOf, money, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
+import { amount as readAmount, first, list, messageOf, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -214,7 +214,7 @@ export default function Withdraw() {
     <Card style={{ borderLeftWidth: 3, borderLeftColor: colors.primary }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>WITHDRAWABLE BALANCE</Text>
       <Text style={{ color: colors.foreground, fontSize: 27, fontWeight: '700', marginTop: 7 }}>
-        {walletQuery.isLoading ? 'Loading…' : walletQuery.isError && availableBalance == null ? 'Unavailable' : money(availableBalance, withdrawalCurrency || 'USD')}
+        {walletQuery.isLoading ? 'Loading…' : walletQuery.isError && availableBalance == null ? 'Unavailable' : moneyInSourceCurrency(availableBalance, withdrawalCurrency || 'USD')}
       </Text>
       {explicitWithdrawableBalance == null && availableBalance != null
         ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 6 }}>OG Exports does not return a separate withdrawable total; requests are reserved from the reported available balance.</Text>

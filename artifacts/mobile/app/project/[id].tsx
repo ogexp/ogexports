@@ -179,7 +179,7 @@ export default function OpportunityDetail() {
   const amountFacts: [string, string][] = [
     ['Minimum', formatTradeMoney(minimum)],
     ...(maximum == null ? [] : [['Maximum', formatTradeMoney(maximum)] as [string, string]]),
-    ['Wallet balance', walletQuery.isError && walletBalance == null ? 'Unavailable' : money(walletBalance, walletCurrency || 'USD')],
+    ['Wallet balance', walletQuery.isError && walletBalance == null ? 'Unavailable' : moneyInSourceCurrency(walletBalance, walletCurrency || 'USD')],
     ['Remaining capacity', formatTradeMoney(remainingCapacity)],
   ];
   const amountSummary = currency && Number.isFinite(Number(investAmount)) && Number(investAmount) > 0
