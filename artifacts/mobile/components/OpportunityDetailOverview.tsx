@@ -90,6 +90,7 @@ export function OpportunityDetailOverview({
   const colors = useColors();
   const [imageFailed, setImageFailed] = useState(false);
   const image = projectImageUri(project, apiOrigin);
+  const tradeData = record(project.trade ?? project.project ?? project.trade_details);
   const projectTitle = first(project, ['commodity_name', 'commodity', 'title', 'name', 'project_name'], 'Trade opportunity');
   const description = first(project, ['description', 'summary']);
   const status = first(project, ['trade_status', 'project_status', 'funding_status', 'investment_status', 'availability_status', 'status', 'state'], 'Not reported');
@@ -98,7 +99,7 @@ export function OpportunityDetailOverview({
   const tradeLabel = tradeType.toLowerCase() === 'container'
     ? `Container${direction ? ` ${direction}` : ''}`
     : direction || 'Trade opportunity';
-  const currency = first(project, ['currency', 'investment_currency'], 'USD');
+  const currency = first(project, ['currency', 'investment_currency'], first(tradeData, ['currency', 'investment_currency'], 'USD'));
   const tradeId = first(project, ['trade_id', 'trade_code', 'code', 'reference'], '—');
   const container = record(project.container ?? project.container_tracking ?? project.container_details);
   const meta = record(project.meta);

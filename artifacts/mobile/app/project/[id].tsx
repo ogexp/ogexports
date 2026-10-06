@@ -51,6 +51,7 @@ export default function OpportunityDetail() {
   const [documentBusy, setDocumentBusy] = useState('');
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
   const project = unwrap(query.data);
+  const tradeData = record(project.trade ?? project.project ?? project.trade_details);
   const appSettings = unwrap(settingsQuery.data);
   const siteSettings = record(appSettings.site);
   const supportEmail = first(siteSettings, ['support_email', 'supportEmail'], 'support@ogexports.co');
@@ -62,9 +63,9 @@ export default function OpportunityDetail() {
   const minimum = amount(project, ['minimum_investment', 'min_investment']);
   const maximum = amount(project, ['maximum_investment', 'max_investment']);
   const walletBalance = amount(wallet, ['available_balance', 'balance', 'available']);
-  const currency = first(project, ['currency', 'investment_currency']);
+  const currency = first(project, ['currency', 'investment_currency'], first(tradeData, ['currency', 'investment_currency']));
   const walletCurrency = first(wallet, ['currency']);
-  const tradeCurrency = first(project, ['currency']);
+  const tradeCurrency = currency;
   const reportedReturn = first(project, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi']);
   const returnRate = amount(project, ['expected_return_pct']);
   const projectedReturn = reportedReturn || (returnRate != null ? `${returnRate}%` : '');
@@ -98,7 +99,7 @@ export default function OpportunityDetail() {
   const investmentAvailable = !fundingClosed && (openStatus || explicitCanInvest === true);
   const flowSteps = ['Amount', 'Review', 'Terms & risk', 'Secure confirmation', 'Complete'];
   const activeFlowStep = ({ details: 0, amount: 1, review: 2, risk: 3, confirmation: 4, success: 5 } as const)[stage];
-  const currencyLabel = currency || 'USD';
+  const currencyLabel = currency || 'Currency unavailable';
   const remainingCapacity = remainingFunding;
   const formatTradeMoney = (value: number | null) => money(value, tradeCurrency || 'USD');
   const plainPolicyText = (value: string) => value
