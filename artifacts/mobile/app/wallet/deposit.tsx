@@ -103,10 +103,9 @@ function CopyableBankDetailRow({ label, value, copied, accessibilityLabel, testI
       </Text>
     </ScrollView>
     {value ? <LocalizedPressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityHint="Copies value to clipboard"
-      testID={testID} onPress={onCopy} style={{ minHeight: 40, minWidth: 64, paddingHorizontal: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderWidth: 1, borderColor: colors.border, borderRadius: 10 }}>
-      <Feather name={copied ? 'check' : 'copy'} size={14} color={colors.primary} />
-      <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700' }}>{copied ? 'Copied' : 'Copy'}</Text>
-    </LocalizedPressable> : <View style={{ width: 64 }} />}
+      testID={testID} onPress={onCopy} style={{ width: 40, height: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 10 }}>
+      <Feather name={copied ? 'check' : 'copy'} size={16} color={colors.primary} />
+    </LocalizedPressable> : <View style={{ width: 40 }} />}
   </View>;
 }
 
