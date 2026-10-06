@@ -334,7 +334,7 @@ export function SuccessMark({ icon = 'check', feedback = 'success' }: { icon?: I
   const colors = useColors();
   const { reduceMotion } = useMotion();
   const scale = React.useRef(new Animated.Value(reduceMotion ? 1 : 0.94)).current;
-  const opacity = React.useRef(new Animated.Value(0)).current;
+  const opacity = React.useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const feedbackFired = React.useRef(false);
   React.useEffect(() => {
     if (!feedbackFired.current) {
@@ -363,6 +363,165 @@ export function SuccessMark({ icon = 'check', feedback = 'success' }: { icon?: I
   }}>
     <Feather name={icon} size={23} color={colors.statusSuccess} />
   </Animated.View>;
+}
+
+export function SuccessFeedback({
+  visible,
+  title,
+  body,
+  onDismiss,
+  feedback = 'ack',
+  testID,
+}: {
+  visible: boolean;
+  title: string;
+  body: string;
+  onDismiss: () => void;
+  feedback?: 'success' | 'ack';
+  testID?: string;
+}) {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { reduceMotion } = useMotion();
+  const opacity = React.useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const scale = React.useRef(new Animated.Value(reduceMotion ? 1 : MOTION.modalScale)).current;
+  const transition = React.useRef<Animated.CompositeAnimation | null>(null);
+  const dismissing = React.useRef(false);
+
+  const handleDismiss = React.useCallback(() => {
+    if (dismissing.current) return;
+    if (reduceMotion) {
+      onDismiss();
+      return;
+    }
+    dismissing.current = true;
+    transition.current?.stop();
+    const exit = Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: MOTION.micro,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(scale, {
+        toValue: MOTION.modalScale,
+        duration: MOTION.micro,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+    ]);
+    transition.current = exit;
+    exit.start(({ finished }) => {
+      if (transition.current === exit) transition.current = null;
+      dismissing.current = false;
+      if (finished) onDismiss();
+    });
+  }, [onDismiss, opacity, reduceMotion, scale]);
+
+  React.useEffect(() => {
+    if (!visible) {
+      dismissing.current = false;
+      transition.current?.stop();
+      transition.current = null;
+      opacity.setValue(0);
+      scale.setValue(reduceMotion ? 1 : MOTION.modalScale);
+      return;
+    }
+    dismissing.current = false;
+    if (reduceMotion) {
+      opacity.setValue(1);
+      scale.setValue(1);
+      return;
+    }
+    const entrance = Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: MOTION.component,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.spring(scale, {
+        toValue: 1,
+        ...MOTION.successSpring,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+    ]);
+    transition.current = entrance;
+    entrance.start(() => {
+      if (transition.current === entrance) transition.current = null;
+    });
+    return () => {
+      entrance.stop();
+      if (transition.current === entrance) transition.current = null;
+    };
+  }, [opacity, reduceMotion, scale, visible]);
+
+  return <Modal
+    visible={visible}
+    transparent
+    animationType="none"
+    statusBarTranslucent
+    onRequestClose={handleDismiss}
+  >
+    {visible ? <Animated.View
+      testID={testID}
+      accessibilityViewIsModal
+      style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom,
+        backgroundColor: 'rgba(8, 18, 13, 0.32)',
+        opacity: reduceMotion ? 1 : opacity,
+      }}
+    >
+      <Pressable
+        accessible={false}
+        importantForAccessibility="no"
+        onPress={handleDismiss}
+        style={StyleSheet.absoluteFill}
+      />
+      <Animated.View
+        accessibilityRole="alert"
+        style={{
+          width: '100%',
+          maxWidth: 390,
+          padding: 23,
+          borderRadius: 24,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.card,
+          alignItems: 'center',
+          transform: [{ scale: reduceMotion ? 1 : scale }],
+        }}
+      >
+        <SuccessMark feedback={feedback} />
+        <Text style={{ color: colors.foreground, fontSize: 19, fontWeight: '700', textAlign: 'center', marginTop: 15 }}>
+          {title}
+        </Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 7 }}>
+          {body}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Continue"
+          testID={testID ? `${testID}-dismiss` : undefined}
+          onPress={handleDismiss}
+          style={({ pressed }) => ({
+            minHeight: 48,
+            alignSelf: 'stretch',
+            marginTop: 20,
+            borderRadius: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.primary,
+            opacity: pressed ? 0.88 : 1,
+          })}
+        >
+          <Text style={{ color: colors.primaryForeground, fontSize: 14, fontWeight: '700' }}>Continue</Text>
+        </Pressable>
+      </Animated.View>
+    </Animated.View> : null}
+  </Modal>;
 }
 
 export function ConfirmationSheet({

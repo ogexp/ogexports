@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { FlatList, Linking, Pressable, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, FlatList, Linking, Platform, Pressable, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGetPublicInvestorAppSettings, getGetPublicInvestorAppSettingsQueryKey, useGetInvestorAdminConversation, useGetInvestorConversationMessages, useSendInvestorConversationMessage, useGetInvestorSupportTickets, useCreateInvestorSupportTicket } from '@workspace/api-client-react';
-import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
+import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback } from '@/components/InvestorUI';
 import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
-import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
+import { MOTION, MotionReveal, motionHaptic, useMotion } from '@/lib/motion';
 
 type SupportMode = 'help' | 'chat' | 'tickets';
 
@@ -55,6 +55,49 @@ const helpTopics = [
 
 const ticketStatusSteps = ['Open', 'In Progress', 'Resolved'] as const;
 
+function ChatBubbleReveal({
+  id,
+  seenIds,
+  children,
+}: {
+  id: string;
+  seenIds: React.MutableRefObject<Set<string>>;
+  children: React.ReactNode;
+}) {
+  const { reduceMotion } = useMotion();
+  const firstReveal = !seenIds.current.has(id);
+  const opacity = useRef(new Animated.Value(firstReveal && !reduceMotion ? 0 : 1)).current;
+  const offset = useRef(new Animated.Value(firstReveal && !reduceMotion ? MOTION.revealY : 0)).current;
+
+  useEffect(() => {
+    const shouldReveal = !seenIds.current.has(id);
+    seenIds.current.add(id);
+    if (!shouldReveal || reduceMotion) {
+      opacity.setValue(1);
+      offset.setValue(0);
+      return;
+    }
+    const animation = Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: MOTION.component,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(offset, {
+        toValue: 0,
+        duration: MOTION.component,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+    ]);
+    animation.start();
+    return () => animation.stop();
+  }, [id, offset, opacity, reduceMotion, seenIds]);
+
+  return <Animated.View style={{ opacity, transform: [{ translateY: offset }] }}>{children}</Animated.View>;
+}
+
 function normalizedTicketStatus(value: string) {
   const normalized = value.toLowerCase().replace(/[_-]+/g, ' ').trim();
   if (normalized === 'pending' || normalized === 'answered') return 'In Progress';
@@ -90,6 +133,10 @@ export default function Messages() {
   const [ticketBody, setTicketBody] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [chatSentVisible, setChatSentVisible] = useState(false);
+  const [chatSentCount, setChatSentCount] = useState(0);
+  const [ticketFeedbackVisible, setTicketFeedbackVisible] = useState(false);
+  const animatedChatMessageIds = useRef(new Set<string>());
 
   useEffect(() => {
     if (params.mode !== 'tickets') return;
@@ -130,14 +177,23 @@ export default function Messages() {
     return Number.isFinite(leftTime) && Number.isFinite(rightTime) ? rightTime - leftTime : 0;
   });
 
+  useEffect(() => {
+    if (!chatSentVisible) return;
+    const timeout = setTimeout(() => setChatSentVisible(false), 2400);
+    return () => clearTimeout(timeout);
+  }, [chatSentVisible, chatSentCount]);
+
   async function sendMessage() {
     setError('');
     setNotice('');
     if (!conversationId || !message.trim()) return;
     try {
       await send.mutateAsync({ conversation: conversationId, data: { message: message.trim() } });
+      motionHaptic('success');
       setMessage('');
-      await messagesQuery.refetch();
+      setChatSentCount(count => count + 1);
+      setChatSentVisible(true);
+      void messagesQuery.refetch();
     } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
   }
 
@@ -153,6 +209,7 @@ export default function Messages() {
       setSubject('');
       setTicketBody('');
       setNotice('Your support ticket was sent. Its latest status will appear in ticket history.');
+      setTicketFeedbackVisible(true);
       setMode('tickets');
       void ticketsQuery.refetch();
     } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
@@ -264,17 +321,24 @@ export default function Messages() {
                 ? null
                 : <EmptyState title="Start a conversation" body="Send a message to investor support. Replies will appear here." />
           }
-          renderItem={({ item }) => {
+          renderItem={({ item, index }) => {
             const own = /investor|user/i.test(first(record(item.sender), ['role', 'type'], first(item, ['sender_type', 'role'], '')));
-            return <MotionReveal key={first(item, ['id'], first(item, ['created_at', 'date']))}>
+            const messageId = first(item, ['id'], first(item, ['created_at', 'date'], String(index)));
+            return <ChatBubbleReveal key={messageId} id={messageId} seenIds={animatedChatMessageIds}>
               <Card style={{ backgroundColor: own ? colors.secondary : colors.card, alignSelf: own ? 'flex-end' : 'stretch', width: own ? '88%' : '100%' }}>
               <Text style={{ color: colors.foreground, lineHeight: 20 }}>{first(item, ['message', 'body', 'content'], '')}</Text>
               <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 7 }}>{first(item, ['created_at', 'date'], '')}</Text>
               </Card>
-            </MotionReveal>;
+            </ChatBubbleReveal>;
           }}
         /> : null}
         {conversationId ? <View style={{ paddingBottom: insets.bottom }}>
+          {chatSentVisible ? <MotionReveal key={chatSentCount}>
+            <View accessibilityLiveRegion="polite" testID="chat-message-sent" style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', gap: 6, marginBottom: 7, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: colors.lightGreen }}>
+              <Feather name="check" size={13} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>Sent to support</Text>
+            </View>
+          </MotionReveal> : null}
           <Card style={{ marginBottom: 0 }}>
             <Field label="Message" value={message} onChangeText={setMessage} placeholder="Write to investor support…" multiline />
             <Action title="Send message" icon="send" loading={send.isPending} disabled={!message.trim()} onPress={() => void sendMessage()} />
@@ -312,5 +376,13 @@ export default function Messages() {
         </MotionReveal>;
       })}
     </> : null}
+
+    <SuccessFeedback
+      visible={ticketFeedbackVisible}
+      title="Support ticket submitted"
+      body="Your ticket was received. Its latest status will appear in ticket history."
+      onDismiss={() => setTicketFeedbackVisible(false)}
+      testID="support-ticket-success-feedback"
+    />
   </Screen>;
 }

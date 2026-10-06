@@ -110,6 +110,10 @@ export default function Onboarding() {
   const [error, setError] = useState('');
   const opacity = useRef(new Animated.Value(1)).current;
   const translateX = useRef(new Animated.Value(0)).current;
+  const illustrationOpacity = useRef(new Animated.Value(0)).current;
+  const illustrationScale = useRef(new Animated.Value(0.96)).current;
+  const copyOpacity = useRef(new Animated.Value(0)).current;
+  const copyOffset = useRef(new Animated.Value(10)).current;
   const swipeDirection = useRef(1);
   const slide = slides[step];
 
@@ -126,6 +130,52 @@ export default function Onboarding() {
       Animated.timing(translateX, { toValue: 0, duration: MOTION.component, easing: MOTION.easeOut, useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   }, [step, opacity, reduceMotion, translateX]);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      illustrationOpacity.setValue(1);
+      illustrationScale.setValue(1);
+      copyOpacity.setValue(1);
+      copyOffset.setValue(0);
+      return;
+    }
+    illustrationOpacity.setValue(0);
+    illustrationScale.setValue(0.96);
+    copyOpacity.setValue(0);
+    copyOffset.setValue(10);
+    const useNativeDriver = Platform.OS !== 'web';
+    const reveal = Animated.stagger(45, [
+      Animated.parallel([
+        Animated.timing(illustrationOpacity, {
+          toValue: 1,
+          duration: MOTION.component,
+          easing: MOTION.easeOut,
+          useNativeDriver,
+        }),
+        Animated.spring(illustrationScale, {
+          toValue: 1,
+          ...MOTION.successSpring,
+          useNativeDriver,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(copyOpacity, {
+          toValue: 1,
+          duration: MOTION.component,
+          easing: MOTION.easeOut,
+          useNativeDriver,
+        }),
+        Animated.timing(copyOffset, {
+          toValue: 0,
+          duration: MOTION.component,
+          easing: MOTION.easeOut,
+          useNativeDriver,
+        }),
+      ]),
+    ]);
+    reveal.start();
+    return () => reveal.stop();
+  }, [copyOffset, copyOpacity, illustrationOpacity, illustrationScale, reduceMotion, step]);
 
   const swipeResponder = useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_, gesture) => !reduceMotion && Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
@@ -170,11 +220,15 @@ export default function Onboarding() {
       </View>
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <Animated.View {...swipeResponder.panHandlers} style={{ opacity, transform: [{ translateX }] }}>
-          <Card style={{ height: 218, padding: 0, overflow: 'hidden', backgroundColor: colors.secondary, borderColor: colors.border, marginBottom: 23 }}>
-            <OnboardingIllustration kind={slide.illustration} />
-          </Card>
-          <Text style={{ color: colors.primary, fontSize: 29, lineHeight: 36, fontWeight: '700', marginTop: 4, textAlign: 'center', letterSpacing: -0.4 }}>{slide.title}</Text>
-          <Text style={{ color: colors.foreground, opacity: 0.78, fontSize: 15, lineHeight: 23, marginTop: 10, textAlign: 'center' }}>{slide.body}</Text>
+          <Animated.View style={{ opacity: illustrationOpacity, transform: [{ scale: illustrationScale }] }}>
+            <Card style={{ height: 218, padding: 0, overflow: 'hidden', backgroundColor: colors.secondary, borderColor: colors.border, marginBottom: 23 }}>
+              <OnboardingIllustration kind={slide.illustration} />
+            </Card>
+          </Animated.View>
+          <Animated.View style={{ opacity: copyOpacity, transform: [{ translateY: copyOffset }] }}>
+            <Text style={{ color: colors.primary, fontSize: 29, lineHeight: 36, fontWeight: '700', marginTop: 4, textAlign: 'center', letterSpacing: -0.4 }}>{slide.title}</Text>
+            <Text style={{ color: colors.foreground, opacity: 0.78, fontSize: 15, lineHeight: 23, marginTop: 10, textAlign: 'center' }}>{slide.body}</Text>
+          </Animated.View>
         </Animated.View>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>

@@ -13,7 +13,7 @@ import {
   useGetInvestorPaymentBankAccounts,
   useGetInvestorWallet,
 } from '@workspace/api-client-react';
-import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessMark } from '@/components/InvestorUI';
+import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
 import { amount as readAmount, first, list, messageOf, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { DEPOSIT_PAYMENT_METHODS, type DepositPaymentMethodId } from '@/lib/deposit-methods';
 import { uploadInvestorFile } from '@/lib/file-upload';
@@ -140,6 +140,7 @@ export default function Deposit() {
   const [stage, setStage] = useState<'method' | 'form' | 'review' | 'submitted'>('method');
   const [paymentMethodId, setPaymentMethodId] = useState<DepositPaymentMethodId | ''>('');
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
+  const [successFeedbackVisible, setSuccessFeedbackVisible] = useState(false);
   const [selectedDepositId, setSelectedDepositId] = useState('');
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const defaultBank = banks.find(item => isEnabled(first(item, ['is_default'])));
@@ -262,6 +263,7 @@ export default function Deposit() {
       }));
       const deposit = record(response.data);
       setConfirmation(deposit);
+      setSuccessFeedbackVisible(true);
       setSelectedDepositId(first(deposit, ['id', 'reference', 'deposit_reference']));
       setNotice(first(response, ['message'], 'Deposit request received from OG Exports.'));
       setStage('submitted');
@@ -277,6 +279,14 @@ export default function Deposit() {
       void queryClient.invalidateQueries({ queryKey: ['investor-dashboard'] });
     } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
   }
+
+  const depositStatus = first(confirmation ?? {}, ['review_status', 'status']).trim();
+  const normalizedDepositStatus = depositStatus.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const depositExplicitlyCompleted = ['approved', 'settled', 'completed'].includes(normalizedDepositStatus);
+  const successTitle = depositExplicitlyCompleted ? `Deposit ${normalizedDepositStatus}` : 'Deposit request submitted';
+  const successBody = depositExplicitlyCompleted
+    ? `OG Exports reports this deposit as ${depositStatus}.`
+    : 'Your deposit request was received. Its server status and wallet credit are shown on the confirmation screen.';
 
   return <Screen key={stage} title="Add funds" subtitle={selectedPaymentMethod
     ? `Deposit via ${selectedPaymentMethod.label} · ${paymentCurrency || 'USD'}`
@@ -462,7 +472,7 @@ export default function Deposit() {
     </Card> : null}
 
     {stage === 'submitted' && confirmation ? <Card style={{ borderColor: colors.primary }}>
-      <SuccessMark feedback="ack" />
+      <SuccessMark feedback="none" />
       <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Deposit request submitted</Text>
       {notice ? <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>{notice}</Text> : null}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9, marginTop: 6 }}>
@@ -512,5 +522,13 @@ export default function Deposit() {
       </Pressable>;
     })}
     {timelineDeposit && stage !== 'submitted' ? <DepositProgress deposit={record(timelineDeposit)} /> : null}
+    <SuccessFeedback
+      visible={successFeedbackVisible}
+      title={successTitle}
+      body={successBody}
+      feedback={depositExplicitlyCompleted ? 'success' : 'ack'}
+      onDismiss={() => setSuccessFeedbackVisible(false)}
+      testID="deposit-success-feedback"
+    />
   </Screen>;
 }

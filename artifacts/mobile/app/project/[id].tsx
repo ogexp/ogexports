@@ -20,7 +20,7 @@ import {
   useGetPublicInvestorAppSettings,
   useInvestInProject,
 } from '@workspace/api-client-react';
-import { Action, Card, ErrorState, Field, Screen, Status, SuccessMark } from '@/components/InvestorUI';
+import { Action, Card, ErrorState, Field, Screen, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
 import { amount, availableBalanceFromDashboard, first, messageOf, record, unwrap, money, moneyInSourceCurrency } from '@/lib/data';
 import { OpportunityDetailOverview } from '@/components/OpportunityDetailOverview';
 import { useAuth } from '@/context/AuthContext';
@@ -78,6 +78,7 @@ export default function OpportunityDetail() {
   const [documentError, setDocumentError] = useState('');
   const [documentBusy, setDocumentBusy] = useState('');
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
+  const [successFeedbackVisible, setSuccessFeedbackVisible] = useState(false);
   const project = unwrap(query.data);
   const tradeData = record(project.trade ?? project.project ?? project.trade_details);
   const projectMeta = record(project.meta);
@@ -296,6 +297,7 @@ export default function OpportunityDetail() {
         date: responseDate,
       });
       setStage('success');
+      setSuccessFeedbackVisible(true);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getGetInvestorWalletQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetInvestorInvestmentsQueryKey() }),
@@ -343,6 +345,14 @@ export default function OpportunityDetail() {
       setDocumentBusy('');
     }
   }
+  const confirmedStatus = first(confirmation ?? {}, ['status', 'state'], '—');
+  const investmentServerConfirmed = /^(confirmed|active|approved|success|successful)$/i.test(confirmedStatus.trim());
+  const investmentSuccessTitle = investmentServerConfirmed ? 'Investment confirmed' : 'Investment request submitted';
+  const investmentSuccessBody = first(confirmation ?? {}, ['message'],
+    investmentServerConfirmed
+      ? 'OG Exports returned a confirmed investment status.'
+      : 'Your investment request was received. The returned server status appears in your confirmation.');
+
   return <Screen
     title={stage === 'details' ? 'Trade Opportunity' : stage === 'success' ? 'Investment complete' : 'Complete your investment'}
     subtitle={stage === 'details'
@@ -556,7 +566,7 @@ export default function OpportunityDetail() {
           <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center', marginBottom: 13 }}>
             <Feather name={serverConfirmed ? 'check' : 'send'} size={21} color={colors.primary} />
           </View>
-          <SuccessMark icon={serverConfirmed ? 'check' : 'clock'} feedback={serverConfirmed ? 'success' : 'ack'} />
+          <SuccessMark icon={serverConfirmed ? 'check' : 'clock'} feedback="none" />
           <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>{serverConfirmed ? 'Investment Confirmed' : 'Investment request submitted'}</Text>
           {first(confirmation, ['message']) ? <Text style={{ color: colors.mutedForeground, marginTop: 7, lineHeight: 19 }}>{first(confirmation, ['message'])}</Text> : null}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: colors.border }}><Text style={{ color: colors.mutedForeground }}>Server status</Text><Status value={status} /></View>
@@ -578,5 +588,13 @@ export default function OpportunityDetail() {
         </Card>;
       })() : null}
     </> : null}
+    <SuccessFeedback
+      visible={successFeedbackVisible}
+      title={investmentSuccessTitle}
+      body={investmentSuccessBody}
+      feedback={investmentServerConfirmed ? 'success' : 'ack'}
+      onDismiss={() => setSuccessFeedbackVisible(false)}
+      testID="investment-success-feedback"
+    />
   </Screen>;
 }

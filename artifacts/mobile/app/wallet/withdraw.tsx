@@ -12,7 +12,7 @@ import {
   useGetInvestorWithdrawals,
   useSendInvestorWithdrawalOtp,
 } from '@workspace/api-client-react';
-import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessMark } from '@/components/InvestorUI';
+import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
 import { TransactionPasswordResetModal } from '@/components/TransactionPasswordResetModal';
 import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, money, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
@@ -200,6 +200,7 @@ export default function Withdraw() {
   const [notice, setNotice] = useState('');
   const [stage, setStage] = useState<'overview' | 'form' | 'security' | 'submitted'>('overview');
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
+  const [successFeedbackVisible, setSuccessFeedbackVisible] = useState(false);
   const [selectedWithdrawalId, setSelectedWithdrawalId] = useState('');
   const withdrawalCurrency = walletCurrency;
   const amountNumber = parseWithdrawalAmount(amount, availableBalance);
@@ -318,6 +319,7 @@ export default function Withdraw() {
       }));
       const withdrawal = record(response.data);
       setConfirmation(withdrawal);
+      setSuccessFeedbackVisible(true);
       setSelectedWithdrawalId(first(withdrawal, ['id', 'reference', 'withdraw_id']));
       setSubmittedAmount(validAmount);
       setNotice(first(response, ['message'], 'Withdrawal request received from OG Exports.'));
@@ -334,6 +336,21 @@ export default function Withdraw() {
       void queryClient.invalidateQueries({ queryKey: ['investor-profile'] });
     } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
   }
+
+  const withdrawalStatus = first(confirmation ?? {}, ['status', 'state', 'withdrawal_status']).trim();
+  const normalizedWithdrawalStatus = withdrawalStatus.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const withdrawalTransferConfirmed = ['settled', 'completed', 'paid', 'paid out', 'transferred'].includes(normalizedWithdrawalStatus);
+  const withdrawalApproved = normalizedWithdrawalStatus === 'approved';
+  const successTitle = withdrawalTransferConfirmed
+    ? 'Withdrawal completed'
+    : withdrawalApproved
+      ? 'Withdrawal approved'
+      : 'Withdrawal request submitted';
+  const successBody = withdrawalTransferConfirmed
+    ? `OG Exports reports this withdrawal as ${withdrawalStatus}.`
+    : withdrawalApproved
+      ? 'OG Exports reports this withdrawal as approved. This status does not confirm that the funds have been transferred.'
+      : 'Your withdrawal request was received. Processing and payment remain subject to the server status shown on the confirmation screen.';
 
   return <Screen title="Withdraw" subtitle="Request a payout from your OG Exports wallet">
     {dashboardQuery.isError && availableBalance == null
@@ -558,7 +575,7 @@ export default function Withdraw() {
     </Card> : null}
 
     {stage === 'submitted' && confirmation ? <Card style={{ borderColor: colors.primary }} testID="withdraw-submitted">
-      <SuccessMark feedback="ack" />
+      <SuccessMark feedback="none" />
       <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', marginTop: 10 }}>Withdrawal submitted</Text>
       <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>
         <Text>Current status:</Text><Text> {first(confirmation, ['status', 'state'], 'Not provided')}.</Text>
@@ -628,6 +645,14 @@ export default function Withdraw() {
       visible={showResetModal}
       onClose={() => setShowResetModal(false)}
       onSuccess={() => setNotice('Transaction password updated. You can use it to confirm withdrawals.')}
+    />
+    <SuccessFeedback
+      visible={successFeedbackVisible}
+      title={successTitle}
+      body={successBody}
+      feedback={withdrawalTransferConfirmed ? 'success' : 'ack'}
+      onDismiss={() => setSuccessFeedbackVisible(false)}
+      testID="withdraw-success-feedback"
     />
   </Screen>;
 }

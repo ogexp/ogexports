@@ -12,7 +12,8 @@ export default function Entry() {
   const { reduceMotion } = useMotion();
   const useNativeDriver = Platform.OS !== 'web';
   const brandOpacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
-  const brandScale = useRef(new Animated.Value(reduceMotion ? 1 : 0.975)).current;
+  const brandScale = useRef(new Animated.Value(reduceMotion ? 1 : 0.965)).current;
+  const brandLift = useRef(new Animated.Value(reduceMotion ? 0 : 8)).current;
   const subtitleOpacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
   const progressOffset = useRef(new Animated.Value(0)).current;
@@ -21,6 +22,7 @@ export default function Entry() {
     if (reduceMotion) {
       brandOpacity.setValue(1);
       brandScale.setValue(1);
+      brandLift.setValue(0);
       subtitleOpacity.setValue(1);
       return;
     }
@@ -33,6 +35,12 @@ export default function Entry() {
       }),
       Animated.timing(brandScale, {
         toValue: 1,
+        duration: MOTION.component,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver,
+      }),
+      Animated.timing(brandLift, {
+        toValue: 0,
         duration: MOTION.component,
         easing: Easing.out(Easing.cubic),
         useNativeDriver,
@@ -51,7 +59,7 @@ export default function Entry() {
       reveal.stop();
       subtitleReveal.stop();
     };
-  }, [brandOpacity, brandScale, reduceMotion, subtitleOpacity, useNativeDriver]);
+  }, [brandLift, brandOpacity, brandScale, reduceMotion, subtitleOpacity, useNativeDriver]);
 
   useEffect(() => {
     if (ready || reduceMotion) {
@@ -91,7 +99,7 @@ export default function Entry() {
 
   return (
     <Animated.View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 28, opacity: screenOpacity }}>
-      <Animated.View style={{ alignItems: 'center', opacity: brandOpacity, transform: [{ scale: brandScale }] }}>
+      <Animated.View style={{ alignItems: 'center', opacity: brandOpacity, transform: [{ translateY: brandLift }, { scale: brandScale }] }}>
         <Image source={require('../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 148, height: 112 }} />
         <Text style={{ color: colors.primary, fontSize: 27, fontWeight: '700', marginTop: 24 }}>OG Exports</Text>
         <Animated.Text style={{ color: colors.mutedForeground, fontSize: 14, marginTop: 8, letterSpacing: 0.3, opacity: subtitleOpacity }}>Global Trade. Digital Investment.</Animated.Text>
