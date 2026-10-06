@@ -15,6 +15,7 @@ import {
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessMark } from '@/components/InvestorUI';
 import { amount as readAmount, first, list, messageOf, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { uploadInvestorFile } from '@/lib/file-upload';
+import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -72,6 +73,15 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   </View>;
 }
 
+function exactBankDetail(row: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === 'string' && value.trim()) return value;
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return '';
+}
+
 type PaymentBankDetailKey = 'account-number' | 'iban' | 'swift';
 
 function CopyableBankDetailRow({ label, value, copied, accessibilityLabel, testID, onCopy }: {
@@ -85,17 +95,18 @@ function CopyableBankDetailRow({ label, value, copied, accessibilityLabel, testI
   const colors = useColors();
   return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.border }}>
     <Text style={{ color: colors.mutedForeground, fontSize: 11, width: 76 }}>{label}</Text>
-    <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} style={{ flex: 1 }}
+    <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator style={{ flex: 1 }}
       contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-      <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right', writingDirection: 'ltr', flexShrink: 0 }}>
+      <Text numberOfLines={1} ellipsizeMode="clip" accessibilityLabel={`${label}: ${value || '—'}`}
+        style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right', writingDirection: 'ltr', flexShrink: 0 }}>
         {value || '—'}
       </Text>
     </ScrollView>
-    {value ? <LocalizedPressable accessibilityRole="button" accessibilityLabel={copied ? 'Copied' : accessibilityLabel}
-      accessibilityHint={copied ? undefined : 'Copies value to clipboard'}
-      testID={testID} onPress={onCopy} style={{ height: 44, minHeight: 44, width: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12 }}>
+    {value ? <LocalizedPressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityHint="Copies value to clipboard"
+      testID={testID} onPress={onCopy} style={{ minHeight: 40, minWidth: 64, paddingHorizontal: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderWidth: 1, borderColor: colors.border, borderRadius: 10 }}>
       <Feather name={copied ? 'check' : 'copy'} size={14} color={colors.primary} />
-    </LocalizedPressable> : <View style={{ width: 44 }} />}
+      <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700' }}>{copied ? 'Copied' : 'Copy'}</Text>
+    </LocalizedPressable> : <View style={{ width: 64 }} />}
   </View>;
 }
 
@@ -121,6 +132,7 @@ export default function Deposit() {
   const [proofName, setProofName] = useState('');
   const [proofUploading, setProofUploading] = useState(false);
   const [copiedBankField, setCopiedBankField] = useState<PaymentBankDetailKey | null>(null);
+  const [bankDetailCopyError, setBankDetailCopyError] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [stage, setStage] = useState<'form' | 'review' | 'submitted'>('form');
@@ -132,9 +144,9 @@ export default function Deposit() {
   const selectedProject = projects.find(item => first(item, ['id']) === projectId);
   const paymentCurrency = walletCurrency;
   const acceptedBankCurrencies = first(selectedBank ?? {}, ['currency']).toUpperCase() || walletCurrency;
-  const bankAccountNumber = first(selectedBank ?? {}, ['account_number', 'accountNumber']);
-  const bankIban = first(selectedBank ?? {}, ['iban']);
-  const bankSwift = first(selectedBank ?? {}, ['swift', 'swift_code', 'swift_bic']);
+  const bankAccountNumber = exactBankDetail(selectedBank ?? {}, ['account_number', 'accountNumber']);
+  const bankIban = exactBankDetail(selectedBank ?? {}, ['iban']);
+  const bankSwift = exactBankDetail(selectedBank ?? {}, ['swift', 'swift_code', 'swift_bic']);
   const proofRequired = isEnabled(first(selectedBank ?? {}, ['proof_required', 'requires_proof']));
   const timelineDeposit = confirmation ?? deposits.find(item => first(item, ['id', 'reference', 'deposit_reference']) === selectedDepositId);
   const confirmationCurrency = first(confirmation ?? {}, ['currency', 'wallet_currency'], paymentCurrency);
@@ -144,13 +156,16 @@ export default function Deposit() {
   }, []);
 
   async function copyBankDetail(field: PaymentBankDetailKey, value: string) {
+    setBankDetailCopyError('');
+    setCopiedBankField(null);
+    if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
     try {
-      await Clipboard.setStringAsync(value);
+      const didCopy = await Clipboard.setStringAsync(value);
+      if (!didCopy) throw new Error('Clipboard did not confirm the copy.');
       setCopiedBankField(field);
-      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
       copyResetTimer.current = setTimeout(() => setCopiedBankField(null), 1600);
     } catch {
-      setError('Could not copy the bank detail. Select and copy the value instead.');
+      setBankDetailCopyError('Could not copy the bank detail. Select and copy the value instead.');
     }
   }
 
@@ -158,13 +173,10 @@ export default function Deposit() {
     setError('');
     setProofUploading(true);
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/*'], copyToCacheDirectory: true });
+      const result = await DocumentPicker.getDocumentAsync({ type: [...INVESTOR_DOCUMENT_MIME_TYPES], copyToCacheDirectory: true });
       if (result.canceled) return;
       const asset = result.assets[0];
-      if (asset.size && asset.size > 10 * 1024 * 1024) {
-        setError('Choose a receipt smaller than 10 MB.');
-        return;
-      }
+      if (!asset) throw new Error('No file was selected. Try again.');
       const path = await uploadInvestorFile(asset.uri, asset.name, asset.mimeType ?? 'application/octet-stream', 'deposit-proofs', apiOrigin);
       setProof(path);
       setProofName(asset.name);
@@ -265,7 +277,7 @@ export default function Deposit() {
         {banks.map((item, index) => {
           const id = first(item, ['id']);
           const selected = first(selectedBank ?? {}, ['id']) === id;
-          return <Pressable key={id || String(index)} accessibilityRole="button" accessibilityState={{ selected }} testID={`deposit-bank-${id || index}`} onPress={() => { setBankId(id); setCopiedBankField(null); }} style={{ paddingVertical: 11, borderTopWidth: index ? 1 : 0, borderTopColor: colors.border }}>
+          return <Pressable key={id || String(index)} accessibilityRole="button" accessibilityState={{ selected }} testID={`deposit-bank-${id || index}`} onPress={() => { setBankId(id); setCopiedBankField(null); setBankDetailCopyError(''); }} style={{ paddingVertical: 11, borderTopWidth: index ? 1 : 0, borderTopColor: colors.border }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
               <Text style={{ color: selected ? colors.primary : colors.foreground, fontWeight: '700', flex: 1 }}>{first(item, ['bank_name', 'name'], 'Bank account')}</Text>
               {selected ? <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700' }}>SELECTED</Text> : null}
@@ -275,14 +287,15 @@ export default function Deposit() {
         })}
         {selectedBank ? <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 2 }}>
           <CopyableBankDetailRow label="Account number" value={bankAccountNumber} copied={copiedBankField === 'account-number'}
-            accessibilityLabel="Copy account number" testID="copy-payment-account-number"
+            accessibilityLabel={copiedBankField === 'account-number' ? 'Account number copied' : 'Copy account number'} testID="copy-payment-account-number"
             onCopy={() => void copyBankDetail('account-number', bankAccountNumber)} />
           <CopyableBankDetailRow label="IBAN" value={bankIban} copied={copiedBankField === 'iban'}
-            accessibilityLabel="Copy IBAN" testID="copy-payment-iban"
+            accessibilityLabel={copiedBankField === 'iban' ? 'IBAN copied' : 'Copy IBAN'} testID="copy-payment-iban"
             onCopy={() => void copyBankDetail('iban', bankIban)} />
           <CopyableBankDetailRow label="SWIFT / BIC" value={bankSwift} copied={copiedBankField === 'swift'}
-            accessibilityLabel="Copy SWIFT / BIC" testID="copy-payment-swift"
+            accessibilityLabel={copiedBankField === 'swift' ? 'SWIFT / BIC copied' : 'Copy SWIFT / BIC'} testID="copy-payment-swift"
             onCopy={() => void copyBankDetail('swift', bankSwift)} />
+          {bankDetailCopyError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 11, lineHeight: 16, paddingTop: 7 }}>{bankDetailCopyError}</Text> : null}
           <DetailRow label="Accepted transfer currencies" value={acceptedBankCurrencies || '—'} />
           {first(selectedBank, ['instructions']) ? <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 19, marginTop: 7 }}>{first(selectedBank, ['instructions'])}</Text> : null}
           {first(selectedBank, ['notes']) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 6 }}>{first(selectedBank, ['notes'])}</Text> : null}

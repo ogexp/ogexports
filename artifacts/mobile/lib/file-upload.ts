@@ -1,13 +1,27 @@
 import { getSavedToken } from '@/lib/api-config';
 import { File } from 'expo-file-system';
 import { fetch } from 'expo/fetch';
+import { validateInvestorUploadFileSize } from './upload-rules';
+
+function checkedFile(uri: string): File {
+  const file = new File(uri);
+  if (!file.exists) {
+    throw new Error('The selected file could not be read. Choose another file.');
+  }
+  validateInvestorUploadFileSize(file.size);
+  return file;
+}
+
+export function getInvestorUploadFileSize(uri: string): number {
+  return checkedFile(uri).size;
+}
 
 export async function uploadInvestorFile(uri: string, name: string, _mimeType: string, folder: string, origin: string): Promise<string> {
   if (!origin) throw new Error('Set the OG Exports investor server address in Settings before uploading.');
   const token = await getSavedToken();
   if (!token) throw new Error('Sign in again before uploading a document.');
   const body = new FormData();
-  body.append('file', new File(uri), name);
+  body.append('file', checkedFile(uri), name);
   body.append('folder', folder);
   const response = await fetch(`${origin.replace(/\/+$/, '')}/api/uploads`, {
     method: 'POST',
@@ -41,7 +55,7 @@ export async function submitInvestorBankAccountProof(
   if (!token) throw new Error('Sign in again before uploading a document.');
 
   const body = new FormData();
-  body.append('file', new File(uri), name);
+  body.append('file', checkedFile(uri), name);
   Object.entries(fields).forEach(([key, value]) => {
     if (value.trim()) body.append(key, value.trim());
   });

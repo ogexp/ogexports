@@ -8,6 +8,7 @@ import { useGetInvestorProfile, useSubmitInvestorKyc, useUpdateInvestorProfile, 
 import { Action, Card, ErrorState, Field, Screen, Status } from '@/components/InvestorUI';
 import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { uploadInvestorFile } from '@/lib/file-upload';
+import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { getInvestorKycStatus, investorKycProgressStep } from '@/lib/kyc';
@@ -100,6 +101,7 @@ export default function Kyc() {
   const [postalCode, setPostalCode] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [documentPicking, setDocumentPicking] = useState(false);
 
   useEffect(() => {
     if (!query.data) return;
@@ -152,19 +154,18 @@ export default function Kyc() {
 
   async function pickAndUpload() {
     setError('');
+    setDocumentPicking(true);
     try {
-      const pickerResult = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/*'], copyToCacheDirectory: true });
+      const pickerResult = await DocumentPicker.getDocumentAsync({ type: [...INVESTOR_DOCUMENT_MIME_TYPES], copyToCacheDirectory: true });
       if (pickerResult.canceled) return;
       const asset = pickerResult.assets[0];
-      if (asset.size && asset.size > 10 * 1024 * 1024) {
-        setError('Choose a document smaller than 10 MB.');
-        return;
-      }
+      if (!asset) throw new Error('No file was selected. Try again.');
       const path = await uploadInvestorFile(asset.uri, asset.name, asset.mimeType ?? 'application/octet-stream', 'kyc', apiOrigin);
       const uploadResult = record(await upload.mutateAsync({ data: { doc_type: selectedDocumentType, path, original_name: asset.name } }));
       setNotice(first(uploadResult, ['message'], 'Document uploaded. Its review status will be updated by OG Exports.'));
       await query.refetch();
     } catch (err) { setError(messageOf(err)); }
+    finally { setDocumentPicking(false); }
   }
 
   async function submitApplication() {
@@ -256,7 +257,7 @@ export default function Kyc() {
       <Card>
         <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginBottom: 6 }}>Upload a document</Text>
         <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginBottom: 12 }}>{requirements.length ? `Selected: ${documentLabels[selectedDocumentType] ?? selectedDocumentType}. PDF and image files up to 10 MB are supported.` : 'Documents can be uploaded when OG Exports provides a requirement.'}</Text>
-        <Action title="Choose file and upload" icon="upload" loading={upload.isPending} disabled={!requirements.length} onPress={() => void pickAndUpload()} />
+        <Action title="Choose file and upload" icon="upload" loading={upload.isPending || documentPicking} disabled={!requirements.length} onPress={() => void pickAndUpload()} />
       </Card>
       {nextStep ? <View style={{ marginBottom: 12 }}><Action title={nextTitle} icon="arrow-right" secondary onPress={() => {
         setError('');

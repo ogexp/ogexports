@@ -40,3 +40,9 @@ For the OG Exports web portal, development API requests use a Vite proxy under t
 **Why:** A healthy API and a route in local source do not prove that production has deployed that route, and the Replit preview origin is not itself allowlisted by the live API.
 
 **How to apply:** Check the exact live endpoint and hosting origin before declaring a Laravel-backed portal feature operational. Keep an explicit error state instead of substituting mock/local data; coordinate the backend deployment or CORS/Sanctum allowlist when needed.
+
+The supplied Laravel source snapshot limits image uploads to 8 MB and permits PDF uploads up to 20 MB, while the investor mobile flow applies a 10 MB client-side limit.
+
+**Why:** A mobile file can pass the 10 MB check and still be rejected by the Laravel upload endpoint when it is an image above 8 MB.
+
+**How to apply:** Confirm the deployed Laravel limits before claiming the full mobile 10 MB range works; coordinate a server-side limit change rather than silently lowering the mobile limit requested for this app.

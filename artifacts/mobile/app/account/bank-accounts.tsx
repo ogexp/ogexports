@@ -11,7 +11,8 @@ import {
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status } from '@/components/InvestorUI';
 import { first, list, messageOf, unwrap } from '@/lib/data';
-import { submitInvestorBankAccountProof } from '@/lib/file-upload';
+import { getInvestorUploadFileSize, submitInvestorBankAccountProof } from '@/lib/file-upload';
+import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -41,17 +42,14 @@ export default function BankAccounts() {
     setProofPicking(true);
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
+        type: [...INVESTOR_DOCUMENT_MIME_TYPES],
         copyToCacheDirectory: true,
       });
       if (result.canceled) return;
       const file = result.assets[0];
-      if (file.size && file.size > 10 * 1024 * 1024) {
-        setProof(null);
-        setError('Choose a PDF or image smaller than 10 MB.');
-        return;
-      }
-      setProof({ uri: file.uri, name: file.name, size: file.size });
+      if (!file) throw new Error('No file was selected. Try again.');
+      const size = getInvestorUploadFileSize(file.uri);
+      setProof({ uri: file.uri, name: file.name, size });
     } catch (cause) {
       setError(messageOf(cause));
     } finally {
