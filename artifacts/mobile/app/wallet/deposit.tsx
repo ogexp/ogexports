@@ -355,10 +355,10 @@ export default function Deposit() {
       <View style={{ marginTop: 4, borderTopWidth: 1, borderTopColor: colors.border }}>
         {reviewBankDetails.map((detail, index) => <View
           key={detail.key}
-          style={{ paddingVertical: 9, borderBottomWidth: index === reviewBankDetails.length - 1 ? 0 : 1, borderBottomColor: colors.border }}
+          style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8, borderBottomWidth: index === reviewBankDetails.length - 1 ? 0 : 1, borderBottomColor: colors.border }}
         >
-          <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', letterSpacing: 0.4 }}>{detail.label}</Text>
-          <Text testID={`review-${detail.key}-value`} selectable style={{ color: detail.value ? colors.foreground : colors.mutedForeground, fontFamily: 'monospace', fontSize: 13, fontWeight: '600', lineHeight: 20, marginTop: 3, textAlign: 'left', writingDirection: 'ltr' }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, flex: 0.85 }}>{detail.label}</Text>
+          <Text testID={`review-${detail.key}-value`} selectable style={{ color: detail.value ? colors.foreground : colors.mutedForeground, fontFamily: 'monospace', fontSize: 10, fontWeight: '600', flex: 1.5, flexShrink: 1, lineHeight: 16, textAlign: 'right', writingDirection: 'ltr' }}>
             {detail.value || 'Not provided'}
           </Text>
         </View>)}
