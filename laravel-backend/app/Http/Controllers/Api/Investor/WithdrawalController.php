@@ -7,22 +7,23 @@ use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Withdrawal;
-use App\Support\ExchangeRateService;
-use App\Support\UserDisplayCurrency;
-use App\Support\WalletReservation;
+use App\Services\InvestorTransactionPdfGenerator;
 use App\Services\NotificationMailer;
+use App\Support\AdminNotificationTypes;
+use App\Support\ExchangeRateService;
 use App\Support\InvestorBankAccountPresenter;
 use App\Support\InvestorBankAccounts;
 use App\Support\InvestorNotificationTypes;
-use App\Support\AdminNotificationTypes;
 use App\Support\NotifiesAdmins;
 use App\Support\NotifiesUsers;
-use App\Services\InvestorTransactionPdfGenerator;
+use App\Support\UserDisplayCurrency;
+use App\Support\WalletReservation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 
 class WithdrawalController extends Controller
 {
@@ -55,14 +56,32 @@ class WithdrawalController extends Controller
             'withdraw_otp_expires_at' => now()->addMinutes(self::OTP_EXPIRY_MINUTES),
         ])->save();
 
-        NotificationMailer::sendTemplated($user, 'withdraw_otp', [
+        $emailSent = NotificationMailer::sendTemplated($user, 'withdraw_otp', [
             'otp_code' => $code,
             'expires_minutes' => (string) self::OTP_EXPIRY_MINUTES,
-        ]) || NotificationMailer::sendRaw(
-            $user,
-            config('app.display_name', 'OG Exports').' — Withdrawal Verification Code',
-            "Your withdrawal verification code is: {$code}\n\nThis code expires in ".self::OTP_EXPIRY_MINUTES.' minutes.'
-        );
+        ]);
+
+        if (! $emailSent) {
+            $emailSent = NotificationMailer::sendRaw(
+                $user,
+                config('app.display_name', 'OG Exports').' — Withdrawal Verification Code',
+                "Your withdrawal verification code is: {$code}\n\nThis code expires in ".self::OTP_EXPIRY_MINUTES.' minutes.'
+            );
+        }
+
+        if (! $emailSent) {
+            $user->refresh();
+            if (filled($user->withdraw_otp_code) && Hash::check($code, $user->withdraw_otp_code)) {
+                $user->forceFill([
+                    'withdraw_otp_code' => null,
+                    'withdraw_otp_expires_at' => null,
+                ])->save();
+            }
+
+            return response()->json([
+                'message' => 'We could not send your withdrawal verification code. Please try again later.',
+            ], 503);
+        }
 
         return response()->json([
             'message' => 'Verification code sent to your email.',
@@ -109,7 +128,7 @@ class WithdrawalController extends Controller
         $bankDetails['currency'] = $walletCurrency;
         $data['bank_details'] = $bankDetails;
 
-        $withdrawal = DB::transaction(function () use ($request, $data, $amount, $amountUsd, $exchangeRate, $user) {
+        $withdrawal = DB::transaction(function () use ($data, $amount, $amountUsd, $exchangeRate, $user) {
             $withdrawal = Withdrawal::create([
                 'investor_id' => $user->id,
                 'amount' => $amount,
@@ -182,7 +201,7 @@ class WithdrawalController extends Controller
         return response()->json(['data' => $this->transformWithdrawal($withdrawal)]);
     }
 
-    public function pdf(Request $request, int $id, InvestorTransactionPdfGenerator $pdf): \Symfony\Component\HttpFoundation\Response
+    public function pdf(Request $request, int $id, InvestorTransactionPdfGenerator $pdf): Response
     {
         $withdrawal = Withdrawal::query()
             ->where('investor_id', $request->user()->id)

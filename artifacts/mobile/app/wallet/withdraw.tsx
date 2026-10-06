@@ -179,7 +179,10 @@ export default function Withdraw() {
       setOtp('');
       setNotice(first(result, ['message'], 'Verification code requested. Check the email registered to your account.'));
       setStage('security');
-    } catch (err) { setError(messageOf(err)); }
+    } catch (err) {
+      setStage('form');
+      setError(messageOf(err));
+    }
   }
 
   function closeOtpModal() {
