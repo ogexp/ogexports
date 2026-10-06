@@ -26,18 +26,8 @@ import { CompanyBankAccountsPanel } from "@/components/shared/CompanyBankAccount
 
 const DEPOSIT_CURRENCIES = ["USD", "GBP", "EUR", "CNY", "PKR", "SAR", "AED", "OMR", "QAR"] as const
 
-function buildPaymentMethods(walletBalance: number | null) {
+function buildPaymentMethods() {
   return [
-    {
-      id: "wallet",
-      label: "OG Wallet",
-      icon: Wallet,
-      minDeposit: null,
-      maxDeposit: walletBalance,
-      processingTime: "Not provided",
-      fee: "Not provided",
-      description: "Use available wallet funds to submit an investment request.",
-    },
     {
       id: "bank",
       label: "Bank Transfer",
@@ -137,7 +127,7 @@ export default function InvestDeposit() {
   })
   const selectedProject = liveProjects.find(p => p.id === selectedProjectId)
 
-  const PAYMENT_METHODS = useMemo(() => buildPaymentMethods(walletBalance), [walletBalance])
+  const PAYMENT_METHODS = useMemo(() => buildPaymentMethods(), [])
 
   const { data: historyPayload, isLoading: historyLoading, refetch: refetchHistory } = useQuery({
     queryKey: ["investor", "deposits"],
@@ -320,7 +310,7 @@ export default function InvestDeposit() {
   return (
     <InvestPortalLayout title="Deposit Funds" subtitle="Add capital to your investment account">
       <div className="max-w-3xl mx-auto space-y-6">
-        {dashboardBalanceQuery.isError && (
+        {isWalletMethod && dashboardBalanceQuery.isError && (
           <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-3 text-sm text-red-600">
             <span>Available balance could not be loaded from the investor dashboard.</span>
             <Button variant="outline" size="sm" onClick={() => void dashboardBalanceQuery.refetch()}>
@@ -354,19 +344,18 @@ export default function InvestDeposit() {
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               {PAYMENT_METHODS.map(pm => {
-                const isWallet = pm.id === "wallet"
                 const isSelected = selectedMethod === pm.id
                 return (
                   <Card
                     key={pm.id}
-                    className={`cursor-pointer transition-all hover:-translate-y-0.5 ${isSelected ? "border-primary ring-1 ring-primary bg-primary/5" : isWallet ? "border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500/70" : "glass-card hover:border-border/80"}`}
+                    className={`cursor-pointer transition-all hover:-translate-y-0.5 ${isSelected ? "border-primary ring-1 ring-primary bg-primary/5" : "glass-card hover:border-border/80"}`}
                     onClick={() => setSelectedMethod(pm.id)}
                   >
                     <CardContent className="p-5 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isWallet ? "bg-emerald-500/15" : "bg-primary/10"}`}>
-                            <pm.icon className={`w-5 h-5 ${isWallet ? "text-emerald-500" : "text-primary"}`} />
+                          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <pm.icon className="w-5 h-5 text-primary" />
                           </div>
                           <div>
                             <span className="font-semibold">{pm.label}</span>
@@ -374,15 +363,6 @@ export default function InvestDeposit() {
                         </div>
                         {isSelected && <CheckCircle2 className="w-5 h-5 text-primary" />}
                       </div>
-
-                      {isWallet && (
-                        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/8 p-3 flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Available Balance</span>
-                          <span className="text-lg font-heading font-bold text-emerald-500">
-                            {walletBalanceLabel}
-                          </span>
-                        </div>
-                      )}
 
                       <p className="text-xs text-muted-foreground">{pm.description}</p>
                       <div className="grid grid-cols-2 gap-2 pt-1">
