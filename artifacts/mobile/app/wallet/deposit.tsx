@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View, Platform } from 'react-native';
 import { LocalizedPressable, LocalizedText as Text } from '@/components/LocalizedText';
 import * as DocumentPicker from 'expo-document-picker';
+import { File as ExpoFile } from 'expo-file-system';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useCreateInvestorDeposit,
@@ -180,13 +181,27 @@ export default function Deposit() {
     setError('');
     setProofUploading(true);
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: [...INVESTOR_DOCUMENT_MIME_TYPES], copyToCacheDirectory: true });
-      if (result.canceled) return;
-      const asset = result.assets[0];
-      if (!asset) throw new Error('No file was selected. Try again.');
-      const path = await uploadInvestorFile(asset.uri, asset.name, asset.mimeType ?? 'application/octet-stream', 'deposit-proofs', apiOrigin);
+      let uploadSource: string | ExpoFile;
+      let fileName: string;
+      let mimeType: string;
+      if (Platform.OS === 'web') {
+        const result = await DocumentPicker.getDocumentAsync({ type: [...INVESTOR_DOCUMENT_MIME_TYPES], copyToCacheDirectory: true });
+        if (result.canceled) return;
+        const asset = result.assets[0];
+        if (!asset) throw new Error('No file was selected. Try again.');
+        uploadSource = asset.uri;
+        fileName = asset.name;
+        mimeType = asset.mimeType ?? 'application/octet-stream';
+      } else {
+        const result = await ExpoFile.pickFileAsync({ mimeTypes: [...INVESTOR_DOCUMENT_MIME_TYPES] });
+        if (result.canceled) return;
+        uploadSource = result.result;
+        fileName = result.result.name;
+        mimeType = result.result.type || 'application/octet-stream';
+      }
+      const path = await uploadInvestorFile(uploadSource, fileName, mimeType, 'deposit-proofs', apiOrigin);
       setProof(path);
-      setProofName(asset.name);
+      setProofName(fileName);
     } catch (err) { setError(messageOf(err)); }
     finally { setProofUploading(false); }
   }
