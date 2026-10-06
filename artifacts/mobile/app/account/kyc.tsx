@@ -6,6 +6,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Feather } from '@expo/vector-icons';
 import { useGetInvestorProfile, useSubmitInvestorKyc, useUpdateInvestorProfile, useUploadInvestorKycDocument } from '@workspace/api-client-react';
 import { Action, Card, ErrorState, Field, Screen, Status } from '@/components/InvestorUI';
+import { CountryPicker } from '@/components/CountryPicker';
 import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
@@ -381,7 +382,7 @@ export default function Kyc() {
         <Field label="Phone number (optional)" value={phone} onChangeText={setPhone} placeholder="+1 555 000 0000" keyboardType="phone-pad" />
         <Field label="Date of birth (required)" value={dob} onChangeText={setDob} placeholder="YYYY-MM-DD" autoCapitalize="none" />
         <Field label="Nationality (required)" value={nationality} onChangeText={setNationality} placeholder="Nationality" autoCapitalize="words" />
-        <Field label="Country of residence (required)" value={country} onChangeText={setCountry} placeholder="Country" autoCapitalize="words" />
+        <CountryPicker label="Country of residence (required)" value={country} onChange={setCountry} placeholder="Select country" />
         <Field label="City (required)" value={city} onChangeText={setCity} placeholder="City" autoCapitalize="words" />
         <Field label="Street address (required)" value={streetAddress} onChangeText={setStreetAddress} placeholder="Street address" multiline />
         <Field label="Province / state" value={province} onChangeText={setProvince} placeholder="Province or state" />

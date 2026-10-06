@@ -13,6 +13,12 @@ Use spacious typography, rounded cards with subtle borders and shadows, and ligh
 
 On Home, use the supplied screenshot direction: a full-width emerald gradient hero and a white floating action dock with Deposit Funds, Invest Now, Withdraw Funds, and View Portfolio. Keep the balance API-driven, preserve the privacy toggle, and keep the decorative circles subtle. The white content begins with Account Overview, followed by verification and investment summaries; move Portfolio Performance and Recent Transactions lower.
 
+Country selectors in the investor mobile app should share a polished, searchable country list like the website. Keep free-text market filters distinct from actual country fields.
+
+**Why:** the user asked for a professional country list wherever investors need to select a country.
+
+**How to apply:** route mobile country fields through the reusable selector, preserve the existing country-name string save contract, and do not convert broad “country or market” search fields into selectors.
+
 On Home only, show the available balance in USD with the user's API wallet/country currency equivalent directly underneath. Preserve the privacy toggle for both values.
 
 **Why:** The user wants the screenshot's USD primary balance plus a smaller local-currency equivalent on the Home screen, without changing other screens.

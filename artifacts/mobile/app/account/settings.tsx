@@ -21,6 +21,7 @@ import {
   useUpdateInvestorProfile,
 } from '@workspace/api-client-react';
 import { Action, Card, ConfirmationSheet, Field, Screen } from '@/components/InvestorUI';
+import { CountryPicker } from '@/components/CountryPicker';
 import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap, type Json } from '@/lib/data';
 import { validOrigin } from '@/lib/api-config';
@@ -357,7 +358,7 @@ export default function Settings() {
       <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Profile details</Text>
       <Field label="Full name" value={name} onChangeText={setName} placeholder="Your name" />
       <Field label="Mobile number" value={phone} onChangeText={setPhone} placeholder="+92 300 1234567" keyboardType="phone-pad" />
-      <Field label="Country / region" value={country} onChangeText={setCountry} placeholder="Country of residence" />
+      <CountryPicker label="Country / region" value={country} onChange={setCountry} placeholder="Country of residence" />
       <View style={{ gap: 12 }}>
         <Action title="Manage bank accounts & verification" secondary onPress={() => router.push('/account/bank-accounts' as never)} />
         <Action title="Save profile details" icon="save" loading={updateMe.isPending} onPress={() => void saveProfile()} />
