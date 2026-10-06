@@ -16,7 +16,7 @@ import {
 } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Status } from '@/components/InvestorUI';
 import { AllocationDonut, type AllocationSlice } from '@/components/AllocationDonut';
-import { amount, displayCurrencyCode, first, list, money, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
+import { amount, first, list, money, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { convertCurrencyAmount } from '@/lib/currency-conversion';
 import { latestRecords } from '@/lib/latest-records';
 import { useAuth } from '@/context/AuthContext';
@@ -184,8 +184,7 @@ export default function InvestorHome() {
   );
   const showLocalBalanceEquivalent = !dashboard.isLoading
     && !dashboard.isError
-    && localBalanceEquivalent != null
-    && localCurrency !== displayCurrencyCode(currency);
+    && localBalanceEquivalent != null;
   const name = first(record(user), ['name', 'first_name'], 'Investor');
   const firstName = name.split(/\s+/)[0] || 'Investor';
   const greeting = 'Hi';
