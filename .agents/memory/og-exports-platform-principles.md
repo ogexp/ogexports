@@ -13,11 +13,11 @@ The OG Exports investor app must communicate:
 
 Use server-provided trade identifiers, shipment details, documents, and statuses as the source of truth. Do not invent missing values or imply live logistics tracking. Make an investment's trade/container association easy to find, and state clearly when OG Exports has not supplied information.
 
-The six container milestones use explicit, append-only per-stage admin records, separate from the project status, trade-update feed, and container journey. Show each stage from its latest saved record only; never infer progress from stage order, dates, or another stage's status.
+The six container milestones use explicit, append-only per-stage admin records, separate from the trade-update feed and container journey. Show each stage from its latest saved record. Scoped exception requested on 2026-10-06: when the server's project status is `settled` and no explicit Settled milestone exists, show only the final Settled milestone as completed; do not infer earlier milestones or event details.
 
-**Why:** the user chose per-stage records because one project status cannot prove the state of every milestone.
+**Why:** per-stage records preserve milestone history. The user additionally reported that an admin-updated project status of Settled must appear in the investor detail timeline.
 
-**How to apply:** append a new admin record for the selected stage and keep missing stages unavailable; do not derive completion from neighboring stages.
+**How to apply:** prefer each stage's latest saved admin record. Only use `project.status === settled` as a fallback for the final Settled milestone when no explicit record exists; never invent its date or description, and leave all other missing stages unavailable.
 
 Project/trade update feeds are separate append-only event records, not reconstructions of the standard journey stages. Each event's status, description, event time, and optional attachment must be explicitly supplied by OG Exports; leave the feed empty until an update is published. Require admins to enter the event time instead of defaulting it from the device clock.
 
@@ -43,7 +43,7 @@ KYC gating applies to investments only: require a server-reported `Verified` sta
 
 **Why:** the user explicitly requires trade timeline statuses to remain under backend/admin control.
 
-**How to apply:** render stages consistently across trade detail views, but mark completion or in-progress status only from that stage's server-provided event.
+**How to apply:** render stages consistently across trade detail views using their latest server-provided event, with the scoped final-Settled project-status fallback above. Keep app detail data fresh when the screen regains focus or the app returns to the foreground.
 
 Localized financial, security, and privacy copy must preserve the source action and status. A data-access, correction, or deletion ticket is a request—not a promise of completion; a withdrawal request is not a completed transfer; and session revocation must communicate that access will end.
 

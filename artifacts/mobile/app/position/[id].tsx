@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, AppState, Pressable, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useGetInvestorInvestment } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
 import { amount, displayCurrencyCode, first, list, messageOf, money, record, unwrap, type Json } from '@/lib/data';
@@ -35,7 +36,20 @@ export default function PositionDetail() {
   const colors = useColors();
   const [busyDocument, setBusyDocument] = useState('');
   const [documentErrors, setDocumentErrors] = useState<Record<string, string>>({});
+  const queryClient = useQueryClient();
   const query = useGetInvestorInvestment(id, { query: { queryKey: ['investor-position', id], enabled: Boolean(id && token) } });
+  const refreshPosition = useCallback(() => {
+    if (id && token) {
+      void queryClient.refetchQueries({ queryKey: ['investor-position', id], type: 'active' });
+    }
+  }, [id, queryClient, token]);
+  useFocusEffect(refreshPosition);
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') refreshPosition();
+    });
+    return () => subscription.remove();
+  }, [refreshPosition]);
   const row = unwrap(query.data);
   const project = record(row.project ?? row.trade ?? row.trade_details);
   const trade = record(row.trade ?? row.project ?? row.trade_details);
@@ -56,6 +70,7 @@ export default function PositionDetail() {
   const vesselAndVoyage = [vesselName, voyage].filter(value => value !== notProvided).join(' · ') || notProvided;
   const timeline = list(project.trade_updates);
   const stageUpdates = list(project.stage_updates);
+  const projectStatus = first(project, ['status', 'project_status', 'current_status']);
   const investmentPeriodProgress = record(row.investment_period_progress);
   const documents = list(project.documents ?? row.documents ?? trade.documents);
   const investedAmount = amount(row, ['amount', 'investment_amount', 'principal']);
@@ -219,6 +234,7 @@ export default function PositionDetail() {
 
       <TradeProgressCard
         stageUpdates={stageUpdates}
+        projectStatus={projectStatus}
         periodProgress={investmentPeriodProgress}
       />
 

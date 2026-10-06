@@ -5,21 +5,11 @@ import { LocalizedText as Text } from '@/components/LocalizedText';
 import { Card, Section } from '@/components/InvestorUI';
 import { amount, first, record, type Json } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
-
-const TRADE_STAGES = [
-  { key: 'funding', label: 'Funding' },
-  { key: 'investment_confirmed', label: 'Investment Confirmed' },
-  { key: 'cargo_loaded', label: 'Cargo Loaded' },
-  { key: 'in_transit', label: 'In Transit' },
-  { key: 'custom_clearance', label: 'Custom Clearance' },
-  { key: 'settled', label: 'Settled' },
-] as const;
-
-type StageKey = typeof TRADE_STAGES[number]['key'];
-type StageEntry = { status: string; description: string; occurredAt: string };
+import { resolveTradeProgress, TRADE_STAGES } from '@/lib/trade-progress';
 
 type Props = {
   stageUpdates: Json[];
+  projectStatus?: string;
   periodProgress?: Json | null;
   showPeriod?: boolean;
   title?: string;
@@ -35,28 +25,23 @@ function eventDate(value: string): string {
 
 export function TradeProgressCard({
   stageUpdates,
+  projectStatus = '',
   periodProgress,
   showPeriod = true,
   title = 'Trade Progress',
 }: Props) {
   const colors = useColors();
-  const latestByStage = new Map<StageKey, StageEntry>();
-
-  // The API returns records in server-created order; a newer explicit record
-  // replaces only the displayed state for its own stage.
-  for (const rawUpdate of stageUpdates) {
+  const stageRecords = stageUpdates.map(rawUpdate => {
     const update = record(rawUpdate);
-    const stage = first(update, ['stage']) as StageKey;
-    if (!TRADE_STAGES.some(item => item.key === stage)) continue;
-    latestByStage.set(stage, {
+    return {
+      stage: first(update, ['stage']),
       status: first(update, ['status']),
       description: first(update, ['description']),
-      occurredAt: first(update, ['occurred_at']),
-    });
-  }
-
-  const clearedCount = TRADE_STAGES.slice(0, 5)
-    .filter(stage => latestByStage.get(stage.key)?.status === 'completed').length;
+      occurred_at: first(update, ['occurred_at']),
+      created_at: first(update, ['created_at']),
+    };
+  });
+  const { latestByStage, completedCount } = resolveTradeProgress(stageRecords, projectStatus);
   const progress = record(periodProgress);
   const elapsedDays = amount(progress, ['days_elapsed']);
   const totalDays = amount(progress, ['total_days']);
@@ -75,7 +60,7 @@ export function TradeProgressCard({
         </View>
         <View style={{ alignItems: 'flex-end' }}>
           <Text testID="stage-progress-count" style={{ color: colors.primary, fontSize: 18, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
-            {clearedCount} / 5
+            {completedCount} / {TRADE_STAGES.length}
           </Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>cleared</Text>
         </View>
@@ -88,13 +73,7 @@ export function TradeProgressCard({
           const inProgress = update?.status === 'in_progress';
           const notStarted = update?.status === 'not_started';
           const markerColor = completed ? colors.statusSuccess : inProgress ? colors.primary : colors.border;
-          const statusLabel = completed
-            ? 'Completed'
-            : inProgress
-              ? 'In progress'
-              : notStarted
-                ? 'Not started'
-                : 'No admin update yet.';
+          const statusLabel = update?.statusLabel ?? 'No admin update yet.';
 
           return <View key={stage.key} style={{ flexDirection: 'row', gap: 12, minHeight: index === TRADE_STAGES.length - 1 ? 58 : 75 }}>
             <View style={{ width: 25, alignItems: 'center' }}>
