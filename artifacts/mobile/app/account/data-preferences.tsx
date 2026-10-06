@@ -1,4 +1,5 @@
 import React from 'react';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import { Action, Card, Screen } from '@/components/InvestorUI';
 import { LocalizedText as Text } from '@/components/LocalizedText';
@@ -51,9 +52,11 @@ export default function DataPreferences() {
       <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>
         These actions open an editable Support ticket. They do not access, correct, or delete account data automatically; Support will review the request and may verify your identity.
       </Text>
-      <Action title="Request data access" icon="eye" secondary onPress={() => openDataRequest('access', preferences.language)} />
-      <Action title="Request a data correction" icon="edit-2" secondary onPress={() => openDataRequest('correction', preferences.language)} />
-      <Action title="Request data deletion" icon="trash-2" secondary onPress={() => openDataRequest('deletion', preferences.language)} />
+      <View style={{ gap: 12 }}>
+        <Action title="Request data access" icon="eye" secondary onPress={() => openDataRequest('access', preferences.language)} />
+        <Action title="Request a data correction" icon="edit-2" secondary onPress={() => openDataRequest('correction', preferences.language)} />
+        <Action title="Request data deletion" icon="trash-2" secondary onPress={() => openDataRequest('deletion', preferences.language)} />
+      </View>
     </Card>
 
     <Card>
@@ -61,9 +64,11 @@ export default function DataPreferences() {
       <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>
         Use existing session controls to review or revoke signed-in devices. Legal documents are shown only when OG Exports provides official content.
       </Text>
-      <Action title="Review account sessions" icon="smartphone" secondary onPress={() => router.push('/account/security' as never)} />
-      <Action title="View Investment Terms" icon="file-text" secondary onPress={() => router.push('/account/legal/investment-terms' as never)} />
-      <Action title="View User Agreement" icon="file-text" secondary onPress={() => router.push('/account/legal/user-agreement' as never)} />
+      <View style={{ gap: 12 }}>
+        <Action title="Review account sessions" icon="smartphone" secondary onPress={() => router.push('/account/security' as never)} />
+        <Action title="View Investment Terms" icon="file-text" secondary onPress={() => router.push('/account/legal/investment-terms' as never)} />
+        <Action title="View User Agreement" icon="file-text" secondary onPress={() => router.push('/account/legal/user-agreement' as never)} />
+      </View>
     </Card>
   </Screen>;
 }

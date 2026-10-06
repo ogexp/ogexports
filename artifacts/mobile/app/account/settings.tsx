@@ -358,8 +358,10 @@ export default function Settings() {
       <Field label="Full name" value={name} onChangeText={setName} placeholder="Your name" />
       <Field label="Mobile number" value={phone} onChangeText={setPhone} placeholder="+92 300 1234567" keyboardType="phone-pad" />
       <Field label="Country / region" value={country} onChangeText={setCountry} placeholder="Country of residence" />
-      <Action title="Manage bank accounts & verification" secondary onPress={() => router.push('/account/bank-accounts' as never)} />
-      <Action title="Save profile details" icon="save" loading={updateMe.isPending} onPress={() => void saveProfile()} />
+      <View style={{ gap: 12 }}>
+        <Action title="Manage bank accounts & verification" secondary onPress={() => router.push('/account/bank-accounts' as never)} />
+        <Action title="Save profile details" icon="save" loading={updateMe.isPending} onPress={() => void saveProfile()} />
+      </View>
     </Card>
 
     <Card>
