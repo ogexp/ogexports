@@ -1,24 +1,59 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { useGetInvestorProfile } from '@workspace/api-client-react';
-import { Card, ErrorState, Row, Screen, Section, Status } from '@/components/InvestorUI';
+import { useQueryClient } from '@tanstack/react-query';
+import { useGetInvestorProfile, useInvestorMobileLogout, useRevokeInvestorPushToken } from '@workspace/api-client-react';
+import { Action, Card, ConfirmationSheet, ErrorState, Row, Screen, Section, Status } from '@/components/InvestorUI';
 import { first, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { getInvestorKycStatus } from '@/lib/kyc';
 
+const pushEnabledKey = (userId: string) => `og-investor-push-enabled:${userId}`;
+const pushTokenKey = (userId: string) => `og-investor-push-token:${userId}`;
+
 export default function Profile() {
-  const { token, user } = useAuth();
+  const { token, user, signOut } = useAuth();
   const colors = useColors();
+  const queryClient = useQueryClient();
+  const logout = useInvestorMobileLogout();
+  const revokePushToken = useRevokeInvestorPushToken();
+  const userId = first(record(user), ['id']);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: !!token, staleTime: 60_000 } });
   const profile = unwrap(profileQuery.data);
   const account = { ...record(user), ...record(profile) };
   const initials = first(account, ['name'], 'OG').split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
   const kyc = profileQuery.isLoading ? 'Loading' : getInvestorKycStatus(account);
   const open = (path: string) => router.push(path as never);
+
+  async function signOutNow() {
+    if (signingOut) return;
+    setSigningOut(true);
+    if (userId) {
+      try {
+        const devicePushToken = await SecureStore.getItemAsync(pushTokenKey(userId));
+        if (devicePushToken) {
+          await revokePushToken.mutateAsync({ data: { expo_push_token: devicePushToken } });
+        }
+      } catch {
+        // Signing out still invalidates the current server session.
+      }
+      await Promise.all([
+        SecureStore.deleteItemAsync(pushTokenKey(userId)),
+        AsyncStorage.removeItem(pushEnabledKey(userId)),
+      ]).catch(() => undefined);
+    }
+    try { await logout.mutateAsync(); } catch { /* Local sign-out still clears this device's token. */ }
+    queryClient.clear();
+    await signOut();
+    router.replace('/(auth)/login');
+  }
 
   return <Screen title="Profile" subtitle="Your identity, payment details and account preferences">
     {profileQuery.isError ? <ErrorState message="Account details could not be refreshed." error={profileQuery.error} onRetry={() => void profileQuery.refetch()} /> : null}
@@ -68,5 +103,27 @@ export default function Profile() {
       <Row label="Privacy policy" icon="shield" onPress={() => open('/account/legal/privacy')} />
       <Row label="Risk disclosure" icon="alert-triangle" onPress={() => open('/account/legal/risk')} />
     </Card>
+    <Section title="Account" />
+    <Card style={{ paddingHorizontal: 14 }}>
+      <Action
+        title="Sign out"
+        icon="log-out"
+        secondary
+        loading={signingOut || logout.isPending || revokePushToken.isPending}
+        testID="profile-sign-out"
+        onPress={() => setConfirmSignOut(true)}
+      />
+    </Card>
+    <ConfirmationSheet
+      visible={confirmSignOut}
+      testID="profile-confirm-sign-out-sheet"
+      title="Confirm logout"
+      body="Your session on this device will end."
+      confirmLabel="Sign out"
+      destructive
+      loading={signingOut || logout.isPending || revokePushToken.isPending}
+      onCancel={() => setConfirmSignOut(false)}
+      onConfirm={() => void signOutNow()}
+    />
   </Screen>;
 }
