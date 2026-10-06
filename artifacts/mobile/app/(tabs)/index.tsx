@@ -190,8 +190,7 @@ export default function InvestorHome() {
     dashboardUsdToPkrRate,
   );
   const showLocalBalanceEquivalent = !dashboard.isLoading
-    && !dashboard.isError
-    && localBalanceEquivalent != null;
+    && !dashboard.isError;
   const name = first(record(user), ['name', 'first_name'], 'Investor');
   const firstName = name.split(/\s+/)[0] || 'Investor';
   const greeting = 'Hi';
@@ -365,7 +364,7 @@ export default function InvestorHome() {
             {dashboard.isLoading ? '…' : displayUsdBalance()}
          </Text>
           {showLocalBalanceEquivalent ? <Text testID="home-local-balance-equivalent" numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, opacity: 0.78, fontSize: 12, marginTop: 2, textAlign: 'center' }}>
-            {balanceHidden ? '••••••' : moneyInSourceCurrency(localBalanceEquivalent, localCurrency)}
+            {balanceHidden ? '••••••' : localBalanceEquivalent == null ? `${localCurrency} unavailable` : moneyInSourceCurrency(localBalanceEquivalent, localCurrency)}
           </Text> : null}
          {dashboard.isError ? <Text style={{ color: colors.balanceCardText, opacity: 0.7, fontSize: 10, marginTop: 4 }}>
            Balance details unavailable right now
