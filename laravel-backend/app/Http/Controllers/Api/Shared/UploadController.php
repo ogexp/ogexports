@@ -26,6 +26,7 @@ class UploadController extends Controller
         $file = $request->file('file');
         $mime = (string) $file->getMimeType();
         $isImage = str_starts_with(strtolower($mime), 'image/');
+        $maxImageSizeKb = $category === 'kyc' ? 10 * 1024 : 8 * 1024;
 
         if ($isImage) {
             $request->validate([
@@ -33,7 +34,7 @@ class UploadController extends Controller
                     'required',
                     File::image()
                         ->types(['jpg', 'jpeg', 'png', 'gif', 'webp'])
-                        ->max(8 * 1024),
+                        ->max($maxImageSizeKb),
                 ],
             ]);
         } else {

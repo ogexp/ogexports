@@ -1,10 +1,13 @@
 <?php
 
 use App\Models\User;
-use App\Models\UserProfile;
+use App\Models\InvestorBankAccountVerification;
 use App\Models\PlatformSetting;
+use App\Models\UserProfile;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -22,6 +25,12 @@ beforeEach(function () {
 
     $this->investor = User::factory()->create(['account_status' => 'active']);
     $this->investor->assignRole('investor');
+});
+
+afterEach(function () {
+    if (isset($this->proofPath)) {
+        Storage::disk('local')->delete($this->proofPath);
+    }
 });
 
 it('returns migrated bank_accounts from legacy withdraw_bank on profile show', function () {
@@ -86,4 +95,51 @@ it('saves multiple bank_accounts and keeps a single default', function () {
     $meta = $this->investor->fresh()->profile->meta;
     expect($meta['bank_accounts'])->toHaveCount(2)
         ->and($meta['withdraw_bank']['account_number'])->toBe('222');
+});
+
+it('accepts multipart bank proof uploads and stores the proof privately', function () {
+    $this->actingAs($this->investor)
+        ->post('/api/investor/bank-accounts', [
+            'bank_name' => 'Habib Bank',
+            'account_holder' => 'Demo Investor',
+            'account_number' => '1234567890',
+            'currency' => 'PKR',
+            'file' => UploadedFile::fake()->create('statement.pdf', 100, 'application/pdf'),
+        ], [
+            'Accept' => 'application/json',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('message', 'Bank account proof submitted for review.');
+
+    $verification = InvestorBankAccountVerification::query()
+        ->where('investor_id', $this->investor->id)
+        ->firstOrFail();
+    $this->proofPath = $verification->document_path;
+
+    expect($verification->original_name)->toBe('statement.pdf')
+        ->and($verification->status)->toBe('pending');
+
+    expect(Storage::disk('local')->exists($verification->document_path))->toBeTrue();
+});
+
+it('rejects bank proof files larger than 10mb before storing them', function () {
+    $filesBefore = Storage::disk('local')->allFiles('bank-account-proofs/'.$this->investor->id);
+
+    $this->actingAs($this->investor)
+        ->post('/api/investor/bank-accounts', [
+            'bank_name' => 'Habib Bank',
+            'account_holder' => 'Demo Investor',
+            'account_number' => '1234567890',
+            'currency' => 'PKR',
+            'file' => UploadedFile::fake()->create('large.pdf', 10 * 1024 + 1, 'application/pdf'),
+        ], [
+            'Accept' => 'application/json',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('file');
+
+    expect(InvestorBankAccountVerification::query()->where('investor_id', $this->investor->id)->exists())
+        ->toBeFalse();
+    expect(Storage::disk('local')->allFiles('bank-account-proofs/'.$this->investor->id))
+        ->toBe($filesBefore);
 });

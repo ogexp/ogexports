@@ -1716,7 +1716,7 @@ components:
         swift: { type: ["string", "null"], maxLength: 50 }
         branch: { type: ["string", "null"], maxLength: 255 }
         currency: { type: string, minLength: 3, maxLength: 3 }
-        file: { type: string, format: binary, description: PDF or image proof }
+        file: { type: string, format: binary, description: "PDF, JPEG, PNG, or WebP up to 10 MB" }
     InvestorBankAccount:
       type: object
       required: [id, bank_name, account_holder, masked_account_identifier, currency, is_default, verification_status]

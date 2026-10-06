@@ -15,3 +15,4 @@
 - [First-withdrawal device security](first-withdrawal-device-security.md) — offer app PIN/biometric setup only before a user's first withdrawal; investments should not force setup when neither is configured.
 - [Admin dashboard source](admin-dashboard-source.md) — use the dashboard from the user's original frontend ZIP; do not create a replacement.
 - [Android file picker uploads](android-file-picker-uploads.md) — keep the Expo FileSystem `File` object for native uploads; Android cache-copy URIs can fail readability checks.
+- [Laravel test storage isolation](laravel-testing-storage-isolation.md) — avoid `Storage::fake('local')` when its shared framework test-disk directory contains tracked fixtures.

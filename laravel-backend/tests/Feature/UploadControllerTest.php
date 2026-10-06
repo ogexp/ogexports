@@ -27,13 +27,13 @@ afterEach(function () {
     File::put(public_path('downloads/reports/.gitkeep'), '');
 });
 
-it('uploads kyc images to public upload directory with 8mb limit', function () {
-    $file = UploadedFile::fake()->image('id.jpg');
+it('uploads kyc images up to 10mb to the public upload directory', function () {
+    $file = UploadedFile::fake()->image('id.jpg')->size(10 * 1024);
 
     $response = $this->actingAs($this->user)
         ->post('/api/uploads', [
             'file' => $file,
-            'category' => 'kyc',
+            'folder' => 'kyc',
         ], [
             'Accept' => 'application/json',
         ]);
@@ -46,13 +46,26 @@ it('uploads kyc images to public upload directory with 8mb limit', function () {
         ->and(File::exists(public_path($path)))->toBeTrue();
 });
 
-it('rejects image uploads larger than 8mb', function () {
-    $file = UploadedFile::fake()->create('large.jpg', 9 * 1024, 'image/jpeg');
+it('rejects kyc images larger than 10mb', function () {
+    $file = UploadedFile::fake()->image('large.jpg')->size(11 * 1024);
 
     $this->actingAs($this->user)
         ->post('/api/uploads', [
             'file' => $file,
             'category' => 'kyc',
+        ], [
+            'Accept' => 'application/json',
+        ])
+        ->assertStatus(422);
+});
+
+it('keeps the 8mb image limit for non-kyc uploads', function () {
+    $file = UploadedFile::fake()->image('large.jpg')->size(9 * 1024);
+
+    $this->actingAs($this->user)
+        ->post('/api/uploads', [
+            'file' => $file,
+            'folder' => 'general',
         ], [
             'Accept' => 'application/json',
         ])

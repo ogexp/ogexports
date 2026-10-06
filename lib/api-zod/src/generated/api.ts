@@ -1334,7 +1334,7 @@ export const CreateInvestorBankAccountBody = zod.object({
   "swift": zod.string().max(createInvestorBankAccountBodySwiftMax).nullish(),
   "branch": zod.string().max(createInvestorBankAccountBodyBranchMax).nullish(),
   "currency": zod.string().min(createInvestorBankAccountBodyCurrencyMin).max(createInvestorBankAccountBodyCurrencyMax),
-  "file": zod.instanceof(Blob).describe('PDF or image proof')
+  "file": zod.instanceof(Blob).describe('PDF, JPEG, PNG, or WebP up to 10 MB')
 })
 
 export const CreateInvestorBankAccountResponse = zod.record(zod.string(), zod.unknown())

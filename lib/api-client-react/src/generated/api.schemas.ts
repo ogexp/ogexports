@@ -831,7 +831,7 @@ export interface InvestorBankAccountInput {
      * @maxLength 3
      */
   currency: string;
-  /** PDF or image proof */
+  /** PDF, JPEG, PNG, or WebP up to 10 MB */
   file: Blob;
 }
 
