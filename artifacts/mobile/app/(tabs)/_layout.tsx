@@ -39,26 +39,27 @@ function ClassicLayout() {
   const isWeb = Platform.OS === 'web';
   const isAndroid = Platform.OS === 'android';
   const androidTabBarLowering = isAndroid
-    ? Math.min(Math.max(insets.bottom * 0.5, 12), 16)
+    ? Math.min(Math.max(insets.bottom * 0.5, 18), 22)
     : 0;
   return (
     <Tabs screenOptions={{
       headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.mutedForeground,
       tabBarStyle: {
-        position: 'absolute', left: isAndroid ? 0 : 14, right: isAndroid ? 0 : 14,
+        position: 'absolute', left: 14, right: 14,
         bottom: isWeb ? 0 : isAndroid ? -androidTabBarLowering : Math.max(insets.bottom, 10),
-        height: isWeb ? 84 : isAndroid ? 64 : 70,
+        height: isWeb ? 84 : isAndroid ? 70 : 70,
         paddingTop: isWeb ? 2 : isAndroid ? 0 : 4,
         paddingBottom: isWeb ? 34 : 0,
+        borderRadius: isAndroid ? 35 : 0,
         backgroundColor: isAndroid ? colors.card : 'transparent',
-        borderTopWidth: isAndroid ? StyleSheet.hairlineWidth : 0,
-        borderTopColor: colors.border,
-        elevation: 0,
+        borderWidth: isAndroid ? StyleSheet.hairlineWidth : 0,
+        borderColor: colors.border,
+        elevation: isAndroid ? 6 : 0,
       },
       tabBarItemStyle: { paddingTop: isWeb ? 2 : 0 },
       tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: 1 },
       tabBarBackground: () => isAndroid
-        ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]} />
+        ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: colors.card, borderRadius: 35, overflow: 'hidden' }]} />
         : (
           <View pointerEvents="none" style={StyleSheet.absoluteFill}>
             {Platform.OS === 'ios' ? <BlurView intensity={85} tint={resolvedAppearance} style={[StyleSheet.absoluteFill, { bottom: isWeb ? 34 : 0 }]} /> : null}
