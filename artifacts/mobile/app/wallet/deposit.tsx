@@ -353,27 +353,15 @@ export default function Deposit() {
       <DetailRow label="Payment method" value="Bank transfer" />
       <DetailRow label="Receiving bank" value={first(selectedBank ?? {}, ['bank_name', 'name'])} />
       <View style={{ marginTop: 4, borderTopWidth: 1, borderTopColor: colors.border }}>
-        {reviewBankDetails.map((detail, index) => {
-          const copied = copiedBankField === detail.key;
-          return <View key={detail.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{detail.label}</Text>
-              <Text testID={`review-${detail.key}-value`} selectable style={{ color: detail.value ? colors.foreground : colors.mutedForeground, fontFamily: 'monospace', fontSize: 12, fontWeight: '600', flexShrink: 1, lineHeight: 19, marginTop: 3, textAlign: 'left', writingDirection: 'ltr' }}>
-                {detail.value || 'Not provided'}
-              </Text>
-            </View>
-            {detail.value ? <LocalizedPressable
-              accessibilityRole="button"
-              accessibilityLabel={copied ? `${detail.label} copied` : `Copy ${detail.label}`}
-              accessibilityHint="Copies value to clipboard"
-              testID={`review-copy-${detail.key}`}
-              onPress={() => void copyBankDetail(detail.key, detail.value)}
-              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 10 }}
-            >
-              <Feather name={copied ? 'check' : 'copy'} size={16} color={colors.primary} />
-            </LocalizedPressable> : null}
-          </View>;
-        })}
+        {reviewBankDetails.map((detail, index) => <View
+          key={detail.key}
+          style={{ paddingVertical: 9, borderBottomWidth: index === reviewBankDetails.length - 1 ? 0 : 1, borderBottomColor: colors.border }}
+        >
+          <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', letterSpacing: 0.4 }}>{detail.label}</Text>
+          <Text testID={`review-${detail.key}-value`} selectable style={{ color: detail.value ? colors.foreground : colors.mutedForeground, fontFamily: 'monospace', fontSize: 13, fontWeight: '600', lineHeight: 20, marginTop: 3, textAlign: 'left', writingDirection: 'ltr' }}>
+            {detail.value || 'Not provided'}
+          </Text>
+        </View>)}
       </View>
       <DetailRow label="Transaction reference" value={reference.trim()} />
       <DetailRow label="Proof of transfer" value={proofName || (proofRequired ? 'Required, but not attached' : 'Not attached')} />
