@@ -13,11 +13,11 @@ Use spacious typography, rounded cards with subtle borders and shadows, and ligh
 
 On Home, use the supplied screenshot direction: a full-width emerald gradient hero and a white floating action dock with Deposit Funds, Invest Now, Withdraw Funds, and View Portfolio. Keep the balance API-driven, preserve the privacy toggle, and keep the decorative circles subtle. The white content begins with Account Overview, followed by verification and investment summaries; move Portfolio Performance and Recent Transactions lower.
 
-Home's prominent available balance must be formatted in the API wallet's local currency, regardless of the app's optional display-currency preference. Do not show a duplicate local-equivalent line when the primary balance is already local.
+On Home only, show the available balance in USD with the user's API wallet/country currency equivalent directly underneath. Preserve the privacy toggle for both values.
 
-**Why:** The user asked for the green-card balance to show in local wallet currency rather than `$`; showing both the same local amount twice is redundant.
+**Why:** The user wants the screenshot's USD primary balance plus a smaller local-currency equivalent on the Home screen, without changing other screens.
 
-**How to apply:** Convert from the API-reported dashboard balance currency to the wallet currency using valid API FX data, then format explicitly in that wallet currency. If conversion is unavailable, show the amount with its source currency rather than mislabeling it.
+**How to apply:** Convert the dashboard's API-reported balance currency to USD and to the API wallet currency using valid FX data. Format each explicitly; do not suppress the local line only because currencies match. Keep the change confined to Home and show an explicit unavailable state rather than inventing a conversion.
 
 **Why:** the user asked to match a specific Home-screen reference, including its green hero and five-item bottom navigation. The OG artwork remains the official logo; the new bank glyph is a screen-specific account icon. On 2026-10-06, the user said iOS pages still had too much top gap and twice reported that the Android tab bar remained too high. A later phone screenshot showed a large negative Android offset gets clipped by the system-navigation region; the user chose to stay on Expo Go rather than install a rebuilt app.
 
