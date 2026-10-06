@@ -130,7 +130,8 @@ export default function Deposit() {
   const defaultBank = banks.find(item => isEnabled(first(item, ['is_default'])));
   const selectedBank = banks.find(item => first(item, ['id']) === bankId) ?? defaultBank;
   const selectedProject = projects.find(item => first(item, ['id']) === projectId);
-  const paymentCurrency = first(selectedBank ?? {}, ['currency']).toUpperCase() || walletCurrency;
+  const paymentCurrency = walletCurrency;
+  const acceptedBankCurrencies = first(selectedBank ?? {}, ['currency']).toUpperCase() || walletCurrency;
   const bankAccountNumber = first(selectedBank ?? {}, ['account_number', 'accountNumber']);
   const bankIban = first(selectedBank ?? {}, ['iban']);
   const bankSwift = first(selectedBank ?? {}, ['swift', 'swift_code', 'swift_bic']);
@@ -282,7 +283,7 @@ export default function Deposit() {
           <CopyableBankDetailRow label="SWIFT / BIC" value={bankSwift} copied={copiedBankField === 'swift'}
             accessibilityLabel="Copy SWIFT / BIC" testID="copy-payment-swift"
             onCopy={() => void copyBankDetail('swift', bankSwift)} />
-          <DetailRow label="Payment currency" value={first(selectedBank, ['currency']).toUpperCase() || walletCurrency || 'USD'} />
+          <DetailRow label="Accepted transfer currencies" value={acceptedBankCurrencies || '—'} />
           {first(selectedBank, ['instructions']) ? <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 19, marginTop: 7 }}>{first(selectedBank, ['instructions'])}</Text> : null}
           {first(selectedBank, ['notes']) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 6 }}>{first(selectedBank, ['notes'])}</Text> : null}
           {!first(selectedBank, ['instructions', 'notes']) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 6 }}>Contact OG Exports support before sending a transfer.</Text> : null}

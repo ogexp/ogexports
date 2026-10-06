@@ -40,6 +40,7 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["ACTUAL","اصل","فعلي"],
   ["APPLICATION STATUS","درخواست کی حیثیت","حالة الطلب"],
   ["AVAILABLE BALANCE","دستیاب بیلنس","الرصيد المتاح"],
+  ["Accepted transfer currencies","قبول شدہ منتقلی کی کرنسیاں","عملات التحويل المقبولة"],
   ["Account holder","اکاؤنٹ ہولڈر","صاحب الحساب"],
   ["Account number","اکاؤنٹ نمبر","رقم الحساب"],
   ["Account password","اکاؤنٹ پاس ورڈ","كلمة مرور الحساب"],
