@@ -4,9 +4,9 @@ import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
+import { useGetInvestorDashboard, useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount, first, list, money, record, type Json } from '@/lib/data';
+import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap, type Json } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -37,7 +37,7 @@ function displayDate(value: string) {
 
 function balanceLabel(value: number | null, currency: string, loading: boolean, error: boolean) {
   if (loading) return 'Loading…';
-  if (error) return 'Unavailable';
+  if (error && value == null) return 'Unavailable';
   return money(value, currency || 'USD');
 }
 
@@ -48,13 +48,23 @@ export default function Wallet() {
   const wallet = useGetInvestorWallet({
     query: { queryKey: ['investor-wallet'], enabled: Boolean(token), staleTime: 30_000 },
   });
+  const dashboard = useGetInvestorDashboard({
+    query: { queryKey: ['investor-dashboard'], enabled: Boolean(token), staleTime: 30_000 },
+  });
   const transactions = useGetInvestorWalletTransactions({ page: 1, per_page: pageSize }, {
     query: { queryKey: ['investor-wallet-transactions', 1, pageSize], enabled: Boolean(token), staleTime: 30_000 },
   });
 
   const walletData = record(record(wallet.data).data ?? wallet.data);
-  const currency = first(walletData, ['currency', 'default_currency']).toUpperCase();
-  const available = amount(walletData, ['available_balance']);
+  const dashboardData = unwrap(dashboard.data);
+  const dashboardWallet = record(dashboardData.wallet);
+  const summary = record(dashboardData.summary);
+  const currency = first(
+    dashboardWallet,
+    ['currency', 'default_currency'],
+    first(summary, ['display_currency'], first(walletData, ['currency', 'default_currency'])),
+  ).toUpperCase();
+  const available = availableBalanceFromDashboard(dashboard.data);
   const allocated = amount(walletData, ['allocated_to_trades', 'allocated_balance']);
   const pending = amount(walletData, ['pending_balance']);
   const withdrawable = amount(walletData, ['withdrawable_balance', 'withdrawable_amount']);
@@ -91,7 +101,7 @@ export default function Wallet() {
       </View>
       <Text style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: '600', letterSpacing: 0.6, marginTop: 26 }}>AVAILABLE BALANCE</Text>
       <Text adjustsFontSizeToFit numberOfLines={1} style={{ color: colors.primaryForeground, fontSize: 33, fontWeight: '700', marginTop: 7 }}>
-        {balanceLabel(available, currency, wallet.isLoading, wallet.isError)}
+        {balanceLabel(available, currency, dashboard.isLoading, dashboard.isError)}
       </Text>
       <Text style={{ color: colors.primaryForeground, fontSize: 11, opacity: 0.82, marginTop: 7 }}>
         {currency || 'USD'} account
@@ -101,15 +111,22 @@ export default function Wallet() {
     <Section title="Balance Breakdown" />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
       {balanceMetrics.map(metric => {
+        const isAvailable = metric.label === 'Available';
         return <Card key={metric.label} style={{ width: '48%', minHeight: 91, padding: 13, marginBottom: 0 }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{metric.label}</Text>
           <Text numberOfLines={2} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 8 }}>
-            {balanceLabel(metric.value, currency, wallet.isLoading, wallet.isError)}
+            {balanceLabel(
+              metric.value,
+              currency,
+              isAvailable ? dashboard.isLoading : wallet.isLoading,
+              isAvailable ? dashboard.isError : wallet.isError,
+            )}
           </Text>
         </Card>;
       })}
     </View>
-    {wallet.isError ? <ErrorState message="Wallet balance could not be loaded from OG Exports." error={wallet.error} onRetry={() => void wallet.refetch()} /> : null}
+    {dashboard.isError ? <ErrorState message="Account balance could not be loaded from OG Exports." error={dashboard.error} onRetry={() => void dashboard.refetch()} /> : null}
+    {wallet.isError ? <ErrorState message="Wallet breakdown could not be loaded from OG Exports." error={wallet.error} onRetry={() => void wallet.refetch()} /> : null}
 
     <Section title="Quick Actions" />
     <View style={{ flexDirection: 'row', gap: 10 }}>

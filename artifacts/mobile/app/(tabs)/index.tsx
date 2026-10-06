@@ -16,7 +16,7 @@ import {
 } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Status } from '@/components/InvestorUI';
 import { AllocationDonut, type AllocationSlice } from '@/components/AllocationDonut';
-import { amount, first, list, money, record, unwrap } from '@/lib/data';
+import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap } from '@/lib/data';
 import { latestRecords } from '@/lib/latest-records';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -149,7 +149,7 @@ export default function InvestorHome() {
   const wallet = record(data.wallet);
   const series = record(data.portfolio_series);
   const currency = first(wallet, ['currency', 'default_currency'], first(summary, ['display_currency'], 'USD'));
-  const liveBalance = amount(wallet, ['available_balance', 'balance', 'available']) ?? amount(summary, ['available_balance']);
+  const liveBalance = availableBalanceFromDashboard(dashboard.data);
   const investedCapitalLocal = amount(summary, ['total_investment']);
   const investedCapitalUsd = amount(summary, ['total_investment_usd']);
   const investedCapital = investedCapitalLocal ?? investedCapitalUsd ?? amount(summary, ['invested_capital']);

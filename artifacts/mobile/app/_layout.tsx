@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Platform, StatusBar as NativeStatusBar } from 'react-native';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -31,7 +31,8 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
-  const { ready, token, appUnlocked } = useAuth();
+  const { ready, token, user, apiOrigin, appUnlocked } = useAuth();
+  const sessionQueryClient = useQueryClient();
   const { isRTL, preferences, resolvedAppearance } = useAppPreferences();
   const colors = useColors();
   const t = (value: string) => translateUi(value, preferences.language);
@@ -45,6 +46,18 @@ function RootLayoutNav() {
   const pathname = usePathname();
   const routeParams = useGlobalSearchParams();
   const returnTo = serializeRouteState(pathname, routeParams);
+  const accountId = String(record(user).id ?? record(user).user_id ?? '');
+  const sessionScope = token ? `${apiOrigin}|${accountId || 'authenticated'}` : 'signed-out';
+  const previousSessionScope = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!ready) return;
+    // Query keys are shared across accounts; never reuse another investor's cached balances.
+    if (previousSessionScope.current !== undefined && previousSessionScope.current !== sessionScope) {
+      sessionQueryClient.clear();
+    }
+    previousSessionScope.current = sessionScope;
+  }, [ready, sessionScope, sessionQueryClient]);
 
   useEffect(() => {
     if (Platform.OS === 'web' || (Platform.OS === 'android' && isRunningInExpoGo())) return;

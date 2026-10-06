@@ -13,6 +13,7 @@ import {
   getGetInvestorProfileQueryKey,
   getGetInvestorWalletQueryKey,
   getGetPublicInvestorAppSettingsQueryKey,
+  useGetInvestorDashboard,
   useGetInvestorProfile,
   useGetInvestorProject,
   useGetInvestorWallet,
@@ -20,7 +21,7 @@ import {
   useInvestInProject,
 } from '@workspace/api-client-react';
 import { Action, Card, ErrorState, Field, Screen, Status, SuccessMark } from '@/components/InvestorUI';
-import { amount, first, messageOf, record, unwrap, money, moneyInSourceCurrency } from '@/lib/data';
+import { amount, availableBalanceFromDashboard, first, messageOf, record, unwrap, money, moneyInSourceCurrency } from '@/lib/data';
 import { OpportunityDetailOverview } from '@/components/OpportunityDetailOverview';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -64,6 +65,7 @@ export default function OpportunityDetail() {
   const query = useGetInvestorProject(id, { query: { queryKey: getGetInvestorProjectQueryKey(id), enabled: Boolean(id && token) } });
   const profileQuery = useGetInvestorProfile({ query: { queryKey: getGetInvestorProfileQueryKey(), enabled: !!token } });
   const walletQuery = useGetInvestorWallet({ query: { queryKey: getGetInvestorWalletQueryKey(), enabled: !!token, staleTime: 30_000 } });
+  const dashboardQuery = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: !!token, staleTime: 30_000 } });
   const settingsQuery = useGetPublicInvestorAppSettings({ query: { queryKey: getGetPublicInvestorAppSettingsQueryKey(), staleTime: 300_000 } });
   const invest = useInvestInProject();
   const [investAmount, setInvestAmount] = useState('');
@@ -106,11 +108,17 @@ export default function OpportunityDetail() {
   const kycStatus = getInvestorKycStatus(investorProfile);
   const kycVerified = !profileQuery.isLoading && !profileQuery.isFetching && !profileQuery.isError && isInvestorKycVerified(investorProfile);
   const wallet = unwrap(walletQuery.data);
-  const walletCurrency = first(wallet, ['currency', 'default_currency']);
+  const dashboard = unwrap(dashboardQuery.data);
+  const dashboardWallet = record(dashboard.wallet);
+  const walletCurrency = first(
+    dashboardWallet,
+    ['currency', 'default_currency'],
+    first(wallet, ['currency', 'default_currency']),
+  );
   const remainingFunding = amount(project, ['remaining_amount', 'remaining_capacity', 'remaining_funding']);
   const minimum = amount(project, ['minimum_investment', 'min_investment']);
   const maximum = amount(project, ['maximum_investment', 'max_investment']);
-  const walletBalance = amount(wallet, ['available_balance', 'balance', 'available']);
+  const walletBalance = availableBalanceFromDashboard(dashboardQuery.data);
   const projectType = first(project, ['type'], first(tradeData, ['type'])).toLowerCase();
   const apiCurrencyFallback = projectType === 'container' ? 'USD' : walletCurrency;
   const currency = first(
@@ -179,7 +187,9 @@ export default function OpportunityDetail() {
   const amountFacts: [string, string][] = [
     ['Minimum', formatTradeMoney(minimum)],
     ...(maximum == null ? [] : [['Maximum', formatTradeMoney(maximum)] as [string, string]]),
-    ['Wallet balance', walletQuery.isError && walletBalance == null ? 'Unavailable' : money(walletBalance, walletCurrency || 'USD')],
+    ['Wallet balance', walletBalance == null
+      ? dashboardQuery.isLoading ? 'Loading…' : 'Unavailable'
+      : money(walletBalance, walletCurrency || 'USD')],
     ['Remaining capacity', formatTradeMoney(remainingCapacity)],
   ];
   const amountSummary = currency && Number.isFinite(Number(investAmount)) && Number(investAmount) > 0

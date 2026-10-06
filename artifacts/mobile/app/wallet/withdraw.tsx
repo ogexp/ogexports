@@ -7,12 +7,13 @@ import {
   useCreateInvestorWithdrawal,
   getGetInvestorBankAccountsQueryKey,
   useGetInvestorBankAccounts,
+  useGetInvestorDashboard,
   useGetInvestorWallet,
   useGetInvestorWithdrawals,
   useSendInvestorWithdrawalOtp,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessMark } from '@/components/InvestorUI';
-import { amount as readAmount, first, list, messageOf, money, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
+import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, money, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -91,6 +92,7 @@ export default function Withdraw() {
   const colors = useColors();
   const queryClient = useQueryClient();
   const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token) } });
+  const dashboardQuery = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: Boolean(token), staleTime: 30_000 } });
   const bankAccountsQuery = useGetInvestorBankAccounts({
     query: { queryKey: getGetInvestorBankAccountsQueryKey(), enabled: Boolean(token) },
   });
@@ -98,9 +100,15 @@ export default function Withdraw() {
   const create = useCreateInvestorWithdrawal();
   const sendOtp = useSendInvestorWithdrawalOtp();
   const wallet = unwrap(walletQuery.data);
-  const walletCurrency = first(wallet, ['currency', 'default_currency']).toUpperCase();
+  const dashboard = unwrap(dashboardQuery.data);
+  const dashboardWallet = record(dashboard.wallet);
+  const walletCurrency = first(
+    dashboardWallet,
+    ['currency', 'default_currency'],
+    first(wallet, ['currency', 'default_currency']),
+  ).toUpperCase();
   const explicitWithdrawableBalance = readAmount(wallet, ['withdrawable_balance']);
-  const availableBalance = explicitWithdrawableBalance ?? readAmount(wallet, ['available_balance']);
+  const availableBalance = explicitWithdrawableBalance ?? availableBalanceFromDashboard(dashboardQuery.data);
   const bankAccountData = unwrap(bankAccountsQuery.data);
   const bankAccounts = list(bankAccountData.bank_accounts);
   const verifiedAccounts = bankAccounts.filter(verifiedBankAccount);
@@ -209,12 +217,16 @@ export default function Withdraw() {
   }
 
   return <Screen title="Withdraw" subtitle="Request a payout from your OG Exports wallet">
-    {walletQuery.isError ? <ErrorState message="Withdrawable balance could not be loaded." error={walletQuery.error} onRetry={() => void walletQuery.refetch()} /> : null}
+    {walletQuery.isError && availableBalance == null && dashboardQuery.isError
+      ? <ErrorState message="Withdrawable balance could not be loaded." error={walletQuery.error} onRetry={() => { void walletQuery.refetch(); void dashboardQuery.refetch(); }} />
+      : null}
     {bankAccountsQuery.isError ? <ErrorState message="Bank account details could not be loaded." error={bankAccountsQuery.error} onRetry={() => void bankAccountsQuery.refetch()} /> : null}
     <Card style={{ borderLeftWidth: 3, borderLeftColor: colors.primary }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>WITHDRAWABLE BALANCE</Text>
       <Text style={{ color: colors.foreground, fontSize: 27, fontWeight: '700', marginTop: 7 }}>
-        {walletQuery.isLoading ? 'Loading…' : walletQuery.isError && availableBalance == null ? 'Unavailable' : money(availableBalance, withdrawalCurrency || 'USD')}
+        {availableBalance == null
+          ? walletQuery.isLoading || dashboardQuery.isLoading ? 'Loading…' : 'Unavailable'
+          : money(availableBalance, withdrawalCurrency || 'USD')}
       </Text>
       {explicitWithdrawableBalance == null && availableBalance != null
         ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 6 }}>OG Exports does not return a separate withdrawable total; requests are reserved from the reported available balance.</Text>

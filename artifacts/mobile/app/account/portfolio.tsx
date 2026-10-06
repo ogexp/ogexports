@@ -4,13 +4,12 @@ import { Feather } from '@expo/vector-icons';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import {
-  getGetInvestorDashboardQueryKey,
   getGetInvestorInvestmentsQueryKey,
   useGetInvestorDashboard,
   useGetInvestorInvestments,
 } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount, first, list, money, record, unwrap } from '@/lib/data';
+import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
@@ -61,7 +60,7 @@ export default function Portfolio() {
   });
   const dashboardQuery = useGetInvestorDashboard({
     query: {
-      queryKey: getGetInvestorDashboardQueryKey(),
+      queryKey: ['investor-dashboard'],
       enabled: !!token,
       staleTime: 30_000,
     },
@@ -77,8 +76,7 @@ export default function Portfolio() {
   const invested = amount(summary, ['total_investment', 'total_investment_usd', 'invested_capital']);
   const distributed = amount(summary, ['distributed_returns']);
   const pendingDistribution = amount(summary, ['pending_distribution']);
-  const availableBalance = amount(wallet, ['available_balance', 'balance', 'available'])
-    ?? amount(summary, ['available_balance']);
+  const availableBalance = availableBalanceFromDashboard(dashboardQuery.data);
   const dashboardInvestments = list(dashboard.my_investments);
   const assignedRows = rows.map((item, index) => {
     const trade = record(item.trade ?? item.project ?? item.trade_details);

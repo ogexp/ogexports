@@ -82,6 +82,13 @@ export function amount(row: Json, keys: string[]): number | null {
   return null;
 }
 
+export function availableBalanceFromDashboard(value: unknown): number | null {
+  const dashboard = unwrap(value);
+  const wallet = record(dashboard.wallet);
+  const summary = record(dashboard.summary);
+  return amount(wallet, ['available_balance']) ?? amount(summary, ['available_balance']);
+}
+
 export function money(value: unknown, currency?: string, options: { preserveSource?: boolean } = {}): string {
   const missingValue = value === null || value === undefined || value === '';
   const parsed = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN;
