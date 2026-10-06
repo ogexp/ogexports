@@ -19,9 +19,9 @@ import {
   useGetPublicInvestorAppSettings,
   useInvestInProject,
 } from '@workspace/api-client-react';
-import { Action, Card, ErrorState, Field, Screen, Section, Status, SuccessMark } from '@/components/InvestorUI';
-import { amount, first, list, messageOf, record, unwrap, money, moneyInSourceCurrency } from '@/lib/data';
-import { TradeTimeline } from '@/components/TradeTimeline';
+import { Action, Card, ErrorState, Field, Screen, Status, SuccessMark } from '@/components/InvestorUI';
+import { amount, first, messageOf, record, unwrap, money, moneyInSourceCurrency } from '@/lib/data';
+import { OpportunityDetailOverview } from '@/components/OpportunityDetailOverview';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { shareInvestorFile } from '@/lib/file-download';
@@ -40,7 +40,7 @@ export default function OpportunityDetail() {
   const settingsQuery = useGetPublicInvestorAppSettings({ query: { queryKey: getGetPublicInvestorAppSettingsQueryKey(), staleTime: 300_000 } });
   const invest = useInvestInProject();
   const [investAmount, setInvestAmount] = useState('');
-  const [stage, setStage] = useState<'details' | 'amount' | 'allocation' | 'review' | 'risk' | 'confirmation' | 'success'>('details');
+  const [stage, setStage] = useState<'details' | 'amount' | 'review' | 'risk' | 'confirmation' | 'success'>('details');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [riskAccepted, setRiskAccepted] = useState(false);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
@@ -53,115 +53,54 @@ export default function OpportunityDetail() {
   const project = unwrap(query.data);
   const appSettings = unwrap(settingsQuery.data);
   const siteSettings = record(appSettings.site);
+  const supportEmail = first(siteSettings, ['support_email', 'supportEmail'], 'support@ogexports.co');
   const investorProfile = unwrap(profileQuery.data);
   const kycStatus = getInvestorKycStatus(investorProfile);
   const kycVerified = !profileQuery.isLoading && !profileQuery.isFetching && !profileQuery.isError && isInvestorKycVerified(investorProfile);
   const wallet = unwrap(walletQuery.data);
-  const target = amount(project, ['target_amount', 'funding_target', 'amount']);
-  const fundedAmount = amount(project, ['funded_amount', 'raised_amount', 'current_amount', 'current_funding']);
   const remainingFunding = amount(project, ['remaining_amount', 'remaining_capacity', 'remaining_funding']);
   const minimum = amount(project, ['minimum_investment', 'min_investment']);
   const maximum = amount(project, ['maximum_investment', 'max_investment']);
   const walletBalance = amount(wallet, ['available_balance', 'balance', 'available']);
   const currency = first(project, ['currency', 'investment_currency']);
   const walletCurrency = first(wallet, ['currency']);
-  const documents = list(project.documents);
-  const timeline = list(project.trade_updates);
-  const meta = record(project.meta);
-  const containerRecord = record(project.container ?? project.container_tracking ?? project.container_details);
-  const isContainerProject = first(project, ['type', 'project_type']).toLowerCase() === 'container';
-  const containerNumber = first(
-    containerRecord,
-    ['container_number'],
-    first(project, ['container_number', 'container_no'], first(meta, ['container_no', 'container_number', 'containerNumber'], '—')),
-  );
-  const containerType = first(project, ['container_type', 'container_size_type'], '—');
-  const vesselName = first(project, ['vessel', 'vessel_name'], first(containerRecord, ['vessel_name', 'vessel'], '—'));
-  const voyage = first(meta, ['voyage', 'voyage_number'], first(project, ['voyage', 'voyage_number']));
-  const vesselVoyage = [vesselName, voyage].filter(value => value && value !== '—').join(' · ') || '—';
-  const shippingLine = first(project, ['shipping_line'], first(containerRecord, ['shipping_line'], '—'));
-  const tradeId = first(project, ['trade_id', 'trade_code', 'code', 'reference'], '—');
   const tradeCurrency = first(project, ['currency']);
-  const origin = first(project, ['origin', 'origin_country', 'from_country'], '');
-  const destination = first(project, ['destination', 'destination_country', 'to_country', 'destination_market'], '');
-  const routeStops = [
-    { label: 'Origin', value: origin || '—', icon: 'map-pin' as const },
-    { label: 'Port of loading', value: first(project, ['port_of_loading', 'loading_port'], first(containerRecord, ['port_of_loading'], '—')), icon: 'anchor' as const },
-    {
-      label: isContainerProject ? 'Vessel / Voyage' : 'Transport',
-      value: isContainerProject
-        ? vesselVoyage
-        : first(project, ['transport_mode', 'mode_of_transport', 'transport_type', 'shipping_mode', 'shipping_method'], '—'),
-      detail: isContainerProject ? shippingLine : vesselName,
-      icon: 'navigation' as const,
-    },
-    { label: 'Destination port', value: first(project, ['port_of_discharge', 'destination_port'], first(containerRecord, ['destination_port'], '—')), icon: 'anchor' as const },
-    { label: 'Buyer', value: first(project, ['buyer_name', 'buyer'], '—'), icon: 'user' as const },
-  ];
-  const cargoDetails: [string, string][] = isContainerProject
-    ? [[
-      'Container',
-      [containerNumber, containerType].filter(value => value && value !== '—').join(' · ') || '—',
-    ]]
-    : ([
-      ['Commodity', first(project, ['commodity_name', 'commodity'], '—')],
-      ['Grade', first(project, ['grade', 'commodity_grade'], '—')],
-      ['Quantity', first(project, ['quantity', 'cargo_quantity', 'quantity_tons'], '—')],
-      ['Packaging', first(project, ['packaging', 'package_type'], '—')],
-      ['Container type', first(project, ['container_type'], '—')],
-      ['Container count', first(project, ['container_count', 'containers_count'], '—')],
-      ['Origin', origin || '—'],
-      ['Destination', destination || '—'],
-    ] as [string, string][]);
-  const commercialDetails: [string, string][] = isContainerProject
-    ? [
-      ['Trade term / Incoterm', first(project, ['incoterm', 'trade_term'], '—')],
-      ['Estimated trade cycle', first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], '—')],
-      ['Destination market', first(project, ['destination_market', 'destination_country'], '—')],
-    ]
-    : ([
-      ['Trade term / Incoterm', first(project, ['incoterm', 'trade_term'], '—')],
-      ['Estimated trade cycle', first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], '—')],
-      ['Shipment date', first(project, ['shipment_date', 'estimated_shipment_date'], '—')],
-      ['Estimated arrival', first(project, ['estimated_arrival', 'eta'], '—')],
-      ['Destination market', first(project, ['destination_market', 'destination_country'], '—')],
-    ] as [string, string][]);
-  const projectUpdateDetails: [string, string][] = [
-    ['Current project stage', first(project, ['current_project_stage'], '—')],
-    ['ETD', first(project, ['etd'], first(containerRecord, ['etd'], '—'))],
-    ['ETA', first(project, ['eta'], first(containerRecord, ['eta'], '—'))],
-  ];
-  const costBreakdown = record(project.financial_breakdown ?? project.cost_breakdown);
-  const financialDetails: [string, number | null][] = ([
-    ['Commodity cost', amount(project, ['commodity_cost']) ?? amount(costBreakdown, ['commodity_cost'])],
-    ['Packing', amount(project, ['packing_cost']) ?? amount(costBreakdown, ['packing_cost'])],
-    ['Inland transportation', amount(project, ['inland_transportation_cost', 'transportation_cost']) ?? amount(costBreakdown, ['inland_transportation_cost', 'transportation_cost'])],
-    ['Port charges', amount(project, ['port_charges']) ?? amount(costBreakdown, ['port_charges'])],
-    ['Freight', amount(project, ['freight_cost', 'freight']) ?? amount(costBreakdown, ['freight_cost', 'freight'])],
-    ['Insurance', amount(project, ['insurance_cost', 'insurance']) ?? amount(costBreakdown, ['insurance_cost', 'insurance'])],
-    ['Other trade costs', amount(project, ['other_trade_costs', 'other_costs']) ?? amount(costBreakdown, ['other_trade_costs', 'other_costs'])],
-  ] as [string, number | null][]);
-  const formatTradeMoney = (value: number | null) => money(value, tradeCurrency || 'USD');
   const reportedReturn = first(project, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi']);
   const returnRate = amount(project, ['expected_return_pct']);
   const projectedReturn = reportedReturn || (returnRate != null ? `${returnRate}%` : '');
   const projectedDistribution = first(project, ['target_distribution', 'projected_distribution', 'estimated_distribution']);
   const projectedCycle = first(project, ['projected_cycle', 'expected_timeline'], amount(project, ['investment_period_days']) == null ? '' : `${amount(project, ['investment_period_days'])} days`);
-  const explicitFundingProgress = amount(project, ['funding_percentage', 'funding_progress_percent', 'funding_progress_pct', 'progress_percentage']);
-  const fundingProgress = explicitFundingProgress == null ? null : Math.max(0, Math.min(100, Math.round(explicitFundingProgress)));
-  const fundingDetails: [string, string][] = [
-    ['Total trade requirement', formatTradeMoney(target)],
-    ['Amount funded', formatTradeMoney(fundedAmount)],
-    ['Remaining funding', formatTradeMoney(remainingFunding)],
-    ['Minimum investment', formatTradeMoney(minimum)],
-    ['Maximum investment', formatTradeMoney(maximum)],
-    ['Funding deadline', first(project, ['funding_deadline', 'closing_date', 'deadline'], '—')],
-  ];
-  const kycRequired = /kyc|verification/i.test(error);
-  const flowSteps = ['Amount', 'Allocation', 'Review', 'Risk disclosure', 'Confirmation', 'Success'];
-  const activeFlowStep = Math.max(1, flowSteps.indexOf(stage === 'details' ? 'Amount' : stage === 'success' ? 'Success' : stage === 'confirmation' ? 'Confirmation' : stage === 'risk' ? 'Risk disclosure' : stage === 'review' ? 'Review' : stage === 'allocation' ? 'Allocation' : 'Amount') + 1);
+  const investmentStatus = [
+    'trade_status',
+    'project_status',
+    'funding_status',
+    'investment_status',
+    'availability_status',
+    'investment_availability',
+    'status',
+    'state',
+  ].map(key => first(project, [key])).filter(Boolean).join(' ');
+  const normalizedInvestmentStatus = investmentStatus.toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const investmentFlags = [
+    'can_invest',
+    'is_investable',
+    'investable',
+    'accepting_investments',
+    'is_open_for_investment',
+    'is_available_for_investment',
+  ].map(key => first(project, [key]).toLowerCase()).filter(value => /^(true|yes|1|false|no|0)$/.test(value));
+  const explicitCanInvest = investmentFlags.some(value => /^(false|no|0)$/.test(value)) ? false
+    : investmentFlags.some(value => /^(true|yes|1)$/.test(value)) ? true
+      : null;
+  const closedStatus = /\b(closed|complete|completed|settled|delivered|disbursed|cancelled|canceled|rejected|expired|fully funded|unavailable|not available|not open|not accepting|not funding|inactive|paused|suspended|withdrawn|on hold)\b/.test(normalizedInvestmentStatus);
+  const openStatus = /\b(open|funding|fundrais(?:e|ing)|available|accepting)\b/.test(normalizedInvestmentStatus);
+  const fundingClosed = closedStatus || explicitCanInvest === false || (remainingFunding != null && remainingFunding <= 0);
+  const investmentAvailable = !fundingClosed && (openStatus || explicitCanInvest === true);
+  const flowSteps = ['Amount', 'Review', 'Terms & risk', 'Secure confirmation', 'Complete'];
+  const activeFlowStep = ({ details: 0, amount: 1, review: 2, risk: 3, confirmation: 4, success: 5 } as const)[stage];
   const currencyLabel = currency || 'USD';
   const remainingCapacity = remainingFunding;
+  const formatTradeMoney = (value: number | null) => money(value, tradeCurrency || 'USD');
   const plainPolicyText = (value: string) => value
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -194,15 +133,18 @@ export default function OpportunityDetail() {
   const feeValue = first(project, ['investment_fee', 'investor_fee', 'fee', 'fees', 'transaction_fee', 'platform_fee']);
   const cycleValue = first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], projectedCycle || '—');
   const distributionValue = first(project, ['target_distribution', 'projected_distribution', 'estimated_distribution'], '—');
-  const projectTitle = first(project, ['title', 'name', 'project_name'], 'Trade opportunity');
   const projectTradeAssociation = first(project, ['trade_id', 'trade_code', 'code', 'reference'], '—');
   const tradeLabel = projectTradeAssociation !== '—'
     ? `Trade #${projectTradeAssociation}`
     : '—';
-  const containerAssociation = first(project, ['container_id', 'container_number', 'container_code', 'container_reference'], '');
 
-  function continueToAllocation() {
+  function continueToReview() {
     setError('');
+    if (!investmentAvailable) {
+      setError('This opportunity is not currently accepting investments.');
+      setStage('details');
+      return;
+    }
     if (!kycVerified) {
       setError('Investment access requires a Verified identity status from OG Exports.');
       router.push('/account/kyc');
@@ -218,21 +160,16 @@ export default function OpportunityDetail() {
     if (currency && maximum != null && value > maximum) { setError(`The maximum investment for this opportunity is ${moneyInSourceCurrency(maximum, currency)}.`); return; }
     if (currency && walletCurrency && walletBalance != null && walletCurrency.toUpperCase() === currency.toUpperCase() && value > walletBalance) { setError('This amount is greater than your available wallet balance.'); return; }
     if (currency && remainingCapacity != null && value > remainingCapacity) { setError('This amount exceeds the remaining opportunity capacity.'); return; }
-    setStage('allocation');
-  }
-
-  function continueToReview() {
-    setError('');
-    if (!kycVerified) {
-      setError('Investment access requires a Verified identity status from OG Exports.');
-      router.push('/account/kyc');
-      return;
-    }
     setStage('review');
   }
 
   async function submit() {
     setError('');
+    if (!investmentAvailable) {
+      setError('This opportunity is no longer accepting investments. Refresh the opportunity before trying again.');
+      setStage('details');
+      return;
+    }
     if (!kycVerified) {
       setError('Investment access requires a Verified identity status from OG Exports.');
       router.push('/account/kyc');
@@ -353,9 +290,9 @@ export default function OpportunityDetail() {
     title={stage === 'details' ? 'Trade Opportunity' : 'Invest in this trade'}
     subtitle={stage === 'details'
       ? first(project, ['commodity_name', 'commodity', 'destination'], 'Trade details')
-      : `${flowSteps[activeFlowStep - 1]} · Step ${activeFlowStep} of 6`}
+      : `${flowSteps[activeFlowStep - 1]} · Step ${activeFlowStep} of 5`}
   >
-    {stage !== 'details' ? <View accessibilityRole="progressbar" accessibilityLabel={`Investment flow step ${activeFlowStep} of 6`} style={{ flexDirection: 'row', gap: 4, marginBottom: 14 }}>
+    {stage !== 'details' ? <View accessibilityRole="progressbar" accessibilityLabel={`Investment flow step ${activeFlowStep} of 5`} style={{ flexDirection: 'row', gap: 4, marginBottom: 14 }}>
       {flowSteps.map((label, index) => {
         const complete = index + 1 <= activeFlowStep;
         return <View key={label} style={{ flex: 1, borderRadius: 8, paddingVertical: 7, alignItems: 'center', backgroundColor: complete ? colors.primary : colors.secondary }}>
@@ -366,133 +303,42 @@ export default function OpportunityDetail() {
     {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading opportunity details…</Text></Card> : null}
     {query.isError ? <ErrorState message="Opportunity details could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
     {!query.isLoading && !query.isError ? <>
-      {stage === 'details' ? <>
-      <Section title="Trade overview" />
-      <Card>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <View style={{ flex: 1 }}><Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>TRADE ID</Text><Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 5 }}>{tradeId}</Text></View>
-          <Status value={first(project, ['status', 'state'], '—')} />
-        </View>
-        {first(project, ['description', 'summary']) ? <Text style={{ color: colors.foreground, lineHeight: 22, marginTop: 14 }}>{first(project, ['description', 'summary'])}</Text> : null}
-      </Card>
-      {profileQuery.isLoading || profileQuery.isFetching ? <Card><Text style={{ color: colors.mutedForeground }}>Checking your identity-verification status before enabling investments…</Text></Card> : null}
-      {profileQuery.isError ? <ErrorState message="Investment access is unavailable because your verification status could not be confirmed." error={profileQuery.error} onRetry={() => void profileQuery.refetch()} /> : null}
-      {!profileQuery.isLoading && !profileQuery.isFetching && !profileQuery.isError && !kycVerified ? <Card style={{ borderColor: colors.primary }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', flex: 1 }}>Verification required to invest</Text>
-          <Status value={kycStatus} />
-        </View>
-        <Text style={{ color: colors.mutedForeground, lineHeight: 20, marginTop: 8 }}>Investments are available only after OG Exports reports your KYC status as Verified. Deposits and withdrawals are not affected by this investment requirement.</Text>
-        <View style={{ marginTop: 12 }}><Action title="Complete identity verification" icon="shield" onPress={() => router.push('/account/kyc')} /></View>
-      </Card> : null}
-      {kycVerified ? <Card style={{ borderColor: colors.primary }}>
-        <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Invest in this trade</Text>
-        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 6, marginBottom: 14 }}>
-          Review the opportunity above, then enter a focused investment flow. Funding is requested from your wallet balance and validated by OG Exports.
-        </Text>
-        <Action title="Invest Now" icon="arrow-right" onPress={() => { setError(''); setStage('amount'); }} />
-      </Card> : null}
-
-      <TradeTimeline events={timeline} apiOrigin={apiOrigin} title="Trade updates" />
-
-      <Section title="Global trade route" />
-      <Card>
-        {routeStops.map((stop, index) => <View key={stop.label} style={{ flexDirection: 'row', gap: 11, minHeight: index < routeStops.length - 1 ? 58 : 40 }}>
-          <View style={{ width: 27, alignItems: 'center' }}>
-            <View style={{ width: 25, height: 25, borderRadius: 13, backgroundColor: index === 0 || index === routeStops.length - 1 ? colors.lightGreen : colors.secondary, alignItems: 'center', justifyContent: 'center' }}>
-              <Feather name={stop.icon} size={13} color={index === 0 || index === routeStops.length - 1 ? colors.primary : colors.mutedForeground} />
-            </View>
-            {index < routeStops.length - 1 ? <View style={{ width: 1, flex: 1, marginTop: 3, backgroundColor: colors.border }} /> : null}
-          </View>
-          <View style={{ flex: 1, paddingBottom: 13 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{stop.label}</Text>
-            <Text style={{ color: stop.value === '—' ? colors.mutedForeground : colors.foreground, fontSize: 13, fontWeight: '700', marginTop: 3 }}>{stop.value}</Text>
-            {stop.detail ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>
-              {isContainerProject && stop.label === 'Vessel / Voyage' ? 'Shipping line' : 'Vessel'}: {stop.detail}
-            </Text> : null}
-          </View>
-        </View>)}
-        {routeStops.every(stop => stop.value === '—' && !stop.detail) ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 4 }}>Route and transport details will appear here when available.</Text> : null}
-        <Pressable testID="project-view-container-record" accessibilityRole="button" onPress={() => router.push({ pathname: '/tracking/[id]', params: { id, source: 'project' } })} style={{ minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12, borderRadius: 12, backgroundColor: colors.primary }}>
-          <Text style={{ color: colors.primaryForeground, fontSize: 13, fontWeight: '700' }}>View container record</Text>
-          <Feather name="arrow-up-right" size={15} color={colors.primaryForeground} />
-        </Pressable>
-      </Card>
-
-      <Section title={isContainerProject ? 'Container details' : 'Cargo information'} />
-      <Card>
-        {cargoDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: value === '—' ? colors.mutedForeground : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
-        </View>)}
-      </Card>
-
-      <Section title="Commercial information" />
-      <Card>
-        {commercialDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: value === '—' ? colors.mutedForeground : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
-        </View>)}
-      </Card>
-
-      {isContainerProject ? <>
-        <Section title="Project update" />
-        <Card>
-          {projectUpdateDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-            <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: value === '—' ? colors.mutedForeground : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
-          </View>)}
-        </Card>
-      </> : null}
-
-      <Section title="Funding information" />
-      <Card>
-        {fundingDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
-        </View>)}
-        {fundingProgress != null ? <View style={{ marginTop: 14 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 }}><Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Funding progress</Text><Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700' }}>{fundingProgress}%</Text></View>
-          <View style={{ height: 7, borderRadius: 4, backgroundColor: colors.secondary, overflow: 'hidden' }}><View style={{ width: `${fundingProgress}%`, height: 7, borderRadius: 4, backgroundColor: colors.primary }} /></View>
-        </View> : <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 12 }}>Funding progress is not available.</Text>}
-      </Card>
-
-      <Section title="Financial breakdown" />
-      <Card>
-        {financialDetails.length ? financialDetails.map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text><Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{formatTradeMoney(value)}</Text>
-        </View>) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>Trade cost details will appear here when available.</Text>}
-      </Card>
-
-      <Section title="Projected / target information" />
-      <Card>
-        {projectedReturn ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Projected return · not guaranteed</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{projectedReturn}</Text></View> : null}
-        {projectedDistribution ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Estimated distribution · not guaranteed</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{projectedDistribution}</Text></View> : null}
-        {projectedCycle ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9 }}><Text style={{ color: colors.mutedForeground, flex: 1 }}>Expected trade cycle</Text><Text style={{ color: colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{projectedCycle}</Text></View> : null}
-        {!projectedReturn && !projectedDistribution && !projectedCycle ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>Target return, distribution, and cycle details will appear here when available.</Text> : null}
-        <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 9 }}>Projected returns and distributions are estimates, not guarantees. Actual outcomes depend on trade performance and applicable risks.</Text>
-      </Card>
-      <Card>
-        <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginBottom: 10 }}>Trade documents</Text>
-        {documents.length ? documents.map((document, index) => {
-          const key = first(document, ['id'], String(index));
-          const name = first(document, ['title', 'original_name', 'name'], 'Project document');
-          const viewUrl = first(document, ['view_url', 'url']);
-          const downloadUrl = first(document, ['download_url']);
-          return <View key={key} style={{ paddingVertical: 10, borderTopWidth: index ? 1 : 0, borderColor: colors.border }}>
-            <Text style={{ color: colors.foreground, fontWeight: '600', marginBottom: 10 }}>{name}</Text>
-            <View style={{ flexDirection: 'row', gap: 9 }}>
-              <Pressable accessibilityRole="button" disabled={!viewUrl || documentBusy === key} onPress={() => void viewProjectDocument(viewUrl)} style={{ flex: 1, minHeight: 42, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.secondary, flexDirection: 'row', gap: 7, justifyContent: 'center', alignItems: 'center', opacity: viewUrl ? 1 : 0.5 }}>
-                <Feather name="eye" size={15} color={colors.primary} /><Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 12 }}>View</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" disabled={!downloadUrl || Boolean(documentBusy)} onPress={() => void downloadProjectDocument(document, downloadUrl, key)} style={{ flex: 1, minHeight: 42, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.secondary, flexDirection: 'row', gap: 7, justifyContent: 'center', alignItems: 'center', opacity: downloadUrl ? 1 : 0.5 }}>
-                <Feather name="download" size={15} color={colors.primary} /><Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 12 }}>{documentBusy === key ? 'Preparing…' : 'Download'}</Text>
-              </Pressable>
-            </View>
-            {!viewUrl && !downloadUrl ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 8 }}>This document has no secure access link yet.</Text> : null}
-          </View>;
-        }) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>No trade documents are available from OG Exports for this opportunity.</Text>}
-        {documentError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginTop: 8 }}>{documentError}</Text> : null}
-      </Card>
-      {error ? <ErrorState message={error} /> : null}
-      {kycRequired ? <Pressable onPress={() => router.push('/account/kyc')}><Text style={{ color: colors.primary, fontWeight: '700', marginBottom: 12 }}>Complete identity verification →</Text></Pressable> : null}
-      </> : null}
+      {stage === 'details' ? <OpportunityDetailOverview
+        key={id}
+        project={project}
+        apiOrigin={apiOrigin}
+        canInvest={investmentAvailable}
+        fundingClosed={fundingClosed}
+        profileLoading={profileQuery.isLoading || profileQuery.isFetching}
+        profileError={profileQuery.isError ? profileQuery.error : undefined}
+        kycVerified={kycVerified}
+        kycStatus={kycStatus}
+        pageError={error}
+        supportEmail={supportEmail}
+        riskContent={riskContent}
+        riskLoading={settingsQuery.isLoading || settingsQuery.isFetching}
+        riskError={settingsQuery.isError ? settingsQuery.error : undefined}
+        documentError={documentError}
+        documentBusy={documentBusy}
+        onBack={() => router.back()}
+        onInvest={() => {
+          if (!investmentAvailable) return;
+          setError('');
+          if (!kycVerified) {
+            router.push('/account/kyc');
+            return;
+          }
+          setStage('amount');
+        }}
+        onVerify={() => router.push('/account/kyc')}
+        onRetryKyc={() => void profileQuery.refetch()}
+        onRetryRisk={() => void settingsQuery.refetch()}
+        onViewDocument={url => void viewProjectDocument(url)}
+        onDownloadDocument={(document, url, key) => void downloadProjectDocument(document, url, key)}
+        onSupport={() => {
+          void Linking.openURL(`mailto:${encodeURIComponent(supportEmail)}`).catch(err => setError(messageOf(err)));
+        }}
+      /> : null}
       {stage !== 'details' && (profileQuery.isLoading || profileQuery.isFetching) ? <Card><Text style={{ color: colors.mutedForeground }}>Rechecking your identity-verification status…</Text></Card> : null}
       {stage !== 'details' && profileQuery.isError ? <ErrorState message="Investment access is unavailable because your verification status could not be confirmed." error={profileQuery.error} onRetry={() => void profileQuery.refetch()} /> : null}
       {stage !== 'details' && !profileQuery.isLoading && !profileQuery.isFetching && !profileQuery.isError && !kycVerified ? <Card>
@@ -530,29 +376,11 @@ export default function OpportunityDetail() {
         {!currency ? <Text style={{ color: colors.destructive, fontSize: 11, lineHeight: 17, marginTop: 10 }}>Confirm the trade currency before submitting an investment.</Text> : null}
         {walletQuery.isError ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 10 }}>Wallet balance could not be loaded. The server remains authoritative.</Text> : null}
         {error ? <ErrorState message={error} /> : null}
-        <View style={{ marginTop: 15 }}><Action title="Continue to allocation" icon="arrow-right" disabled={!investAmount || !currency} onPress={continueToAllocation} /></View>
+        <View style={{ marginTop: 15 }}><Action title="Continue to review" icon="arrow-right" disabled={!investAmount || !currency || !investmentAvailable} onPress={continueToReview} /></View>
         <View style={{ marginTop: 9 }}><Action title="Cancel investment flow" secondary onPress={() => setStage('details')} /></View>
       </Card> : null}
-      {kycVerified && stage === 'allocation' ? <Card>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>02 · Trade allocation</Text>
-        <View style={{ backgroundColor: colors.lightGreen, borderRadius: 14, padding: 15, marginTop: 14, marginBottom: 13 }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', letterSpacing: 0.6 }}>YOUR INVESTMENT</Text>
-          <Text style={{ color: colors.primary, fontSize: 26, fontWeight: '700', marginTop: 5 }}>{moneyInSourceCurrency(Number(investAmount), currency)}</Text>
-          <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 5 }}>{projectTitle}</Text>
-        </View>
-        <Card style={{ borderColor: colors.border, marginBottom: 12 }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>TRADE RECORD</Text>
-          <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', marginTop: 5 }}>{tradeLabel}</Text>
-          {containerAssociation ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8 }}>Container reference supplied for this record: {containerAssociation}</Text> : null}
-          <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 9 }}>
-            This investment request is submitted against the trade opportunity record shown here. The investor API associates this request through this project record; no separate allocation details are provided.
-          </Text>
-        </Card>
-        <Action title="Review investment" icon="arrow-right" onPress={continueToReview} />
-        <View style={{ marginTop: 9 }}><Action title="Back to amount" secondary onPress={() => setStage('amount')} /></View>
-      </Card> : null}
       {kycVerified && stage === 'review' ? <Card>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>03 · Review commitment</Text>
+        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>02 · Review commitment</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5 }}>Confirm the trade and money movement details before moving to the published terms.</Text>
         {[
           ['Your investment', moneyInSourceCurrency(Number(investAmount), currency)],
@@ -572,11 +400,11 @@ export default function OpportunityDetail() {
           <Text style={{ color: value === '—' ? colors.mutedForeground : colors.foreground, fontWeight: '700', flex: 1, textAlign: 'right' }}>{value}</Text>
         </View>)}
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 12 }}>No fee, conversion, or return is estimated here. Any available terms above are supplied by the opportunity record.</Text>
-        <View style={{ marginTop: 15 }}><Action title="Continue to risk disclosure" icon="arrow-right" onPress={() => { setError(''); setStage('risk'); }} /></View>
-        <View style={{ marginTop: 9 }}><Action title="Back to allocation" secondary onPress={() => setStage('allocation')} /></View>
+        <View style={{ marginTop: 15 }}><Action title="Continue to Terms & risk" icon="arrow-right" onPress={() => { setError(''); setStage('risk'); }} /></View>
+        <View style={{ marginTop: 9 }}><Action title="Back to amount" secondary onPress={() => setStage('amount')} /></View>
       </Card> : null}
       {kycVerified && stage === 'risk' ? <Card>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>04 · Official terms & risk</Text>
+        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>03 · Official terms & risk</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 5, marginBottom: 12 }}>
           Review the published documents provided in OG Exports app settings. Acknowledgements are separate and required to continue.
         </Text>
@@ -617,11 +445,11 @@ export default function OpportunityDetail() {
           </Pressable>
         </Card>
         {error ? <ErrorState message={error} /> : null}
-        <Action title="Continue to confirmation" icon="arrow-right" disabled={!legalContentReady || !termsAccepted || !riskAccepted || !agreementAccepted} onPress={() => { setError(''); setStage('confirmation'); }} />
+        <Action title="Continue to secure confirmation" icon="arrow-right" disabled={!legalContentReady || !termsAccepted || !riskAccepted || !agreementAccepted} onPress={() => { setError(''); setStage('confirmation'); }} />
         <View style={{ marginTop: 9 }}><Action title="Back to review" secondary onPress={() => setStage('review')} /></View>
       </Card> : null}
       {kycVerified && stage === 'confirmation' ? <Card>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>05 · Confirm on this device</Text>
+        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>04 · Confirm on this device</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 6, marginBottom: 13 }}>
           Authenticate locally before the investment request is sent. This device confirmation is separate from account sign-in verification.
         </Text>
@@ -642,7 +470,7 @@ export default function OpportunityDetail() {
         </View>
         {error ? <ErrorState message={error} /> : null}
         <Action title="Authenticate & submit request" icon="lock" loading={authBusy || invest.isPending} disabled={(!appPinEnabled && !biometricEnabled) || (appPinEnabled && !biometricEnabled && pin.length !== 6)} onPress={() => void submit()} />
-        <View style={{ marginTop: 9 }}><Action title="Back to risk disclosure" secondary onPress={() => { setPin(''); setStage('risk'); }} /></View>
+        <View style={{ marginTop: 9 }}><Action title="Back to Terms & risk" secondary onPress={() => { setPin(''); setStage('risk'); }} /></View>
         <Pressable onPress={() => router.push('/account/security')} style={{ alignSelf: 'center', padding: 12 }}><Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>Manage confirmation methods</Text></Pressable>
       </Card> : null}
       {kycVerified && stage === 'success' && confirmation ? (() => {
@@ -656,6 +484,7 @@ export default function OpportunityDetail() {
           ? `1 USD = ${confirmation.exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} PKR`
           : '';
         return <Card style={{ borderColor: colors.primary }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', marginBottom: 10 }}>05 · Complete</Text>
           <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center', marginBottom: 13 }}>
             <Feather name={serverConfirmed ? 'check' : 'send'} size={21} color={colors.primary} />
           </View>

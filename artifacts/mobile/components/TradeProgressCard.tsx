@@ -22,6 +22,7 @@ type Props = {
   stageUpdates: Json[];
   periodProgress?: Json | null;
   showPeriod?: boolean;
+  title?: string;
 };
 
 function eventDate(value: string): string {
@@ -36,6 +37,7 @@ export function TradeProgressCard({
   stageUpdates,
   periodProgress,
   showPeriod = true,
+  title = 'Trade Progress',
 }: Props) {
   const colors = useColors();
   const latestByStage = new Map<StageKey, StageEntry>();
@@ -63,7 +65,7 @@ export function TradeProgressCard({
   const barPercent = hasPeriodProgress ? Math.max(0, Math.min(100, progressPercent)) : 0;
 
   return <>
-    <Section title="Trade Progress" />
+    <Section title={title} />
     <Card style={{ paddingHorizontal: 16, paddingVertical: 17 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 17 }}>
         <View style={{ flex: 1 }}>
