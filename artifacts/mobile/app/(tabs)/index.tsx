@@ -16,9 +16,11 @@ import {
 } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Status } from '@/components/InvestorUI';
 import { AllocationDonut, type AllocationSlice } from '@/components/AllocationDonut';
-import { amount, first, list, money, record, unwrap } from '@/lib/data';
+import { amount, displayCurrencyCode, first, list, money, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
+import { convertCurrencyAmount } from '@/lib/currency-conversion';
 import { latestRecords } from '@/lib/latest-records';
 import { useAuth } from '@/context/AuthContext';
+import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { useColors } from '@/hooks/useColors';
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
 import {
@@ -133,6 +135,7 @@ function HomeSection({ title, right }: { title: string; right?: React.ReactNode 
 
 export default function InvestorHome() {
   const { token, user } = useAuth();
+  const { rates, walletCurrency } = useAppPreferences();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -169,6 +172,20 @@ export default function InvestorHome() {
   const pendingDistribution = amount(summary, ['pending_distribution', 'pending_distribution_usd']);
   const roi = amount(summary, ['lifetime_roi', 'roi_percentage', 'roi']);
   const availableBalance = liveBalance;
+  const sourceCurrency = currency.trim().toUpperCase();
+  const localCurrency = (walletCurrency || currency).trim().toUpperCase();
+  const dashboardUsdToPkrRate = amount(record(data.fx), ['display_usd_rate']);
+  const localBalanceEquivalent = convertCurrencyAmount(
+    availableBalance,
+    sourceCurrency,
+    localCurrency,
+    rates,
+    dashboardUsdToPkrRate,
+  );
+  const showLocalBalanceEquivalent = !dashboard.isLoading
+    && !dashboard.isError
+    && localBalanceEquivalent != null
+    && localCurrency !== displayCurrencyCode(currency);
   const name = first(record(user), ['name', 'first_name'], 'Investor');
   const firstName = name.split(/\s+/)[0] || 'Investor';
   const greeting = 'Hi';
@@ -335,6 +352,9 @@ export default function InvestorHome() {
          <Text testID="home-available-balance" numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, fontSize: 40, fontWeight: '700', letterSpacing: -0.9, lineHeight: 45, marginTop: 5, textAlign: 'center' }}>
            {dashboard.isLoading ? '…' : displayMoney(availableBalance)}
          </Text>
+          {showLocalBalanceEquivalent ? <Text testID="home-local-balance-equivalent" numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, opacity: 0.78, fontSize: 12, marginTop: 2, textAlign: 'center' }}>
+            {balanceHidden ? '••••••' : moneyInSourceCurrency(localBalanceEquivalent, localCurrency)}
+          </Text> : null}
          {dashboard.isError ? <Text style={{ color: colors.balanceCardText, opacity: 0.7, fontSize: 10, marginTop: 4 }}>
            Balance details unavailable right now
          </Text> : null}
