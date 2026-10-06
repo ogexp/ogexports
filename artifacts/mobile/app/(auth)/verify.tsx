@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
@@ -16,15 +16,22 @@ import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Verify() {
-  const { challenge, setChallenge, acceptSession } = useAuth();
+  const { challenge, acceptSession } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const emailVerify = useInvestorVerifyEmail();
   const twoFactor = useInvestorVerifyTwoFactor();
   const resend = useInvestorResendEmailVerification();
+  const postAuthRedirect = useRef(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    if (!challenge && !postAuthRedirect.current) {
+      router.replace('/(auth)/login');
+    }
+  }, [challenge]);
 
   async function submit() {
     if (!challenge) { router.replace('/(auth)/login'); return; }
@@ -40,10 +47,12 @@ export default function Verify() {
       if (typeof response.token !== 'string') {
         throw new Error('The verification response did not include a session token.');
       }
+      const destination = resolvePostAuthHref(challenge.returnTo);
+      postAuthRedirect.current = true;
       await acceptSession(response.token, record(response.user));
-      setChallenge(null);
-      router.replace(resolvePostAuthHref(challenge.returnTo));
+      router.replace(destination);
     } catch (err) {
+      postAuthRedirect.current = false;
       setError(messageOf(err));
     }
   }
@@ -61,7 +70,6 @@ export default function Verify() {
   }
 
   if (!challenge) {
-    router.replace('/(auth)/login');
     return null;
   }
   const isTwoFactor = challenge.mode === '2fa';
