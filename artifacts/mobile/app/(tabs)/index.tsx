@@ -289,7 +289,9 @@ export default function InvestorHome() {
          overflow: 'hidden',
          marginHorizontal: -18,
          paddingHorizontal: 21,
-         paddingTop: Platform.OS === 'web' ? 79 : insets.top + 16,
+          paddingTop: Platform.OS === 'web'
+            ? 79
+            : insets.top + (Platform.OS === 'ios' ? 10 : 16),
          paddingBottom: 45,
          borderBottomLeftRadius: 30,
          borderBottomRightRadius: 30,

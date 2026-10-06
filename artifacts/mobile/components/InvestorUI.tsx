@@ -47,7 +47,7 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
     ? 67
     : Platform.OS === 'android'
       ? insets.top
-      : isHeaderlessTabRoute ? insets.top : 0;
+      : isHeaderlessTabRoute ? Math.max(20, insets.top - 4) : 0;
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = React.useState(false);
   const refresh = React.useCallback(async () => {
@@ -61,7 +61,7 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
     }
   }, [queryClient, refreshable, refreshing]);
   const header = (
-    <View style={s.header}>
+    <View style={[s.header, Platform.OS === 'ios' ? { marginBottom: 16 } : undefined]}>
       <View style={{ flex: 1 }}>
         <Text style={[s.title, { color: colors.foreground }]}>{title}</Text>
         {subtitle ? <Text style={[s.subtitle, { color: colors.mutedForeground }]}>{subtitle}</Text> : null}
