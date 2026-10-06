@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
+import { File as ExpoFile } from 'expo-file-system';
 import { Feather } from '@expo/vector-icons';
 import { useGetInvestorProfile, useSubmitInvestorKyc, useUpdateInvestorProfile, useUploadInvestorKycDocument } from '@workspace/api-client-react';
 import { Action, Card, ErrorState, Field, Screen, Status } from '@/components/InvestorUI';
@@ -158,12 +159,26 @@ export default function Kyc() {
     setError('');
     setDocumentPicking(true);
     try {
-      const pickerResult = await DocumentPicker.getDocumentAsync({ type: [...INVESTOR_DOCUMENT_MIME_TYPES], copyToCacheDirectory: true });
-      if (pickerResult.canceled) return;
-      const asset = pickerResult.assets[0];
-      if (!asset) throw new Error('No file was selected. Try again.');
-      const path = await uploadInvestorFile(asset.uri, asset.name, asset.mimeType ?? 'application/octet-stream', 'kyc', apiOrigin);
-      const uploadResult = record(await upload.mutateAsync({ data: { doc_type: selectedDocumentType, path, original_name: asset.name } }));
+      let uploadSource: string | ExpoFile;
+      let fileName: string;
+      let mimeType: string;
+      if (Platform.OS === 'web') {
+        const pickerResult = await DocumentPicker.getDocumentAsync({ type: [...INVESTOR_DOCUMENT_MIME_TYPES], copyToCacheDirectory: true });
+        if (pickerResult.canceled) return;
+        const asset = pickerResult.assets[0];
+        if (!asset) throw new Error('No file was selected. Try again.');
+        uploadSource = asset.uri;
+        fileName = asset.name;
+        mimeType = asset.mimeType ?? 'application/octet-stream';
+      } else {
+        const pickerResult = await ExpoFile.pickFileAsync({ mimeTypes: [...INVESTOR_DOCUMENT_MIME_TYPES] });
+        if (pickerResult.canceled) return;
+        uploadSource = pickerResult.result;
+        fileName = pickerResult.result.name;
+        mimeType = pickerResult.result.type || 'application/octet-stream';
+      }
+      const path = await uploadInvestorFile(uploadSource, fileName, mimeType, 'kyc', apiOrigin);
+      const uploadResult = record(await upload.mutateAsync({ data: { doc_type: selectedDocumentType, path, original_name: fileName } }));
       setNotice(first(uploadResult, ['message'], 'Document uploaded. Its review status will be updated by OG Exports.'));
       await query.refetch();
     } catch (err) { setError(messageOf(err)); }

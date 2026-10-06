@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Feather } from '@expo/vector-icons';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import * as DocumentPicker from 'expo-document-picker';
+import { File as ExpoFile } from 'expo-file-system';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   getGetInvestorBankAccountsQueryKey,
@@ -31,7 +32,7 @@ export default function BankAccounts() {
   const [currency, setCurrency] = useState('');
   const [swift, setSwift] = useState('');
   const [branch, setBranch] = useState('');
-  const [proof, setProof] = useState<{ uri: string; name: string; size?: number } | null>(null);
+  const [proof, setProof] = useState<{ source: string | ExpoFile; name: string; size: number } | null>(null);
   const [proofPicking, setProofPicking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -41,15 +42,26 @@ export default function BankAccounts() {
     setError('');
     setProofPicking(true);
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: [...INVESTOR_DOCUMENT_MIME_TYPES],
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled) return;
-      const file = result.assets[0];
-      if (!file) throw new Error('No file was selected. Try again.');
-      const size = getInvestorUploadFileSize(file.uri);
-      setProof({ uri: file.uri, name: file.name, size });
+      let source: string | ExpoFile;
+      let name: string;
+      if (Platform.OS === 'web') {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: [...INVESTOR_DOCUMENT_MIME_TYPES],
+          copyToCacheDirectory: true,
+        });
+        if (result.canceled) return;
+        const file = result.assets[0];
+        if (!file) throw new Error('No file was selected. Try again.');
+        source = file.uri;
+        name = file.name;
+      } else {
+        const result = await ExpoFile.pickFileAsync({ mimeTypes: [...INVESTOR_DOCUMENT_MIME_TYPES] });
+        if (result.canceled) return;
+        source = result.result;
+        name = result.result.name;
+      }
+      const size = getInvestorUploadFileSize(source);
+      setProof({ source, name, size });
     } catch (cause) {
       setError(messageOf(cause));
     } finally {
@@ -66,7 +78,7 @@ export default function BankAccounts() {
     }
     setBusy(true);
     try {
-      await submitInvestorBankAccountProof(proof.uri, proof.name, apiOrigin, {
+      await submitInvestorBankAccountProof(proof.source, proof.name, apiOrigin, {
         bank_name: bank, account_holder: holder, account_number: accountNumber,
         iban, swift, branch, currency,
       });

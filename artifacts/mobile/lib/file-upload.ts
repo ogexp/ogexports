@@ -12,8 +12,8 @@ function checkedFile(source: string | File): File {
   return file;
 }
 
-export function getInvestorUploadFileSize(uri: string): number {
-  return checkedFile(uri).size;
+export function getInvestorUploadFileSize(source: string | File): number {
+  return checkedFile(source).size;
 }
 
 export async function uploadInvestorFile(source: string | File, name: string, _mimeType: string, folder: string, origin: string): Promise<string> {
@@ -37,7 +37,7 @@ export async function uploadInvestorFile(source: string | File, name: string, _m
 }
 
 export async function submitInvestorBankAccountProof(
-  uri: string,
+  source: string | File,
   name: string,
   origin: string,
   fields: {
@@ -55,7 +55,7 @@ export async function submitInvestorBankAccountProof(
   if (!token) throw new Error('Sign in again before uploading a document.');
 
   const body = new FormData();
-  body.append('file', checkedFile(uri), name);
+  body.append('file', checkedFile(source), name);
   Object.entries(fields).forEach(([key, value]) => {
     if (value.trim()) body.append(key, value.trim());
   });
