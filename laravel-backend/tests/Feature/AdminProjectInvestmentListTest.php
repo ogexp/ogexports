@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AppNotification;
 use App\Models\Deposit;
 use App\Models\Investment;
 use App\Models\InvestmentPayoutProgress;
@@ -12,8 +13,12 @@ use App\Models\UserProfile;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Support\PlatformWalletService;
+use Database\Seeders\EmailTemplateSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request as HttpClientRequest;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 
 uses(RefreshDatabase::class);
 
@@ -183,6 +188,120 @@ it('lets admins save pre-payment payout progress and returns it to the investor'
 
     expect(InvestmentPayoutProgress::query()->where('investment_id', $investment->id)->exists())->toBeTrue();
     expect(InvestmentProfitDistribution::query()->where('investment_id', $investment->id)->exists())->toBeFalse();
+});
+
+it('notifies investors once for each actual scheduled or processing payout progress change', function () {
+    config(['mail.default' => 'array']);
+    $signingSecret = str_repeat('payout-bridge-test-secret-', 2);
+    config([
+        'services.investor_push.url' => null,
+        'services.investor_push.replit_domains' => 'api.example.test,portal.example.test',
+        'services.investor_push.session_secret' => $signingSecret,
+    ]);
+    Http::fake([
+        'https://api.example.test/*' => Http::response(['accepted_devices' => 1], 200),
+    ]);
+    $this->seed(EmailTemplateSeeder::class);
+
+    $investment = createPendingInvestment($this->investor, $this->project, 2500);
+    $investment->update(['status' => 'active']);
+
+    $saveProgress = fn (string $status, ?string $plannedDate) => $this->actingAs($this->admin)
+        ->patchJson("/api/admin/investment-payout-progress/{$investment->id}", [
+            'status' => $status,
+            'planned_distribution_date' => $plannedDate,
+        ]);
+
+    $saveProgress('scheduled', '2026-11-15')
+        ->assertOk()
+        ->assertJsonPath('data.payout_status', 'scheduled')
+        ->assertJsonPath('data.distributed_at', null);
+
+    $notification = AppNotification::query()
+        ->where('user_id', $this->investor->id)
+        ->where('type', 'payout_progress')
+        ->sole();
+
+    expect($notification->title)->toBe('Payout update: Scheduled')
+        ->and($notification->body)->toContain('planned date is 2026-11-15')
+        ->and($notification->body)->toContain('not proof that payment has been completed')
+        ->and($notification->data['investment_id'])->toBe($investment->id)
+        ->and($notification->data['planned_distribution_date'])->toBe('2026-11-15')
+        ->and(InvestmentProfitDistribution::query()->where('investment_id', $investment->id)->exists())->toBeFalse();
+
+    $saveProgress('scheduled', '2026-11-15')->assertOk();
+    expect(AppNotification::query()->where('user_id', $this->investor->id)->where('type', 'payout_progress')->count())->toBe(1)
+        ->and(Mail::mailer('array')->getSymfonyTransport()->messages())->toHaveCount(1);
+    Http::assertSentCount(1);
+
+    $saveProgress('processing', '2026-11-15')
+        ->assertOk()
+        ->assertJsonPath('data.payout_status', 'processing')
+        ->assertJsonPath('data.distributed_at', null);
+
+    $processingNotification = AppNotification::query()
+        ->where('user_id', $this->investor->id)
+        ->where('type', 'payout_progress')
+        ->latest('id')
+        ->firstOrFail();
+
+    expect($processingNotification->title)->toBe('Payout update: Processing')
+        ->and($processingNotification->body)->toContain('does not confirm that payment has been completed')
+        ->and(AppNotification::query()->where('user_id', $this->investor->id)->where('type', 'payout_progress')->count())->toBe(2)
+        ->and(Mail::mailer('array')->getSymfonyTransport()->messages())->toHaveCount(2)
+        ->and(InvestmentProfitDistribution::query()->where('investment_id', $investment->id)->exists())->toBeFalse();
+
+    Http::assertSentCount(2);
+    Http::assertSent(fn (HttpClientRequest $request) => $request->data()['status'] === 'scheduled');
+    Http::assertSent(fn (HttpClientRequest $request) => $request->data()['status'] === 'processing');
+    Http::assertSent(function (HttpClientRequest $request) use ($signingSecret) {
+        $timestamp = $request->header('X-OG-Payout-Timestamp')[0] ?? '';
+        $signature = $request->header('X-OG-Payout-Signature')[0] ?? '';
+        $key = hash_hmac('sha256', 'ogexports:investor-payout-push:v1', $signingSecret, true);
+        $expected = 'sha256='.hash_hmac('sha256', $timestamp."\n".$request->body(), $key);
+
+        return hash_equals($expected, $signature);
+    });
+});
+
+it('respects payout email and in-app notification preferences independently', function () {
+    config(['mail.default' => 'array']);
+    config([
+        'services.investor_push.url' => 'https://api.example.test/api/internal/investor-payout-progress',
+        'services.investor_push.session_secret' => str_repeat('payout-bridge-test-secret-', 2),
+    ]);
+    Http::fake([
+        'https://api.example.test/*' => Http::response(['accepted_devices' => 1], 200),
+    ]);
+    $this->seed(EmailTemplateSeeder::class);
+    $profile = UserProfile::query()->where('user_id', $this->investor->id)->firstOrFail();
+    $profile->update(['meta' => ['notification_prefs' => ['email' => false]]]);
+
+    $investment = createPendingInvestment($this->investor, $this->project, 2500);
+    $investment->update(['status' => 'active']);
+
+    $this->actingAs($this->admin)
+        ->patchJson("/api/admin/investment-payout-progress/{$investment->id}", [
+            'status' => 'scheduled',
+            'planned_distribution_date' => '2026-11-15',
+        ])
+        ->assertOk();
+
+    expect(AppNotification::query()->where('user_id', $this->investor->id)->where('type', 'payout_progress')->count())->toBe(1)
+        ->and(Mail::mailer('array')->getSymfonyTransport()->messages())->toHaveCount(0);
+
+    $profile->update(['meta' => ['notification_prefs' => ['email' => true, 'investment' => false]]]);
+
+    $this->actingAs($this->admin)
+        ->patchJson("/api/admin/investment-payout-progress/{$investment->id}", [
+            'status' => 'processing',
+            'planned_distribution_date' => '2026-11-15',
+        ])
+        ->assertOk();
+
+    expect(AppNotification::query()->where('user_id', $this->investor->id)->where('type', 'payout_progress')->count())->toBe(1)
+        ->and(Mail::mailer('array')->getSymfonyTransport()->messages())->toHaveCount(1);
+    Http::assertSentCount(2);
 });
 
 it('only shows a completed payout after a distribution timestamp is recorded', function () {

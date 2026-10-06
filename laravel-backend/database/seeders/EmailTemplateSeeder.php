@@ -130,6 +130,13 @@ class EmailTemplateSeeder extends Seeder
                 'placeholders' => ['user_name', 'reference', 'invested_amount', 'profit_amount', 'total_return', 'project_name', 'project_type', 'app_name'],
             ],
             [
+                'slug' => 'investment_payout_progress',
+                'subject' => '{{app_name}} — Payout update for {{reference}}',
+                'body_html' => '<p>Dear {{user_name}},</p><p>The payout status for your investment <strong>{{reference}}</strong> in <strong>{{project_name}}</strong> is now <strong>{{status}}</strong>.</p><p>Planned date: {{planned_date}}</p><p>A planned date is not proof of payment. This notice does not confirm that your payout has been completed.</p><p>View investment details: <a href="{{portal_url}}">{{portal_url}}</a></p><p>Thank you,<br>{{app_name}} Team</p>',
+                'body_text' => "Dear {{user_name}},\n\nThe payout status for your investment {{reference}} in {{project_name}} is now {{status}}.\nPlanned date: {{planned_date}}\n\nA planned date is not proof of payment. This notice does not confirm that your payout has been completed.\n\nView investment details: {{portal_url}}\n\nThank you,\n{{app_name}} Team",
+                'placeholders' => ['user_name', 'reference', 'project_name', 'status', 'planned_date', 'portal_url', 'app_name'],
+            ],
+            [
                 'slug' => 'project_status_update',
                 'subject' => '{{app_name}} — Project Update: {{project_name}}',
                 'body_html' => '<p>Dear {{user_name}},</p><p>There is an update on investment project <strong>{{project_name}}</strong> in which you have invested.</p><ul><li><strong>Status:</strong> {{status}}</li><li><strong>Stage:</strong> {{stage}}</li><li><strong>Details:</strong> {{details}}</li></ul><p>View details: <a href="{{portal_url}}">{{portal_url}}</a></p><p>Thank you,<br>{{app_name}} Team</p>',

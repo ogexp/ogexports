@@ -23,6 +23,7 @@ const categoryByType: Record<string, NotificationCategoryKey> = {
   project_trade_update: 'trade',
   update: 'trade',
   investment: 'investment',
+  payout_progress: 'investment',
   deposit: 'wallet',
   deposit_approved: 'wallet',
   withdrawal: 'wallet',

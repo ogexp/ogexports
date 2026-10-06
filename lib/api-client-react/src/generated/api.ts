@@ -55,6 +55,7 @@ import type {
   InvestorPushTokenRevocation,
   InvestorWithdrawalInput,
   JsonObject,
+  PayoutProgressPushEvent,
   ProjectStageUpdateList,
   ProjectStageUpdateResponse,
   ProjectTradeUpdateInput,
@@ -4886,6 +4887,95 @@ export const useRevokeInvestorPushToken = <TError = ErrorType<JsonObject>,
         TContext
       > => {
       return useMutation(getRevokeInvestorPushTokenMutationOptions(options));
+    }
+
+export const getReceiveInternalInvestorPayoutProgressUrl = () => {
+
+
+
+
+  return `/api/internal/investor-payout-progress`
+}
+
+/**
+ * Internal Laravel-to-API-Server bridge. Requests require a timestamped HMAC signature.
+ * @summary Deliver a signed payout progress event to opted-in investor devices
+ */
+export const receiveInternalInvestorPayoutProgress = async (payoutProgressPushEvent: PayoutProgressPushEvent, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<JsonObject>(getReceiveInternalInvestorPayoutProgressUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(payoutProgressPushEvent)
+  }
+);}
+
+
+
+
+
+export const getReceiveInternalInvestorPayoutProgressMutationKey = () => ['receiveInternalInvestorPayoutProgress'] as const;
+
+export const getReceiveInternalInvestorPayoutProgressMutationOptions = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveInternalInvestorPayoutProgress>>, TError,ReceiveInternalInvestorPayoutProgressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof receiveInternalInvestorPayoutProgress>>, TError,ReceiveInternalInvestorPayoutProgressMutationVariables, TContext> => {
+
+const mutationKey = getReceiveInternalInvestorPayoutProgressMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof receiveInternalInvestorPayoutProgress>>, ReceiveInternalInvestorPayoutProgressMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  receiveInternalInvestorPayoutProgress(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReceiveInternalInvestorPayoutProgressMutationResult = NonNullable<Awaited<ReturnType<typeof receiveInternalInvestorPayoutProgress>>>
+    export type ReceiveInternalInvestorPayoutProgressMutationBody = BodyType<PayoutProgressPushEvent>
+    export type ReceiveInternalInvestorPayoutProgressMutationError = ErrorType<JsonObject>
+    export type ReceiveInternalInvestorPayoutProgressMutationVariables = {data: BodyType<PayoutProgressPushEvent>}
+
+    /**
+ * @summary Deliver a signed payout progress event to opted-in investor devices
+ */
+export const useReceiveInternalInvestorPayoutProgress = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveInternalInvestorPayoutProgress>>, TError,ReceiveInternalInvestorPayoutProgressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof receiveInternalInvestorPayoutProgress>>,
+        TError,
+        ReceiveInternalInvestorPayoutProgressMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReceiveInternalInvestorPayoutProgressMutationOptions(options));
     }
 
 export const getGetInvestorUnreadNotificationCountUrl = () => {

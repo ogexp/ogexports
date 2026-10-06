@@ -8,6 +8,9 @@ use App\Models\Investment;
 use App\Models\InvestmentPayoutProgress;
 use App\Models\InvestmentProfitDistribution;
 use App\Support\AuditsActions;
+use App\Support\InvestorNotificationTypes;
+use App\Support\InvestorPushBridge;
+use App\Support\NotifiesUsers;
 use App\Support\UserDisplayCurrency;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -161,7 +164,7 @@ class InvestmentProfitDistributionController extends Controller
             ]);
         }
 
-        $investment = DB::transaction(function () use ($data, $investmentId) {
+        [$investment, $progressChanged] = DB::transaction(function () use ($data, $investmentId) {
             $investment = Investment::query()
                 ->with('profitDistribution')
                 ->lockForUpdate()
@@ -179,6 +182,17 @@ class InvestmentProfitDistributionController extends Controller
                 ]);
             }
 
+            $existingProgress = InvestmentPayoutProgress::query()
+                ->where('investment_id', $investment->id)
+                ->lockForUpdate()
+                ->first();
+            $plannedDate = $data['planned_distribution_date'] ?: null;
+            $progressChanged = $data['status'] !== null && (
+                ! $existingProgress
+                || $existingProgress->status !== $data['status']
+                || $existingProgress->planned_distribution_date?->toDateString() !== $plannedDate
+            );
+
             if (! $data['status']) {
                 InvestmentPayoutProgress::query()
                     ->where('investment_id', $investment->id)
@@ -193,7 +207,10 @@ class InvestmentProfitDistributionController extends Controller
                 );
             }
 
-            return $investment->fresh(['project', 'investor', 'profitDistribution', 'payoutProgress']);
+            return [
+                $investment->fresh(['project', 'investor', 'profitDistribution', 'payoutProgress']),
+                $progressChanged,
+            ];
         });
 
         AuditsActions::log('investment.payout_progress_updated', 'investments', $request->user(), [
@@ -204,6 +221,46 @@ class InvestmentProfitDistributionController extends Controller
 
         $distribution = $investment->profitDistribution;
         $confirmed = $distribution?->isConfirmed() ?? false;
+
+        if ($progressChanged && $investment->investor && $investment->payoutProgress) {
+            $status = $investment->payoutProgress->status;
+            $statusLabel = $status === InvestmentPayoutProgress::STATUS_SCHEDULED
+                ? 'Scheduled'
+                : 'Processing';
+            $plannedDate = $investment->payoutProgress->planned_distribution_date?->toDateString();
+            $dateSentence = $plannedDate
+                ? " The planned date is {$plannedDate}."
+                : '';
+            $body = $status === InvestmentPayoutProgress::STATUS_SCHEDULED
+                ? "Your payout for investment {$investment->reference} is scheduled.{$dateSentence} This planned date is not proof that payment has been completed."
+                : "An administrator has marked the payout for investment {$investment->reference} as processing.{$dateSentence} This update does not confirm that payment has been completed.";
+            $title = "Payout update: {$statusLabel}";
+            $portalPath = "/position/{$investment->id}";
+
+            NotifiesUsers::notifyAndEmail(
+                $investment->investor,
+                InvestorNotificationTypes::PAYOUT_PROGRESS,
+                $title,
+                $body,
+                [
+                    'investment_id' => $investment->id,
+                    'payout_status' => $status,
+                    'planned_distribution_date' => $plannedDate,
+                    'href' => $portalPath,
+                ],
+                'investment_payout_progress',
+                [
+                    'reference' => $investment->reference ?: (string) $investment->id,
+                    'project_name' => $investment->project?->title ?? 'your investment',
+                    'status' => strtolower($statusLabel),
+                    'planned_date' => $plannedDate ?: 'Not provided',
+                    'details' => $body,
+                    'portal_url' => config('app.frontend_url', config('app.url')).$portalPath,
+                ]
+            );
+
+            InvestorPushBridge::sendPayoutProgress($investment);
+        }
 
         return response()->json([
             'data' => [

@@ -2,8 +2,6 @@
 
 namespace App\Support;
 
-use App\Support\InvestorNotificationTypes;
-
 final class InvestorNotificationPrefMap
 {
     /** @var array<string, string> */
@@ -11,6 +9,7 @@ final class InvestorNotificationPrefMap
         InvestorNotificationTypes::SHIPMENT_UPDATE => 'trade',
         InvestorNotificationTypes::UPDATE => 'trade',
         InvestorNotificationTypes::INVESTMENT => 'investment',
+        InvestorNotificationTypes::PAYOUT_PROGRESS => 'investment',
         InvestorNotificationTypes::DEPOSIT => 'wallet',
         InvestorNotificationTypes::DEPOSIT_APPROVED => 'wallet',
         InvestorNotificationTypes::WITHDRAWAL => 'wallet',
@@ -38,6 +37,7 @@ final class InvestorNotificationPrefMap
         InvestorNotificationTypes::ANNOUNCEMENT => 'adminAnnounce',
         InvestorNotificationTypes::UPDATE => 'marketUpdates',
         InvestorNotificationTypes::INVESTMENT => 'marketUpdates',
+        InvestorNotificationTypes::PAYOUT_PROGRESS => 'marketUpdates',
         InvestorNotificationTypes::SHIPMENT_UPDATE => 'marketUpdates',
         'profit' => 'profitCredit',
         'profit_credit' => 'profitCredit',

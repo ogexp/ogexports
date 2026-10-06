@@ -2,7 +2,7 @@
 - [OG Exports mobile visual direction](og-exports-visual-direction.md) — premium light/emerald UI, four investor tabs, and Profile via the top-right avatar.
 - [API origin configuration](api-origin-configuration.md) — keep the API address off the login screen; use app environment or existing Settings configuration.
 - [Investor email auth & profile](investor-auth-rollout.md) — email codes cover signup verification, recovery, and optional 2FA; mobile/country stay profile-only.
-- [Investor push delivery](investor-push-delivery.md) — use Expo Push with explicit opt-in; live delivery requires the real Expo project ID and business-event source.
+- [Investor push delivery](investor-push-delivery.md) — signed Laravel events map by normalized email to active opted-in devices; live delivery still needs a real Expo project ID.
 - [Notification preference migration](investor-notification-preference-migration.md) — category preferences override matching legacy settings without dropping old keys or changing email/push controls.
 - [Expo DevTools runtime](expo-devtools-runtime.md) — a missing libglib can break the optional debugger without blocking Metro or the app preview.
 - [Expo workflow log freshness](expo-workflow-log-freshness.md) — when Metro errors conflict with exports, restart the managed Expo workflow and inspect fresh logs before changing code.

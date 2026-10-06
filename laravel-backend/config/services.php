@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'investor_push' => [
+        'url' => env('INVESTOR_PUSH_API_URL'),
+        'session_secret' => env('SESSION_SECRET'),
+        'replit_domains' => env('REPLIT_DOMAINS', ''),
+    ],
+
 ];

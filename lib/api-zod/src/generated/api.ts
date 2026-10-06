@@ -1512,6 +1512,41 @@ export const RevokeInvestorPushTokenResponse = zod.record(zod.string(), zod.unkn
 
 
 /**
+ * Internal Laravel-to-API-Server bridge. Requests require a timestamped HMAC signature.
+ * @summary Deliver a signed payout progress event to opted-in investor devices
+ */
+export const receiveInternalInvestorPayoutProgressHeaderXOGPayoutTimestampRegExp = new RegExp('^[0-9]{10}$');
+export const receiveInternalInvestorPayoutProgressHeaderXOGPayoutSignatureRegExp = new RegExp('^sha256=[a-f0-9]{64}$');
+
+
+export const ReceiveInternalInvestorPayoutProgressHeader = zod.object({
+  "X-OG-Payout-Timestamp": zod.string().regex(receiveInternalInvestorPayoutProgressHeaderXOGPayoutTimestampRegExp),
+  "X-OG-Payout-Signature": zod.string().regex(receiveInternalInvestorPayoutProgressHeaderXOGPayoutSignatureRegExp)
+})
+
+export const receiveInternalInvestorPayoutProgressBodyInvestorEmailMax = 255;
+
+export const receiveInternalInvestorPayoutProgressBodyInvestmentIdRegExp = new RegExp('^[1-9][0-9]{0,19}$');
+export const receiveInternalInvestorPayoutProgressBodyInvestmentReferenceMax = 120;
+
+export const receiveInternalInvestorPayoutProgressBodyProjectNameMax = 200;
+
+
+
+export const ReceiveInternalInvestorPayoutProgressBody = zod.object({
+  "event_id": zod.string().uuid(),
+  "investor_email": zod.string().email().max(receiveInternalInvestorPayoutProgressBodyInvestorEmailMax),
+  "investment_id": zod.string().regex(receiveInternalInvestorPayoutProgressBodyInvestmentIdRegExp),
+  "investment_reference": zod.string().min(1).max(receiveInternalInvestorPayoutProgressBodyInvestmentReferenceMax),
+  "project_name": zod.string().min(1).max(receiveInternalInvestorPayoutProgressBodyProjectNameMax),
+  "status": zod.enum(['scheduled', 'processing']),
+  "planned_date": zod.coerce.date().nullable()
+})
+
+export const ReceiveInternalInvestorPayoutProgressResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary Get unread notification count
  */
 export const GetInvestorUnreadNotificationCountResponse = zod.record(zod.string(), zod.unknown())

@@ -715,6 +715,34 @@ export interface InvestorPushTokenRevocation {
   expo_push_token: string;
 }
 
+export type PayoutProgressPushEventStatus = typeof PayoutProgressPushEventStatus[keyof typeof PayoutProgressPushEventStatus];
+
+
+export const PayoutProgressPushEventStatus = {
+  scheduled: 'scheduled',
+  processing: 'processing',
+} as const;
+
+export interface PayoutProgressPushEvent {
+  event_id: string;
+  /** @maxLength 255 */
+  investor_email: string;
+  /** @pattern ^[1-9][0-9]{0,19}$ */
+  investment_id: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  investment_reference: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  project_name: string;
+  status: PayoutProgressPushEventStatus;
+  planned_date: string | null;
+}
+
 export interface InvestorProfileUpdate {
   /**
      * @minLength 2

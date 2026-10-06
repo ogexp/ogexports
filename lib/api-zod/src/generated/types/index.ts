@@ -74,6 +74,8 @@ export * from './investorWithdrawalInputBankDetails';
 export * from './journeyStage';
 export * from './journeyStageUpdate';
 export * from './jsonObject';
+export * from './payoutProgressPushEvent';
+export * from './payoutProgressPushEventStatus';
 export * from './projectStageUpdate';
 export * from './projectStageUpdateList';
 export * from './projectStageUpdateResponse';

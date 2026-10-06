@@ -22,5 +22,7 @@ final class InvestorNotificationTypes
 
     public const INVESTMENT = 'investment';
 
+    public const PAYOUT_PROGRESS = 'payout_progress';
+
     public const ANNOUNCEMENT = 'announcement';
 }
