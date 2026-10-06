@@ -352,14 +352,13 @@ export default function Deposit() {
       <DetailRow label="Amount" value={moneyInSourceCurrency(Number(amount), paymentCurrency || 'USD')} />
       <DetailRow label="Payment method" value="Bank transfer" />
       <DetailRow label="Receiving bank" value={first(selectedBank ?? {}, ['bank_name', 'name'])} />
-      <View style={{ marginTop: 10, paddingHorizontal: 12, paddingTop: 11, paddingBottom: 2, borderWidth: 1, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.background }}>
-        <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700', marginBottom: 3 }}>Receiving account details</Text>
+      <View style={{ marginTop: 4, borderTopWidth: 1, borderTopColor: colors.border }}>
         {reviewBankDetails.map((detail, index) => {
           const copied = copiedBankField === detail.key;
-          return <View key={detail.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, borderBottomWidth: index === reviewBankDetails.length - 1 ? 0 : 1, borderBottomColor: colors.border }}>
+          return <View key={detail.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>{detail.label}</Text>
-              <Text testID={`review-${detail.key}-value`} selectable style={{ color: detail.value ? colors.foreground : colors.mutedForeground, fontFamily: 'monospace', fontSize: 12, fontWeight: '600', lineHeight: 19, marginTop: 3, textAlign: 'left', writingDirection: 'ltr' }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{detail.label}</Text>
+              <Text testID={`review-${detail.key}-value`} selectable style={{ color: detail.value ? colors.foreground : colors.mutedForeground, fontFamily: 'monospace', fontSize: 12, fontWeight: '600', flexShrink: 1, lineHeight: 19, marginTop: 3, textAlign: 'left', writingDirection: 'ltr' }}>
                 {detail.value || 'Not provided'}
               </Text>
             </View>
