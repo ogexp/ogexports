@@ -1,0 +1,79 @@
+diff --git a/app/Http/Controllers/Api/Shared/UploadController.php b/app/Http/Controllers/Api/Shared/UploadController.php
+--- a/app/Http/Controllers/Api/Shared/UploadController.php
++++ b/app/Http/Controllers/Api/Shared/UploadController.php
+@@ -27,5 +27,16 @@
+         $mime = (string) $file->getMimeType();
+         $isImage = str_starts_with(strtolower($mime), 'image/');
+ 
+-        if ($isImage) {
++        if ($category === 'deposits') {
++            $request->validate([
++                'file' => $isImage
++                    ? [
++                        'required',
++                        File::image()
++                            ->types(['jpg', 'jpeg', 'png', 'gif', 'webp'])
++                            ->max(10 * 1024),
++                    ]
++                    : ['required', 'file', 'max:10240', 'mimes:pdf'],
++            ]);
++        } elseif ($isImage) {
+             $request->validate([
+diff --git a/tests/Feature/UploadControllerTest.php b/tests/Feature/UploadControllerTest.php
+--- a/tests/Feature/UploadControllerTest.php
++++ b/tests/Feature/UploadControllerTest.php
+@@ -62,2 +62,54 @@
++it('accepts deposit proof images at the 10mb limit', function () {
++    $file = UploadedFile::fake()->image('proof.jpg')->size(10 * 1024);
++
++    $this->actingAs($this->user)
++        ->post('/api/uploads', [
++            'file' => $file,
++            'folder' => 'deposit-proofs',
++        ], [
++            'Accept' => 'application/json',
++        ])
++        ->assertCreated();
++});
++
++it('rejects deposit proof images larger than 10mb', function () {
++    $file = UploadedFile::fake()->image('large-proof.jpg')->size((10 * 1024) + 1);
++
++    $this->actingAs($this->user)
++        ->post('/api/uploads', [
++            'file' => $file,
++            'folder' => 'deposit-proofs',
++        ], [
++            'Accept' => 'application/json',
++        ])
++        ->assertStatus(422);
++});
++
++it('accepts deposit proof PDFs at the 10mb limit', function () {
++    $file = UploadedFile::fake()->create('proof.pdf', 10 * 1024, 'application/pdf');
++
++    $this->actingAs($this->user)
++        ->post('/api/uploads', [
++            'file' => $file,
++            'folder' => 'deposit-proofs',
++        ], [
++            'Accept' => 'application/json',
++        ])
++        ->assertCreated();
++});
++
++it('rejects deposit proof PDFs larger than 10mb', function () {
++    $file = UploadedFile::fake()->create('large-proof.pdf', (10 * 1024) + 1, 'application/pdf');
++
++    $this->actingAs($this->user)
++        ->post('/api/uploads', [
++            'file' => $file,
++            'folder' => 'deposit-proofs',
++        ], [
++            'Accept' => 'application/json',
++        ])
++        ->assertStatus(422);
++});
++
+ it('maps legacy folder param to upload categories', function () {
+     $file = UploadedFile::fake()->image('proof.jpg');

@@ -41,6 +41,12 @@ For the OG Exports web portal, development API requests use a Vite proxy under t
 
 **How to apply:** Check the exact live endpoint and hosting origin before declaring a Laravel-backed portal feature operational. Keep an explicit error state instead of substituting mock/local data; coordinate the backend deployment or CORS/Sanctum allowlist when needed.
 
+The investor production Laravel API is hosted at `https://api.ogexports.co`; `ogexports.co` serves the public portal and returns SPA HTML for unknown `/api/...` paths. The live `/api/uploads` route requires authentication, so an unauthenticated 401 confirms reachability but not upload-size rules.
+
+**Why:** On October 6, 2026, probing the public site host returned misleading HTML, while the API subdomain returned Laravel JSON. The protected upload endpoint could not expose its size rule without an authorized session.
+
+**How to apply:** Use `api.ogexports.co` for live investor API checks. Verify protected upload limits with authorized test uploads after deployment; do not infer acceptance from the health endpoint or an unauthenticated route response.
+
 The supplied Laravel source snapshot limits image uploads to 8 MB and permits PDF uploads up to 20 MB, while the investor mobile flow applies a 10 MB client-side limit.
 
 **Why:** A mobile file can pass the 10 MB check and still be rejected by the Laravel upload endpoint when it is an image above 8 MB.
