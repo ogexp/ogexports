@@ -103,8 +103,8 @@ export default function OpportunityDetail() {
   const openStatus = /\b(open|funding|fundrais(?:e|ing)|available|accepting)\b/.test(normalizedInvestmentStatus);
   const fundingClosed = closedStatus || explicitCanInvest === false || (remainingFunding != null && remainingFunding <= 0);
   const investmentAvailable = !fundingClosed && (openStatus || explicitCanInvest === true);
-  const flowSteps = ['Amount', 'Review', 'Terms & risk', 'Secure confirmation', 'Complete'];
-  const activeFlowStep = ({ details: 0, amount: 1, review: 2, risk: 3, confirmation: 4, success: 5 } as const)[stage];
+  const flowSteps = ['Amount', 'Review', 'Terms & risk', 'Confirm'];
+  const activeFlowStep = ({ details: 0, amount: 1, review: 2, risk: 3, confirmation: 4, success: 4 } as const)[stage];
   const currencyLabel = currency || (walletQuery.isLoading || walletQuery.isFetching ? 'Loading currency…' : 'Currency unavailable');
   const remainingCapacity = remainingFunding;
   const formatTradeMoney = (value: number | null) => money(value, tradeCurrency || 'USD');
@@ -144,6 +144,16 @@ export default function OpportunityDetail() {
   const tradeLabel = projectTradeAssociation !== '—'
     ? `Trade #${projectTradeAssociation}`
     : '—';
+  const projectTitle = first(project, ['commodity_name', 'commodity', 'title', 'name', 'project_name'], 'Trade opportunity');
+  const amountFacts: [string, string][] = [
+    ['Minimum', formatTradeMoney(minimum)],
+    ...(maximum == null ? [] : [['Maximum', formatTradeMoney(maximum)] as [string, string]]),
+    ['Wallet balance', walletQuery.isError && walletBalance == null ? 'Unavailable' : moneyInSourceCurrency(walletBalance, walletCurrency || 'USD')],
+    ['Remaining capacity', formatTradeMoney(remainingCapacity)],
+  ];
+  const amountSummary = currency && Number.isFinite(Number(investAmount)) && Number(investAmount) > 0
+    ? moneyInSourceCurrency(Number(investAmount), currency)
+    : investAmount ? 'Currency pending' : 'Not entered';
 
   function continueToReview() {
     setError('');
@@ -294,18 +304,16 @@ export default function OpportunityDetail() {
     }
   }
   return <Screen
-    title={stage === 'details' ? 'Trade Opportunity' : 'Invest in this trade'}
+    title={stage === 'details' ? 'Trade Opportunity' : stage === 'success' ? 'Investment complete' : 'Complete your investment'}
     subtitle={stage === 'details'
       ? first(project, ['commodity_name', 'commodity', 'destination'], 'Trade details')
-      : `${flowSteps[activeFlowStep - 1]} · Step ${activeFlowStep} of 5`}
+      : stage === 'success' ? 'Your request status and reference details' : flowSteps[activeFlowStep - 1]}
+    action={stage !== 'details' ? <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: '600', textAlign: 'right' }}>
+      {stage === 'success' ? 'Complete' : `Step ${activeFlowStep} of ${flowSteps.length}`}
+    </Text> : undefined}
   >
-    {stage !== 'details' ? <View accessibilityRole="progressbar" accessibilityLabel={`Investment flow step ${activeFlowStep} of 5`} style={{ flexDirection: 'row', gap: 4, marginBottom: 14 }}>
-      {flowSteps.map((label, index) => {
-        const complete = index + 1 <= activeFlowStep;
-        return <View key={label} style={{ flex: 1, borderRadius: 8, paddingVertical: 7, alignItems: 'center', backgroundColor: complete ? colors.primary : colors.secondary }}>
-          <Text style={{ color: complete ? colors.primaryForeground : colors.mutedForeground, fontSize: 8, fontWeight: '700', textAlign: 'center' }}>{index + 1}. {label}</Text>
-        </View>;
-      })}
+    {stage !== 'details' ? <View accessibilityRole="progressbar" accessibilityLabel={`Investment flow step ${activeFlowStep} of ${flowSteps.length}`} testID="investment-flow-progress" style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
+      {flowSteps.map((label, index) => <View key={label} style={{ flex: 1, height: 5, borderRadius: 8, backgroundColor: index + 1 <= activeFlowStep ? colors.primary : colors.border }} />)}
     </View> : null}
     {query.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading opportunity details…</Text></Card> : null}
     {query.isError ? <ErrorState message="Opportunity details could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
@@ -355,10 +363,19 @@ export default function OpportunityDetail() {
         <View style={{ marginTop: 9 }}><Action title="Back to trade details" secondary onPress={() => setStage('details')} /></View>
       </Card> : null}
       {kycVerified && stage === 'amount' ? <Card>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>01 · Set your amount</Text>
+        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', letterSpacing: -0.25 }}>Set your investment amount</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 5, marginBottom: 16 }}>
-          Your amount is checked against the opportunity and wallet values supplied by OG Exports. Missing figures remain server-authoritative.
+          Choose an amount for this trade. OG Exports checks it against the current opportunity and wallet limits.
         </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12, marginBottom: 16, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background }}>
+          <View style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.lightGreen }}>
+            <Feather name="shield" size={19} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 14, fontWeight: '700' }}>{projectTitle}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{tradeLabel} · {currency || currencyLabel}</Text>
+          </View>
+        </View>
         <Field label={`Investment amount · ${currencyLabel}`} value={investAmount} onChangeText={value => {
           const nextAmount = value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
           if (nextAmount !== investAmount) setAgreementAccepted(false);
@@ -370,27 +387,38 @@ export default function OpportunityDetail() {
             Container investments are entered in USD. OG Exports converts the PKR wallet debit at submission; this app does not estimate the exchange rate.
           </Text>
         </View> : null}
-        <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+          {amountFacts.map(([label, value]) => <View key={label} style={{ flexGrow: 1, flexBasis: '46%', minWidth: '44%', padding: 11, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{label}</Text>
+            <Text style={{ color: value === 'Unavailable' ? colors.mutedForeground : colors.foreground, fontSize: 14, fontWeight: '700', marginTop: 5 }}>{value}</Text>
+          </View>)}
+        </View>
+        <View style={{ padding: 14, borderRadius: 14, backgroundColor: colors.lightGreen, marginBottom: 4 }}>
+          <Text style={{ color: colors.primary, fontSize: 10, letterSpacing: 0.7, fontWeight: '700', marginBottom: 7 }}>INVESTMENT SUMMARY</Text>
           {[
-            ['Minimum investment', formatTradeMoney(minimum)],
-            ['Available wallet balance', walletQuery.isError && walletBalance == null ? 'Unavailable' : moneyInSourceCurrency(walletBalance, walletCurrency || 'USD')],
-            ['Remaining opportunity capacity', formatTradeMoney(remainingCapacity)],
-          ].map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-            <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text>
-            <Text style={{ color: value === 'Unavailable' ? colors.mutedForeground : colors.foreground, fontWeight: '700', textAlign: 'right', flex: 1 }}>{value}</Text>
+            ['Investment amount', amountSummary],
+            ['Target return · not guaranteed', projectedReturn || 'Not reported'],
+            ['Trade term', cycleValue],
+          ].map(([label, value], index) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingVertical: 7, borderTopWidth: index === 0 ? 0 : 1, borderTopColor: colors.border }}>
+            <Text style={{ color: colors.foreground, fontSize: 12, flex: 1 }}>{label}</Text>
+            <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', textAlign: 'right', flex: 1 }}>{value}</Text>
           </View>)}
         </View>
         {!currency && !walletQuery.isLoading && !walletQuery.isFetching ? <Text style={{ color: colors.destructive, fontSize: 11, lineHeight: 17, marginTop: 10 }}>OG Exports has not supplied a currency for this trade or wallet.</Text> : null}
         {walletQuery.isError ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 10 }}>Wallet balance could not be loaded. The server remains authoritative.</Text> : null}
         {error ? <ErrorState message={error} /> : null}
         <View style={{ marginTop: 15 }}><Action title="Continue to review" icon="arrow-right" disabled={!investAmount || !currency || !investmentAvailable} onPress={continueToReview} /></View>
-        <View style={{ marginTop: 9 }}><Action title="Cancel investment flow" secondary onPress={() => setStage('details')} /></View>
+        <View style={{ marginTop: 9 }}><Action title="Back to opportunity" secondary onPress={() => setStage('details')} /></View>
       </Card> : null}
       {kycVerified && stage === 'review' ? <Card>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>02 · Review commitment</Text>
+        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', letterSpacing: -0.25 }}>Review your investment</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5 }}>Confirm the trade and money movement details before moving to the published terms.</Text>
+        <View style={{ marginTop: 16, marginBottom: 7, padding: 15, borderRadius: 14, backgroundColor: colors.lightGreen }}>
+          <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700', letterSpacing: 0.7 }}>YOUR INVESTMENT</Text>
+          <Text style={{ color: colors.foreground, fontSize: 24, fontWeight: '700', marginTop: 5 }}>{moneyInSourceCurrency(Number(investAmount), currency)}</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>{projectTitle} · {tradeLabel}</Text>
+        </View>
         {[
-          ['Your investment', moneyInSourceCurrency(Number(investAmount), currency)],
           ['Trade', tradeLabel],
           ['Target return · not guaranteed', projectedReturn || '—'],
           ['Target distribution · not guaranteed', distributionValue],
@@ -406,14 +434,17 @@ export default function OpportunityDetail() {
           <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text>
           <Text style={{ color: value === '—' ? colors.mutedForeground : colors.foreground, fontWeight: '700', flex: 1, textAlign: 'right' }}>{value}</Text>
         </View>)}
-        <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 12 }}>No fee, conversion, or return is estimated here. Any available terms above are supplied by the opportunity record.</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 9, padding: 12, marginTop: 12, borderRadius: 12, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border }}>
+          <Feather name="info" size={15} color={colors.primary} style={{ marginTop: 2 }} />
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, flex: 1 }}>Returns are targets, not guarantees. Fees and any currency conversion are confirmed by OG Exports; this screen does not estimate them.</Text>
+        </View>
         <View style={{ marginTop: 15 }}><Action title="Continue to Terms & risk" icon="arrow-right" onPress={() => { setError(''); setStage('risk'); }} /></View>
-        <View style={{ marginTop: 9 }}><Action title="Back to amount" secondary onPress={() => setStage('amount')} /></View>
+        <View style={{ marginTop: 9 }}><Action title="Back to amount" secondary icon="arrow-left" onPress={() => setStage('amount')} /></View>
       </Card> : null}
       {kycVerified && stage === 'risk' ? <Card>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>03 · Official terms & risk</Text>
+        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', letterSpacing: -0.25 }}>Official terms & risk</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 5, marginBottom: 12 }}>
-          Review the published documents provided in OG Exports app settings. Acknowledgements are separate and required to continue.
+          Read each document and confirm your acknowledgements before securing this investment.
         </Text>
         {settingsQuery.isLoading || settingsQuery.isFetching ? <Card><Text style={{ color: colors.mutedForeground }}>Loading published legal content…</Text></Card> : null}
         {settingsQuery.isError ? <ErrorState message="Published Terms of Service and Risk Disclosure could not be loaded. Retry before continuing." error={settingsQuery.error} onRetry={() => void settingsQuery.refetch()} /> : null}
@@ -423,10 +454,10 @@ export default function OpportunityDetail() {
         </Card> : null}
         {termsRequired ? <Card>
           <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 8 }}>Terms of Service</Text>
-          <Text selectable style={{ color: colors.mutedForeground, lineHeight: 20, fontSize: 12 }}>{termsContent}</Text>
-          <Pressable testID="investment-terms-acknowledgement" accessibilityRole="checkbox" accessibilityState={{ checked: termsAccepted }} onPress={() => setTermsAccepted(value => !value)} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 15 }}>
+          <Text selectable style={{ color: colors.mutedForeground, lineHeight: 21, fontSize: 13 }}>{termsContent}</Text>
+          <Pressable testID="investment-terms-acknowledgement" accessibilityRole="checkbox" accessibilityState={{ checked: termsAccepted }} onPress={() => setTermsAccepted(value => !value)} style={{ minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 15, padding: 11, borderRadius: 12, borderWidth: 1, borderColor: termsAccepted ? colors.primary : colors.border, backgroundColor: termsAccepted ? colors.lightGreen : colors.background }}>
             <View style={{ width: 21, height: 21, borderRadius: 6, borderWidth: 1, borderColor: termsAccepted ? colors.primary : colors.border, backgroundColor: termsAccepted ? colors.primary : colors.card, alignItems: 'center', justifyContent: 'center' }}>{termsAccepted ? <Feather name="check" size={14} color={colors.primaryForeground} /> : null}</View>
-            <Text style={{ flex: 1, color: colors.foreground, lineHeight: 19, fontSize: 12 }}>I acknowledge the published Terms of Service.</Text>
+            <Text style={{ flex: 1, color: colors.foreground, lineHeight: 19, fontSize: 13 }}>I acknowledge the published Terms of Service.</Text>
           </Pressable>
         </Card> : null}
         {!settingsQuery.isLoading && !settingsQuery.isFetching && !settingsQuery.isError && !riskRequired ? <Card style={{ borderColor: colors.destructive }}>
@@ -435,10 +466,10 @@ export default function OpportunityDetail() {
         </Card> : null}
         {riskRequired ? <Card>
           <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 8 }}>Risk Disclosure</Text>
-          <Text selectable style={{ color: colors.mutedForeground, lineHeight: 20, fontSize: 12 }}>{riskContent}</Text>
-          <Pressable testID="investment-risk-acknowledgement" accessibilityRole="checkbox" accessibilityState={{ checked: riskAccepted }} onPress={() => setRiskAccepted(value => !value)} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 15 }}>
+          <Text selectable style={{ color: colors.mutedForeground, lineHeight: 21, fontSize: 13 }}>{riskContent}</Text>
+          <Pressable testID="investment-risk-acknowledgement" accessibilityRole="checkbox" accessibilityState={{ checked: riskAccepted }} onPress={() => setRiskAccepted(value => !value)} style={{ minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 15, padding: 11, borderRadius: 12, borderWidth: 1, borderColor: riskAccepted ? colors.primary : colors.border, backgroundColor: riskAccepted ? colors.lightGreen : colors.background }}>
             <View style={{ width: 21, height: 21, borderRadius: 6, borderWidth: 1, borderColor: riskAccepted ? colors.primary : colors.border, backgroundColor: riskAccepted ? colors.primary : colors.card, alignItems: 'center', justifyContent: 'center' }}>{riskAccepted ? <Feather name="check" size={14} color={colors.primaryForeground} /> : null}</View>
-            <Text style={{ flex: 1, color: colors.foreground, lineHeight: 19, fontSize: 12 }}>I acknowledge the published Risk Disclosure.</Text>
+            <Text style={{ flex: 1, color: colors.foreground, lineHeight: 19, fontSize: 13 }}>I acknowledge the published Risk Disclosure.</Text>
           </Pressable>
         </Card> : null}
         <Card>
@@ -446,17 +477,17 @@ export default function OpportunityDetail() {
           <Text style={{ color: colors.mutedForeground, lineHeight: 19, fontSize: 12 }}>
             This acknowledgement is required to submit the request but is not saved as a consent record in your OG Exports account.
           </Text>
-          <Pressable testID="investment-agreement-acknowledgement" accessibilityRole="checkbox" accessibilityState={{ checked: agreementAccepted }} onPress={() => setAgreementAccepted(value => !value)} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 15 }}>
+          <Pressable testID="investment-agreement-acknowledgement" accessibilityRole="checkbox" accessibilityState={{ checked: agreementAccepted }} onPress={() => setAgreementAccepted(value => !value)} style={{ minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 15, padding: 11, borderRadius: 12, borderWidth: 1, borderColor: agreementAccepted ? colors.primary : colors.border, backgroundColor: agreementAccepted ? colors.lightGreen : colors.background }}>
             <View style={{ width: 21, height: 21, borderRadius: 6, borderWidth: 1, borderColor: agreementAccepted ? colors.primary : colors.border, backgroundColor: agreementAccepted ? colors.primary : colors.card, alignItems: 'center', justifyContent: 'center' }}>{agreementAccepted ? <Feather name="check" size={14} color={colors.primaryForeground} /> : null}</View>
-            <Text style={{ flex: 1, color: colors.foreground, lineHeight: 19, fontSize: 12 }}>I acknowledge the investment details and want to submit this investment request.</Text>
+            <Text style={{ flex: 1, color: colors.foreground, lineHeight: 19, fontSize: 13 }}>I acknowledge the investment details and want to submit this investment request.</Text>
           </Pressable>
         </Card>
         {error ? <ErrorState message={error} /> : null}
         <Action title="Continue to secure confirmation" icon="arrow-right" disabled={!legalContentReady || !termsAccepted || !riskAccepted || !agreementAccepted} onPress={() => { setError(''); setStage('confirmation'); }} />
-        <View style={{ marginTop: 9 }}><Action title="Back to review" secondary onPress={() => setStage('review')} /></View>
+        <View style={{ marginTop: 9 }}><Action title="Back to review" secondary icon="arrow-left" onPress={() => setStage('review')} /></View>
       </Card> : null}
       {kycVerified && stage === 'confirmation' ? <Card>
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>04 · Confirm on this device</Text>
+        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', letterSpacing: -0.25 }}>Secure confirmation</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 6, marginBottom: 13 }}>
           Authenticate locally before the investment request is sent. This device confirmation is separate from account sign-in verification.
         </Text>
@@ -465,19 +496,21 @@ export default function OpportunityDetail() {
           <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 5 }}>Set an app PIN or enable device biometrics in Account security before investing.</Text>
           <View style={{ marginTop: 12 }}><Action title="Open Account security" icon="shield" onPress={() => router.push('/account/security')} /></View>
         </Card> : null}
-        {appPinEnabled ? <Field label="Six-digit app PIN" value={pin} onChangeText={value => setPin(value.replace(/\D/g, '').slice(0, 6))} placeholder="••••••" keyboardType="numeric" secureTextEntry autoCapitalize="none" /> : null}
+        {appPinEnabled ? <Field label="Six-digit app PIN" value={pin} onChangeText={value => setPin(value.replace(/\D/g, '').slice(0, 6))} placeholder="Enter your six-digit PIN" keyboardType="numeric" secureTextEntry autoCapitalize="none" /> : null}
         {biometricEnabled ? <View style={{ backgroundColor: colors.lightGreen, borderRadius: 12, padding: 12, marginBottom: 13, flexDirection: 'row', alignItems: 'center', gap: 9 }}>
           <Feather name="smartphone" size={17} color={colors.primary} />
           <Text style={{ color: colors.foreground, fontSize: 12, lineHeight: 18, flex: 1 }}>Device biometric confirmation is enabled. It will be checked on this device before submitting.</Text>
         </View> : null}
-        <View style={{ backgroundColor: colors.secondary, borderRadius: 12, padding: 13, marginBottom: 14 }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700' }}>REQUEST SUMMARY</Text>
-          <Text style={{ color: colors.foreground, fontWeight: '700', marginTop: 6 }}>{moneyInSourceCurrency(Number(investAmount), currency)} · {tradeLabel}</Text>
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>Payment method: Wallet balance</Text>
+        <View style={{ backgroundColor: colors.lightGreen, borderRadius: 14, padding: 14, marginBottom: 14 }}>
+          <Text style={{ color: colors.primary, fontSize: 10, letterSpacing: 0.7, fontWeight: '700' }}>FINAL REQUEST SUMMARY</Text>
+          <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 20, marginTop: 6 }}>{moneyInSourceCurrency(Number(investAmount), currency)}</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>{projectTitle} · {tradeLabel}</Text>
+          <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 10 }} />
+          <Text style={{ color: colors.foreground, fontSize: 12 }}>Payment method: Wallet balance</Text>
         </View>
         {error ? <ErrorState message={error} /> : null}
         <Action title="Authenticate & submit request" icon="lock" loading={authBusy || invest.isPending} disabled={(!appPinEnabled && !biometricEnabled) || (appPinEnabled && !biometricEnabled && pin.length !== 6)} onPress={() => void submit()} />
-        <View style={{ marginTop: 9 }}><Action title="Back to Terms & risk" secondary onPress={() => { setPin(''); setStage('risk'); }} /></View>
+        <View style={{ marginTop: 9 }}><Action title="Back to Terms & risk" secondary icon="arrow-left" onPress={() => { setPin(''); setStage('risk'); }} /></View>
         <Pressable onPress={() => router.push('/account/security')} style={{ alignSelf: 'center', padding: 12 }}><Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>Manage confirmation methods</Text></Pressable>
       </Card> : null}
       {kycVerified && stage === 'success' && confirmation ? (() => {
@@ -491,7 +524,7 @@ export default function OpportunityDetail() {
           ? `1 USD = ${confirmation.exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} PKR`
           : '';
         return <Card style={{ borderColor: colors.primary }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', marginBottom: 10 }}>05 · Complete</Text>
+          <Text style={{ color: colors.primary, fontSize: 10, letterSpacing: 0.7, fontWeight: '700', marginBottom: 10 }}>INVESTMENT CONFIRMATION</Text>
           <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center', marginBottom: 13 }}>
             <Feather name={serverConfirmed ? 'check' : 'send'} size={21} color={colors.primary} />
           </View>
