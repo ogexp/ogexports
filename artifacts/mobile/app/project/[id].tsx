@@ -28,6 +28,33 @@ import { shareInvestorFile } from '@/lib/file-download';
 import { getInvestorKycStatus, isInvestorKycVerified } from '@/lib/kyc';
 import { verifyAppPin } from '@/lib/app-pin';
 
+function formatEstimatedDistributionDate(value: string): string {
+  const raw = value.trim();
+  if (!raw) return '—';
+
+  const dateParts = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+  let date: Date;
+  if (dateParts) {
+    const [, year, month, day] = dateParts;
+    date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+    if (
+      date.getUTCFullYear() !== Number(year)
+      || date.getUTCMonth() !== Number(month) - 1
+      || date.getUTCDate() !== Number(day)
+    ) return '—';
+  } else {
+    date = new Date(raw);
+    if (!Number.isFinite(date.getTime())) return '—';
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
 export default function OpportunityDetail() {
   const { id: raw } = useLocalSearchParams<{ id: string }>();
   const id = String(raw ?? '');
@@ -52,6 +79,8 @@ export default function OpportunityDetail() {
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
   const project = unwrap(query.data);
   const tradeData = record(project.trade ?? project.project ?? project.trade_details);
+  const projectMeta = record(project.meta);
+  const tradeMeta = record(tradeData.meta);
   const appSettings = unwrap(settingsQuery.data);
   const siteSettings = record(appSettings.site);
   const supportEmail = first(siteSettings, ['support_email', 'supportEmail'], 'support@ogexports.co');
@@ -139,7 +168,20 @@ export default function OpportunityDetail() {
   const legalContentReady = !settingsQuery.isLoading && !settingsQuery.isFetching && !settingsQuery.isError && termsRequired && riskRequired;
   const feeValue = first(project, ['investment_fee', 'investor_fee', 'fee', 'fees', 'transaction_fee', 'platform_fee']);
   const cycleValue = first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], projectedCycle || '—');
-  const distributionValue = first(project, ['target_distribution', 'projected_distribution', 'estimated_distribution'], '—');
+  const distributionDateKeys = [
+    'target_distribution_date',
+    'estimated_distribution_date',
+    'expected_distribution_date',
+    'expected_payout_date',
+    'distribution_date',
+    'profit_payout_date',
+  ];
+  const distributionDateRaw = first(
+    project,
+    distributionDateKeys,
+    first(projectMeta, distributionDateKeys, first(tradeData, distributionDateKeys, first(tradeMeta, distributionDateKeys))),
+  );
+  const distributionDate = formatEstimatedDistributionDate(distributionDateRaw);
   const projectTradeAssociation = first(project, ['trade_id', 'trade_code', 'code', 'reference'], '—');
   const tradeLabel = projectTradeAssociation !== '—'
     ? `Trade #${projectTradeAssociation}`
@@ -421,7 +463,7 @@ export default function OpportunityDetail() {
         {[
           ['Trade', tradeLabel],
           ['Target return · not guaranteed', projectedReturn || '—'],
-          ['Target distribution · not guaranteed', distributionValue],
+          ['Target distribution date · estimated', distributionDate],
           ['Fees', feeValue || money(null, tradeCurrency || 'USD')],
           ['Trade cycle', cycleValue],
           ['Wallet debit', currency && walletCurrency
@@ -436,7 +478,7 @@ export default function OpportunityDetail() {
         </View>)}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 9, padding: 12, marginTop: 12, borderRadius: 12, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border }}>
           <Feather name="info" size={15} color={colors.primary} style={{ marginTop: 2 }} />
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, flex: 1 }}>Returns are targets, not guarantees. Fees and any currency conversion are confirmed by OG Exports; this screen does not estimate them.</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, flex: 1 }}>The distribution date is an estimate, not a guarantee. Returns are targets, not guarantees. Fees and currency conversion are confirmed by OG Exports; this screen does not estimate them.</Text>
         </View>
         <View style={{ marginTop: 15 }}><Action title="Continue to Terms & risk" icon="arrow-right" onPress={() => { setError(''); setStage('risk'); }} /></View>
         <View style={{ marginTop: 9 }}><Action title="Back to amount" secondary icon="arrow-left" onPress={() => setStage('amount')} /></View>

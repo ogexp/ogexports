@@ -380,6 +380,7 @@ export interface AdminInvestProject {
   portOfLoading?: string; portOfDischarge?: string; origin?: string
   incoterm?: string; paymentTermsInvest?: string; riskLevel?: "low" | "medium" | "high"
   fundingDeadlineDate?: string; investmentPeriodDays?: number; expectedReturnPct?: number
+  targetDistributionDate?: string
   currentProjectStage?: string; productCategory?: string; shippingLine?: string
   /** Display timeline for facility opportunity cards (stored in meta.timeline) */
   timeline?: string
@@ -1427,6 +1428,13 @@ export function mapInvestProject(p: any): AdminInvestProject {
     fundingDeadlineDate: p.funding_deadline,
     investmentPeriodDays: p.investment_period_days != null ? Number(p.investment_period_days) : undefined,
     expectedReturnPct: p.expected_return_pct != null ? Number(p.expected_return_pct) : undefined,
+    targetDistributionDate: String(
+      p.target_distribution_date
+        ?? p.targetDistributionDate
+        ?? p.meta?.target_distribution_date
+        ?? p.meta?.estimated_distribution_date
+        ?? "",
+    ).slice(0, 10),
     currentProjectStage: p.current_project_stage,
     shippingLine: p.shipping_line,
     completion: p.meta?.completion != null ? String(p.meta.completion) : (p.completion || undefined),
@@ -1754,24 +1762,25 @@ function projectToApi(p: Partial<AdminInvestProject>) {
   if (p.riskLevel !== undefined) payload.risk_level = p.riskLevel
   if (p.investmentPeriodDays !== undefined) payload.investment_period_days = p.investmentPeriodDays
   if (p.containerValue !== undefined) payload.container_value = p.containerValue
-  if (p.meta !== undefined && typeof p.meta === "object") {
-    payload.meta = { ...p.meta }
-  } else if (
+  const metaPayload: Record<string, unknown> =
+    p.meta !== undefined && typeof p.meta === "object" ? { ...p.meta } : {}
+  if (
     p.completion !== undefined
     || p.productCategory !== undefined
     || p.timeline !== undefined
     || p.sortOrder !== undefined
     || p.containerNumber !== undefined
   ) {
-    payload.meta = {
-      ...(typeof payload.meta === "object" && payload.meta ? payload.meta as object : {}),
-      ...(p.completion !== undefined ? { completion: p.completion } : {}),
-      ...(p.productCategory !== undefined ? { product_category: p.productCategory } : {}),
-      ...(p.timeline !== undefined ? { timeline: p.timeline } : {}),
-      ...(p.sortOrder !== undefined ? { sort_order: p.sortOrder } : {}),
-      ...(p.containerNumber !== undefined ? { container_no: p.containerNumber } : {}),
-    }
+    if (p.completion !== undefined) metaPayload.completion = p.completion
+    if (p.productCategory !== undefined) metaPayload.product_category = p.productCategory
+    if (p.timeline !== undefined) metaPayload.timeline = p.timeline
+    if (p.sortOrder !== undefined) metaPayload.sort_order = p.sortOrder
+    if (p.containerNumber !== undefined) metaPayload.container_no = p.containerNumber
   }
+  if (p.targetDistributionDate !== undefined) {
+    metaPayload.target_distribution_date = p.targetDistributionDate || null
+  }
+  if (Object.keys(metaPayload).length > 0 || p.meta !== undefined) payload.meta = metaPayload
   if (p.containerNumber !== undefined) {
     const existing = typeof payload.meta === "object" && payload.meta ? (payload.meta as Record<string, unknown>) : {}
     payload.meta = { ...existing, container_no: p.containerNumber }

@@ -49,6 +49,7 @@ const emptyForm = (): Omit<AdminInvestProject, "id"> => ({
   portOfLoading: "Port Qasim", portOfDischarge: "", origin: "Pakistan",
   incoterm: "FOB", paymentTermsInvest: "LC at sight", riskLevel: "low" as const,
   fundingDeadlineDate: "", investmentPeriodDays: 45, expectedReturnPct: 8,
+  targetDistributionDate: "",
   currentProjectStage: "Funding", productCategory: "", shippingLine: "",
   timeline: "", sortOrder: 0,
 })
@@ -60,6 +61,7 @@ function normalizeFormDates(data: Partial<AdminInvestProject>): Omit<AdminInvest
     etd: toIsoDate(base.etd),
     eta: toIsoDate(base.eta),
     fundingDeadlineDate: toIsoDate(base.fundingDeadlineDate),
+    targetDistributionDate: toIsoDate(base.targetDistributionDate),
   }
 }
 
@@ -663,6 +665,18 @@ function ProjectModal({
               </div>
             </div>
             )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase block mb-1">Target Distribution Date (Estimated)</label>
+                <DatePicker
+                  value={form.targetDistributionDate || ""}
+                  onChange={v => set("targetDistributionDate", v)}
+                  placeholder="Select estimated distribution date"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1.5">Shown to investors as an estimate; it is not a guaranteed payout date.</p>
+              </div>
+            </div>
 
             {/* Investment Terms */}
             {!isFacility ? (

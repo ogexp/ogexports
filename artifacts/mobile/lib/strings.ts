@@ -726,6 +726,8 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Validated by OG Exports at submission","درخواست جمع کرتے وقت OG Exports تصدیق کرے گا","تتحقق منها OG Exports عند الإرسال"],
   ["Target return · not guaranteed","ہدف شدہ منافع · ضمانت نہیں","العائد المستهدف · غير مضمون"],
   ["Target distribution · not guaranteed","ہدف شدہ تقسیم · ضمانت نہیں","التوزيع المستهدف · غير مضمون"],
+  ["Target distribution date · estimated","ہدف شدہ تقسیم کی متوقع تاریخ","التاريخ التقديري للتوزيع المستهدف"],
+  ["The distribution date is an estimate, not a guarantee. Returns are targets, not guarantees. Fees and currency conversion are confirmed by OG Exports; this screen does not estimate them.","تقسیم کی تاریخ ایک اندازہ ہے، ضمانت نہیں۔ منافع بھی اہداف ہیں، ضمانت نہیں۔ فیس اور کرنسی کی تبدیلی کی تصدیق OG Exports کرتا ہے؛ یہ اسکرین ان کا اندازہ نہیں لگاتی۔","تاريخ التوزيع تقديري وليس مضمونًا. العوائد أهداف وليست مضمونة. تؤكد OG Exports الرسوم وتحويل العملات؛ ولا تقدّرها هذه الشاشة."],
   ["Wallet debit","والیٹ سے کٹوتی","الخصم من المحفظة"],
   ["Amount invested","سرمایہ کاری کی رقم","المبلغ المستثمر"],
   ["Investment reference","سرمایہ کاری کا حوالہ","مرجع الاستثمار"],
