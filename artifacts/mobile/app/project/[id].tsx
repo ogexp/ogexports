@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Linking, Platform, Pressable, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -68,8 +68,6 @@ export default function OpportunityDetail() {
   const invest = useInvestInProject();
   const [investAmount, setInvestAmount] = useState('');
   const [stage, setStage] = useState<'details' | 'amount' | 'review' | 'risk' | 'confirmation' | 'success'>('details');
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [riskAccepted, setRiskAccepted] = useState(false);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
   const [pin, setPin] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
@@ -84,6 +82,26 @@ export default function OpportunityDetail() {
   const appSettings = unwrap(settingsQuery.data);
   const siteSettings = record(appSettings.site);
   const supportEmail = first(siteSettings, ['support_email', 'supportEmail'], 'support@ogexports.co');
+  const plainPolicyText = (value: string) => value
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|h[1-6]|li|section|article)>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'").replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+    .replace(/\n{3,}/g, '\n\n').trim();
+  const riskContentRaw = [
+    siteSettings.risk_disclosure,
+    siteSettings.investment_risk_disclosure,
+    siteSettings.risk_disclaimer,
+    siteSettings.risk_disclosure_content,
+  ].map(value => {
+    if (typeof value === 'string') return value;
+    const entry = record(value);
+    return first(entry, ['content', 'body', 'text', 'description']);
+  }).find(value => value.trim().length > 0) ?? '';
+  const riskContent = riskContentRaw ? plainPolicyText(riskContentRaw) : '';
   const investorProfile = unwrap(profileQuery.data);
   const kycStatus = getInvestorKycStatus(investorProfile);
   const kycVerified = !profileQuery.isLoading && !profileQuery.isFetching && !profileQuery.isError && isInvestorKycVerified(investorProfile);
@@ -137,35 +155,6 @@ export default function OpportunityDetail() {
   const currencyLabel = currency || (walletQuery.isLoading || walletQuery.isFetching ? 'Loading currency…' : 'Currency unavailable');
   const remainingCapacity = remainingFunding;
   const formatTradeMoney = (value: number | null) => money(value, tradeCurrency || 'USD');
-  const plainPolicyText = (value: string) => value
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|h[1-6]|li|section|article)>/gi, '\n\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&quot;/gi, '"')
-    .replace(/&#39;|&apos;/gi, "'").replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
-    .replace(/\n{3,}/g, '\n\n').trim();
-  const siteContent = (keys: string[]) => {
-    const rawContent = keys.map(key => {
-      const value = siteSettings[key];
-      if (typeof value === 'string') return value;
-      if (value && typeof value === 'object') {
-        const entry = record(value);
-        for (const contentKey of ['content', 'body', 'text', 'description']) {
-          const text = entry[contentKey];
-          if (typeof text === 'string' && text.trim()) return text;
-        }
-      }
-      return '';
-    }).find(value => value.trim().length > 0);
-    return rawContent ? plainPolicyText(rawContent) : '';
-  };
-  const termsContent = siteContent(['terms', 'terms_of_service', 'terms_and_conditions', 'terms_content', 'terms_of_service_content']);
-  const riskContent = siteContent(['risk_disclosure', 'investment_risk_disclosure', 'risk_disclaimer', 'risk_disclosure_content']);
-  const termsRequired = Boolean(termsContent);
-  const riskRequired = Boolean(riskContent);
-  const legalContentReady = !settingsQuery.isLoading && !settingsQuery.isFetching && !settingsQuery.isError && termsRequired && riskRequired;
   const feeValue = first(project, ['investment_fee', 'investor_fee', 'fee', 'fees', 'transaction_fee', 'platform_fee']);
   const cycleValue = first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], projectedCycle || '—');
   const distributionDateKeys = [
@@ -234,8 +223,8 @@ export default function OpportunityDetail() {
       router.push('/account/kyc');
       return;
     }
-    if (!legalContentReady || !termsAccepted || !riskAccepted || !agreementAccepted) {
-      setError('Read the published Terms of Service and Risk Disclosure, then acknowledge each and the investment request separately before proceeding.');
+    if (!agreementAccepted) {
+      setError('Acknowledge the Investment Agreement and risk statement before continuing.');
       return;
     }
     const userId = first(record(user), ['id']);
@@ -484,49 +473,33 @@ export default function OpportunityDetail() {
         <View style={{ marginTop: 9 }}><Action title="Back to amount" secondary icon="arrow-left" onPress={() => setStage('amount')} /></View>
       </Card> : null}
       {kycVerified && stage === 'risk' ? <Card>
-        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', letterSpacing: -0.25 }}>Official terms & risk</Text>
-        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 5, marginBottom: 12 }}>
-          Read each document and confirm your acknowledgements before securing this investment.
-        </Text>
-        {settingsQuery.isLoading || settingsQuery.isFetching ? <Card><Text style={{ color: colors.mutedForeground }}>Loading published legal content…</Text></Card> : null}
-        {settingsQuery.isError ? <ErrorState message="Published Terms of Service and Risk Disclosure could not be loaded. Retry before continuing." error={settingsQuery.error} onRetry={() => void settingsQuery.refetch()} /> : null}
-        {!settingsQuery.isLoading && !settingsQuery.isFetching && !settingsQuery.isError && !termsRequired ? <Card style={{ borderColor: colors.destructive }}>
-          <Text style={{ color: colors.foreground, fontWeight: '700' }}>Terms of Service unavailable</Text>
-          <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 5 }}>Official Terms of Service have not been published in investor app settings. You cannot acknowledge or submit this investment until they are available.</Text>
-        </Card> : null}
-        {termsRequired ? <Card>
-          <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 8 }}>Terms of Service</Text>
-          <Text selectable style={{ color: colors.mutedForeground, lineHeight: 21, fontSize: 13 }}>{termsContent}</Text>
-          <Pressable testID="investment-terms-acknowledgement" accessibilityRole="checkbox" accessibilityState={{ checked: termsAccepted }} onPress={() => setTermsAccepted(value => !value)} style={{ minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 15, padding: 11, borderRadius: 12, borderWidth: 1, borderColor: termsAccepted ? colors.primary : colors.border, backgroundColor: termsAccepted ? colors.lightGreen : colors.background }}>
-            <View style={{ width: 21, height: 21, borderRadius: 6, borderWidth: 1, borderColor: termsAccepted ? colors.primary : colors.border, backgroundColor: termsAccepted ? colors.primary : colors.card, alignItems: 'center', justifyContent: 'center' }}>{termsAccepted ? <Feather name="check" size={14} color={colors.primaryForeground} /> : null}</View>
-            <Text style={{ flex: 1, color: colors.foreground, lineHeight: 19, fontSize: 13 }}>I acknowledge the published Terms of Service.</Text>
-          </Pressable>
-        </Card> : null}
-        {!settingsQuery.isLoading && !settingsQuery.isFetching && !settingsQuery.isError && !riskRequired ? <Card style={{ borderColor: colors.destructive }}>
-          <Text style={{ color: colors.foreground, fontWeight: '700' }}>Risk Disclosure unavailable</Text>
-          <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 5 }}>Official risk-disclosure content has not been published in investor app settings. You cannot acknowledge or submit this investment until it is available.</Text>
-        </Card> : null}
-        {riskRequired ? <Card>
-          <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 8 }}>Risk Disclosure</Text>
-          <Text selectable style={{ color: colors.mutedForeground, lineHeight: 21, fontSize: 13 }}>{riskContent}</Text>
-          <Pressable testID="investment-risk-acknowledgement" accessibilityRole="checkbox" accessibilityState={{ checked: riskAccepted }} onPress={() => setRiskAccepted(value => !value)} style={{ minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 15, padding: 11, borderRadius: 12, borderWidth: 1, borderColor: riskAccepted ? colors.primary : colors.border, backgroundColor: riskAccepted ? colors.lightGreen : colors.background }}>
-            <View style={{ width: 21, height: 21, borderRadius: 6, borderWidth: 1, borderColor: riskAccepted ? colors.primary : colors.border, backgroundColor: riskAccepted ? colors.primary : colors.card, alignItems: 'center', justifyContent: 'center' }}>{riskAccepted ? <Feather name="check" size={14} color={colors.primaryForeground} /> : null}</View>
-            <Text style={{ flex: 1, color: colors.foreground, lineHeight: 19, fontSize: 13 }}>I acknowledge the published Risk Disclosure.</Text>
-          </Pressable>
-        </Card> : null}
-        <Card>
-          <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 8 }}>Investment agreement acknowledgement</Text>
-          <Text style={{ color: colors.mutedForeground, lineHeight: 19, fontSize: 12 }}>
-            This acknowledgement is required to submit the request but is not saved as a consent record in your OG Exports account.
-          </Text>
-          <Pressable testID="investment-agreement-acknowledgement" accessibilityRole="checkbox" accessibilityState={{ checked: agreementAccepted }} onPress={() => setAgreementAccepted(value => !value)} style={{ minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 15, padding: 11, borderRadius: 12, borderWidth: 1, borderColor: agreementAccepted ? colors.primary : colors.border, backgroundColor: agreementAccepted ? colors.lightGreen : colors.background }}>
-            <View style={{ width: 21, height: 21, borderRadius: 6, borderWidth: 1, borderColor: agreementAccepted ? colors.primary : colors.border, backgroundColor: agreementAccepted ? colors.primary : colors.card, alignItems: 'center', justifyContent: 'center' }}>{agreementAccepted ? <Feather name="check" size={14} color={colors.primaryForeground} /> : null}</View>
-            <Text style={{ flex: 1, color: colors.foreground, lineHeight: 19, fontSize: 13 }}>I acknowledge the investment details and want to submit this investment request.</Text>
-          </Pressable>
-        </Card>
+        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', letterSpacing: -0.25 }}>Investment Agreement</Text>
+        <View style={{ height: 310, marginTop: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background, overflow: 'hidden' }}>
+          <ScrollView nestedScrollEnabled showsVerticalScrollIndicator contentContainerStyle={{ padding: 16 }}>
+            <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginBottom: 16 }}>OG EXPORTS — PROFIT SHARING AGREEMENT</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 14, lineHeight: 21, marginBottom: 16 }}>
+              Funds will be deducted from your OG Wallet immediately and transferred to the platform investment pool. Your investment is confirmed on submission (first-come, first-served).
+            </Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 14, lineHeight: 21, marginBottom: 16 }}>
+              1. <Text style={{ color: colors.foreground, fontWeight: '700' }}>Capital at Risk:</Text> All investments involve risk. Capital is not guaranteed.
+            </Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 14, lineHeight: 21, marginBottom: 16 }}>
+              2. <Text style={{ color: colors.foreground, fontWeight: '700' }}>Returns:</Text> The stated return of 4% is an expected target.
+            </Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 14, lineHeight: 21 }}>
+              3. <Text style={{ color: colors.foreground, fontWeight: '700' }}>Completion:</Text> When the project completes, principal plus profit will be credited back to your wallet.
+            </Text>
+          </ScrollView>
+        </View>
+        <Pressable testID="investment-agreement-acknowledgement" accessibilityRole="checkbox" accessibilityState={{ checked: agreementAccepted }} onPress={() => setAgreementAccepted(value => !value)} style={{ minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 16, padding: 11, borderRadius: 12, borderWidth: 1, borderColor: agreementAccepted ? colors.primary : colors.border, backgroundColor: agreementAccepted ? colors.lightGreen : colors.background }}>
+          <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 1, borderColor: agreementAccepted ? colors.primary : colors.border, backgroundColor: agreementAccepted ? colors.primary : colors.card, alignItems: 'center', justifyContent: 'center' }}>{agreementAccepted ? <Feather name="check" size={14} color={colors.primaryForeground} /> : null}</View>
+          <Text style={{ flex: 1, color: colors.foreground, lineHeight: 20, fontSize: 14 }}>I agree to the Investment Agreement and understand the risks.</Text>
+        </Pressable>
         {error ? <ErrorState message={error} /> : null}
-        <Action title="Continue to secure confirmation" icon="arrow-right" disabled={!legalContentReady || !termsAccepted || !riskAccepted || !agreementAccepted} onPress={() => { setError(''); setStage('confirmation'); }} />
-        <View style={{ marginTop: 9 }}><Action title="Back to review" secondary icon="arrow-left" onPress={() => setStage('review')} /></View>
+        <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+          <View style={{ flex: 1 }}><Action title="Back" secondary onPress={() => setStage('review')} testID="investment-agreement-back" /></View>
+          <View style={{ flex: 1.5 }}><Action title="Confirm Invest" disabled={!agreementAccepted} onPress={() => { setError(''); setStage('confirmation'); }} testID="investment-agreement-confirm" /></View>
+        </View>
       </Card> : null}
       {kycVerified && stage === 'confirmation' ? <Card>
         <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', letterSpacing: -0.25 }}>Secure confirmation</Text>

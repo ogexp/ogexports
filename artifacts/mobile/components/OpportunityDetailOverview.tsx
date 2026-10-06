@@ -317,8 +317,8 @@ export function OpportunityDetailOverview({
       {riskLoading ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>Loading the published disclosure…</Text> : null}
       {riskError ? <ErrorState message="The published risk disclosure could not be loaded." error={riskError} onRetry={onRetryRisk} /> : null}
       {!riskLoading && !riskError && riskContent ? <Text selectable numberOfLines={6} style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19 }}>{riskContent}</Text> : null}
-      {!riskLoading && !riskError && !riskContent ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19 }}>The full published risk disclosure will be required and shown before you submit an investment.</Text> : null}
-      <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 16, marginTop: 9 }}>Returns are not guaranteed. Review the complete official terms and risk disclosure before confirming.</Text>
+      {!riskLoading && !riskError && !riskContent ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19 }}>No additional risk disclosure is currently published. Review the Investment Agreement before confirming.</Text> : null}
+      <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 16, marginTop: 9 }}>Returns are not guaranteed. Review the complete Investment Agreement before confirming.</Text>
     </Card>
 
     <Card style={{ backgroundColor: colors.secondary, borderColor: colors.border }}>
