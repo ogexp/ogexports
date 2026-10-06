@@ -58,6 +58,7 @@ export default function Login() {
           email: twoFactorChallenge.email,
           mode: '2fa',
           message: twoFactorChallenge.message,
+          ...(twoFactorChallenge.challengeToken ? { challengeToken: twoFactorChallenge.challengeToken } : {}),
           ...(postAuthPath ? { returnTo: postAuthPath } : {}),
         });
         router.push('/(auth)/verify');

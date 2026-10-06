@@ -15,6 +15,7 @@ import { resolvePostAuthHref } from '@/lib/post-auth-route';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotionReveal, motionHaptic } from '@/lib/motion';
+import { buildTwoFactorVerifyPayload, normalizeAuthResponse } from '@/lib/auth-response';
 
 export default function Verify() {
   const { challenge, acceptSession } = useAuth();
@@ -38,9 +39,9 @@ export default function Verify() {
     if (!challenge) { router.replace('/(auth)/login'); return; }
     setError('');
     try {
-      const response = record(challenge.mode === '2fa'
+      const response = normalizeAuthResponse(challenge.mode === '2fa'
         ? await twoFactor.mutateAsync({
-          data: { email: challenge.email, code, device_name: 'OG Exports mobile' },
+          data: buildTwoFactorVerifyPayload(challenge, code),
         })
         : await emailVerify.mutateAsync({
           data: { email: challenge.email, code, device_name: 'OG Exports mobile' },

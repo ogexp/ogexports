@@ -5,7 +5,7 @@ import { loadApiOrigin, loadSavedUser, getSavedToken, saveSession, clearSession,
 import { first, record, type Json } from '@/lib/data';
 import { getAppPinOwner, hasAppPin, removeAppPin } from '@/lib/app-pin';
 
-type Challenge = { email: string; mode: 'email' | '2fa'; message?: string; returnTo?: string };
+type Challenge = { email: string; mode: 'email' | '2fa'; message?: string; returnTo?: string; challengeToken?: string };
 type AuthValue = {
   ready: boolean;
   token: string | null;
