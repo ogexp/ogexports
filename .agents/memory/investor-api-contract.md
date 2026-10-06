@@ -9,6 +9,12 @@ The mobile app's investor data API is the existing Laravel service. The workspac
 
 Monthly wallet statements should reconcile against available plus pending wallet balances and completed wallet-ledger movements. Pending reservations are not posted cash outflows. Laravel records completed investment returns as one credit containing both principal and profit; split principal returned from distributions only when wallet-currency metadata reconciles to that credit. Otherwise show the full amount as an other wallet movement, not as a distribution.
 
+Pre-payment payout progress such as scheduled or processing status and a planned date is administrative metadata, not a distribution or wallet movement. Only a confirmed distribution record with `distributed_at` may be shown as Distributed.
+
+**Why:** Recording planned payouts as distributions would make an unpaid status look financially completed and could affect totals or wallet reporting.
+
+**How to apply:** Keep pre-payment progress separate from confirmed profit-distribution records. Do not create ledger credits or count completed returns when an admin sets or changes a planned payout state.
+
 **Why:** The OG Exports master prompt requires the backend to be the financial source of truth and explicitly forbids hard-coded financial values.
 
 **Why:** The user confirmed that the existing Laravel API remains authoritative for this product; a second local store would be disconnected from the data the investor app reads.

@@ -1090,7 +1090,8 @@ export const GetInvestorInvestmentResponse = zod.object({
   "expected_profit": zod.number().optional().describe('Server-calculated expected profit in the investment currency, using invested amount multiplied by the project\'s reported ROI percentage.'),
   "expected_profit_pkr": zod.number().nullish().describe('Server-calculated expected profit for the PKR investment amount, using the project\'s reported ROI percentage.'),
   "profit_distribution": zod.union([zod.object({
-  "status": zod.string().nullish().describe('Distributed only when a confirmed distribution timestamp is recorded.'),
+  "status": zod.string().nullish().describe('Scheduled or processing before payment; distributed only when a confirmed distribution timestamp is recorded.'),
+  "planned_distribution_date": zod.coerce.date().nullish(),
   "distributed_at": zod.coerce.date().nullish()
 }),zod.null()]).optional(),
   "investment_period_progress": zod.union([zod.object({
@@ -1100,6 +1101,66 @@ export const GetInvestorInvestmentResponse = zod.object({
 }),zod.null()]).optional().describe('Server-computed elapsed investment period; null unless the investment date and configured period are both available.')
 }).describe('Investor position fields and its Laravel project resource.')
 }).describe('Laravel investor investment resource envelope.')
+
+
+/**
+ * @summary List active and completed investments with payout progress
+ */
+
+export const getAdminInvestmentPayoutProgressQueryPerPageMax = 100;
+
+
+
+export const GetAdminInvestmentPayoutProgressQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "project_type": zod.coerce.string().optional(),
+  "page": zod.coerce.number().int().min(1).optional(),
+  "per_page": zod.coerce.number().int().min(1).max(getAdminInvestmentPayoutProgressQueryPerPageMax).optional()
+})
+
+export const GetAdminInvestmentPayoutProgressResponse = zod.object({
+  "data": zod.array(zod.object({
+  "id": zod.number().int().optional(),
+  "investment_id": zod.number().int(),
+  "investment_reference": zod.string().nullish(),
+  "investment_status": zod.string(),
+  "project_id": zod.number().int(),
+  "project_title": zod.string().nullish(),
+  "project_type": zod.string().nullish(),
+  "investor_id": zod.number().int(),
+  "investor_name": zod.string().nullish(),
+  "investor_email": zod.string().nullish(),
+  "invested_amount": zod.number(),
+  "amount_currency": zod.string(),
+  "profit_amount": zod.number().nullish(),
+  "total_return": zod.number().nullish(),
+  "payout_status": zod.union([zod.literal('scheduled'),zod.literal('processing'),zod.literal('distributed'),zod.literal(null)]).nullish(),
+  "planned_distribution_date": zod.coerce.date().nullish(),
+  "distributed_at": zod.coerce.date().nullish()
+})),
+  "current_page": zod.number().int(),
+  "last_page": zod.number().int(),
+  "per_page": zod.number().int(),
+  "total": zod.number().int()
+})
+
+
+/**
+ * @summary Set or clear pre-payment payout progress for an active investment
+ */
+
+
+
+export const UpdateAdminInvestmentPayoutProgressParams = zod.object({
+  "investmentId": zod.coerce.number().int().min(1)
+})
+
+export const UpdateAdminInvestmentPayoutProgressBody = zod.object({
+  "status": zod.union([zod.literal('scheduled'),zod.literal('processing'),zod.literal(null)]).nullable(),
+  "planned_distribution_date": zod.coerce.date().nullable()
+})
+
+export const UpdateAdminInvestmentPayoutProgressResponse = zod.record(zod.string(), zod.unknown())
 
 
 /**

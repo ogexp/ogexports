@@ -495,12 +495,84 @@ export interface InvestorProjectDetailResponse {
   [key: string]: unknown;
  }
 
+/**
+ * @nullable
+ */
+export type AdminInvestmentPayoutProgressPayoutStatus = typeof AdminInvestmentPayoutProgressPayoutStatus[keyof typeof AdminInvestmentPayoutProgressPayoutStatus] | null;
+
+
+export const AdminInvestmentPayoutProgressPayoutStatus = {
+  scheduled: 'scheduled',
+  processing: 'processing',
+  distributed: 'distributed',
+} as const;
+
+export interface AdminInvestmentPayoutProgress {
+  id?: number;
+  investment_id: number;
+  /** @nullable */
+  investment_reference?: string | null;
+  investment_status: string;
+  project_id: number;
+  /** @nullable */
+  project_title?: string | null;
+  /** @nullable */
+  project_type?: string | null;
+  investor_id: number;
+  /** @nullable */
+  investor_name?: string | null;
+  /** @nullable */
+  investor_email?: string | null;
+  invested_amount: number;
+  amount_currency: string;
+  /** @nullable */
+  profit_amount?: number | null;
+  /** @nullable */
+  total_return?: number | null;
+  /** @nullable */
+  payout_status?: AdminInvestmentPayoutProgressPayoutStatus;
+  /** @nullable */
+  planned_distribution_date?: string | null;
+  /** @nullable */
+  distributed_at?: string | null;
+  [key: string]: unknown;
+ }
+
+export interface AdminInvestmentPayoutProgressPage {
+  data: AdminInvestmentPayoutProgress[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+  [key: string]: unknown;
+ }
+
+/**
+ * @nullable
+ */
+export type InvestmentPayoutProgressUpdateStatus = typeof InvestmentPayoutProgressUpdateStatus[keyof typeof InvestmentPayoutProgressUpdateStatus] | null;
+
+
+export const InvestmentPayoutProgressUpdateStatus = {
+  scheduled: 'scheduled',
+  processing: 'processing',
+} as const;
+
+export interface InvestmentPayoutProgressUpdate {
+  /** @nullable */
+  status: InvestmentPayoutProgressUpdateStatus;
+  /** @nullable */
+  planned_distribution_date: string | null;
+}
+
 export type InvestorInvestmentDetailProfitDistribution = {
   /**
-     * Distributed only when a confirmed distribution timestamp is recorded.
+     * Scheduled or processing before payment; distributed only when a confirmed distribution timestamp is recorded.
      * @nullable
      */
   status?: string | null;
+  /** @nullable */
+  planned_distribution_date?: string | null;
   /** @nullable */
   distributed_at?: string | null;
   [key: string]: unknown;
@@ -792,6 +864,20 @@ per_page?: number;
 export type GetInvestorInvestmentsParams = {
 type?: string;
 status?: string;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+per_page?: number;
+};
+
+export type GetAdminInvestmentPayoutProgressParams = {
+search?: string;
+project_type?: string;
 /**
  * @minimum 1
  */

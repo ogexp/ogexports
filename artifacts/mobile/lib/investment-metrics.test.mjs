@@ -31,3 +31,10 @@ test('humanizes server distribution status and shows a clear fallback when it is
   assert.equal(formatDistributionStatus('awaiting_distribution'), 'Awaiting Distribution');
   assert.equal(formatDistributionStatus('—'), 'Awaiting update');
 });
+
+test('only reports a distribution as completed when its confirmation timestamp exists', () => {
+  assert.equal(formatDistributionStatus('distributed'), 'Awaiting update');
+  assert.equal(formatDistributionStatus('scheduled'), 'Scheduled');
+  assert.equal(formatDistributionStatus('processing'), 'Processing');
+  assert.equal(formatDistributionStatus('processing', '2026-10-06T12:00:00Z'), 'Distributed');
+});

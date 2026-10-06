@@ -348,6 +348,59 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: "Portfolio position detail with its associated project and reported container record when available", content: { application/json: { schema: { $ref: "#/components/schemas/InvestorInvestmentDetailResponse" } } } }
+  /admin/investment-payout-progress:
+    get:
+      operationId: getAdminInvestmentPayoutProgress
+      tags: [admin]
+      summary: List active and completed investments with payout progress
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+        - { name: project_type, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        "200": { description: Paginated payout progress, content: { application/json: { schema: { $ref: "#/components/schemas/AdminInvestmentPayoutProgressPage" } } } }
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JsonObject" }
+        "403":
+          description: OG Exports administrator access required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JsonObject" }
+  /admin/investment-payout-progress/{investmentId}:
+    patch:
+      operationId: updateAdminInvestmentPayoutProgress
+      tags: [admin]
+      summary: Set or clear pre-payment payout progress for an active investment
+      security: [{ AdminBearerAuth: [] }]
+      parameters:
+        - { name: investmentId, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvestmentPayoutProgressUpdate" }
+      responses:
+        "200": { description: Updated payout progress; distributed is returned only for a confirmed timestamp, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JsonObject" }
+        "403":
+          description: OG Exports administrator access required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JsonObject" }
+        "422":
+          description: Invalid payout progress or a confirmed payout cannot be edited
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JsonObject" }
   /investor/wallet:
     get:
       operationId: getInvestorWallet
@@ -1376,6 +1429,76 @@ components:
       properties:
         data:
           $ref: "#/components/schemas/InvestorProjectDetail"
+    AdminInvestmentPayoutProgress:
+      type: object
+      additionalProperties: true
+      required: [investment_id, investment_status, project_id, investor_id, invested_amount, amount_currency]
+      properties:
+        id:
+          type: integer
+        investment_id:
+          type: integer
+        investment_reference:
+          type: ["string", "null"]
+        investment_status:
+          type: string
+        project_id:
+          type: integer
+        project_title:
+          type: ["string", "null"]
+        project_type:
+          type: ["string", "null"]
+        investor_id:
+          type: integer
+        investor_name:
+          type: ["string", "null"]
+        investor_email:
+          type: ["string", "null"]
+        invested_amount:
+          type: number
+        amount_currency:
+          type: string
+        profit_amount:
+          type: ["number", "null"]
+        total_return:
+          type: ["number", "null"]
+        payout_status:
+          type: ["string", "null"]
+          enum: [scheduled, processing, distributed, null]
+        planned_distribution_date:
+          type: ["string", "null"]
+          format: date
+        distributed_at:
+          type: ["string", "null"]
+          format: date-time
+    AdminInvestmentPayoutProgressPage:
+      type: object
+      additionalProperties: true
+      required: [data, current_page, last_page, per_page, total]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminInvestmentPayoutProgress"
+        current_page:
+          type: integer
+        last_page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+    InvestmentPayoutProgressUpdate:
+      type: object
+      additionalProperties: false
+      required: [status, planned_distribution_date]
+      properties:
+        status:
+          type: ["string", "null"]
+          enum: [scheduled, processing, null]
+        planned_distribution_date:
+          type: ["string", "null"]
+          format: date
     InvestorInvestmentDetail:
       type: object
       description: Investor position fields and its Laravel project resource.
@@ -1395,7 +1518,8 @@ components:
             - type: object
               additionalProperties: true
               properties:
-                status: { type: ["string", "null"], description: "Distributed only when a confirmed distribution timestamp is recorded." }
+                status: { type: ["string", "null"], description: "Scheduled or processing before payment; distributed only when a confirmed distribution timestamp is recorded." }
+                planned_distribution_date: { type: ["string", "null"], format: date }
                 distributed_at: { type: ["string", "null"], format: date-time }
             - type: "null"
         investment_period_progress:

@@ -2,6 +2,8 @@
 
 use App\Models\Deposit;
 use App\Models\Investment;
+use App\Models\InvestmentPayoutProgress;
+use App\Models\InvestmentProfitDistribution;
 use App\Models\InvestmentProject;
 use App\Models\KycApplication;
 use App\Models\PlatformSetting;
@@ -136,6 +138,92 @@ it('shows a single project investment detail', function () {
         ->assertJsonPath('data.project.title', 'Mango Export Container')
         ->assertJsonPath('data.project.target_amount', 10000)
         ->assertJsonPath('data.project.remaining_amount', 7500);
+});
+
+it('lets admins save pre-payment payout progress and returns it to the investor', function () {
+    $investment = createPendingInvestment($this->investor, $this->project, 2500);
+    $investment->update(['status' => 'active']);
+
+    $this->actingAs($this->admin)
+        ->patchJson("/api/admin/investment-payout-progress/{$investment->id}", [
+            'status' => 'scheduled',
+            'planned_distribution_date' => '2026-11-15',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.payout_status', 'scheduled')
+        ->assertJsonPath('data.planned_distribution_date', '2026-11-15')
+        ->assertJsonPath('data.distributed_at', null);
+
+    $this->actingAs($this->investor)
+        ->getJson("/api/investor/investments/{$investment->id}")
+        ->assertOk()
+        ->assertJsonPath('data.profit_distribution.status', 'scheduled')
+        ->assertJsonPath('data.profit_distribution.planned_distribution_date', '2026-11-15')
+        ->assertJsonPath('data.profit_distribution.distributed_at', null);
+
+    $this->actingAs($this->admin)
+        ->patchJson("/api/admin/investment-payout-progress/{$investment->id}", [
+            'status' => 'processing',
+            'planned_distribution_date' => '2026-11-15',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.payout_status', 'processing');
+
+    $this->actingAs($this->investor)
+        ->getJson("/api/investor/investments/{$investment->id}")
+        ->assertOk()
+        ->assertJsonPath('data.profit_distribution.status', 'processing');
+
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/investment-payout-progress')
+        ->assertOk()
+        ->assertJsonPath('data.0.investment_id', $investment->id)
+        ->assertJsonPath('data.0.payout_status', 'processing')
+        ->assertJsonPath('data.0.planned_distribution_date', '2026-11-15');
+
+    expect(InvestmentPayoutProgress::query()->where('investment_id', $investment->id)->exists())->toBeTrue();
+    expect(InvestmentProfitDistribution::query()->where('investment_id', $investment->id)->exists())->toBeFalse();
+});
+
+it('only shows a completed payout after a distribution timestamp is recorded', function () {
+    $investment = createPendingInvestment($this->investor, $this->project, 2500);
+    $investment->update(['status' => 'active']);
+    InvestmentPayoutProgress::query()->create([
+        'investment_id' => $investment->id,
+        'status' => 'processing',
+        'planned_distribution_date' => '2026-11-15',
+    ]);
+
+    $this->actingAs($this->investor)
+        ->getJson("/api/investor/investments/{$investment->id}")
+        ->assertOk()
+        ->assertJsonPath('data.profit_distribution.status', 'processing')
+        ->assertJsonPath('data.profit_distribution.distributed_at', null);
+
+    InvestmentProfitDistribution::query()->create([
+        'investment_id' => $investment->id,
+        'project_id' => $this->project->id,
+        'investor_id' => $this->investor->id,
+        'project_type' => 'container',
+        'invested_amount' => 2500,
+        'profit_amount' => 200,
+        'total_return' => 2700,
+        'roi_pct' => 8,
+        'distributed_at' => now(),
+    ]);
+
+    $this->actingAs($this->investor)
+        ->getJson("/api/investor/investments/{$investment->id}")
+        ->assertOk()
+        ->assertJsonPath('data.profit_distribution.status', 'distributed')
+        ->assertJsonPath('data.profit_distribution.distributed_at', fn ($value) => is_string($value));
+
+    $this->actingAs($this->admin)
+        ->patchJson("/api/admin/investment-payout-progress/{$investment->id}", [
+            'status' => 'processing',
+            'planned_distribution_date' => '2026-11-15',
+        ])
+        ->assertUnprocessable();
 });
 
 it('approves a pending project investment via global endpoint', function () {

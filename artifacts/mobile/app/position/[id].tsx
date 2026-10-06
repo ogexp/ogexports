@@ -102,19 +102,24 @@ export default function PositionDetail() {
   if (actualReturn != null) actualPerformance.push(['Returned or distributed amount', amountText(actualReturn)]);
   if (totalReturn != null) actualPerformance.push(['Total return recorded', amountText(totalReturn)]);
 
-  const payoutDateKeys = ['next_payout_date', 'next_distribution_date', 'scheduled_payout_date', 'scheduled_distribution_date', 'payout_date'];
-  const expectedPayoutDate = firstAvailable(
+  const plannedPayoutDate = firstAvailable(
+    [distributionRecord, row],
+    ['planned_distribution_date'],
+  );
+  const reportedPayoutDate = firstAvailable(
     [row, distributionRecord, project, trade, rowMeta, projectMeta, tradeMeta],
-    payoutDateKeys,
+    ['next_payout_date', 'next_distribution_date', 'scheduled_payout_date', 'scheduled_distribution_date', 'payout_date'],
   );
   const estimatedPayoutDate = firstAvailable(
     [row, project, trade, rowMeta, projectMeta, tradeMeta],
     ['target_distribution_date', 'estimated_distribution_date', 'expected_distribution_date', 'expected_payout_date', 'distribution_date', 'profit_payout_date'],
   );
-  const payoutDateValue = expectedPayoutDate || estimatedPayoutDate;
-  const payoutDateIsEstimated = !expectedPayoutDate && Boolean(estimatedPayoutDate);
+  const payoutDateValue = plannedPayoutDate || reportedPayoutDate || estimatedPayoutDate;
+  const payoutDateIsEstimated = !plannedPayoutDate && !reportedPayoutDate && Boolean(estimatedPayoutDate);
   const payoutDateText = formatReportedPayoutDate(payoutDateValue) ?? 'Date not announced';
-  const payoutDateLabel = payoutDateIsEstimated ? 'Next payout date · estimated' : 'Next payout date';
+  const payoutDateLabel = plannedPayoutDate
+    ? 'Planned payout date'
+    : payoutDateIsEstimated ? 'Next payout date · estimated' : 'Next payout date';
   const reportedRoi = amount(row, ['roi', 'expected_return_pct', 'projected_return_pct', 'projected_return_percentage', 'estimated_return_percentage', 'target_return_percentage'])
     ?? amount(project, ['roi', 'expected_return_pct', 'projected_return_pct', 'projected_return_percentage', 'expected_return_percentage', 'estimated_return_percentage', 'target_return_percentage'])
     ?? amount(trade, ['roi', 'expected_return_pct', 'projected_return_pct', 'projected_return_percentage', 'expected_return_percentage', 'estimated_return_percentage', 'target_return_percentage']);
@@ -137,7 +142,8 @@ export default function PositionDetail() {
     || firstAvailable([distributionRecord], ['distribution_status', 'payout_status', 'status'])
     || firstAvailable([project], ['distribution_status', 'payout_status', 'profit_distribution_status'])
     || firstAvailable([trade], ['distribution_status', 'payout_status', 'profit_distribution_status']);
-  const distributionStatus = formatDistributionStatus(distributionStatusRaw);
+  const confirmedDistributionAt = firstAvailable([distributionRecord, row], ['distributed_at']);
+  const distributionStatus = formatDistributionStatus(distributionStatusRaw, confirmedDistributionAt);
   const investmentDate = first(row, ['investment_date', 'invested_at', 'created_at', 'date'], notProvided);
   const investmentDetails: [string, string][] = [
     ['Investment ID', investmentId],

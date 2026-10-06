@@ -13,6 +13,7 @@ import {
   MessageSquare, BarChart2, Lock, Settings, Menu, X, ChevronDown,
   ChevronRight, Globe, LogOut, Layers, Newspaper, Landmark, Megaphone, MessagesSquare, Banknote, DollarSign,
   Sprout, TrendingUp,
+  CalendarClock,
 } from "lucide-react"
 
 const GOLD = "#c5b487"
@@ -59,6 +60,7 @@ const NAV = [
       { label: "Buyer Deposits", icon: ArrowDownCircle, href: "/admin/finance?tab=buyer-deposits" },
       { label: "Investor Deposits", icon: Banknote, href: "/admin/finance?tab=investor-deposits" },
       { label: "Project Deposits", icon: DollarSign, href: "/admin/project-deposits" },
+      { label: "Payout Progress", icon: CalendarClock, href: "/admin/investment-payouts" },
       { label: "Active Projects", icon: Ship, href: "/admin/active-projects" },
       { label: "Pending Withdrawals", icon: TrendingUp, href: "/admin/pending-withdrawals" },
       { label: "Withdrawals", icon: ArrowUpCircle, href: "/admin/finance?tab=withdrawals" },
@@ -143,6 +145,7 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
           !investmentModuleEnabled && (
             item.href === "/admin/investments"
             || item.href === "/admin/project-deposits"
+            || item.href === "/admin/investment-payouts"
             || item.href === "/admin/active-projects"
             || item.href === "/admin/processing-plant"
             || item.href === "/admin/rice-mill"

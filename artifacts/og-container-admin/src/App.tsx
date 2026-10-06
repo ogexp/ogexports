@@ -99,6 +99,7 @@ const AdminUsers           = lazy(() => import('@/pages/admin/AdminUsers'));
 const AdminInvestments     = lazy(() => import('@/pages/admin/AdminInvestments'));
 const AdminContainerInvestments = lazy(() => import('@/pages/admin/AdminContainerInvestments'));
 const AdminProjectDeposits = lazy(() => import('@/pages/admin/AdminProjectDeposits'));
+const AdminInvestmentPayouts = lazy(() => import('@/pages/admin/AdminInvestmentPayouts'));
 const AdminActiveProjects  = lazy(() => import('@/pages/admin/AdminActiveProjects'));
 const AdminFacilityProjects = lazy(() => import('@/pages/admin/AdminFacilityProjects'));
 const AdminInvestmentSections = lazy(() => import('@/pages/admin/AdminInvestmentSections'));
@@ -359,6 +360,7 @@ const SHARED_ROUTES = (
     <Route path="/admin/investments">{() => <GuardedAdminInvestment Page={AdminInvestments} />}</Route>
     <Route path="/admin/container-projects">{() => <Redirect to="/admin/container-investments?view=projects" />}</Route>
     <Route path="/admin/project-deposits">{() => <GuardedAdminInvestment Page={AdminProjectDeposits} />}</Route>
+    <Route path="/admin/investment-payouts">{() => <GuardedAdminInvestment Page={AdminInvestmentPayouts} />}</Route>
     <Route path="/admin/active-projects">{() => <GuardedAdminInvestment Page={AdminActiveProjects} />}</Route>
     <Route path="/admin/processing-plant">{() => <GuardedAdminInvestCategory category="plant" Page={AdminFacilityProjects} />}</Route>
     <Route path="/admin/rice-mill">{() => <GuardedAdminInvestCategory category="ricemill" Page={AdminFacilityProjects} />}</Route>

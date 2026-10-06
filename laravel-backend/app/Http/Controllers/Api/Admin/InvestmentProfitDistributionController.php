@@ -4,9 +4,15 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Concerns\PaginatesQueries;
 use App\Http\Controllers\Controller;
+use App\Models\Investment;
+use App\Models\InvestmentPayoutProgress;
 use App\Models\InvestmentProfitDistribution;
+use App\Support\AuditsActions;
+use App\Support\UserDisplayCurrency;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class InvestmentProfitDistributionController extends Controller
 {
@@ -17,6 +23,7 @@ class InvestmentProfitDistributionController extends Controller
         $query = InvestmentProfitDistribution::query()
             ->with([
                 'investment:id,reference,status',
+                'investment.payoutProgress',
                 'project:id,title,type',
                 'investor:id,name,email',
             ]);
@@ -56,9 +63,157 @@ class InvestmentProfitDistributionController extends Controller
                 'roi_pct' => (float) $row->roi_pct,
                 'wallet_transaction_id' => $row->wallet_transaction_id,
                 'distributed_at' => $row->distributed_at?->toIso8601String(),
+                'distribution_status' => $row->isConfirmed()
+                    ? InvestmentProfitDistribution::STATUS_DISTRIBUTED
+                    : $row->investment?->payoutProgress?->status,
+                'planned_distribution_date' => $row->investment?->payoutProgress?->planned_distribution_date?->toDateString(),
             ])
         );
 
         return response()->json($paginator);
+    }
+
+    public function payoutProgressIndex(Request $request): JsonResponse
+    {
+        $query = Investment::query()
+            ->with([
+                'project:id,title,type',
+                'investor:id,name,email',
+                'investor.profile:id,user_id,country',
+                'investor.wallet:id,user_id,currency',
+                'profitDistribution',
+                'payoutProgress',
+            ])
+            ->where(function ($investment) {
+                $investment
+                    ->where('status', 'active')
+                    ->orWhere(function ($completed) {
+                        $completed
+                            ->where('status', 'completed')
+                            ->whereHas('profitDistribution', fn ($distribution) => $distribution->whereNotNull('distributed_at'));
+                    });
+            });
+
+        if ($search = trim((string) $request->input('search'))) {
+            $query->where(function ($builder) use ($search) {
+                $builder
+                    ->where('reference', 'like', '%'.$search.'%')
+                    ->orWhereHas('investor', fn ($investor) => $investor
+                        ->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('email', 'like', '%'.$search.'%'))
+                    ->orWhereHas('project', fn ($project) => $project
+                        ->where('title', 'like', '%'.$search.'%'));
+            });
+        }
+
+        if ($projectType = $request->input('project_type')) {
+            $query->whereHas('project', fn ($project) => $project->where('type', $projectType));
+        }
+
+        $paginator = $query
+            ->latest('invested_at')
+            ->latest('id')
+            ->paginate($this->perPage($request));
+
+        $paginator->setCollection(
+            $paginator->getCollection()->map(function (Investment $investment) {
+                $distribution = $investment->profitDistribution;
+                $confirmed = $distribution?->isConfirmed() ?? false;
+
+                return [
+                    'id' => $investment->id,
+                    'investment_id' => $investment->id,
+                    'investment_reference' => $investment->reference,
+                    'investment_status' => $investment->status,
+                    'project_id' => $investment->project_id,
+                    'project_title' => $investment->project?->title,
+                    'project_type' => $investment->project?->type,
+                    'investor_id' => $investment->investor_id,
+                    'investor_name' => $investment->investor?->name,
+                    'investor_email' => $investment->investor?->email,
+                    'invested_amount' => (float) $investment->amount,
+                    'amount_currency' => $investment->amount_currency
+                        ?: UserDisplayCurrency::currencyForUser($investment->investor),
+                    'profit_amount' => $confirmed ? (float) $distribution->profit_amount : null,
+                    'total_return' => $confirmed ? (float) $distribution->total_return : null,
+                    'payout_status' => $confirmed
+                        ? InvestmentProfitDistribution::STATUS_DISTRIBUTED
+                        : $investment->payoutProgress?->status,
+                    'planned_distribution_date' => $investment->payoutProgress?->planned_distribution_date?->toDateString(),
+                    'distributed_at' => $distribution?->distributed_at?->toIso8601String(),
+                ];
+            })
+        );
+
+        return response()->json($paginator);
+    }
+
+    public function updatePayoutProgress(Request $request, int $investmentId): JsonResponse
+    {
+        $data = $request->validate([
+            'status' => ['present', 'nullable', 'in:scheduled,processing'],
+            'planned_distribution_date' => ['present', 'nullable', 'date'],
+        ]);
+
+        if ($data['planned_distribution_date'] && ! $data['status']) {
+            throw ValidationException::withMessages([
+                'status' => ['Choose Scheduled or Processing before setting a planned payout date.'],
+            ]);
+        }
+
+        $investment = DB::transaction(function () use ($data, $investmentId) {
+            $investment = Investment::query()
+                ->with('profitDistribution')
+                ->lockForUpdate()
+                ->findOrFail($investmentId);
+
+            if ($investment->profitDistribution?->isConfirmed()) {
+                throw ValidationException::withMessages([
+                    'status' => ['A confirmed distribution cannot be changed to a pre-payment status.'],
+                ]);
+            }
+
+            if ($investment->status !== 'active') {
+                throw ValidationException::withMessages([
+                    'status' => ['Payout progress can only be set for active investments.'],
+                ]);
+            }
+
+            if (! $data['status']) {
+                InvestmentPayoutProgress::query()
+                    ->where('investment_id', $investment->id)
+                    ->delete();
+            } else {
+                InvestmentPayoutProgress::query()->updateOrCreate(
+                    ['investment_id' => $investment->id],
+                    [
+                        'status' => $data['status'],
+                        'planned_distribution_date' => $data['planned_distribution_date'],
+                    ]
+                );
+            }
+
+            return $investment->fresh(['project', 'investor', 'profitDistribution', 'payoutProgress']);
+        });
+
+        AuditsActions::log('investment.payout_progress_updated', 'investments', $request->user(), [
+            'investment_id' => $investment->id,
+            'payout_status' => $investment->payoutProgress?->status,
+            'planned_distribution_date' => $investment->payoutProgress?->planned_distribution_date?->toDateString(),
+        ]);
+
+        $distribution = $investment->profitDistribution;
+        $confirmed = $distribution?->isConfirmed() ?? false;
+
+        return response()->json([
+            'data' => [
+                'investment_id' => $investment->id,
+                'payout_status' => $confirmed
+                    ? InvestmentProfitDistribution::STATUS_DISTRIBUTED
+                    : $investment->payoutProgress?->status,
+                'planned_distribution_date' => $investment->payoutProgress?->planned_distribution_date?->toDateString(),
+                'distributed_at' => $distribution?->distributed_at?->toIso8601String(),
+            ],
+        ]);
     }
 }

@@ -47,8 +47,12 @@ export function formatReportedPayoutDate(value: string): string | null {
   }).format(date);
 }
 
-export function formatDistributionStatus(value: string): string {
+export function formatDistributionStatus(value: string, distributedAt = ''): string {
   const normalized = value.trim().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ');
+  if (distributedAt.trim()) return 'Distributed';
+  if (['distributed', 'completed', 'complete', 'paid', 'settled'].includes(normalized.toLowerCase())) {
+    return 'Awaiting update';
+  }
   if (!normalized || normalized === '—' || /^not reported$/i.test(normalized)) return 'Awaiting update';
   return normalized
     .split(' ')

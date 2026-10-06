@@ -10,17 +10,16 @@ use App\Models\Investment;
 use App\Models\InvestmentProject;
 use App\Models\InvestmentProjectDocument;
 use App\Models\InvestmentProjectTradeUpdate;
+use App\Services\InvestorTransactionPdfGenerator;
+use App\Support\AdminNotificationTypes;
 use App\Support\ContainerProjectStatus;
-use App\Support\InvestmentCapacity;
 use App\Support\InvestorMarket;
 use App\Support\InvestorNotificationTypes;
 use App\Support\KycGate;
 use App\Support\MediaStorage;
-use App\Support\AdminNotificationTypes;
 use App\Support\NotifiesAdmins;
 use App\Support\NotifiesUsers;
 use App\Support\WalletInvestmentService;
-use App\Services\InvestorTransactionPdfGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -250,6 +249,7 @@ class ProjectController extends Controller
                 'project.tradeUpdates' => fn ($query) => $query->orderBy('occurred_at')->orderBy('id'),
                 'project.stageUpdates' => fn ($query) => $query->orderBy('created_at')->orderBy('id'),
                 'profitDistribution',
+                'payoutProgress',
             ])
             ->findOrFail($id);
 
@@ -258,7 +258,7 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function investmentPdf(Request $request, int $id, InvestorTransactionPdfGenerator $pdf): \Symfony\Component\HttpFoundation\Response
+    public function investmentPdf(Request $request, int $id, InvestorTransactionPdfGenerator $pdf): Response
     {
         $investment = Investment::query()
             ->where('investor_id', $request->user()->id)

@@ -8,10 +8,12 @@
 
 export type InvestorInvestmentDetailProfitDistribution = {
   /**
-     * Distributed only when a confirmed distribution timestamp is recorded.
+     * Scheduled or processing before payment; distributed only when a confirmed distribution timestamp is recorded.
      * @nullable
      */
   status?: string | null;
+  /** @nullable */
+  planned_distribution_date?: Date | null;
   /** @nullable */
   distributed_at?: Date | null;
   [key: string]: unknown;

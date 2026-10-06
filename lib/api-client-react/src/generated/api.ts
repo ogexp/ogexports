@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminInvestmentPayoutProgressPage,
   AdminLoginCredentials,
   AdminProjectListResponse,
   AdminProjectStageUpdateInput,
@@ -28,6 +29,7 @@ import type {
   BankAccountReviewInput,
   ContainerTracking,
   ContainerTrackingUpdate,
+  GetAdminInvestmentPayoutProgressParams,
   GetAdminInvestmentProjectsParams,
   GetAdminInvestorBankAccountsParams,
   GetInvestorDepositsParams,
@@ -37,6 +39,7 @@ import type {
   GetInvestorStatementParams,
   GetInvestorWalletTransactionsParams,
   GetInvestorWithdrawalsParams,
+  InvestmentPayoutProgressUpdate,
   InvestorBankAccountInput,
   InvestorBankAccountsResponse,
   InvestorDashboardResponse,
@@ -2577,6 +2580,179 @@ export function useGetInvestorInvestment<TData = Awaited<ReturnType<typeof getIn
 
 
 
+
+export const getGetAdminInvestmentPayoutProgressUrl = (params?: GetAdminInvestmentPayoutProgressParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/investment-payout-progress?${stringifiedParams}` : `/api/admin/investment-payout-progress`
+}
+
+/**
+ * @summary List active and completed investments with payout progress
+ */
+export const getAdminInvestmentPayoutProgress = async (params?: GetAdminInvestmentPayoutProgressParams, options?: Parameters<typeof customFetch>[1]): Promise<AdminInvestmentPayoutProgressPage> => {
+
+  return customFetch<AdminInvestmentPayoutProgressPage>(getGetAdminInvestmentPayoutProgressUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminInvestmentPayoutProgressQueryKey = (params?: GetAdminInvestmentPayoutProgressParams,) => {
+    return [
+    `/api/admin/investment-payout-progress`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminInvestmentPayoutProgressQueryOptions = <TData = Awaited<ReturnType<typeof getAdminInvestmentPayoutProgress>>, TError = ErrorType<JsonObject>>(params?: GetAdminInvestmentPayoutProgressParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInvestmentPayoutProgress>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminInvestmentPayoutProgressQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminInvestmentPayoutProgress>>> = ({ signal }) => getAdminInvestmentPayoutProgress(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminInvestmentPayoutProgress>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminInvestmentPayoutProgressQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminInvestmentPayoutProgress>>>
+export type GetAdminInvestmentPayoutProgressQueryError = ErrorType<JsonObject>
+
+
+/**
+ * @summary List active and completed investments with payout progress
+ */
+
+export function useGetAdminInvestmentPayoutProgress<TData = Awaited<ReturnType<typeof getAdminInvestmentPayoutProgress>>, TError = ErrorType<JsonObject>>(
+ params?: GetAdminInvestmentPayoutProgressParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminInvestmentPayoutProgress>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminInvestmentPayoutProgressQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminInvestmentPayoutProgressUrl = (investmentId: number,) => {
+
+
+
+
+  return `/api/admin/investment-payout-progress/${investmentId}`
+}
+
+/**
+ * @summary Set or clear pre-payment payout progress for an active investment
+ */
+export const updateAdminInvestmentPayoutProgress = async (investmentId: number,
+    investmentPayoutProgressUpdate: InvestmentPayoutProgressUpdate, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<JsonObject>(getUpdateAdminInvestmentPayoutProgressUrl(investmentId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(investmentPayoutProgressUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminInvestmentPayoutProgressMutationKey = () => ['updateAdminInvestmentPayoutProgress'] as const;
+
+export const getUpdateAdminInvestmentPayoutProgressMutationOptions = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminInvestmentPayoutProgress>>, TError,UpdateAdminInvestmentPayoutProgressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminInvestmentPayoutProgress>>, TError,UpdateAdminInvestmentPayoutProgressMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAdminInvestmentPayoutProgressMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminInvestmentPayoutProgress>>, UpdateAdminInvestmentPayoutProgressMutationVariables> = (props) => {
+          const {investmentId,data} = props ?? {};
+
+          return  updateAdminInvestmentPayoutProgress(investmentId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminInvestmentPayoutProgressMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminInvestmentPayoutProgress>>>
+    export type UpdateAdminInvestmentPayoutProgressMutationBody = BodyType<InvestmentPayoutProgressUpdate>
+    export type UpdateAdminInvestmentPayoutProgressMutationError = ErrorType<JsonObject>
+    export type UpdateAdminInvestmentPayoutProgressMutationVariables = {investmentId: number;data: BodyType<InvestmentPayoutProgressUpdate>}
+
+    /**
+ * @summary Set or clear pre-payment payout progress for an active investment
+ */
+export const useUpdateAdminInvestmentPayoutProgress = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminInvestmentPayoutProgress>>, TError,UpdateAdminInvestmentPayoutProgressMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminInvestmentPayoutProgress>>,
+        TError,
+        UpdateAdminInvestmentPayoutProgressMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAdminInvestmentPayoutProgressMutationOptions(options));
+    }
 
 export const getGetInvestorWalletUrl = () => {
 

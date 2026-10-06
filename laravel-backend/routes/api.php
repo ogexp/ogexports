@@ -517,6 +517,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/facility-content/{type}', [AdminFacilityContentController::class, 'update']);
 
             Route::get('/investment-profit-distributions', [InvestmentProfitDistributionController::class, 'index']);
+            Route::get('/investment-payout-progress', [InvestmentProfitDistributionController::class, 'payoutProgressIndex']);
+            Route::patch('/investment-payout-progress/{investmentId}', [InvestmentProfitDistributionController::class, 'updatePayoutProgress']);
         });
 
         Route::get('/compliance/kyc', [ComplianceController::class, 'kycIndex']);

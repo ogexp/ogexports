@@ -2,13 +2,15 @@
 
 namespace App\Http\Resources;
 
-use Carbon\Carbon;
+use App\Models\Investment;
+use App\Models\InvestmentProfitDistribution;
 use App\Support\InvestmentReferenceGenerator;
 use App\Support\UserDisplayCurrency;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\Investment */
+/** @mixin Investment */
 class InvestmentResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -48,17 +50,29 @@ class InvestmentResource extends JsonResource
             'approved_at' => $this->approved_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
             'project' => new InvestmentProjectResource($this->whenLoaded('project')),
-            'profit_distribution' => $this->whenLoaded('profitDistribution', function (): ?array {
-                $distribution = $this->profitDistribution;
-                if (! $distribution) {
-                    return null;
-                }
+            'profit_distribution' => $this->when(
+                $this->relationLoaded('profitDistribution') || $this->relationLoaded('payoutProgress'),
+                function (): ?array {
+                    $distribution = $this->relationLoaded('profitDistribution')
+                        ? $this->profitDistribution
+                        : null;
+                    $progress = $this->relationLoaded('payoutProgress')
+                        ? $this->payoutProgress
+                        : null;
 
-                return [
-                    'status' => $distribution->distributed_at ? 'distributed' : null,
-                    'distributed_at' => $distribution->distributed_at?->toIso8601String(),
-                ];
-            }),
+                    if (! $distribution && ! $progress) {
+                        return null;
+                    }
+
+                    return [
+                        'status' => $distribution?->isConfirmed()
+                            ? InvestmentProfitDistribution::STATUS_DISTRIBUTED
+                            : $progress?->status,
+                        'planned_distribution_date' => $progress?->planned_distribution_date?->toDateString(),
+                        'distributed_at' => $distribution?->distributed_at?->toIso8601String(),
+                    ];
+                },
+            ),
             'investment_period_progress' => $this->whenLoaded(
                 'project',
                 fn () => $this->investmentPeriodProgress(),

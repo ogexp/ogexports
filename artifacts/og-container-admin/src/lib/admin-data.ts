@@ -3305,6 +3305,54 @@ export async function fetchProfitDistributions(params?: {
   }
 }
 
+export type AdminInvestmentPayoutRow = {
+  id: number
+  investment_id: number
+  investment_reference?: string | null
+  investment_status: string
+  project_id: number
+  project_title?: string | null
+  project_type?: string | null
+  investor_id: number
+  investor_name?: string | null
+  investor_email?: string | null
+  invested_amount: number
+  amount_currency: string
+  payout_status?: "scheduled" | "processing" | "distributed" | null
+  planned_distribution_date?: string | null
+  distributed_at?: string | null
+}
+
+export async function fetchInvestmentPayouts(params?: {
+  page?: number
+  per_page?: number
+  search?: string
+}): Promise<{ data: AdminInvestmentPayoutRow[]; total: number; last_page: number }> {
+  const res: any = await api.get("/api/admin/investment-payout-progress", params)
+  const page = unwrapPage(res)
+  const data = page.data as AdminInvestmentPayoutRow[]
+  return {
+    data,
+    total: page.meta?.total ?? data.length,
+    last_page: page.meta?.last_page ?? 1,
+  }
+}
+
+export async function updateInvestmentPayoutProgress(
+  investmentId: number,
+  status: "scheduled" | "processing" | null,
+  plannedDistributionDate: string | null,
+): Promise<void> {
+  await api.patch(`/api/admin/investment-payout-progress/${investmentId}`, {
+    status,
+    planned_distribution_date: plannedDistributionDate,
+  })
+  addAuditLog(
+    `Updated payout progress for investment ${investmentId} to ${status || "awaiting update"}`,
+    "Finance",
+  )
+}
+
 export async function fetchProjectInvestmentDetail(id: string): Promise<AdminProjectDeposit> {
   const res: any = await api.get(`/api/admin/project-investments/${id}`)
   return mapAdminProjectDeposit(res?.data ?? res)

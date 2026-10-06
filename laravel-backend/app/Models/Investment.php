@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Investment extends Model
 {
@@ -46,8 +47,13 @@ class Investment extends Model
         return $this->belongsTo(User::class, 'investor_id');
     }
 
-    public function profitDistribution(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function profitDistribution(): HasOne
     {
         return $this->hasOne(InvestmentProfitDistribution::class);
+    }
+
+    public function payoutProgress(): HasOne
+    {
+        return $this->hasOne(InvestmentPayoutProgress::class);
     }
 }

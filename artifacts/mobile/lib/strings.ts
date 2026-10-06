@@ -750,6 +750,7 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Expected profit","متوقع منافع","الربح المتوقع"],
   ["Next payout date","اگلی ادائیگی کی تاریخ","تاريخ الدفعة التالية"],
   ["Next payout date · estimated","اگلی ادائیگی کی تاریخ · تخمینی","تاريخ الدفعة التالية · تقديري"],
+  ["Planned payout date","طے شدہ ادائیگی کی تاریخ","تاريخ الدفعة المخططة"],
   ["Distribution status","تقسیم کی حیثیت","حالة التوزيع"],
   ["Date not announced","تاریخ کا اعلان نہیں ہوا","لم يُعلن عن التاريخ بعد"],
   ["Awaiting update","اپ ڈیٹ کا انتظار ہے","بانتظار التحديث"],

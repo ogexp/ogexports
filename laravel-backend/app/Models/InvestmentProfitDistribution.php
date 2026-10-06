@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InvestmentProfitDistribution extends Model
 {
+    public const STATUS_DISTRIBUTED = 'distributed';
+
     protected $fillable = [
         'investment_id',
         'project_id',
@@ -53,5 +55,10 @@ class InvestmentProfitDistribution extends Model
     public function walletTransaction(): BelongsTo
     {
         return $this->belongsTo(WalletTransaction::class);
+    }
+
+    public function isConfirmed(): bool
+    {
+        return $this->distributed_at !== null;
     }
 }
