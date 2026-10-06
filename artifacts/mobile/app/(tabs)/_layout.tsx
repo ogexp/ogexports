@@ -39,7 +39,7 @@ function ClassicLayout() {
   const isWeb = Platform.OS === 'web';
   const isAndroid = Platform.OS === 'android';
   const androidTabBarLowering = isAndroid
-    ? Math.min(Math.max(insets.bottom * 0.5, 18), 22)
+    ? Math.min(Math.max(insets.bottom * 0.5, 18), 22) + 36
     : 0;
   return (
     <Tabs screenOptions={{
