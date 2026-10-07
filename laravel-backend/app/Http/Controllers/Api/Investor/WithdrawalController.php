@@ -107,9 +107,6 @@ class WithdrawalController extends Controller
 
         /** @var User $user */
         $user = $request->user()->fresh();
-        $this->verifyWithdrawOtp($user, $data['otp']);
-        SecurityController::verifyTransactionPassword($user, $data['transaction_password']);
-
         $amount = round((float) $data['amount'], 2);
         $amountUsd = null;
         $exchangeRate = null;
@@ -121,6 +118,21 @@ class WithdrawalController extends Controller
         }
 
         $walletCurrency = UserDisplayCurrency::currencyForUser($user);
+        $minimumWithdrawalUsd = round((float) config('withdrawal.minimum_usd', 100), 2);
+        $amountUsdForMinimum = $amountUsd ?? $amount;
+
+        if ($amountUsdForMinimum < $minimumWithdrawalUsd) {
+            $message = sprintf(
+                'The payout amount must be at least USD %s. The withdrawal fee is added separately.',
+                number_format($minimumWithdrawalUsd, 2, '.', ','),
+            );
+
+            throw ValidationException::withMessages(['amount' => [$message]]);
+        }
+
+        $this->verifyWithdrawOtp($user, $data['otp']);
+        SecurityController::verifyTransactionPassword($user, $data['transaction_password']);
+
         $withdrawalTerms = WithdrawalTerms::forCurrency($walletCurrency, $exchangeRate);
         $fee = $withdrawalTerms['fee'];
         $feeUsd = $withdrawalTerms['fee_usd'];

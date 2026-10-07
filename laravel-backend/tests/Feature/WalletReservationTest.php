@@ -278,7 +278,46 @@ it('returns withdrawal fee and processing terms from the investor dashboard', fu
         ->assertJsonPath('data.withdrawal_fee', 2)
         ->assertJsonPath('data.withdrawal_fee_usd', 2)
         ->assertJsonPath('data.withdrawal_fee_currency', 'USD')
+        ->assertJsonPath('data.minimum_withdrawal_amount', 100)
+        ->assertJsonPath('data.minimum_withdrawal_usd', 100)
+        ->assertJsonPath('data.minimum_withdrawal_currency', 'USD')
         ->assertJsonPath('data.estimated_processing_time', '1 to 2 working days');
+
+    $this->actingAs($this->investor)
+        ->getJson('/api/investor/wallet')
+        ->assertOk()
+        ->assertJsonPath('data.minimum_withdrawal_amount', 100)
+        ->assertJsonPath('data.minimum_withdrawal_usd', 100)
+        ->assertJsonPath('data.minimum_withdrawal_currency', 'USD');
+});
+
+it('rejects a USD payout below the USD 100 minimum before verifying the withdrawal code', function () {
+    $this->investor->forceFill([
+        'transaction_password' => bcrypt('123456'),
+        'transaction_password_set_at' => now(),
+        'withdraw_otp_code' => bcrypt('123456'),
+        'withdraw_otp_expires_at' => now()->addMinutes(10),
+    ])->save();
+
+    $this->actingAs($this->investor)
+        ->postJson('/api/investor/withdrawals', [
+            'amount' => 99.99,
+            'bank_details' => [
+                'bank_name' => 'Test Bank',
+                'account_holder' => 'Jane Investor',
+                'account_number' => '1234567890',
+            ],
+            'otp' => '123456',
+            'transaction_password' => '123456',
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['amount'])
+        ->assertJsonPath('errors.amount.0', 'The payout amount must be at least USD 100.00. The withdrawal fee is added separately.');
+
+    $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
+    expect((float) $wallet->available_balance)->toBe(10000.0)
+        ->and((float) $wallet->pending_balance)->toBe(0.0)
+        ->and(\App\Models\Withdrawal::query()->where('investor_id', $this->investor->id)->count())->toBe(0);
 });
 
 it('returns platform wallet stats for admin finance endpoint', function () {

@@ -63,6 +63,26 @@ test('only treats server-returned USD 2 terms as confirmed for a USD wallet', ()
   assert.equal(staleTerms.serverConfirmed, false);
 });
 
+test('uses the server-converted PKR minimum while keeping the policy threshold at USD 100', () => {
+  const terms = resolveWithdrawalDisplayTerms({
+    apiFee: 557,
+    apiFeeUsd: 2,
+    apiFeeCurrency: 'PKR',
+    apiProcessingTime: '1 to 2 working days',
+    apiMinimumWithdrawal: 27850,
+    apiMinimumWithdrawalUsd: 100,
+    apiMinimumWithdrawalCurrency: 'PKR',
+    walletCurrency: 'PKR',
+  });
+
+  assert.equal(terms.minimumWithdrawalUsd, 100);
+  assert.equal(terms.minimumWithdrawalAmount, 27850);
+  assert.equal(terms.minimumWithdrawalCurrency, 'PKR');
+  assert.equal(terms.serverConfirmed, true);
+  assert.equal(parseWithdrawalAmount('27849.99', 50000, 557, terms.minimumWithdrawalAmount), null);
+  assert.equal(parseWithdrawalAmount('27850', 50000, 557, terms.minimumWithdrawalAmount), 27850);
+});
+
 test('maximum payout is the available wallet balance less the fee', () => {
   assert.equal(maximumWithdrawalPayout(1750.33, 2), 1748.33);
   assert.equal(maximumWithdrawalPayout(1.5, 2), 0);

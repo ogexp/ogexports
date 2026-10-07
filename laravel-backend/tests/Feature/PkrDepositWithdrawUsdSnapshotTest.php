@@ -201,6 +201,45 @@ it('stores USD amount and PKR-per-USD rate when a Pakistani user withdraws', fun
         ->and((float) $withdrawal->total_debit_usd)->toBe(102.0);
 });
 
+it('rejects a PKR payout below the USD 100 minimum at the request rate', function () {
+    $investor = pkrSnapshotInvestor();
+    enableWithdrawalAuth($investor, [
+        'bank_name' => 'HBL',
+        'account_holder' => 'PK Investor',
+        'account_number' => '1234567890',
+        'currency' => 'PKR',
+    ]);
+
+    $this->actingAs($investor)
+        ->postJson('/api/investor/withdrawals', [
+            'amount' => 27845,
+            'bank_details' => [
+                'bank_name' => 'HBL',
+                'account_holder' => 'PK Investor',
+                'account_number' => '1234567890',
+                'currency' => 'PKR',
+            ],
+            'otp' => '123456',
+            'transaction_password' => '123456',
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['amount'])
+        ->assertJsonPath('errors.amount.0', 'The payout amount must be at least USD 100.00. The withdrawal fee is added separately.');
+
+    expect(Withdrawal::query()->where('investor_id', $investor->id)->count())->toBe(0);
+});
+
+it('returns the USD 100 minimum payout in PKR wallet currency', function () {
+    $investor = pkrSnapshotInvestor();
+
+    $this->actingAs($investor)
+        ->getJson('/api/investor/wallet')
+        ->assertOk()
+        ->assertJsonPath('data.minimum_withdrawal_amount', 27850)
+        ->assertJsonPath('data.minimum_withdrawal_usd', 100)
+        ->assertJsonPath('data.minimum_withdrawal_currency', 'PKR');
+});
+
 it('overwrites submitted bank currency with wallet currency for Pakistani withdrawals', function () {
     $investor = pkrSnapshotInvestor();
     enableWithdrawalAuth($investor, [

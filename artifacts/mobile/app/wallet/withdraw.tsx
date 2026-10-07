@@ -174,9 +174,23 @@ export default function Withdraw() {
       first(wallet, ['withdrawal_fee_currency'])),
     apiProcessingTime: first(dashboard, ['estimated_processing_time', 'processing_time'],
       first(wallet, ['estimated_processing_time', 'processing_time'])),
+    apiMinimumWithdrawal: readAmount(dashboard, ['minimum_withdrawal_amount'])
+      ?? readAmount(wallet, ['minimum_withdrawal_amount']),
+    apiMinimumWithdrawalUsd: readAmount(dashboard, ['minimum_withdrawal_usd'])
+      ?? readAmount(wallet, ['minimum_withdrawal_usd']),
+    apiMinimumWithdrawalCurrency: first(dashboard, ['minimum_withdrawal_currency'],
+      first(wallet, ['minimum_withdrawal_currency'])),
     walletCurrency,
   });
-  const { fee, feeUsd, feeCurrency, processingTime } = withdrawalTerms;
+  const {
+    fee,
+    feeUsd,
+    feeCurrency,
+    processingTime,
+    minimumWithdrawalUsd,
+    minimumWithdrawalAmount,
+    minimumWithdrawalCurrency,
+  } = withdrawalTerms;
   const withdrawalTermsConfirmed = withdrawalTerms.serverConfirmed;
   const taxTreatment = first(dashboard, ['tax_treatment', 'tax_status'],
     first(wallet, ['tax_treatment', 'tax_status']));
@@ -213,7 +227,17 @@ export default function Withdraw() {
   const [selectedWithdrawalId, setSelectedWithdrawalId] = useState('');
   const withdrawalCurrency = walletCurrency;
   const maxPayout = maximumWithdrawalPayout(availableBalance, fee);
-  const amountNumber = parseWithdrawalAmount(amount, availableBalance, fee ?? 0);
+  const amountNumber = parseWithdrawalAmount(
+    amount,
+    availableBalance,
+    fee ?? 0,
+    minimumWithdrawalAmount ?? Number.POSITIVE_INFINITY,
+  );
+  const enteredAmount = Number(amount);
+  const amountBelowMinimum = amount.trim() !== ''
+    && Number.isFinite(enteredAmount)
+    && minimumWithdrawalAmount != null
+    && Math.round(enteredAmount * 100) < Math.round(minimumWithdrawalAmount * 100);
   const historySelection = withdrawals.find(item => first(item, ['id', 'reference', 'withdraw_id']) === selectedWithdrawalId);
   const progressWithdrawal = confirmation ?? (historySelection ? record(historySelection) : null);
 
@@ -281,7 +305,7 @@ export default function Withdraw() {
       return;
     }
     if (amountNumber == null || !withdrawalCurrency) {
-      setError('Enter a valid payout amount that fits the available balance after the withdrawal fee.');
+      setError('Enter a payout that meets the minimum shown above and fits the available balance after the fee.');
       return;
     }
     if (!bankName.trim() || !accountHolder.trim() || !accountNumber.trim()) {
@@ -319,14 +343,19 @@ export default function Withdraw() {
       setStage('form');
       return;
     }
-    const validAmount = parseWithdrawalAmount(amount, availableBalance, fee ?? 0);
+    const validAmount = parseWithdrawalAmount(
+      amount,
+      availableBalance,
+      fee ?? 0,
+      minimumWithdrawalAmount ?? Number.POSITIVE_INFINITY,
+    );
     if (fee == null || feeUsd == null) {
       setError('Withdrawal fee information could not be loaded. Retry before continuing.');
       setStage('form');
       return;
     }
     if (validAmount == null || !withdrawalCurrency || !bankName.trim() || !accountHolder.trim() || !accountNumber.trim()) {
-      setError('Review the payout amount after the fee and complete the required bank details.');
+      setError('Enter a payout that meets the minimum shown above and fits the available balance after the fee.');
       setStage('form');
       return;
     }
@@ -390,7 +419,7 @@ export default function Withdraw() {
     {!dashboardQuery.isLoading && !withdrawalTermsConfirmed && stage !== 'submitted' ? <Card testID="withdraw-terms-warning">
       <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 13, marginBottom: 5 }}>Withdrawal terms need server confirmation</Text>
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17 }}>
-        The connected OG Exports API has not confirmed this fee. The displayed policy is for reference; withdrawals remain paused until the server confirms the charge.
+        The connected OG Exports API has not confirmed the USD 100 minimum or withdrawal fee. The policy shown is for reference; withdrawals stay paused until the server confirms both.
       </Text>
       <View style={{ marginTop: 10 }}>
         <Action
@@ -442,9 +471,20 @@ export default function Withdraw() {
       </Text> : null}
       <Card>
         <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 3 }}>Withdrawal limits</Text>
-        <DetailRow label="Minimum withdrawal" value={moneyInSourceCurrency(0, 'USD')} />
+        <DetailRow label="Minimum withdrawal" value={moneyInSourceCurrency(minimumWithdrawalUsd, 'USD')} />
+        {minimumWithdrawalAmount != null && minimumWithdrawalCurrency !== 'USD'
+          ? <DetailRow label="Minimum in wallet currency" value={moneyInSourceCurrency(minimumWithdrawalAmount, minimumWithdrawalCurrency)} />
+          : null}
         <DetailRow label="Maximum payout" value={maxPayout == null ? 'Unavailable' : moneyInSourceCurrency(maxPayout, withdrawalCurrency || 'USD')} />
+        <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 4 }}>
+          The minimum applies to the payout amount; the withdrawal fee is added separately.
+        </Text>
       </Card>
+      {maxPayout != null && minimumWithdrawalAmount != null && maxPayout < minimumWithdrawalAmount
+        ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17 }}>
+            Available balance does not cover the minimum payout and fee.
+          </Text>
+        : null}
       <Card testID="withdraw-processing-info">
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 4 }}>
           <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
@@ -473,7 +513,7 @@ export default function Withdraw() {
         <Action
           title="Proceed to Withdraw"
           icon="arrow-right"
-          disabled={dashboardQuery.isLoading || dashboardQuery.isFetching || dashboardQuery.isError || availableBalance == null || maxPayout == null || maxPayout <= 0 || fee == null || feeUsd == null || !withdrawalCurrency || !withdrawalTermsConfirmed}
+          disabled={dashboardQuery.isLoading || dashboardQuery.isFetching || dashboardQuery.isError || availableBalance == null || maxPayout == null || minimumWithdrawalAmount == null || maxPayout < minimumWithdrawalAmount || fee == null || feeUsd == null || !withdrawalCurrency || !withdrawalTermsConfirmed}
           onPress={() => { setError(''); setNotice(''); setBankDetailsTouched(false); setStage('form'); }}
         />
       </Card>
@@ -507,8 +547,14 @@ export default function Withdraw() {
       />
       <Field label="Withdrawal amount" value={amount} onChangeText={value => { setAmount(value); setError(''); }} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
       <DetailRow label="Wallet currency" value={withdrawalCurrency || 'Not provided'} />
+      <DetailRow label="Minimum withdrawal" value={moneyInSourceCurrency(minimumWithdrawalUsd, 'USD')} />
+      {minimumWithdrawalAmount != null && minimumWithdrawalCurrency !== 'USD'
+        ? <DetailRow label="Minimum in wallet currency" value={moneyInSourceCurrency(minimumWithdrawalAmount, minimumWithdrawalCurrency)} />
+        : null}
       {amount.trim() && amountNumber == null ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 11, lineHeight: 16, marginTop: 3 }}>
-        Enter a valid payout amount that fits the available balance after the withdrawal fee.
+        {amountBelowMinimum
+          ? 'Payout must meet the minimum withdrawal shown above.'
+          : 'Enter a valid payout amount that fits the available balance after the withdrawal fee.'}
       </Text> : null}
       <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4, marginBottom: 12 }}>
         <Text>Maximum payout after fee:</Text>

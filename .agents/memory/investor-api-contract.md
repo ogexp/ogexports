@@ -13,6 +13,12 @@ The user-confirmed withdrawal policy is a USD 2 fee added on top of the bank pay
 
 **Why:** The balance endpoint can work while an older API omits withdrawal terms. Hiding the confirmed fee is confusing, but allowing a request before the server confirms the fee could promise a larger debit than the backend actually reserves.
 
+The minimum bank payout is USD 100, with the USD 2 withdrawal fee charged on top. PKR payouts must meet the USD 100 equivalent using the exchange-rate snapshot used for that withdrawal.
+
+**Why:** The minimum applies to the amount sent to the bank, while the fee is a separate wallet debit.
+
+**How to apply:** Return the USD minimum and its wallet-currency equivalent from the API. Enforce the USD threshold on the server using the request's currency snapshot; use the API-converted wallet amount for mobile validation and display.
+
 The mobile app's investor data API is the existing Laravel service. The workspace Express API is a separate supplemental service, not a replacement source for Laravel investor project or investment responses. When Laravel implementation code is outside this workspace, define and generate the contract here, but keep the external server implementation boundary explicit; do not store parallel local shipment data that investors cannot receive.
 
 Monthly wallet statements should reconcile against available plus pending wallet balances and completed wallet-ledger movements. Pending reservations are not posted cash outflows. Laravel records completed investment returns as one credit containing both principal and profit; split principal returned from distributions only when wallet-currency metadata reconciles to that credit. Otherwise show the full amount as an other wallet movement, not as a distribution.
