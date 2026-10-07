@@ -66,6 +66,42 @@
                         @if ($transaction['principal_return'] !== null && $transaction['distribution_amount'] !== null)
                             <br><span class="muted">Principal {{ $statement['currency'] }} {{ number_format($transaction['principal_return'], 2) }} + profit {{ $statement['currency'] }} {{ number_format($transaction['distribution_amount'], 2) }}</span>
                         @endif
+                        @if (($transaction['withdrawal_breakdown'] ?? null) !== null)
+                            @php($withdrawalBreakdown = $transaction['withdrawal_breakdown'])
+                            @php($withdrawalCurrency = $withdrawalBreakdown['currency'] ?? $statement['currency'])
+                            <br><span class="muted">
+                                Payout:
+                                @if ($withdrawalBreakdown['payout_amount'] !== null)
+                                    {{ $withdrawalCurrency }} {{ number_format($withdrawalBreakdown['payout_amount'], 2) }}
+                                    @if ($withdrawalCurrency !== 'USD' && $withdrawalBreakdown['payout_amount_usd'] !== null)
+                                        (USD {{ number_format($withdrawalBreakdown['payout_amount_usd'], 2) }})
+                                    @endif
+                                @else
+                                    Not recorded
+                                @endif
+                                <br>Fee:
+                                @if ($withdrawalBreakdown['fee'] !== null)
+                                    {{ $withdrawalCurrency }} {{ number_format($withdrawalBreakdown['fee'], 2) }}
+                                    @if ($withdrawalCurrency !== 'USD' && $withdrawalBreakdown['fee_usd'] !== null)
+                                        (USD {{ number_format($withdrawalBreakdown['fee_usd'], 2) }})
+                                    @endif
+                                @else
+                                    Not recorded
+                                    @if ($withdrawalCurrency !== 'USD' && $withdrawalBreakdown['fee_usd'] !== null)
+                                        (USD {{ number_format($withdrawalBreakdown['fee_usd'], 2) }})
+                                    @endif
+                                @endif
+                                <br>Total wallet debit:
+                                @if ($withdrawalBreakdown['total_debit'] !== null)
+                                    {{ $withdrawalCurrency }} {{ number_format($withdrawalBreakdown['total_debit'], 2) }}
+                                    @if ($withdrawalCurrency !== 'USD' && $withdrawalBreakdown['total_debit_usd'] !== null)
+                                        (USD {{ number_format($withdrawalBreakdown['total_debit_usd'], 2) }})
+                                    @endif
+                                @else
+                                    Not recorded
+                                @endif
+                            </span>
+                        @endif
                     </td>
                     <td>{{ $transaction['reference'] ?: 'Not provided' }}</td>
                     <td>{{ \Illuminate\Support\Str::headline($transaction['status']) }}</td>

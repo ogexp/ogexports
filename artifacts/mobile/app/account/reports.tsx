@@ -3,7 +3,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useGetInvestorReports, useCreateInvestorReport, useGetInvestorStatement } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Status } from '@/components/InvestorUI';
-import { amount as readAmount, first, list, messageOf, money, record, unwrap } from '@/lib/data';
+import { amount as readAmount, first, list, messageOf, money, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { shareInvestorFile } from '@/lib/file-download';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -152,12 +152,35 @@ export default function Reports() {
             const itemCurrency = first(item, ['currency'], currency);
             const principal = readAmount(item, ['principal_return']);
             const profit = readAmount(item, ['distribution_amount']);
+            const withdrawalBreakdown = record(item.withdrawal_breakdown);
+            const isWithdrawal = first(item, ['type']).toLowerCase() === 'withdrawal'
+              && first(item, ['direction']).toLowerCase() === 'debit';
+            const withdrawalCurrency = first(withdrawalBreakdown, ['currency'], itemCurrency || 'USD');
+            const payout = readAmount(withdrawalBreakdown, ['payout_amount']);
+            const payoutUsd = readAmount(withdrawalBreakdown, ['payout_amount_usd']);
+            const fee = readAmount(withdrawalBreakdown, ['fee']);
+            const feeUsd = readAmount(withdrawalBreakdown, ['fee_usd']);
+            const totalDebit = readAmount(withdrawalBreakdown, ['total_debit']);
+            const totalDebitUsd = readAmount(withdrawalBreakdown, ['total_debit_usd']);
             return <View key={id} style={{ borderTopWidth: 1, borderColor: colors.border, paddingTop: 9 }}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>{first(item, ['type'], 'Wallet transaction').replace(/[_-]+/g, ' ')}</Text>
                   <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{first(item, ['reference'], '—')} · {first(item, ['date_time'], '')}</Text>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>Principal {money(principal, itemCurrency || 'USD')} · Profit {money(profit, itemCurrency || 'USD')}</Text>
+                  {isWithdrawal ? <View style={{ marginTop: 5, gap: 2 }}>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                      Payout: {payout === null ? 'Not recorded' : moneyInSourceCurrency(payout, withdrawalCurrency)}
+                      {withdrawalCurrency !== 'USD' && payoutUsd !== null ? ` · USD ${moneyInSourceCurrency(payoutUsd, 'USD')}` : ''}
+                    </Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                      Fee: {fee === null ? 'Not recorded' : moneyInSourceCurrency(fee, withdrawalCurrency)}
+                      {withdrawalCurrency !== 'USD' && feeUsd !== null ? ` · USD ${moneyInSourceCurrency(feeUsd, 'USD')}` : ''}
+                    </Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                      Total wallet debit: {totalDebit === null ? 'Not recorded' : moneyInSourceCurrency(totalDebit, withdrawalCurrency)}
+                      {withdrawalCurrency !== 'USD' && totalDebitUsd !== null ? ` · USD ${moneyInSourceCurrency(totalDebitUsd, 'USD')}` : ''}
+                    </Text>
+                  </View> : <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>Principal {money(principal, itemCurrency || 'USD')} · Profit {money(profit, itemCurrency || 'USD')}</Text>}
                 </View>
                 <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>{`${first(item, ['direction']) === 'debit' ? '− ' : '+ '}${money(amount, itemCurrency || 'USD')}`}</Text>
               </View>

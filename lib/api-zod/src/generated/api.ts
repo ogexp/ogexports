@@ -1507,7 +1507,22 @@ export const GetInvestorStatementQueryParams = zod.object({
   "month": zod.coerce.string().regex(getInvestorStatementQueryMonthRegExp).optional().describe('Month in YYYY-MM format; defaults to the current month.')
 })
 
-export const GetInvestorStatementResponse = zod.record(zod.string(), zod.unknown())
+export const GetInvestorStatementResponse = zod.object({
+  "data": zod.object({
+  "transactions": zod.array(zod.object({
+  "withdrawal_breakdown": zod.union([zod.object({
+  "payout_amount": zod.number().nullable(),
+  "payout_amount_usd": zod.number().nullable(),
+  "fee": zod.number().nullable().describe('Recorded fee only; null when the historical fee is unavailable.'),
+  "fee_usd": zod.number().nullable(),
+  "total_debit": zod.number().nullable(),
+  "total_debit_usd": zod.number().nullable(),
+  "currency": zod.string().nullable(),
+  "exchange_rate": zod.number().nullable().describe('Saved PKR-per-USD exchange-rate snapshot.')
+}),zod.null()]).optional()
+})).optional()
+})
+})
 
 
 /**

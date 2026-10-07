@@ -616,7 +616,7 @@ paths:
       parameters:
         - { name: month, in: query, schema: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }, description: "Month in YYYY-MM format; defaults to the current month." }
       responses:
-        "200": { description: Monthly statement and available statement months, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "200": { description: Monthly statement and available statement months, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorMonthlyStatementResponse" } } } }
   /investor/statements/{month}/pdf:
     get:
       operationId: downloadInvestorStatementPdf
@@ -1685,6 +1685,36 @@ components:
       properties:
         data:
           $ref: "#/components/schemas/InvestorWalletTransactionDetail"
+    InvestorMonthlyStatementResponse:
+      type: object
+      additionalProperties: true
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+          properties:
+            transactions:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+                properties:
+                  withdrawal_breakdown:
+                    anyOf:
+                      - type: object
+                        additionalProperties: false
+                        required: [payout_amount, payout_amount_usd, fee, fee_usd, total_debit, total_debit_usd, currency, exchange_rate]
+                        properties:
+                          payout_amount: { type: ["number", "null"] }
+                          payout_amount_usd: { type: ["number", "null"] }
+                          fee: { type: ["number", "null"], description: "Recorded fee only; null when the historical fee is unavailable." }
+                          fee_usd: { type: ["number", "null"] }
+                          total_debit: { type: ["number", "null"] }
+                          total_debit_usd: { type: ["number", "null"] }
+                          currency: { type: ["string", "null"] }
+                          exchange_rate: { type: ["number", "null"], description: "Saved PKR-per-USD exchange-rate snapshot." }
+                      - type: "null"
     InvestorWithdrawalRecord:
       type: object
       additionalProperties: true

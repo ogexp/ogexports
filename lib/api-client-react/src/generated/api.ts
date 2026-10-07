@@ -44,6 +44,7 @@ import type {
   InvestorBankAccountsResponse,
   InvestorDashboardResponse,
   InvestorInvestmentDetailResponse,
+  InvestorMonthlyStatementResponse,
   InvestorNotificationResponse,
   InvestorNotificationsResponse,
   InvestorProfileUpdate,
@@ -4332,9 +4333,9 @@ export const getGetInvestorStatementUrl = (params?: GetInvestorStatementParams,)
 /**
  * @summary Get a monthly wallet statement
  */
-export const getInvestorStatement = async (params?: GetInvestorStatementParams, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const getInvestorStatement = async (params?: GetInvestorStatementParams, options?: Parameters<typeof customFetch>[1]): Promise<InvestorMonthlyStatementResponse> => {
 
-  return customFetch<JsonObject>(getGetInvestorStatementUrl(params),
+  return customFetch<InvestorMonthlyStatementResponse>(getGetInvestorStatementUrl(params),
   {
     ...options,
     method: 'GET'

@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
+use App\Models\Withdrawal;
 use App\Services\InvestorMonthlyStatementService;
 use Carbon\Carbon;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -70,6 +72,165 @@ class InvestorMonthlyStatementTest extends TestCase
         $this->assertSame(10.0, $september['withdrawals']);
         $this->assertSame(0.0, $september['other_movements']);
         $this->assertSame(83.0, $september['closing_balance']);
+    }
+
+    public function test_statement_includes_withdrawal_breakdown_and_usd_snapshot_without_changing_balances(): void
+    {
+        Carbon::setTestNow('2026-11-12 10:00:00');
+        $this->seed(RoleSeeder::class);
+        $investor = User::factory()->create(['account_status' => 'active']);
+        $investor->assignRole('investor');
+        $wallet = Wallet::query()->create([
+            'user_id' => $investor->id,
+            'currency' => 'PKR',
+            'available_balance' => 723,
+            'pending_balance' => 0,
+        ]);
+        $withdrawal = Withdrawal::query()->create([
+            'investor_id' => $investor->id,
+            'amount' => 27850,
+            'exchange_rate' => 278.5,
+            'fee' => 557,
+            'total_debit' => 28407,
+            'bank_details' => ['currency' => 'PKR'],
+            'reference' => 'OGWITH-STATEMENT-SNAPSHOT',
+            'status' => 'completed',
+        ]);
+        $this->transaction(
+            $wallet,
+            'withdrawal',
+            28407,
+            'debit',
+            'completed',
+            '2026-08-26 10:00:00',
+            '2026-08-26 10:00:00',
+            ['withdrawal_id' => $withdrawal->id, 'currency' => 'PKR'],
+        );
+
+        $statement = app(InvestorMonthlyStatementService::class)->build($investor, '2026-08');
+        $breakdown = $statement['transactions'][0]['withdrawal_breakdown'];
+
+        $this->assertSame(29130.0, $statement['opening_balance']);
+        $this->assertSame(28407.0, $statement['withdrawals']);
+        $this->assertSame(723.0, $statement['closing_balance']);
+        $this->assertSame(27850.0, $breakdown['payout_amount']);
+        $this->assertSame(100.0, $breakdown['payout_amount_usd']);
+        $this->assertSame(557.0, $breakdown['fee']);
+        $this->assertSame(2.0, $breakdown['fee_usd']);
+        $this->assertSame(28407.0, $breakdown['total_debit']);
+        $this->assertSame(102.0, $breakdown['total_debit_usd']);
+        $this->assertSame('PKR', $breakdown['currency']);
+        $this->assertSame(278.5, $breakdown['exchange_rate']);
+
+        $this->actingAs($investor)
+            ->getJson('/api/investor/statements?month=2026-08')
+            ->assertOk()
+            ->assertJsonPath('data.transactions.0.withdrawal_breakdown.fee', 557)
+            ->assertJsonPath('data.transactions.0.withdrawal_breakdown.total_debit_usd', 102);
+        $pdf = $this->actingAs($investor)
+            ->get('/api/investor/statements/2026-08/pdf')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $pdf->getContent());
+
+        $html = view('pdf.investor-monthly-statement', [
+            'statement' => $statement,
+            'investor' => $investor,
+        ])->render();
+        $htmlText = preg_replace('/\s+/', ' ', preg_replace('/<br\s*\/?>/i', ' ', $html) ?? $html) ?? $html;
+        $this->assertStringContainsString('Payout:', $htmlText);
+        $this->assertStringContainsString('PKR 27,850.00 (USD 100.00)', $htmlText);
+        $this->assertStringContainsString('Fee: PKR 557.00 (USD 2.00)', $htmlText);
+        $this->assertStringContainsString('Total wallet debit: PKR 28,407.00 (USD 102.00)', $htmlText);
+    }
+
+    public function test_statement_uses_saved_usd_fields_when_no_exchange_rate_snapshot_exists(): void
+    {
+        Carbon::setTestNow('2026-11-12 10:00:00');
+        $investor = User::factory()->create();
+        $wallet = Wallet::query()->create([
+            'user_id' => $investor->id,
+            'currency' => 'PKR',
+            'available_balance' => 102,
+            'pending_balance' => 0,
+        ]);
+        $withdrawal = Withdrawal::query()->create([
+            'investor_id' => $investor->id,
+            'amount' => 28000,
+            'amount_usd' => 100,
+            'fee' => 560,
+            'fee_usd' => 2,
+            'total_debit' => 28560,
+            'total_debit_usd' => 102,
+            'bank_details' => ['currency' => 'PKR'],
+            'reference' => 'OGWITH-STATEMENT-USD-FIELDS',
+            'status' => 'completed',
+        ]);
+        $this->transaction(
+            $wallet,
+            'withdrawal',
+            28560,
+            'debit',
+            'completed',
+            '2026-08-26 10:00:00',
+            '2026-08-26 10:00:00',
+            ['withdrawal_id' => $withdrawal->id, 'currency' => 'PKR'],
+        );
+
+        $statement = app(InvestorMonthlyStatementService::class)->build($investor, '2026-08');
+        $breakdown = $statement['transactions'][0]['withdrawal_breakdown'];
+
+        $this->assertSame(100.0, $breakdown['payout_amount_usd']);
+        $this->assertSame(2.0, $breakdown['fee_usd']);
+        $this->assertSame(102.0, $breakdown['total_debit_usd']);
+        $this->assertNull($breakdown['exchange_rate']);
+    }
+
+    public function test_statement_does_not_infer_a_missing_historical_withdrawal_fee(): void
+    {
+        Carbon::setTestNow('2026-11-12 10:00:00');
+        $investor = User::factory()->create();
+        $wallet = Wallet::query()->create([
+            'user_id' => $investor->id,
+            'currency' => 'USD',
+            'available_balance' => 7497,
+            'pending_balance' => 0,
+        ]);
+        $withdrawal = Withdrawal::query()->create([
+            'investor_id' => $investor->id,
+            'amount' => 2500,
+            'bank_details' => ['currency' => 'USD'],
+            'reference' => 'OGWITH-STATEMENT-LEGACY',
+            'status' => 'completed',
+        ]);
+        $this->transaction(
+            $wallet,
+            'withdrawal',
+            2503,
+            'debit',
+            'completed',
+            '2026-08-26 10:00:00',
+            '2026-08-26 10:00:00',
+            ['withdrawal_id' => $withdrawal->id, 'currency' => 'USD'],
+        );
+
+        $statement = app(InvestorMonthlyStatementService::class)->build($investor, '2026-08');
+        $breakdown = $statement['transactions'][0]['withdrawal_breakdown'];
+
+        $this->assertSame(10000.0, $statement['opening_balance']);
+        $this->assertSame(2503.0, $statement['withdrawals']);
+        $this->assertSame(7497.0, $statement['closing_balance']);
+        $this->assertSame(2503.0, $breakdown['total_debit']);
+        $this->assertSame(2503.0, $breakdown['total_debit_usd']);
+        $this->assertNull($breakdown['fee']);
+        $this->assertNull($breakdown['fee_usd']);
+
+        $html = view('pdf.investor-monthly-statement', [
+            'statement' => $statement,
+            'investor' => $investor,
+        ])->render();
+        $htmlText = preg_replace('/\s+/', ' ', preg_replace('/<br\s*\/?>/i', ' ', $html) ?? $html) ?? $html;
+        $this->assertStringContainsString('Fee: Not recorded', $htmlText);
     }
 
     private function transaction(

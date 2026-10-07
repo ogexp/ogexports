@@ -712,6 +712,46 @@ export interface InvestorWalletTransactionResponse {
   [key: string]: unknown;
  }
 
+export type InvestorMonthlyStatementResponseDataTransactionsItemWithdrawalBreakdown = {
+  /** @nullable */
+  payout_amount: number | null;
+  /** @nullable */
+  payout_amount_usd: number | null;
+  /**
+     * Recorded fee only; null when the historical fee is unavailable.
+     * @nullable
+     */
+  fee: number | null;
+  /** @nullable */
+  fee_usd: number | null;
+  /** @nullable */
+  total_debit: number | null;
+  /** @nullable */
+  total_debit_usd: number | null;
+  /** @nullable */
+  currency: string | null;
+  /**
+     * Saved PKR-per-USD exchange-rate snapshot.
+     * @nullable
+     */
+  exchange_rate: number | null;
+} | null;
+
+export type InvestorMonthlyStatementResponseDataTransactionsItem = {
+  withdrawal_breakdown?: InvestorMonthlyStatementResponseDataTransactionsItemWithdrawalBreakdown;
+  [key: string]: unknown;
+ };
+
+export type InvestorMonthlyStatementResponseData = {
+  transactions?: InvestorMonthlyStatementResponseDataTransactionsItem[];
+  [key: string]: unknown;
+ };
+
+export interface InvestorMonthlyStatementResponse {
+  data: InvestorMonthlyStatementResponseData;
+  [key: string]: unknown;
+ }
+
 export interface InvestorWithdrawalRecord {
   /** Amount requested for payout to the investor's bank. */
   amount: number;
