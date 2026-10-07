@@ -6,6 +6,7 @@ import { Feather } from '@expo/vector-icons';
 import { useGetInvestorNotifications, useMarkAllInvestorNotificationsRead, useMarkInvestorNotificationRead } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Screen, SwipeAction } from '@/components/InvestorUI';
 import { first, list, messageOf } from '@/lib/data';
+import { formatNotificationTimestamp, isInvestorNotificationUnread } from '@/lib/notification-utils';
 import { notificationHref } from '@/lib/notification-routing';
 import {
   NOTIFICATION_CATEGORIES,
@@ -27,7 +28,7 @@ export default function Notifications() {
   const colors = useColors();
   const [actionError, setActionError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<NotificationCategoryFilter>('All');
-  const query = useGetInvestorNotifications({ query: { queryKey: ['investor-notifications'], enabled: !!token, staleTime: 20_000 } });
+  const query = useGetInvestorNotifications({ query: { queryKey: ['investor-notifications'], enabled: !!token, staleTime: 20_000, refetchOnMount: 'always' } });
   const markAll = useMarkAllInvestorNotificationsRead({ mutation: {
     onSuccess: () => { setActionError(''); void query.refetch(); },
     onError: error => { motionHaptic('error'); setActionError(messageOf(error)); },
@@ -37,7 +38,7 @@ export default function Notifications() {
     onError: error => { motionHaptic('error'); setActionError(messageOf(error)); },
   } });
   const notifications = list(query.data);
-  const unreadCount = notifications.filter(item => !item.read_at && item.is_read !== true && item.read !== true).length;
+  const unreadCount = notifications.filter(isInvestorNotificationUnread).length;
   const visibleNotifications = selectedCategory === 'All'
     ? notifications
     : notifications.filter(item => notificationCategoryLabel(notificationCategory(item)) === selectedCategory);
@@ -61,6 +62,16 @@ export default function Notifications() {
     {query.isError ? <ErrorState message="Notifications could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
     {actionError ? <ErrorState message={`Notification action failed: ${actionError}`} /> : null}
     {!query.isLoading && !query.isError && notifications.length === 0 ? <EmptyState title="You’re all caught up" body="Important investor updates will appear here." /> : null}
+    {!query.isLoading && notifications.length > 0 ? <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+      <Card testID="notification-total-summary" style={{ flex: 1, padding: 13, marginBottom: 0 }}>
+        <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Total updates</Text>
+        <Text style={{ color: colors.foreground, fontSize: 22, fontWeight: '700', marginTop: 4 }}>{notifications.length}</Text>
+      </Card>
+      <Card testID="notification-unread-summary" style={{ flex: 1, padding: 13, marginBottom: 0, borderColor: unreadCount ? colors.primary : colors.border }}>
+        <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Unread</Text>
+        <Text style={{ color: unreadCount ? colors.primary : colors.foreground, fontSize: 22, fontWeight: '700', marginTop: 4 }}>{unreadCount}</Text>
+      </Card>
+    </View> : null}
     {notifications.length > 0 ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
       {categoryFilters.map(category => {
         const selected = selectedCategory === category;
@@ -81,12 +92,12 @@ export default function Notifications() {
       : null}
     {visibleNotifications.map((item, index) => {
       const id = first(item, ['id'], '');
-      const unread = !item.read_at && item.is_read !== true && item.read !== true;
+      const unread = isInvestorNotificationUnread(item);
       const target = notificationHref(item);
       const category = notificationCategory(item);
       const categoryInfo = NOTIFICATION_CATEGORIES.find(value => value.key === category);
       const body = first(item, ['body', 'message', 'description']);
-      const createdAt = first(item, ['created_at', 'date']);
+      const createdAt = formatNotificationTimestamp(first(item, ['created_at', 'date']));
       const notificationCard = <Card style={{ borderColor: unread ? colors.primary : colors.border, padding: 14, marginBottom: 0 }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
           <Pressable

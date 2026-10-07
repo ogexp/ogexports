@@ -19,6 +19,7 @@ import { AllocationDonut, type AllocationSlice } from '@/components/AllocationDo
 import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap } from '@/lib/data';
 import { mergeDepositRequests } from '@/lib/deposit-activity';
 import { latestRecords } from '@/lib/latest-records';
+import { isInvestorNotificationUnread } from '@/lib/notification-utils';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
@@ -151,8 +152,9 @@ export default function InvestorHome() {
     if (token) {
       void dashboard.refetch();
       void deposits.refetch();
+      void notificationsQuery.refetch();
     }
-  }, [token, dashboard.refetch, deposits.refetch]));
+  }, [token, dashboard.refetch, deposits.refetch, notificationsQuery.refetch]));
   const data = unwrap(dashboard.data);
   const summary = record(data.summary);
   const wallet = record(data.wallet);
@@ -192,7 +194,10 @@ export default function InvestorHome() {
   const payouts = list(data.upcoming_payouts);
   const investmentItems = latestRecords(list(investments.data), investmentDateFields, 1);
   const dashboardAlerts = list(data.notifications);
-  const recentAlerts = (dashboardAlerts.length ? dashboardAlerts : list(notificationsQuery.data)).slice(0, 3);
+  const notificationFeed = list(notificationsQuery.data);
+  const notificationSource = notificationFeed.length ? notificationFeed : dashboardAlerts;
+  const unreadNotificationCount = notificationSource.filter(isInvestorNotificationUnread).length;
+  const recentAlerts = (dashboardAlerts.length ? dashboardAlerts : notificationFeed).slice(0, 3);
   const monthlyProfitHistory = list(data.profit_monthly);
   const allocation: AllocationSlice[] = list(data.allocation).flatMap(item => {
     const value = amount(item, ['value', 'percentage', 'share']);
@@ -316,9 +321,22 @@ export default function InvestorHome() {
            <Text style={{ color: colors.balanceCardText, opacity: 0.76, fontSize: 10, marginTop: 2 }}>Good morning</Text>
          </View>
          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-           <Pressable testID="home-notifications" accessibilityRole="button" accessibilityLabel="Open notifications" hitSlop={8} onPress={() => router.push('/account/notifications')}
+            <Pressable testID="home-notifications" accessibilityRole="button"
+              accessibilityLabel={unreadNotificationCount > 0 ? `Open notifications, ${unreadNotificationCount} unread` : 'Open notifications'}
+              accessibilityHint="View account and investment updates"
+              hitSlop={8} onPress={() => router.push('/account/notifications')}
              style={({ pressed }) => ({ width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.16)', backgroundColor: 'rgba(248, 251, 248, 0.12)', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.76 : 1 })}>
-             <Feather name="bell" size={17} color={colors.balanceCardText} />
+              <View style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
+                <Feather name="bell" size={17} color={colors.balanceCardText} />
+                {unreadNotificationCount > 0 ? <View
+                  testID="home-notification-count"
+                  style={{ position: 'absolute', top: -3, right: -3, minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3, borderWidth: 1, borderColor: colors.balanceCardStart, backgroundColor: colors.destructive, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Text numberOfLines={1} style={{ color: colors.destructiveForeground, fontSize: 8, lineHeight: 11, fontWeight: '700' }}>
+                    {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                  </Text>
+                </View> : null}
+              </View>
            </Pressable>
            <Pressable testID="home-settings" accessibilityRole="button" accessibilityLabel="Open settings" hitSlop={8} onPress={() => router.push('/account/settings')}
              style={({ pressed }) => ({ width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.16)', backgroundColor: 'rgba(248, 251, 248, 0.12)', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.76 : 1 })}>

@@ -38,7 +38,8 @@ function displayDate(value: string) {
 
 function balanceLabel(value: number | null, currency: string, loading: boolean, error: boolean) {
   if (loading) return 'Loading…';
-  if (error && value == null) return 'Unavailable';
+  if (error) return 'Unavailable';
+  if (value == null) return 'Not reported';
   return money(value, currency || 'USD');
 }
 
@@ -68,7 +69,7 @@ export default function Wallet() {
   const available = availableBalanceFromDashboard(dashboard.data);
   const allocated = amount(walletData, ['allocated_to_trades', 'allocated_balance']);
   const pending = amount(walletData, ['pending_balance']);
-  const withdrawable = amount(walletData, ['withdrawable_balance', 'withdrawable_amount']);
+  const withdrawable = available;
 
   const ledger = list(transactions.data);
   const filteredLedger = category === 'All'
@@ -86,7 +87,7 @@ export default function Wallet() {
     { label: 'Available', value: available },
     { label: 'Allocated to Trades', value: allocated },
     { label: 'Pending', value: pending },
-    { label: 'Withdrawable', value: withdrawable },
+    { label: 'Withdrawable Balance', value: withdrawable },
   ];
 
   return <Screen title="Wallet" subtitle="Your account balance and wallet activity" refreshable>
@@ -114,15 +115,16 @@ export default function Wallet() {
     <Section title="Balance Breakdown" />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
       {balanceMetrics.map(metric => {
-        const isAvailable = metric.label === 'Available';
+        const isDashboardBalance = metric.label === 'Available' || metric.label === 'Withdrawable Balance';
         return <Card key={metric.label} style={{ width: '48%', minHeight: 91, padding: 13, marginBottom: 0 }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{metric.label}</Text>
-          <Text numberOfLines={2} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 8 }}>
+          <Text testID={metric.label === 'Withdrawable Balance' ? 'wallet-withdrawable-balance' : undefined}
+            numberOfLines={2} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 8 }}>
             {balanceLabel(
               metric.value,
               currency,
-              isAvailable ? dashboard.isLoading : wallet.isLoading,
-              isAvailable ? dashboard.isError : wallet.isError,
+              isDashboardBalance ? dashboard.isLoading : wallet.isLoading,
+              isDashboardBalance ? dashboard.isError : wallet.isError,
             )}
           </Text>
         </Card>;

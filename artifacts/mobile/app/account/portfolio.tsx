@@ -29,6 +29,10 @@ function supplied(value: string, fallback = '—') {
   return value || fallback;
 }
 
+function reportedMoney(value: number | null, currency: string) {
+  return value == null ? 'Not reported' : money(value, currency);
+}
+
 function reportedDate(value: string) {
   if (!value || value === '—') return 'Not reported';
   const parsed = new Date(value);
@@ -139,7 +143,7 @@ export default function Portfolio() {
     const amountLabel = [
       investedAmount != null ? money(investedAmount, investmentCurrency || 'USD') : null,
       investedPkr != null ? money(investedPkr, 'PKR') : null,
-    ].filter(Boolean).join(' · ') || money(null, investmentCurrency || 'USD');
+    ].filter(Boolean).join(' · ') || 'Not reported';
     const expectedProfit = amount(item, ['expected_profit']) ?? amount(dashboardInvestment, ['expected_profit']);
     const roi = amount(dashboardInvestment, ['roi'])
       ?? amount(item, ['roi', 'expected_return_pct'])
@@ -224,16 +228,16 @@ export default function Portfolio() {
           {boundedProgress != null
             ? <MotionProgress value={boundedProgress} height={6} color={colors.primary} trackColor={colors.secondary} accessibilityLabel="Reported investment progress" />
             : <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Progress has not been reported.</Text>}
-          {currentStage !== '—' ? <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 7 }}>Current milestone: {currentStage}</Text> : null}
+          {currentStage && currentStage !== '—' ? <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 7 }}>Current milestone: {currentStage}</Text> : null}
         </View>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 14, paddingTop: 2, borderTopWidth: 1, borderTopColor: colors.border }}>
           <InvestmentMetric label="Amount invested" value={amountLabel} color={colors.foreground} />
-          <InvestmentMetric label="Expected profit" value={money(expectedProfit, 'USD')} color={colors.primary} />
+          <InvestmentMetric label="Expected profit" value={reportedMoney(expectedProfit, 'USD')} color={colors.primary} />
           <InvestmentMetric label="ROI" value={roiText} color={colors.foreground} />
           <InvestmentMetric label="Days remaining" value={daysRemaining != null ? `${daysRemaining} days` : 'Not reported'} color={colors.foreground} />
           <InvestmentMetric label="Next payout date" value={reportedDate(payoutDate)} color={colors.foreground} />
-          <InvestmentMetric label="Total return recorded" value={money(totalReturn, payoutCurrency)} color={colors.foreground} />
+          <InvestmentMetric label="Total return recorded" value={reportedMoney(totalReturn, payoutCurrency)} color={colors.foreground} />
         </View>
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
@@ -267,9 +271,9 @@ export default function Portfolio() {
   };
 
   const summaryValue = (value: number | null) => {
-    if (dashboardQuery.isLoading) return 'Loading';
+    if (dashboardQuery.isLoading) return 'Loading…';
     if (dashboardQuery.isError) return 'Unavailable';
-    return money(value, currency || 'USD');
+    return reportedMoney(value, currency || 'USD');
   };
 
   return <Screen title="My Portfolio" subtitle="Capital placed in real trade and shipment activity" refreshable>
@@ -297,7 +301,7 @@ export default function Portfolio() {
         </View>)}
       </View>
     </Card>
-    {dashboardQuery.isError ? <ErrorState message="Portfolio summary could not be loaded from the investor server." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} /> : null}
+    {dashboardQuery.isError ? <ErrorState message="Portfolio summary could not be loaded." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} /> : null}
 
     {positionsQuery.isError ? <ErrorState message="Portfolio positions could not be loaded." error={positionsQuery.error} onRetry={() => void positionsQuery.refetch()} /> : null}
     {positionsQuery.isLoading ? <LoadingCard label="Loading investment records…" /> : null}
@@ -306,10 +310,17 @@ export default function Portfolio() {
       <View style={{ flexDirection: 'row', backgroundColor: colors.secondary, borderRadius: 14, padding: 4, marginBottom: 14 }}>
         {(['Active', 'Pending', 'Completed'] as PortfolioTab[]).map(tab => {
           const selected = selectedTab === tab;
+          const tabCount = assignedRows.filter(row => row.category === tab).length;
           return <Pressable key={tab} testID={`portfolio-tab-${tab.toLowerCase()}`} accessibilityRole="button"
+            accessibilityLabel={`${tab}, ${tabCount} investments`}
             accessibilityState={{ selected }} onPress={() => setSelectedTab(tab)}
             style={{ flex: 1, minHeight: 39, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: selected ? colors.card : 'transparent' }}>
-            <Text style={{ color: selected ? colors.primary : colors.mutedForeground, fontSize: 12, fontWeight: selected ? '700' : '600' }}>{tab}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Text style={{ color: selected ? colors.primary : colors.mutedForeground, fontSize: 12, fontWeight: selected ? '700' : '600' }}>{tab}</Text>
+              <View style={{ minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: selected ? colors.primary : colors.card, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: selected ? colors.primaryForeground : colors.mutedForeground, fontSize: 9, fontWeight: '700' }}>{tabCount}</Text>
+              </View>
+            </View>
           </Pressable>;
         })}
       </View>
@@ -321,12 +332,18 @@ export default function Portfolio() {
       {uncategorizedRows.length ? <>
         <Section title="Other reported statuses" />
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginBottom: 11 }}>
-          These server statuses are shown as reported and are not assigned to an investment category.
+          These reported statuses are shown as provided and are not assigned to an investment category.
         </Text>
         {uncategorizedRows.map(renderInvestment)}
       </> : null}
     </> : null}
     <PortfolioHistoryCard points={series.points} currency={currency} loading={dashboardQuery.isLoading} defaultRange="3M" />
+    <Pressable testID="portfolio-view-analytics" accessibilityRole="button" onPress={() => router.push('/account/analytics')}
+      style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10, borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.card }}>
+      <Feather name="bar-chart-2" size={16} color={colors.primary} />
+      <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>View full portfolio analytics</Text>
+      <Feather name="arrow-right" size={14} color={colors.primary} />
+    </Pressable>
     <Pressable accessibilityRole="button" onPress={() => router.push('/account/transactions')}>
       <Text style={{ color: colors.primary, fontWeight: '700', paddingVertical: 4 }}>View transaction history →</Text>
     </Pressable>
