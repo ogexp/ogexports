@@ -1,11 +1,13 @@
 <?php
 
 use App\Models\Deposit;
+use App\Models\InvestorBankAccountVerification;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
 use App\Support\ExchangeRateService;
+use App\Support\InvestorBankAccountPresenter;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -70,7 +72,7 @@ function usdSnapshotInvestor(float $balance = 50_000): User
     return $investor;
 }
 
-function enableWithdrawalAuth(User $user): void
+function enableWithdrawalAuth(User $user, array $bankDetails): void
 {
     $user->forceFill([
         'transaction_password' => bcrypt('123456'),
@@ -78,6 +80,30 @@ function enableWithdrawalAuth(User $user): void
         'withdraw_otp_code' => bcrypt('123456'),
         'withdraw_otp_expires_at' => now()->addMinutes(10),
     ])->save();
+
+    $account = [
+        'id' => 'verified-withdrawal-account',
+        'bank_name' => $bankDetails['bank_name'],
+        'account_holder' => $bankDetails['account_holder'],
+        'account_number' => $bankDetails['account_number'],
+        'iban' => $bankDetails['iban'] ?? '',
+        'swift' => $bankDetails['swift'] ?? '',
+        'branch' => $bankDetails['branch'] ?? '',
+        'currency' => $bankDetails['currency'] ?? 'USD',
+        'is_default' => true,
+    ];
+    $profile = UserProfile::query()->where('user_id', $user->id)->firstOrFail();
+    $profile->update(['meta' => ['bank_accounts' => [$account]]]);
+
+    InvestorBankAccountVerification::query()->create([
+        'investor_id' => $user->id,
+        'bank_account_id' => $account['id'],
+        'account_fingerprint' => InvestorBankAccountPresenter::fingerprint($account),
+        'document_path' => 'test/verified-bank-proof.pdf',
+        'original_name' => 'verified-bank-proof.pdf',
+        'status' => 'verified',
+        'reviewed_at' => now(),
+    ]);
 }
 
 it('stores USD amount and PKR-per-USD rate when a Pakistani user deposits PKR', function () {
@@ -137,7 +163,12 @@ it('does not store a USD snapshot when a non-Pakistani user deposits', function 
 
 it('stores USD amount and PKR-per-USD rate when a Pakistani user withdraws', function () {
     $investor = pkrSnapshotInvestor();
-    enableWithdrawalAuth($investor);
+    enableWithdrawalAuth($investor, [
+        'bank_name' => 'HBL',
+        'account_holder' => 'PK Investor',
+        'account_number' => '1234567890',
+        'currency' => 'PKR',
+    ]);
 
     $this->actingAs($investor)
         ->postJson('/api/investor/withdrawals', [
@@ -153,18 +184,31 @@ it('stores USD amount and PKR-per-USD rate when a Pakistani user withdraws', fun
         ])
         ->assertCreated()
         ->assertJsonPath('data.amount_usd', 100)
-        ->assertJsonPath('data.exchange_rate', 278.5);
+        ->assertJsonPath('data.exchange_rate', 278.5)
+        ->assertJsonPath('data.fee', 557)
+        ->assertJsonPath('data.fee_usd', 2)
+        ->assertJsonPath('data.total_debit', 28407)
+        ->assertJsonPath('data.total_debit_usd', 102);
 
     $withdrawal = Withdrawal::query()->where('investor_id', $investor->id)->firstOrFail();
 
     expect((float) $withdrawal->amount)->toBe(27850.0)
         ->and((float) $withdrawal->amount_usd)->toBe(100.0)
-        ->and((float) $withdrawal->exchange_rate)->toBe(278.5);
+        ->and((float) $withdrawal->exchange_rate)->toBe(278.5)
+        ->and((float) $withdrawal->fee)->toBe(557.0)
+        ->and((float) $withdrawal->fee_usd)->toBe(2.0)
+        ->and((float) $withdrawal->total_debit)->toBe(28407.0)
+        ->and((float) $withdrawal->total_debit_usd)->toBe(102.0);
 });
 
 it('overwrites submitted bank currency with wallet currency for Pakistani withdrawals', function () {
     $investor = pkrSnapshotInvestor();
-    enableWithdrawalAuth($investor);
+    enableWithdrawalAuth($investor, [
+        'bank_name' => 'HBL',
+        'account_holder' => 'PK Investor',
+        'account_number' => '1234567890',
+        'currency' => 'PKR',
+    ]);
 
     $this->actingAs($investor)
         ->postJson('/api/investor/withdrawals', [
@@ -190,7 +234,12 @@ it('overwrites submitted bank currency with wallet currency for Pakistani withdr
 
 it('does not store a USD snapshot when a non-Pakistani user withdraws', function () {
     $investor = usdSnapshotInvestor();
-    enableWithdrawalAuth($investor);
+    enableWithdrawalAuth($investor, [
+        'bank_name' => 'Test Bank',
+        'account_holder' => 'Intl Investor',
+        'account_number' => '9876543210',
+        'currency' => 'USD',
+    ]);
 
     $this->actingAs($investor)
         ->postJson('/api/investor/withdrawals', [

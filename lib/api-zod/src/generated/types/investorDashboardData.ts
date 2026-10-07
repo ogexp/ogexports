@@ -11,5 +11,13 @@ import type { InvestorDashboardSummary } from './investorDashboardSummary';
 export interface InvestorDashboardData {
   summary: InvestorDashboardSummary;
   wallet: InvestorDashboardDataWallet;
+  /** Fixed withdrawal fee expressed in the investor wallet currency. */
+  withdrawal_fee?: number;
+  /** Fixed withdrawal fee expressed in USD. */
+  withdrawal_fee_usd?: number;
+  /** Currency used for withdrawal_fee and total_debit. */
+  withdrawal_fee_currency?: string;
+  /** Server-provided estimated withdrawal processing time. */
+  estimated_processing_time?: string;
   [key: string]: unknown;
  }

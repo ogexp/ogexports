@@ -480,7 +480,7 @@ class FinanceController extends Controller
                 ]);
             }
 
-            $amount = (float) $withdrawal->amount;
+            $amount = (float) ($withdrawal->total_debit ?? $withdrawal->amount);
 
             // Funds were reserved on request (available → pending). Finalize by clearing pending.
             if ((float) $wallet->pending_balance >= $amount) {
@@ -562,7 +562,7 @@ class FinanceController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            $amount = (float) $withdrawal->amount;
+            $amount = (float) ($withdrawal->total_debit ?? $withdrawal->amount);
 
             if ($wallet) {
                 // Return reserved funds to available balance
@@ -820,6 +820,14 @@ class FinanceController extends Controller
             'amount' => $withdrawal->amount,
             'amount_usd' => $withdrawal->amount_usd,
             'exchange_rate' => $withdrawal->exchange_rate,
+            'fee' => $withdrawal->fee !== null ? (float) $withdrawal->fee : 0.0,
+            'fee_usd' => $withdrawal->fee_usd !== null ? (float) $withdrawal->fee_usd : 0.0,
+            'total_debit' => $withdrawal->total_debit !== null
+                ? (float) $withdrawal->total_debit
+                : (float) $withdrawal->amount,
+            'total_debit_usd' => $withdrawal->total_debit_usd !== null
+                ? (float) $withdrawal->total_debit_usd
+                : ($withdrawal->amount_usd !== null ? (float) $withdrawal->amount_usd : null),
             'bank_details' => $bankDetails,
             'reference' => $withdrawal->reference,
             'status' => $withdrawal->status,

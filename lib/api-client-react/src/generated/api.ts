@@ -53,7 +53,10 @@ import type {
   InvestorProjectListResponse,
   InvestorPushTokenRegistration,
   InvestorPushTokenRevocation,
+  InvestorWalletResponse,
   InvestorWithdrawalInput,
+  InvestorWithdrawalResponse,
+  InvestorWithdrawalsResponse,
   JsonObject,
   PayoutProgressPushEvent,
   ProjectStageUpdateList,
@@ -2766,9 +2769,9 @@ export const getGetInvestorWalletUrl = () => {
 /**
  * @summary Get investor wallet balances
  */
-export const getInvestorWallet = async ( options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const getInvestorWallet = async ( options?: Parameters<typeof customFetch>[1]): Promise<InvestorWalletResponse> => {
 
-  return customFetch<JsonObject>(getGetInvestorWalletUrl(),
+  return customFetch<InvestorWalletResponse>(getGetInvestorWalletUrl(),
   {
     ...options,
     method: 'GET'
@@ -3414,9 +3417,9 @@ export const getGetInvestorWithdrawalsUrl = (params?: GetInvestorWithdrawalsPara
 /**
  * @summary List investor withdrawals
  */
-export const getInvestorWithdrawals = async (params?: GetInvestorWithdrawalsParams, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const getInvestorWithdrawals = async (params?: GetInvestorWithdrawalsParams, options?: Parameters<typeof customFetch>[1]): Promise<InvestorWithdrawalsResponse> => {
 
-  return customFetch<JsonObject>(getGetInvestorWithdrawalsUrl(params),
+  return customFetch<InvestorWithdrawalsResponse>(getGetInvestorWithdrawalsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -3491,7 +3494,7 @@ export const getCreateInvestorWithdrawalUrl = () => {
 /**
  * @summary Submit a withdrawal request
  */
-export const createInvestorWithdrawal = async (investorWithdrawalInput: InvestorWithdrawalInput, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const createInvestorWithdrawal = async (investorWithdrawalInput: InvestorWithdrawalInput, options?: Parameters<typeof customFetch>[1]): Promise<InvestorWithdrawalResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -3507,7 +3510,7 @@ export const createInvestorWithdrawal = async (investorWithdrawalInput: Investor
     }
     return headers;
   };
-return customFetch<JsonObject>(getCreateInvestorWithdrawalUrl(),
+return customFetch<InvestorWithdrawalResponse>(getCreateInvestorWithdrawalUrl(),
   {
     ...options,
     method: 'POST',

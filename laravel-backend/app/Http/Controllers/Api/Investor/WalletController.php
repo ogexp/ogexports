@@ -9,6 +9,7 @@ use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Support\ExchangeRateService;
 use App\Support\InvestorMarket;
+use App\Support\WithdrawalTerms;
 use App\Services\InvestorTransactionPdfGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,6 +38,7 @@ class WalletController extends Controller
 
         $ratesPayload = ExchangeRateService::getRates();
         $breakdown = $this->buildDepositBreakdown($user->id);
+        $withdrawalTerms = WithdrawalTerms::forCurrency($walletCurrency);
 
         return response()->json([
             'data' => [
@@ -48,6 +50,10 @@ class WalletController extends Controller
                 'investable_balance' => (float) $wallet->available_balance,
                 'deposit_breakdown' => $breakdown,
                 'rates_as_of' => $ratesPayload['as_of'],
+                'withdrawal_fee' => $withdrawalTerms['fee'],
+                'withdrawal_fee_usd' => $withdrawalTerms['fee_usd'],
+                'withdrawal_fee_currency' => $withdrawalTerms['fee_currency'],
+                'estimated_processing_time' => $withdrawalTerms['estimated_processing_time'],
             ],
         ]);
     }

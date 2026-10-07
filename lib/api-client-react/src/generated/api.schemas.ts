@@ -628,11 +628,75 @@ export type InvestorDashboardDataWallet = {
 export interface InvestorDashboardData {
   summary: InvestorDashboardSummary;
   wallet: InvestorDashboardDataWallet;
+  /** Fixed withdrawal fee expressed in the investor wallet currency. */
+  withdrawal_fee?: number;
+  /** Fixed withdrawal fee expressed in USD. */
+  withdrawal_fee_usd?: number;
+  /** Currency used for withdrawal_fee and total_debit. */
+  withdrawal_fee_currency?: string;
+  /** Server-provided estimated withdrawal processing time. */
+  estimated_processing_time?: string;
   [key: string]: unknown;
  }
 
 export interface InvestorDashboardResponse {
   data: InvestorDashboardData;
+  [key: string]: unknown;
+ }
+
+export type InvestorWalletResponseData = {
+  currency?: string;
+  /** Fixed withdrawal fee expressed in the investor wallet currency. */
+  withdrawal_fee?: number;
+  /** Fixed withdrawal fee expressed in USD. */
+  withdrawal_fee_usd?: number;
+  /** Currency used for withdrawal_fee and total_debit. */
+  withdrawal_fee_currency?: string;
+  /** Server-provided estimated withdrawal processing time. */
+  estimated_processing_time?: string;
+  [key: string]: unknown;
+ };
+
+export interface InvestorWalletResponse {
+  data: InvestorWalletResponseData;
+  [key: string]: unknown;
+ }
+
+export interface InvestorWithdrawalRecord {
+  /** Amount requested for payout to the investor's bank. */
+  amount: number;
+  /**
+     * Submission-time USD equivalent of the payout amount when an FX snapshot applies.
+     * @nullable
+     */
+  amount_usd?: number | null;
+  /** Withdrawal fee in the investor wallet currency. */
+  fee: number;
+  /** Withdrawal fee in USD. */
+  fee_usd: number;
+  /** Total amount reserved or debited from the investor wallet. */
+  total_debit: number;
+  /** Submission-time USD equivalent of the total wallet debit. */
+  total_debit_usd: number;
+  /** Currency used for amount, fee, and total_debit. */
+  currency: string;
+  /**
+     * Submission-time PKR per USD rate when an FX snapshot applies.
+     * @nullable
+     */
+  exchange_rate?: number | null;
+  status: string;
+  [key: string]: unknown;
+ }
+
+export interface InvestorWithdrawalResponse {
+  message?: string;
+  data: InvestorWithdrawalRecord;
+  [key: string]: unknown;
+ }
+
+export interface InvestorWithdrawalsResponse {
+  data?: InvestorWithdrawalRecord[];
   [key: string]: unknown;
  }
 

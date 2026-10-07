@@ -212,7 +212,11 @@ export const GetInvestorDashboardResponse = zod.object({
 }).describe('Financial summary amounts are denominated in display_currency.'),
   "wallet": zod.object({
   "currency": zod.string().describe('Currency used for wallet balances.')
-})
+}),
+  "withdrawal_fee": zod.number().optional().describe('Fixed withdrawal fee expressed in the investor wallet currency.'),
+  "withdrawal_fee_usd": zod.number().optional().describe('Fixed withdrawal fee expressed in USD.'),
+  "withdrawal_fee_currency": zod.string().optional().describe('Currency used for withdrawal_fee and total_debit.'),
+  "estimated_processing_time": zod.string().optional().describe('Server-provided estimated withdrawal processing time.')
 })
 })
 
@@ -1166,7 +1170,15 @@ export const UpdateAdminInvestmentPayoutProgressResponse = zod.record(zod.string
 /**
  * @summary Get investor wallet balances
  */
-export const GetInvestorWalletResponse = zod.record(zod.string(), zod.unknown())
+export const GetInvestorWalletResponse = zod.object({
+  "data": zod.object({
+  "currency": zod.string().optional(),
+  "withdrawal_fee": zod.number().optional().describe('Fixed withdrawal fee expressed in the investor wallet currency.'),
+  "withdrawal_fee_usd": zod.number().optional().describe('Fixed withdrawal fee expressed in USD.'),
+  "withdrawal_fee_currency": zod.string().optional().describe('Currency used for withdrawal_fee and total_debit.'),
+  "estimated_processing_time": zod.string().optional().describe('Server-provided estimated withdrawal processing time.')
+})
+})
 
 
 /**
@@ -1254,7 +1266,19 @@ export const GetInvestorWithdrawalsQueryParams = zod.object({
   "per_page": zod.coerce.number().int().min(1).max(getInvestorWithdrawalsQueryPerPageMax).optional()
 })
 
-export const GetInvestorWithdrawalsResponse = zod.record(zod.string(), zod.unknown())
+export const GetInvestorWithdrawalsResponse = zod.object({
+  "data": zod.array(zod.object({
+  "amount": zod.number().describe('Amount requested for payout to the investor\'s bank.'),
+  "amount_usd": zod.number().nullish().describe('Submission-time USD equivalent of the payout amount when an FX snapshot applies.'),
+  "fee": zod.number().describe('Withdrawal fee in the investor wallet currency.'),
+  "fee_usd": zod.number().describe('Withdrawal fee in USD.'),
+  "total_debit": zod.number().describe('Total amount reserved or debited from the investor wallet.'),
+  "total_debit_usd": zod.number().describe('Submission-time USD equivalent of the total wallet debit.'),
+  "currency": zod.string().describe('Currency used for amount, fee, and total_debit.'),
+  "exchange_rate": zod.number().nullish().describe('Submission-time PKR per USD rate when an FX snapshot applies.'),
+  "status": zod.string()
+})).optional()
+})
 
 
 /**
@@ -1306,7 +1330,20 @@ export const CreateInvestorWithdrawalBody = zod.object({
   "save_bank_details": zod.boolean().optional()
 })
 
-export const CreateInvestorWithdrawalResponse = zod.record(zod.string(), zod.unknown())
+export const CreateInvestorWithdrawalResponse = zod.object({
+  "message": zod.string().optional(),
+  "data": zod.object({
+  "amount": zod.number().describe('Amount requested for payout to the investor\'s bank.'),
+  "amount_usd": zod.number().nullish().describe('Submission-time USD equivalent of the payout amount when an FX snapshot applies.'),
+  "fee": zod.number().describe('Withdrawal fee in the investor wallet currency.'),
+  "fee_usd": zod.number().describe('Withdrawal fee in USD.'),
+  "total_debit": zod.number().describe('Total amount reserved or debited from the investor wallet.'),
+  "total_debit_usd": zod.number().describe('Submission-time USD equivalent of the total wallet debit.'),
+  "currency": zod.string().describe('Currency used for amount, fee, and total_debit.'),
+  "exchange_rate": zod.number().nullish().describe('Submission-time PKR per USD rate when an FX snapshot applies.'),
+  "status": zod.string()
+})
+})
 
 
 /**

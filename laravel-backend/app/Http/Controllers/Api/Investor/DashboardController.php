@@ -21,6 +21,7 @@ use App\Support\InvestorMarket;
 use App\Support\InvestorProfitTotals;
 use App\Support\KycGate;
 use App\Support\UserDisplayCurrency;
+use App\Support\WithdrawalTerms;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,6 +62,7 @@ class DashboardController extends Controller
             ->get();
 
         $walletCurrency = strtoupper((string) ($wallet->currency ?: InvestorMarket::currencyForUser($user)));
+        $withdrawalTerms = WithdrawalTerms::forCurrency($walletCurrency);
 
         $totalInvestedUsd = (float) $investments->sum('amount');
         $activeInvestments = $investments->whereIn('status', ['pending', 'active']);
@@ -267,6 +269,10 @@ class DashboardController extends Controller
                     'available_balance' => (float) $wallet->available_balance,
                     'pending_balance' => (float) $wallet->pending_balance,
                 ],
+                'withdrawal_fee' => $withdrawalTerms['fee'],
+                'withdrawal_fee_usd' => $withdrawalTerms['fee_usd'],
+                'withdrawal_fee_currency' => $withdrawalTerms['fee_currency'],
+                'estimated_processing_time' => $withdrawalTerms['estimated_processing_time'],
                 'fx' => [
                     'avg_deposit_usd_rate' => $avgDepositRate,
                     'display_usd_rate' => $displayUsdRate,

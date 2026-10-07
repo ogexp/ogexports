@@ -167,8 +167,12 @@ export default function Withdraw() {
   const withdrawals = list(historyQuery.data);
   const fee = readAmount(dashboard, ['withdrawal_fee', 'transaction_fee', 'fee'])
     ?? readAmount(wallet, ['withdrawal_fee', 'transaction_fee', 'fee']);
+  const feeUsd = readAmount(dashboard, ['withdrawal_fee_usd'])
+    ?? readAmount(wallet, ['withdrawal_fee_usd']);
+  const feeCurrency = first(dashboard, ['withdrawal_fee_currency'],
+    first(wallet, ['withdrawal_fee_currency'], walletCurrency));
   const processingTime = first(dashboard, ['estimated_processing_time', 'processing_time'],
-    first(wallet, ['estimated_processing_time', 'processing_time']));
+    first(wallet, ['estimated_processing_time', 'processing_time'], 'Not provided'));
   const taxTreatment = first(dashboard, ['tax_treatment', 'tax_status'],
     first(wallet, ['tax_treatment', 'tax_status']));
   const deviceSecurityConfigured = appPinEnabled || biometricEnabled;
@@ -203,7 +207,8 @@ export default function Withdraw() {
   const [successFeedbackVisible, setSuccessFeedbackVisible] = useState(false);
   const [selectedWithdrawalId, setSelectedWithdrawalId] = useState('');
   const withdrawalCurrency = walletCurrency;
-  const amountNumber = parseWithdrawalAmount(amount, availableBalance);
+  const maxPayout = availableBalance == null || fee == null ? null : Math.max(0, availableBalance - fee);
+  const amountNumber = parseWithdrawalAmount(amount, availableBalance, fee ?? 0);
   const historySelection = withdrawals.find(item => first(item, ['id', 'reference', 'withdraw_id']) === selectedWithdrawalId);
   const progressWithdrawal = confirmation ?? (historySelection ? record(historySelection) : null);
 
@@ -262,8 +267,12 @@ export default function Withdraw() {
         : 'Please wait while the available balance is refreshed.');
       return;
     }
+    if (fee == null || feeUsd == null) {
+      setError('Withdrawal fee information could not be loaded. Retry before continuing.');
+      return;
+    }
     if (amountNumber == null || !withdrawalCurrency) {
-      setError('Enter a valid amount within the withdrawable balance reported by OG Exports.');
+      setError('Enter a valid payout amount that fits the available balance after the withdrawal fee.');
       return;
     }
     if (!bankName.trim() || !accountHolder.trim() || !accountNumber.trim()) {
@@ -296,9 +305,14 @@ export default function Withdraw() {
         : 'Please wait while the available balance is refreshed.');
       return;
     }
-    const validAmount = parseWithdrawalAmount(amount, availableBalance);
+    const validAmount = parseWithdrawalAmount(amount, availableBalance, fee ?? 0);
+    if (fee == null || feeUsd == null) {
+      setError('Withdrawal fee information could not be loaded. Retry before continuing.');
+      setStage('form');
+      return;
+    }
     if (validAmount == null || !withdrawalCurrency || !bankName.trim() || !accountHolder.trim() || !accountNumber.trim()) {
-      setError('Review the amount and complete the required bank details.');
+      setError('Review the payout amount after the fee and complete the required bank details.');
       setStage('form');
       return;
     }
@@ -388,17 +402,17 @@ export default function Withdraw() {
         <Card style={{ flex: 1, borderTopWidth: 3, borderTopColor: colors.primary }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '600' }}>Withdrawable balance</Text>
           <Text style={{ color: colors.primary, fontSize: 19, fontWeight: '700', marginTop: 7 }}>
-            {availableBalance == null ? 'Unavailable' : money(availableBalance, withdrawalCurrency || 'USD')}
+            {maxPayout == null ? 'Unavailable' : money(maxPayout, withdrawalCurrency || 'USD')}
           </Text>
         </Card>
       </View>
       {availableBalance != null ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: -2, marginBottom: 12 }}>
-        The withdrawable balance matches the available balance currently returned by OG Exports.
+        Maximum payout is the available balance less the withdrawal fee.
       </Text> : null}
       <Card>
         <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 3 }}>Withdrawal limits</Text>
         <DetailRow label="Minimum withdrawal" value={moneyInSourceCurrency(0, 'USD')} />
-        <DetailRow label="Maximum withdrawal" value={availableBalance == null ? 'Unavailable' : moneyInSourceCurrency(availableBalance, withdrawalCurrency || 'USD')} />
+        <DetailRow label="Maximum payout" value={maxPayout == null ? 'Unavailable' : moneyInSourceCurrency(maxPayout, withdrawalCurrency || 'USD')} />
       </Card>
       <Card testID="withdraw-processing-info">
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 4 }}>
@@ -408,7 +422,10 @@ export default function Withdraw() {
           <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 14 }}>Processing information</Text>
         </View>
         <DetailRow label="Processing time" value={processingTime || 'Not provided'} />
-        <DetailRow label="Withdrawal fees" value={fee == null ? moneyInSourceCurrency(0, 'USD') : moneyInSourceCurrency(fee, withdrawalCurrency || 'USD')} />
+        <DetailRow label="Withdrawal fee (USD)" value={feeUsd == null ? 'Unavailable' : moneyInSourceCurrency(feeUsd, 'USD')} />
+        {fee != null && feeCurrency !== 'USD'
+          ? <DetailRow label="Fee charged in wallet" value={moneyInSourceCurrency(fee, feeCurrency)} />
+          : null}
         <DetailRow label="Tax treatment" value={taxTreatment || 'Not specified'} />
         <DetailRow label="Wallet currency" value={withdrawalCurrency || 'Not provided'} />
       </Card>
@@ -420,12 +437,12 @@ export default function Withdraw() {
       </Card> : null}
       <Card>
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginBottom: 12 }}>
-          Only the available balance returned by OG Exports can be requested. Locked and pending amounts are not included.
+        The payout plus the withdrawal fee must fit the available balance returned by OG Exports. Locked and pending amounts are not included.
         </Text>
         <Action
           title="Proceed to Withdraw"
           icon="arrow-right"
-          disabled={dashboardQuery.isLoading || dashboardQuery.isFetching || dashboardQuery.isError || availableBalance == null || availableBalance <= 0 || !withdrawalCurrency}
+          disabled={dashboardQuery.isLoading || dashboardQuery.isFetching || dashboardQuery.isError || availableBalance == null || maxPayout == null || maxPayout <= 0 || fee == null || feeUsd == null || !withdrawalCurrency}
           onPress={() => { setError(''); setNotice(''); setBankDetailsTouched(false); setStage('form'); }}
         />
       </Card>
@@ -460,12 +477,19 @@ export default function Withdraw() {
       <Field label="Withdrawal amount" value={amount} onChangeText={value => { setAmount(value); setError(''); }} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
       <DetailRow label="Wallet currency" value={withdrawalCurrency || 'Not provided'} />
       {amount.trim() && amountNumber == null ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 11, lineHeight: 16, marginTop: 3 }}>
-        Enter a valid amount within the withdrawable balance reported by OG Exports.
+        Enter a valid payout amount that fits the available balance after the withdrawal fee.
       </Text> : null}
       <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4, marginBottom: 12 }}>
-        <Text>Maximum request:</Text>
-        <Text> {availableBalance == null ? 'Unavailable' : moneyInSourceCurrency(availableBalance, withdrawalCurrency || 'USD')}</Text>
+        <Text>Maximum payout after fee:</Text>
+        <Text> {maxPayout == null ? 'Unavailable' : moneyInSourceCurrency(maxPayout, withdrawalCurrency || 'USD')}</Text>
       </Text>
+      <DetailRow label="Withdrawal fee (USD)" value={feeUsd == null ? 'Unavailable' : moneyInSourceCurrency(feeUsd, 'USD')} />
+      {fee != null && feeCurrency !== 'USD'
+        ? <DetailRow label="Fee charged in wallet" value={moneyInSourceCurrency(fee, feeCurrency)} />
+        : null}
+      {amountNumber != null && fee != null
+        ? <DetailRow label="Total wallet debit" value={moneyInSourceCurrency(amountNumber + fee, withdrawalCurrency || 'USD')} />
+        : null}
       <Field label="Bank name *" value={bankName} onChangeText={value => { setBankDetailsTouched(true); setAutoFillBank(false); setBankName(value); setError(''); }} placeholder="Bank name" autoCapitalize="words" maxLength={255} />
       <Field label="Account holder *" value={accountHolder} onChangeText={value => { setBankDetailsTouched(true); setAutoFillBank(false); setAccountHolder(value); setError(''); }} placeholder="Account holder name" autoCapitalize="words" maxLength={255} />
       <Field label="Account number *" value={accountNumber} onChangeText={value => { setBankDetailsTouched(true); setAutoFillBank(false); setAccountNumber(value); setError(''); }} placeholder="Account number" keyboardType="default" autoCapitalize="none" maxLength={100} />
@@ -504,7 +528,7 @@ export default function Withdraw() {
             title="Continue to Security"
             icon="arrow-right"
             loading={sendOtp.isPending}
-            disabled={dashboardQuery.isFetching || dashboardQuery.isError}
+            disabled={dashboardQuery.isFetching || dashboardQuery.isError || fee == null || feeUsd == null}
             onPress={() => void continueToSecurity()}
           />
         </View>
@@ -579,7 +603,6 @@ export default function Withdraw() {
       <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', marginTop: 10 }}>Withdrawal submitted</Text>
       <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>
         <Text>Current status:</Text><Text> {first(confirmation, ['status', 'state'], 'Not provided')}.</Text>
-        <Text> Fees and processing time are shown only when returned by the service.</Text>
       </Text>
       <DetailRow label="Reference" value={first(confirmation, ['withdraw_id', 'reference', 'id'], 'Not provided')} />
       <DetailRow
@@ -587,11 +610,21 @@ export default function Withdraw() {
         value={moneyInSourceCurrency(readAmount(confirmation, ['amount']) ?? submittedAmount, first(confirmation, ['currency'], withdrawalCurrency || 'USD'))}
       />
       <DetailRow
-        label="Fee"
-        value={readAmount(confirmation, ['fee', 'fees', 'transaction_fee']) == null
-          ? moneyInSourceCurrency(0, 'USD')
-          : moneyInSourceCurrency(readAmount(confirmation, ['fee', 'fees', 'transaction_fee']), first(confirmation, ['currency'], withdrawalCurrency || 'USD'))}
+        label="Withdrawal fee (USD)"
+        value={readAmount(confirmation, ['fee_usd', 'withdrawal_fee_usd']) == null
+          ? 'Not provided'
+          : moneyInSourceCurrency(readAmount(confirmation, ['fee_usd', 'withdrawal_fee_usd']), 'USD')}
       />
+      {readAmount(confirmation, ['fee']) != null && first(confirmation, ['currency'], withdrawalCurrency || 'USD') !== 'USD'
+        ? <DetailRow label="Fee charged in wallet" value={moneyInSourceCurrency(readAmount(confirmation, ['fee']), first(confirmation, ['currency'], withdrawalCurrency || 'USD'))} />
+        : null}
+      <DetailRow
+        label="Total wallet debit"
+        value={readAmount(confirmation, ['total_debit']) == null
+          ? 'Not provided'
+          : moneyInSourceCurrency(readAmount(confirmation, ['total_debit']), first(confirmation, ['currency'], withdrawalCurrency || 'USD'))}
+      />
+      <DetailRow label="Processing time" value={first(confirmation, ['estimated_processing_time'], processingTime || 'Not provided')} />
       <WithdrawalProgress withdrawal={confirmation} />
       {notice ? <Text style={{ color: colors.primary, lineHeight: 19, marginTop: 10 }}>{notice}</Text> : null}
       <View style={{ marginTop: 14 }}><Action title="Request another withdrawal" secondary onPress={() => {

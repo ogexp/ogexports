@@ -18,6 +18,7 @@ use App\Support\NotifiesAdmins;
 use App\Support\NotifiesUsers;
 use App\Support\UserDisplayCurrency;
 use App\Support\WalletReservation;
+use App\Support\WithdrawalTerms;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -109,7 +110,7 @@ class WithdrawalController extends Controller
         $this->verifyWithdrawOtp($user, $data['otp']);
         SecurityController::verifyTransactionPassword($user, $data['transaction_password']);
 
-        $amount = (float) $data['amount'];
+        $amount = round((float) $data['amount'], 2);
         $amountUsd = null;
         $exchangeRate = null;
 
@@ -120,6 +121,13 @@ class WithdrawalController extends Controller
         }
 
         $walletCurrency = UserDisplayCurrency::currencyForUser($user);
+        $withdrawalTerms = WithdrawalTerms::forCurrency($walletCurrency, $exchangeRate);
+        $fee = $withdrawalTerms['fee'];
+        $feeUsd = $withdrawalTerms['fee_usd'];
+        $totalDebit = round($amount + $fee, 2);
+        $totalDebitUsd = $amountUsd !== null
+            ? round($amountUsd + $feeUsd, 2)
+            : ($walletCurrency === 'USD' ? $totalDebit : null);
         $user->loadMissing('profile');
         $meta = is_array($user->profile?->meta) ? $user->profile->meta : [];
         $accounts = InvestorBankAccounts::normalizeFromMeta($meta);
@@ -128,12 +136,16 @@ class WithdrawalController extends Controller
         $bankDetails['currency'] = $walletCurrency;
         $data['bank_details'] = $bankDetails;
 
-        $withdrawal = DB::transaction(function () use ($data, $amount, $amountUsd, $exchangeRate, $user) {
+        $withdrawal = DB::transaction(function () use ($data, $amount, $amountUsd, $exchangeRate, $fee, $feeUsd, $totalDebit, $totalDebitUsd, $walletCurrency, $user) {
             $withdrawal = Withdrawal::create([
                 'investor_id' => $user->id,
                 'amount' => $amount,
                 'amount_usd' => $amountUsd,
                 'exchange_rate' => $exchangeRate,
+                'fee' => $fee,
+                'fee_usd' => $feeUsd,
+                'total_debit' => $totalDebit,
+                'total_debit_usd' => $totalDebitUsd,
                 'bank_details' => $data['bank_details'],
                 'reference' => null,
                 'status' => 'pending',
@@ -145,10 +157,17 @@ class WithdrawalController extends Controller
 
             WalletReservation::reserve(
                 $user,
-                $amount,
+                $totalDebit,
                 'withdrawal',
                 $reference,
-                ['withdrawal_id' => $withdrawal->id],
+                [
+                    'withdrawal_id' => $withdrawal->id,
+                    'payout_amount' => $amount,
+                    'fee' => $fee,
+                    'fee_usd' => $feeUsd,
+                    'total_debit' => $totalDebit,
+                    'currency' => $walletCurrency,
+                ],
             );
 
             $user->forceFill([
@@ -284,9 +303,21 @@ class WithdrawalController extends Controller
             'id' => $withdrawal->id,
             'withdraw_id' => $withdrawal->reference ?: sprintf('OGWITH-INV-%03d', $withdrawal->id),
             'reference' => $withdrawal->reference ?: sprintf('OGWITH-INV-%03d', $withdrawal->id),
-            'amount' => $withdrawal->amount,
+            'amount' => (float) $withdrawal->amount,
             'amount_usd' => $withdrawal->amount_usd !== null ? (float) $withdrawal->amount_usd : null,
             'exchange_rate' => $withdrawal->exchange_rate !== null ? (float) $withdrawal->exchange_rate : null,
+            'fee' => $withdrawal->fee !== null ? (float) $withdrawal->fee : 0.0,
+            'fee_usd' => $withdrawal->fee_usd !== null ? (float) $withdrawal->fee_usd : 0.0,
+            'total_debit' => $withdrawal->total_debit !== null
+                ? (float) $withdrawal->total_debit
+                : (float) $withdrawal->amount,
+            'total_debit_usd' => $withdrawal->total_debit_usd !== null
+                ? (float) $withdrawal->total_debit_usd
+                : ($withdrawal->amount_usd !== null ? (float) $withdrawal->amount_usd : null),
+            'currency' => strtoupper((string) (is_array($withdrawal->bank_details) ? ($withdrawal->bank_details['currency'] ?? 'USD') : 'USD')),
+            'withdrawal_fee' => $withdrawal->fee !== null ? (float) $withdrawal->fee : 0.0,
+            'withdrawal_fee_usd' => $withdrawal->fee_usd !== null ? (float) $withdrawal->fee_usd : 0.0,
+            'estimated_processing_time' => (string) config('withdrawal.estimated_processing_time', '1 to 2 working days'),
             'bank_details' => InvestorBankAccountPresenter::maskBankDetails(
                 is_array($withdrawal->bank_details) ? $withdrawal->bank_details : []
             ),

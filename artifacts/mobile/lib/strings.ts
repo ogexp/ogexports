@@ -864,6 +864,16 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Distributed","تقسیم شدہ","تم التوزيع"],
   ["Processing","زیرِ عمل","قيد المعالجة"],
   ["Failed","ناکام","فشل"],
+  ["Withdrawal fee (USD)","رقم نکلوانے کی فیس (USD)","رسوم السحب (USD)"],
+  ["Fee charged in wallet","والیٹ سے وصول کی جانے والی فیس","الرسوم المخصومة من المحفظة"],
+  ["Maximum payout","زیادہ سے زیادہ ادائیگی","الحد الأقصى لمبلغ التحويل"],
+  ["Maximum payout after fee:","فیس کے بعد زیادہ سے زیادہ ادائیگی:","الحد الأقصى لمبلغ التحويل بعد الرسوم:"],
+  ["Total wallet debit","والیٹ سے کل کٹوتی","إجمالي المبلغ المخصوم من المحفظة"],
+  ["Withdrawal fee information could not be loaded. Retry before continuing.","رقم نکلوانے کی فیس کی معلومات لوڈ نہیں ہو سکیں۔ جاری رکھنے سے پہلے دوبارہ کوشش کریں۔","تعذر تحميل معلومات رسوم السحب. أعد المحاولة قبل المتابعة."],
+  ["Enter a valid payout amount that fits the available balance after the withdrawal fee.","رقم نکلوانے کی فیس کے بعد دستیاب بیلنس میں آنے والی درست ادائیگی کی رقم درج کریں۔","أدخل مبلغ تحويل صالحًا ضمن الرصيد المتاح بعد رسوم السحب."],
+  ["Review the payout amount after the fee and complete the required bank details.","فیس کے بعد ادائیگی کی رقم دوبارہ دیکھیں اور مطلوبہ بینک تفصیلات مکمل کریں۔","راجع مبلغ التحويل بعد الرسوم وأكمل تفاصيل البنك المطلوبة."],
+  ["Maximum payout is the available balance less the withdrawal fee.","زیادہ سے زیادہ ادائیگی دستیاب بیلنس میں سے رقم نکلوانے کی فیس منہا کرنے کے بعد ہے۔","الحد الأقصى للتحويل هو الرصيد المتاح بعد خصم رسوم السحب."],
+  ["The payout plus the withdrawal fee must fit the available balance returned by OG Exports. Locked and pending amounts are not included.","ادائیگی اور رقم نکلوانے کی فیس، OG Exports کے بتائے گئے دستیاب بیلنس کے اندر ہونی چاہیے۔ لاک شدہ اور زیرِ التوا رقوم شامل نہیں ہیں۔","يجب أن يكون مبلغ التحويل مع رسوم السحب ضمن الرصيد المتاح الذي يحدده OG Exports. لا تشمل الأرصدة المقفلة أو المعلقة."],
 ];
 
 const translations = new Map<string, Readonly<Record<Exclude<AppLanguage, 'en'>, string>>>(

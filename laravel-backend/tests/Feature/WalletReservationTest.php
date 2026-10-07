@@ -2,13 +2,16 @@
 
 use App\Models\Investment;
 use App\Models\InvestmentProject;
+use App\Models\InvestorBankAccountVerification;
 use App\Models\KycApplication;
 use App\Models\PlatformSetting;
 use App\Models\PlatformWallet;
 use App\Models\User;
+use App\Models\UserProfile;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Support\InvestmentReviewService;
+use App\Support\InvestorBankAccountPresenter;
 use App\Support\PlatformWalletService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,6 +37,28 @@ beforeEach(function () {
 
     $this->investor = User::factory()->create(['account_status' => 'active']);
     $this->investor->assignRole('investor');
+    $verifiedBank = [
+        'id' => 'verified-withdrawal-account',
+        'bank_name' => 'Test Bank',
+        'account_holder' => 'Jane Investor',
+        'account_number' => '1234567890',
+        'currency' => 'USD',
+        'is_default' => true,
+    ];
+    UserProfile::query()->create([
+        'user_id' => $this->investor->id,
+        'country' => 'United States',
+        'meta' => ['bank_accounts' => [$verifiedBank]],
+    ]);
+    InvestorBankAccountVerification::query()->create([
+        'investor_id' => $this->investor->id,
+        'bank_account_id' => $verifiedBank['id'],
+        'account_fingerprint' => InvestorBankAccountPresenter::fingerprint($verifiedBank),
+        'document_path' => 'test/verified-bank-proof.pdf',
+        'original_name' => 'verified-bank-proof.pdf',
+        'status' => 'verified',
+        'reviewed_at' => now(),
+    ]);
 
     KycApplication::query()->create([
         'user_id' => $this->investor->id,
@@ -258,7 +283,7 @@ it('returns platform wallet stats for admin finance endpoint', function () {
         ->assertJsonPath('data.active_investments_total', 2000);
 });
 
-it('reserves wallet balance immediately on withdrawal request', function () {
+it('reserves the payout and fee on withdrawal request, then clears the full debit on approval', function () {
     $this->investor->forceFill([
         'transaction_password' => bcrypt('123456'),
         'transaction_password_set_at' => now(),
@@ -266,7 +291,59 @@ it('reserves wallet balance immediately on withdrawal request', function () {
         'withdraw_otp_expires_at' => now()->addMinutes(10),
     ])->save();
 
-    $this->actingAs($this->investor)
+    $response = $this->actingAs($this->investor)
+        ->postJson('/api/investor/withdrawals', [
+            'amount' => 2500,
+            'bank_details' => [
+                'bank_name' => 'Test Bank',
+                'account_holder' => 'Jane Investor',
+                'account_number' => '1234567890',
+            ],
+            'otp' => '123456',
+            'transaction_password' => '123456',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.amount', 2500)
+        ->assertJsonPath('data.fee', 2)
+        ->assertJsonPath('data.fee_usd', 2)
+        ->assertJsonPath('data.total_debit', 2502)
+        ->assertJsonPath('data.total_debit_usd', 2502)
+        ->assertJsonPath('data.currency', 'USD')
+        ->assertJsonPath('data.estimated_processing_time', '1 to 2 working days');
+    $withdrawalId = $response->json('data.id');
+
+    $wallet = Wallet::query()->where('user_id', $this->investor->id)->first();
+    expect((float) $wallet->available_balance)->toBe(7498.0)
+        ->and((float) $wallet->pending_balance)->toBe(2502.0);
+
+    $transaction = WalletTransaction::query()
+        ->where('meta->withdrawal_id', $withdrawalId)
+        ->firstOrFail();
+    expect((float) $transaction->amount)->toBe(2502.0)
+        ->and((float) $transaction->meta['payout_amount'])->toBe(2500.0)
+        ->and((float) $transaction->meta['fee'])->toBe(2.0);
+
+    $this->actingAs($this->admin)
+        ->postJson("/api/admin/finance/withdrawals/{$withdrawalId}/approve")
+        ->assertOk();
+
+    $wallet->refresh();
+    $transaction->refresh();
+    expect((float) $wallet->available_balance)->toBe(7498.0)
+        ->and((float) $wallet->pending_balance)->toBe(0.0)
+        ->and($transaction->status)->toBe('completed')
+        ->and((float) $transaction->amount)->toBe(2502.0);
+});
+
+it('returns the full payout plus fee reservation when a withdrawal is rejected', function () {
+    $this->investor->forceFill([
+        'transaction_password' => bcrypt('123456'),
+        'transaction_password_set_at' => now(),
+        'withdraw_otp_code' => bcrypt('123456'),
+        'withdraw_otp_expires_at' => now()->addMinutes(10),
+    ])->save();
+
+    $response = $this->actingAs($this->investor)
         ->postJson('/api/investor/withdrawals', [
             'amount' => 2500,
             'bank_details' => [
@@ -278,8 +355,46 @@ it('reserves wallet balance immediately on withdrawal request', function () {
             'transaction_password' => '123456',
         ])
         ->assertCreated();
+    $withdrawalId = $response->json('data.id');
+
+    $this->actingAs($this->admin)
+        ->postJson("/api/admin/finance/withdrawals/{$withdrawalId}/reject")
+        ->assertOk();
 
     $wallet = Wallet::query()->where('user_id', $this->investor->id)->first();
-    expect((float) $wallet->available_balance)->toBe(7500.0)
-        ->and((float) $wallet->pending_balance)->toBe(2500.0);
+    $transaction = WalletTransaction::query()
+        ->where('meta->withdrawal_id', $withdrawalId)
+        ->firstOrFail();
+    expect((float) $wallet->available_balance)->toBe(10000.0)
+        ->and((float) $wallet->pending_balance)->toBe(0.0)
+        ->and($transaction->status)->toBe('rejected')
+        ->and((float) $transaction->amount)->toBe(2502.0);
+});
+
+it('rejects a payout that fits the balance only before applying the withdrawal fee', function () {
+    $this->investor->forceFill([
+        'transaction_password' => bcrypt('123456'),
+        'transaction_password_set_at' => now(),
+        'withdraw_otp_code' => bcrypt('123456'),
+        'withdraw_otp_expires_at' => now()->addMinutes(10),
+    ])->save();
+
+    $this->actingAs($this->investor)
+        ->postJson('/api/investor/withdrawals', [
+            'amount' => 10000,
+            'bank_details' => [
+                'bank_name' => 'Test Bank',
+                'account_holder' => 'Jane Investor',
+                'account_number' => '1234567890',
+            ],
+            'otp' => '123456',
+            'transaction_password' => '123456',
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['amount']);
+
+    $wallet = Wallet::query()->where('user_id', $this->investor->id)->first();
+    expect((float) $wallet->available_balance)->toBe(10000.0)
+        ->and((float) $wallet->pending_balance)->toBe(0.0)
+        ->and(\App\Models\Withdrawal::query()->where('investor_id', $this->investor->id)->count())->toBe(0);
 });

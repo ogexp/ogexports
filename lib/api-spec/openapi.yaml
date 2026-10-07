@@ -408,7 +408,7 @@ paths:
       summary: Get investor wallet balances
       security: [{ BearerAuth: [] }]
       responses:
-        "200": { description: Wallet, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "200": { description: Wallet balances and withdrawal fee policy, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorWalletResponse" } } } }
   /investor/wallet/transactions:
     get:
       operationId: getInvestorWalletTransactions
@@ -495,7 +495,7 @@ paths:
         - { name: page, in: query, schema: { type: integer, minimum: 1 } }
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
       responses:
-        "200": { description: Withdrawals, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "200": { description: Withdrawals including the recorded wallet fee and total debit, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorWithdrawalsResponse" } } } }
     post:
       operationId: createInvestorWithdrawal
       tags: [investor]
@@ -507,7 +507,7 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/InvestorWithdrawalInput" }
       responses:
-        "201": { description: Withdrawal created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "201": { description: "Withdrawal created with the payout amount, fee, and total wallet debit", content: { application/json: { schema: { $ref: "#/components/schemas/InvestorWithdrawalResponse" } } } }
   /investor/bank-accounts:
     get:
       operationId: getInvestorBankAccounts
@@ -1595,6 +1595,18 @@ components:
             currency:
               type: string
               description: Currency used for wallet balances.
+        withdrawal_fee:
+          type: number
+          description: Fixed withdrawal fee expressed in the investor wallet currency.
+        withdrawal_fee_usd:
+          type: number
+          description: Fixed withdrawal fee expressed in USD.
+        withdrawal_fee_currency:
+          type: string
+          description: Currency used for withdrawal_fee and total_debit.
+        estimated_processing_time:
+          type: string
+          description: Server-provided estimated withdrawal processing time.
     InvestorDashboardResponse:
       type: object
       additionalProperties: true
@@ -1602,6 +1614,77 @@ components:
       properties:
         data:
           $ref: "#/components/schemas/InvestorDashboardData"
+    InvestorWalletResponse:
+      type: object
+      additionalProperties: true
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+          properties:
+            currency:
+              type: string
+            withdrawal_fee:
+              type: number
+              description: Fixed withdrawal fee expressed in the investor wallet currency.
+            withdrawal_fee_usd:
+              type: number
+              description: Fixed withdrawal fee expressed in USD.
+            withdrawal_fee_currency:
+              type: string
+              description: Currency used for withdrawal_fee and total_debit.
+            estimated_processing_time:
+              type: string
+              description: Server-provided estimated withdrawal processing time.
+    InvestorWithdrawalRecord:
+      type: object
+      additionalProperties: true
+      required: [amount, fee, fee_usd, total_debit, total_debit_usd, currency, status]
+      properties:
+        amount:
+          type: number
+          description: Amount requested for payout to the investor's bank.
+        amount_usd:
+          type: [number, "null"]
+          description: Submission-time USD equivalent of the payout amount when an FX snapshot applies.
+        fee:
+          type: number
+          description: Withdrawal fee in the investor wallet currency.
+        fee_usd:
+          type: number
+          description: Withdrawal fee in USD.
+        total_debit:
+          type: number
+          description: Total amount reserved or debited from the investor wallet.
+        total_debit_usd:
+          type: number
+          description: Submission-time USD equivalent of the total wallet debit.
+        currency:
+          type: string
+          description: Currency used for amount, fee, and total_debit.
+        exchange_rate:
+          type: [number, "null"]
+          description: Submission-time PKR per USD rate when an FX snapshot applies.
+        status:
+          type: string
+    InvestorWithdrawalResponse:
+      type: object
+      additionalProperties: true
+      required: [data]
+      properties:
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/InvestorWithdrawalRecord"
+    InvestorWithdrawalsResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvestorWithdrawalRecord"
     InvestorNotification:
       type: object
       additionalProperties: true

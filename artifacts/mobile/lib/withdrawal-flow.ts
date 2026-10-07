@@ -1,7 +1,12 @@
-export function parseWithdrawalAmount(value: string, availableBalance: number | null): number | null {
+export function parseWithdrawalAmount(
+  value: string,
+  availableBalance: number | null,
+  withdrawalFee = 0,
+): number | null {
   if (availableBalance == null || !value.trim()) return null;
   const amount = Number(value);
-  if (!Number.isFinite(amount) || amount <= 0 || amount > availableBalance) return null;
+  if (!Number.isFinite(amount) || !Number.isFinite(withdrawalFee) || withdrawalFee < 0 || amount <= 0) return null;
+  if (Math.round((amount + withdrawalFee) * 100) > Math.round(availableBalance * 100)) return null;
   return amount;
 }
 

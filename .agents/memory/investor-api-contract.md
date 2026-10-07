@@ -3,7 +3,13 @@ name: OG Exports investor API contract
 description: Verified financial and verification limits in the investor API.
 ---
 
-Use the Laravel investor-data API as the source of truth for portfolio and account data. Its dashboard provides real portfolio history points derived from investment and profit-distribution records. The withdrawal response includes status, reference, and amount, and may include USD conversion/rate, but it does not provide fee or net-payout fields. That API has no phone-verification route. Never use sample/demo financial values; follow the scoped Investment Details formula exception below only for that display.
+Use the Laravel investor-data API as the source of truth for portfolio and account data. Its dashboard provides real portfolio history points derived from investment and profit-distribution records. Withdrawal responses include the requested payout, recorded fee, total wallet debit, status, and reference, and may include a USD conversion/rate. That API has no phone-verification route. Never use sample/demo financial values; follow the scoped Investment Details formula exception below only for that display.
+
+The user-confirmed withdrawal policy is a USD 2 fee added on top of the bank payout: a USD 100 payout reserves/debits USD 102. For PKR wallets, convert the fee with the withdrawal's stored PKR-per-USD exchange-rate snapshot, and return the full reserved debit when the request is rejected. The stated processing estimate is “1 to 2 working days.”
+
+**Why:** The user explicitly chose an additional fee rather than deducting it from the payout, so showing a fee without increasing the wallet debit would be misleading.
+
+**How to apply:** Keep the bank payout amount unchanged; validate, reserve, approve, and refund payout plus fee. Display the server-returned fee in USD and its wallet-currency equivalent when applicable. Do not use a later live rate to rewrite a submitted PKR fee.
 
 The mobile app's investor data API is the existing Laravel service. The workspace Express API is a separate supplemental service, not a replacement source for Laravel investor project or investment responses. When Laravel implementation code is outside this workspace, define and generate the contract here, but keep the external server implementation boundary explicit; do not store parallel local shipment data that investors cannot receive.
 

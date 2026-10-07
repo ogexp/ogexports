@@ -12,6 +12,12 @@ test('withdrawal amount must be positive and within the server-reported availabl
   assert.equal(parseWithdrawalAmount('25', null), null);
 });
 
+test('withdrawal fee is added on top of the requested payout and must fit the available balance', () => {
+  assert.equal(parseWithdrawalAmount('100', 102, 2), 100);
+  assert.equal(parseWithdrawalAmount('100', 101.99, 2), null);
+  assert.equal(parseWithdrawalAmount('100', 102, 2.01), null);
+});
+
 test('withdrawal request uses the website bank-details contract and includes purpose only when selected', () => {
   const bankDetails = {
     bank_name: '  Example Bank ',
