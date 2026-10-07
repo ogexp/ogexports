@@ -1,0 +1,83 @@
+:root {
+  --background: 48 24% 96%;
+  --foreground: 164 17% 19%;
+  --border: 42 13% 86%;
+  --input: 42 16% 90%;
+  --ring: 153 34% 31%;
+  --card: 48 30% 99%;
+  --card-foreground: 164 17% 19%;
+  --popover: 48 30% 99%;
+  --popover-foreground: 164 17% 19%;
+  --primary: 153 34% 29%;
+  --primary-foreground: 48 24% 97%;
+  --secondary: 147 24% 43%;
+  --secondary-foreground: 48 24% 97%;
+  --muted: 45 21% 92%;
+  --muted-foreground: 159 9% 45%;
+  --accent: 39 39% 56%;
+  --accent-foreground: 164 17% 17%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 98%;
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+  --font-heading: "Outfit", sans-serif;
+  --font-serif: "Cormorant Garamond", serif;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: 207 28% 8%;
+  --foreground: 60 14% 93%;
+  --border: 207 20% 18%;
+  --input: 207 20% 14%;
+  --ring: 123 38% 45%;
+  --card: 207 24% 11%;
+  --card-foreground: 60 14% 93%;
+  --popover: 207 26% 10%;
+  --popover-foreground: 60 14% 93%;
+  --primary: 123 38% 45%;
+  --primary-foreground: 207 28% 8%;
+  --secondary: 158 40% 35%;
+  --secondary-foreground: 60 14% 93%;
+  --muted: 207 22% 16%;
+  --muted-foreground: 207 14% 58%;
+  --accent: 41 45% 63%;
+  --accent-foreground: 207 28% 8%;
+  --destructive: 0 78% 56%;
+  --destructive-foreground: 0 0% 98%;
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+  --font-heading: "Outfit", sans-serif;
+  --font-serif: "Cormorant Garamond", serif;
+  --radius: 0.625rem;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+@keyframes og-success-ripple {
+  0% {
+    opacity: 0.42;
+    transform: scale(0.82);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+@keyframes og-success-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .og-success-motion {
+    animation: none !important;
+  }
+}

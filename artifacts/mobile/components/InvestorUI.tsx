@@ -330,39 +330,79 @@ export function LoadingCard({ label = 'Loading…', lines = 3 }: { label?: strin
   </Card>;
 }
 
-export function SuccessMark({ icon = 'check', feedback = 'success' }: { icon?: IconName; feedback?: 'success' | 'ack' | 'none' }) {
+export function SuccessMark({ icon, feedback = 'success' }: { icon?: IconName; feedback?: 'success' | 'approved' | 'ack' | 'attention' | 'none' }) {
   const colors = useColors();
   const { reduceMotion } = useMotion();
   const scale = React.useRef(new Animated.Value(reduceMotion ? 1 : 0.94)).current;
   const opacity = React.useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const haloScale = React.useRef(new Animated.Value(0.82)).current;
+  const haloOpacity = React.useRef(new Animated.Value(0)).current;
   const feedbackFired = React.useRef(false);
+  const isAcknowledgement = feedback === 'ack';
+  const isApproved = feedback === 'approved';
+  const isAttention = feedback === 'attention';
+  const isPendingTone = isAcknowledgement || isApproved;
+  const markColor = isAttention ? colors.destructive : isPendingTone ? colors.statusPending : colors.statusSuccess;
+  const markBackground = isAttention ? `${colors.destructive}1A` : isPendingTone ? colors.statusPendingBackground : colors.statusSuccessBackground;
   React.useEffect(() => {
     if (!feedbackFired.current) {
       feedbackFired.current = true;
-      if (feedback !== 'none') motionHaptic(feedback === 'success' ? 'success' : 'micro');
+      if (feedback !== 'none') motionHaptic(feedback === 'success' ? 'success' : feedback === 'attention' ? 'error' : 'micro');
     }
     if (reduceMotion) {
       scale.setValue(1);
       opacity.setValue(1);
+      haloScale.setValue(1);
+      haloOpacity.setValue(0);
+      return;
+    }
+    const entrance = Animated.parallel([
+      Animated.spring(scale, { toValue: 1, ...MOTION.successSpring, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(opacity, { toValue: 1, duration: MOTION.micro, useNativeDriver: Platform.OS !== 'web' }),
+    ]);
+    if (feedback === 'none') {
+      entrance.start();
       return;
     }
     Animated.parallel([
-      Animated.spring(scale, { toValue: 1, ...MOTION.successSpring, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(opacity, { toValue: 1, duration: MOTION.micro, useNativeDriver: Platform.OS !== 'web' }),
+      entrance,
+      Animated.parallel([
+        Animated.timing(haloScale, { toValue: 1.42, duration: MOTION.modal, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.sequence([
+          Animated.timing(haloOpacity, { toValue: 0.42, duration: MOTION.micro, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(haloOpacity, { toValue: 0, duration: MOTION.modal - MOTION.micro, useNativeDriver: Platform.OS !== 'web' }),
+        ]),
+      ]),
     ]).start();
-  }, [feedback, opacity, reduceMotion, scale]);
-  return <Animated.View style={{
-    width: 48,
-    height: 48,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.statusSuccessBackground,
-    opacity,
-    transform: [{ scale }],
-  }}>
-    <Feather name={icon} size={23} color={colors.statusSuccess} />
-  </Animated.View>;
+  }, [feedback, haloOpacity, haloScale, opacity, reduceMotion, scale]);
+  return <View style={{ width: 68, height: 68, alignItems: 'center', justifyContent: 'center' }}>
+    {feedback !== 'none' ? <Animated.View
+      accessible={false}
+      importantForAccessibility="no"
+      style={{
+        position: 'absolute',
+        width: 54,
+        height: 54,
+        borderRadius: 27,
+        borderWidth: 1,
+        borderColor: markColor,
+        opacity: reduceMotion ? 0 : haloOpacity,
+        transform: [{ scale: reduceMotion ? 1 : haloScale }],
+      }}
+    /> : null}
+    <Animated.View style={{
+      width: 48,
+      height: 48,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: markBackground,
+      opacity,
+      transform: [{ scale }],
+    }}>
+      <Feather name={icon || (isAttention ? 'alert-circle' : isAcknowledgement ? 'clock' : 'check')} size={23} color={markColor} />
+    </Animated.View>
+  </View>;
 }
 
 export function SuccessFeedback({
@@ -371,13 +411,17 @@ export function SuccessFeedback({
   body,
   onDismiss,
   feedback = 'ack',
+  status,
+  reference,
   testID,
 }: {
   visible: boolean;
   title: string;
   body: string;
   onDismiss: () => void;
-  feedback?: 'success' | 'ack';
+  feedback?: 'success' | 'approved' | 'ack' | 'attention';
+  status?: string;
+  reference?: string;
   testID?: string;
 }) {
   const colors = useColors();
@@ -491,6 +535,11 @@ export function SuccessFeedback({
           borderColor: colors.border,
           backgroundColor: colors.card,
           alignItems: 'center',
+          shadowColor: colors.shadowColor,
+          shadowOpacity: 0.16,
+          shadowRadius: 28,
+          shadowOffset: { width: 0, height: 14 },
+          elevation: 14,
           transform: [{ scale: reduceMotion ? 1 : scale }],
         }}
       >
@@ -501,6 +550,50 @@ export function SuccessFeedback({
         <Text style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 7 }}>
           {body}
         </Text>
+        {status?.trim() || reference?.trim() ? <View style={{
+          alignSelf: 'stretch',
+          marginTop: 17,
+          paddingHorizontal: 13,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.background,
+        }}>
+          {status?.trim() ? <View style={{
+            minHeight: 41,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            borderBottomWidth: reference?.trim() ? 1 : 0,
+            borderBottomColor: colors.border,
+          }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Status</Text>
+            <Text style={{
+              color: feedback === 'success' ? colors.statusSuccess : feedback === 'attention' ? colors.destructive : colors.statusPending,
+              fontSize: 12,
+              fontWeight: '700',
+              textAlign: 'right',
+              flexShrink: 1,
+            }}>{status.trim()}</Text>
+          </View> : null}
+          {reference?.trim() ? <View style={{
+            minHeight: 41,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Reference</Text>
+            <Text selectable style={{
+              color: colors.foreground,
+              fontSize: 12,
+              fontWeight: '700',
+              textAlign: 'right',
+              flexShrink: 1,
+            }}>{reference.trim()}</Text>
+          </View> : null}
+        </View> : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Continue"
@@ -515,6 +608,7 @@ export function SuccessFeedback({
             justifyContent: 'center',
             backgroundColor: colors.primary,
             opacity: pressed ? 0.88 : 1,
+            transform: [{ scale: pressed && !reduceMotion ? MOTION.pressScale : 1 }],
           })}
         >
           <Text style={{ color: colors.primaryForeground, fontSize: 14, fontWeight: '700' }}>Continue</Text>

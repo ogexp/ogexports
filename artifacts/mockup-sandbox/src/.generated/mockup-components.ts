@@ -10,5 +10,7 @@ export const modules: ModuleMap = {
   "./components/mockups/investor-dashboard/Phase5.tsx": () => import("../components/mockups/investor-dashboard/Phase5.tsx"),
   "./components/mockups/investor-dashboard/ScreenshotMatch.tsx": () => import("../components/mockups/investor-dashboard/ScreenshotMatch.tsx"),
   "./components/mockups/ios-page-spacing/Compact.tsx": () => import("../components/mockups/ios-page-spacing/Compact.tsx"),
-  "./components/mockups/ios-page-spacing/Current.tsx": () => import("../components/mockups/ios-page-spacing/Current.tsx")
+  "./components/mockups/ios-page-spacing/Current.tsx": () => import("../components/mockups/ios-page-spacing/Current.tsx"),
+  "./components/mockups/transaction-success/Current.tsx": () => import("../components/mockups/transaction-success/Current.tsx"),
+  "./components/mockups/transaction-success/Premium.tsx": () => import("../components/mockups/transaction-success/Premium.tsx")
 };

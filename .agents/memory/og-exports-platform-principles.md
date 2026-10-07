@@ -45,8 +45,8 @@ KYC gating applies to investments only: require a server-reported `Verified` sta
 
 **How to apply:** render stages consistently across trade detail views using their latest server-provided event, with the scoped final-Settled project-status fallback above. Keep app detail data fresh when the screen regains focus or the app returns to the foreground.
 
-Localized financial, security, and privacy copy must preserve the source action and status. A data-access, correction, or deletion ticket is a request—not a promise of completion; a withdrawal request is not a completed transfer; and session revocation must communicate that access will end.
+Localized financial, security, and privacy copy must preserve the source action and status. Transaction copy distinguishes submitted, approved, and completed: approval is not completion, withdrawal approval is not a completed transfer, and deposit approval alone does not confirm wallet credit. A data-access, correction, or deletion ticket is a request—not a promise of completion, and session revocation must communicate that access will end.
 
 **Why:** small wording shifts in investor-facing Urdu and Arabic can change what users believe has happened or what the support team has agreed to do.
 
-**How to apply:** review translated copy against the source wording and API behavior, especially for balances, withdrawals, account security, and privacy requests.
+**How to apply:** map each transaction state to explicit server statuses across mobile and web; only server-reported completion may claim a completed transfer or wallet credit. Review translated copy against API behavior, especially for balances, withdrawals, account security, and privacy requests.

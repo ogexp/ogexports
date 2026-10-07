@@ -6,11 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { CheckCircle2, ChevronRight, ShieldCheck, Wallet, Loader2, AlertCircle } from "lucide-react"
+import { ChevronRight, ShieldCheck, Wallet, Loader2, AlertCircle } from "lucide-react"
 import { ContainerInvestment, LongTermProject } from "@/data/investments"
 import { api, ApiError } from "@/lib/api"
 import { formatInvestorProjectAmount } from "@/lib/invest-format"
 import { INVESTOR_DASHBOARD_QUERY_KEY, useInvestorDashboardBalance } from "@/lib/investor-balance"
+import {
+  TransactionSuccessContent,
+  type TransactionSuccessTone,
+} from "@/components/invest/TransactionSuccessContent"
 
 interface InvestNowModalProps {
   investment: ContainerInvestment | LongTermProject
@@ -110,6 +114,25 @@ export function InvestNowModal({
     if (walletDebitNeeded > walletBalance) return `Amount cannot exceed wallet balance (${formatInvestorProjectAmount(walletBalance, walletCurrency)})`
     return null
   })()
+  const normalizedInvestmentStatus = (confirmation?.status || "").toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim()
+  const investmentServerCompleted = ["completed", "settled", "confirmed", "success", "successful"].includes(normalizedInvestmentStatus)
+  const investmentServerApproved = ["approved", "active"].includes(normalizedInvestmentStatus)
+  const investmentServerRejected = ["failed", "error", "rejected", "declined", "cancelled", "canceled"].includes(normalizedInvestmentStatus)
+  const investmentSuccessTone: TransactionSuccessTone = investmentServerRejected
+    ? "attention"
+    : investmentServerApproved ? "approved" : investmentServerCompleted ? "confirmed" : "submitted"
+  const investmentSuccessTitle = investmentServerRejected
+    ? "Investment status updated"
+    : investmentServerApproved
+      ? normalizedInvestmentStatus === "active" ? "Investment active" : "Investment approved"
+      : investmentServerCompleted ? "Investment confirmed" : "Investment request submitted"
+  const investmentSuccessDescription = investmentServerRejected
+    ? confirmation?.message || `OG Exports reports this investment as ${confirmation?.status}. Review the returned status before relying on a wallet debit.`
+    : investmentServerApproved
+      ? `OG Exports reports this investment as ${confirmation?.status}. This status does not indicate that the investment is complete.`
+      : investmentServerCompleted
+        ? confirmation?.message || `OG Exports reports this investment as ${confirmation?.status}.`
+        : confirmation?.message || "OG Exports accepted your investment request. Its server status and any funds movement are shown in your investor records."
 
   const handleSubmit = async () => {
     if (amountError || !termsAccepted || !riskAcknowledged) return
@@ -124,15 +147,14 @@ export function InvestNowModal({
       const status = typeof record?.status === "string" && record.status.trim()
         ? record.status.trim()
         : null
+      const normalizedStatus = (status || "").toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim()
       const message = typeof body?.message === "string" && body.message.trim()
         ? body.message.trim()
-        : "The investor service accepted the request."
+        : ["failed", "error", "rejected", "declined", "cancelled", "canceled"].includes(normalizedStatus)
+          ? `OG Exports reported that this investment request was ${status}.`
+          : "The investor service accepted the request."
       setConfirmation({ reference, status, message })
       setStep(3)
-      toast({
-        title: "Investment confirmed",
-        description: reference ? `Server reference: ${reference}` : message,
-      })
       void queryClient.invalidateQueries({ queryKey: INVESTOR_DASHBOARD_QUERY_KEY })
       onSuccess?.(body)
     } catch (e: any) {
@@ -149,16 +171,22 @@ export function InvestNowModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden bg-card border-border/60">
-        <div className="bg-muted/30 px-6 py-4 border-b border-border/50">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-heading font-semibold">Complete Your Investment</h2>
-            <div className="text-sm font-medium text-muted-foreground">Step {Math.min(step + 1, STEPS.length)} of {STEPS.length}</div>
-          </div>
-          <div className="flex gap-1">
-            {STEPS.map((s, i) => (
-              <div key={s} className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-primary" : "bg-primary/20"}`} />
-            ))}
-          </div>
+        <div className={`bg-muted/30 px-6 ${step === 3 ? "py-3" : "py-4"} border-b border-border/50`}>
+          {step === 3 ? (
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Investment status</p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-heading font-semibold">Complete Your Investment</h2>
+                <div className="text-sm font-medium text-muted-foreground">Step {Math.min(step + 1, STEPS.length)} of {STEPS.length}</div>
+              </div>
+              <div className="flex gap-1">
+                {STEPS.map((s, i) => (
+                  <div key={s} className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-primary" : "bg-primary/20"}`} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="p-6">
@@ -274,25 +302,14 @@ export function InvestNowModal({
           )}
 
           {step === 3 && (
-            <div className="py-8 text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-              </div>
-              <h3 className="text-xl font-heading font-bold">Investment Confirmed</h3>
-              <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-                {confirmation?.message || "The investor service accepted the investment."}
-              </p>
-              {confirmation?.reference && (
-                <div className="inline-block bg-muted/50 rounded-lg px-4 py-2 font-mono text-sm border border-border/50">
-                  Reference: {confirmation.reference}
-                </div>
-              )}
-              {confirmation?.status && (
-                <p className="text-xs text-muted-foreground">
-                  Server status: <span className="font-medium capitalize">{confirmation.status.replaceAll("_", " ")}</span>
-                </p>
-              )}
-            </div>
+            <TransactionSuccessContent
+              title={investmentSuccessTitle}
+              description={investmentSuccessDescription}
+              tone={investmentSuccessTone}
+              status={confirmation?.status}
+              reference={confirmation?.reference}
+              context={itemName}
+            />
           )}
         </div>
 

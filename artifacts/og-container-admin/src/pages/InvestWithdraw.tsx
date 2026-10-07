@@ -27,6 +27,7 @@ import { api, unwrapPage, ApiError } from "@/lib/api"
 import { paymentStatusLabel } from "@/lib/deposit-statuses"
 import { useInvestorDashboardBalance } from "@/lib/investor-balance"
 import { TransactionHistoryCard, type TransactionHistoryItem } from "@/components/invest/TransactionHistoryCard"
+import { TransactionSuccessDialog } from "@/components/invest/TransactionSuccessDialog"
 import { notify } from "@/lib/notify"
 import {
   type InvestorBankAccount,
@@ -116,6 +117,7 @@ export default function InvestWithdraw() {
   const [withdrawId, setWithdrawId] = useState("")
   const [withdrawStatus, setWithdrawStatus] = useState("")
   const [withdrawalConfirmation, setWithdrawalConfirmation] = useState<Record<string, unknown> | null>(null)
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false)
   const availableBalance = dashboardBalanceQuery.data?.availableBalance ?? null
   const [pendingBalance, setPendingBalance] = useState<number | null>(null)
   const [walletCurrencyFromWallet, setWalletCurrencyFromWallet] = useState("")
@@ -167,6 +169,35 @@ export default function InvestWithdraw() {
     || availableBalance == null
     || (maxWithdrawal != null
       && Math.round(amountNum * 100) > Math.round(maxWithdrawal * 100))
+  const serverWithdrawalStatus = String(
+    withdrawalConfirmation?.status
+      ?? withdrawalConfirmation?.state
+      ?? withdrawalConfirmation?.withdrawal_status
+      ?? "",
+  ).trim()
+  const normalizedWithdrawalStatus = serverWithdrawalStatus.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim()
+  const withdrawalTransferConfirmed = ["settled", "completed", "paid", "paid out", "transferred"].includes(normalizedWithdrawalStatus)
+  const withdrawalApproved = normalizedWithdrawalStatus === "approved"
+  const withdrawalNeedsAttention = ["rejected", "declined", "failed", "error", "cancelled", "canceled"].includes(normalizedWithdrawalStatus)
+  const withdrawalSuccessTitle = withdrawalTransferConfirmed
+    ? "Withdrawal completed"
+    : withdrawalApproved
+      ? "Withdrawal approved"
+      : withdrawalNeedsAttention
+        ? "Withdrawal status updated"
+        : "Withdrawal request submitted"
+  const withdrawalSuccessDescription = withdrawalTransferConfirmed
+    ? `OG Exports reports this withdrawal as ${paymentStatusLabel(serverWithdrawalStatus)}.`
+    : withdrawalApproved
+      ? "OG Exports reports this withdrawal as approved. This status does not confirm that funds have been transferred."
+      : withdrawalNeedsAttention
+        ? `OG Exports reports this withdrawal as ${paymentStatusLabel(serverWithdrawalStatus)}. Review the returned status before relying on a payment.`
+        : serverWithdrawalStatus
+          ? `Your withdrawal request was received with status ${paymentStatusLabel(serverWithdrawalStatus)}. Payment remains subject to later server updates.`
+          : "Your withdrawal request was received. Processing and payment remain subject to the status shown by the investor service."
+  const withdrawalSuccessTone = withdrawalNeedsAttention
+    ? "attention"
+    : withdrawalApproved ? "approved" : withdrawalTransferConfirmed ? "confirmed" : "submitted"
 
   const applyWithdrawBank = useCallback((bank: WithdrawBank) => {
     setBankName(bank.bank_name || "")
@@ -446,7 +477,7 @@ export default function InvestWithdraw() {
       setOtp("")
       setTxPassword("")
       setStep("tracking")
-      notify.success("Withdrawal submitted successfully")
+      setSuccessDialogOpen(true)
       void queryClient.invalidateQueries({ queryKey: ["investor", "dashboard"] })
       void loadWallet()
       void loadProfileBank()
@@ -788,10 +819,16 @@ export default function InvestWithdraw() {
           <div className="space-y-6">
             <Card className="glass-card border-emerald-500/30">
               <CardContent className="p-8 text-center space-y-4">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-9 h-9 text-emerald-500" />
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto ${
+                  withdrawalTransferConfirmed ? "bg-emerald-500/15" : withdrawalNeedsAttention ? "bg-destructive/10" : "bg-accent/15"
+                }`}>
+                  {withdrawalTransferConfirmed
+                    ? <CheckCircle2 className="w-9 h-9 text-emerald-600" />
+                    : withdrawalNeedsAttention
+                      ? <AlertCircle className="w-9 h-9 text-destructive" />
+                      : <Clock className="w-9 h-9 text-accent-foreground" />}
                 </div>
-                <h2 className="text-2xl font-heading font-bold">Withdrawal Submitted!</h2>
+                <h2 className="text-2xl font-heading font-bold">{withdrawalSuccessTitle}</h2>
                 <p className="text-muted-foreground">
                   Current status: {withdrawStatus ? paymentStatusLabel(withdrawStatus) : "Not provided"}.
                 </p>
@@ -1016,6 +1053,15 @@ export default function InvestWithdraw() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <TransactionSuccessDialog
+        open={successDialogOpen}
+        onOpenChange={setSuccessDialogOpen}
+        title={withdrawalSuccessTitle}
+        description={withdrawalSuccessDescription}
+        tone={withdrawalSuccessTone}
+        status={serverWithdrawalStatus || undefined}
+        reference={withdrawId || undefined}
+      />
     </InvestPortalLayout>
   )
 }

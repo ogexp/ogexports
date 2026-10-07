@@ -20,7 +20,7 @@ import {
   useGetPublicInvestorAppSettings,
   useInvestInProject,
 } from '@workspace/api-client-react';
-import { Action, Card, ErrorState, Field, Screen, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
+import { Action, Card, ErrorState, Field, Screen, Status, SuccessFeedback } from '@/components/InvestorUI';
 import { amount, availableBalanceFromDashboard, first, messageOf, record, unwrap, money, moneyInSourceCurrency } from '@/lib/data';
 import { OpportunityDetailOverview } from '@/components/OpportunityDetailOverview';
 import { useAuth } from '@/context/AuthContext';
@@ -346,15 +346,34 @@ export default function OpportunityDetail() {
     }
   }
   const confirmedStatus = first(confirmation ?? {}, ['status', 'state'], '—');
-  const investmentServerConfirmed = /^(confirmed|active|approved|success|successful)$/i.test(confirmedStatus.trim());
-  const investmentSuccessTitle = investmentServerConfirmed ? 'Investment confirmed' : 'Investment request submitted';
-  const investmentSuccessBody = first(confirmation ?? {}, ['message'],
-    investmentServerConfirmed
-      ? 'OG Exports returned a confirmed investment status.'
-      : 'Your investment request was received. The returned server status appears in your confirmation.');
+  const normalizedConfirmationStatus = confirmedStatus.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const investmentServerCompleted = ['completed', 'settled', 'confirmed', 'success', 'successful'].includes(normalizedConfirmationStatus);
+  const investmentServerApproved = ['approved', 'active'].includes(normalizedConfirmationStatus);
+  const investmentServerRejected = ['failed', 'error', 'rejected', 'declined', 'cancelled', 'canceled'].includes(normalizedConfirmationStatus);
+  const investmentSuccessTitle = investmentServerCompleted
+    ? 'Investment confirmed'
+    : investmentServerApproved
+      ? normalizedConfirmationStatus === 'active' ? 'Investment active' : 'Investment approved'
+      : investmentServerRejected ? 'Investment status updated' : 'Investment request submitted';
+  const investmentSuccessBody = investmentServerRejected
+    ? first(confirmation ?? {}, ['message'], `OG Exports reports this investment as ${confirmedStatus}. Review the returned status before relying on a wallet debit.`)
+    : investmentServerApproved
+      ? `OG Exports reports this investment as ${confirmedStatus}. This status does not indicate that the investment is complete.`
+      : investmentServerCompleted
+        ? first(confirmation ?? {}, ['message'], `OG Exports reports this investment as ${confirmedStatus}.`)
+        : first(confirmation ?? {}, ['message'], 'Your investment request was received. The returned server status appears in your confirmation.');
+  const investmentStageTitle = stage === 'details'
+    ? 'Trade Opportunity'
+    : stage === 'success'
+      ? investmentServerCompleted
+        ? 'Investment complete'
+        : investmentServerApproved
+          ? normalizedConfirmationStatus === 'active' ? 'Investment active' : 'Investment approved'
+          : investmentServerRejected ? 'Investment status updated' : 'Investment request submitted'
+      : 'Complete your investment';
 
   return <Screen
-    title={stage === 'details' ? 'Trade Opportunity' : stage === 'success' ? 'Investment complete' : 'Complete your investment'}
+    title={investmentStageTitle}
     subtitle={stage === 'details'
       ? first(project, ['commodity_name', 'commodity', 'destination'], 'Trade details')
       : stage === 'success' ? 'Your request status and reference details' : flowSteps[activeFlowStep - 1]}
@@ -554,7 +573,6 @@ export default function OpportunityDetail() {
       {kycVerified && stage === 'success' && confirmation ? (() => {
         const status = first(confirmation, ['status'], '—');
         const investmentId = first(confirmation, ['id']);
-        const serverConfirmed = /^(confirmed|active|approved|success|successful)$/i.test(status.trim());
         const resultCurrency = first(confirmation, ['amountCurrency'], currency);
         const resultAmount = moneyInSourceCurrency(confirmation.amount, resultCurrency || 'USD');
         const resultWalletAmount = typeof confirmation.amountPkr === 'number' ? moneyInSourceCurrency(confirmation.amountPkr, 'PKR') : '';
@@ -563,11 +581,13 @@ export default function OpportunityDetail() {
           : '';
         return <Card style={{ borderColor: colors.primary }}>
           <Text style={{ color: colors.primary, fontSize: 10, letterSpacing: 0.7, fontWeight: '700', marginBottom: 10 }}>INVESTMENT CONFIRMATION</Text>
-          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center', marginBottom: 13 }}>
-            <Feather name={serverConfirmed ? 'check' : 'send'} size={21} color={colors.primary} />
-          </View>
-          <SuccessMark icon={serverConfirmed ? 'check' : 'clock'} feedback="none" />
-          <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>{serverConfirmed ? 'Investment Confirmed' : 'Investment request submitted'}</Text>
+          <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>
+            {investmentServerCompleted
+              ? 'Investment confirmed'
+              : investmentServerApproved
+                ? normalizedConfirmationStatus === 'active' ? 'Investment active' : 'Investment approved'
+                : investmentServerRejected ? 'Investment status updated' : 'Investment request submitted'}
+          </Text>
           {first(confirmation, ['message']) ? <Text style={{ color: colors.mutedForeground, marginTop: 7, lineHeight: 19 }}>{first(confirmation, ['message'])}</Text> : null}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: colors.border }}><Text style={{ color: colors.mutedForeground }}>Server status</Text><Status value={status} /></View>
           {[
@@ -592,7 +612,9 @@ export default function OpportunityDetail() {
       visible={successFeedbackVisible}
       title={investmentSuccessTitle}
       body={investmentSuccessBody}
-      feedback={investmentServerConfirmed ? 'success' : 'ack'}
+      feedback={investmentServerCompleted ? 'success' : investmentServerApproved ? 'approved' : investmentServerRejected ? 'attention' : 'ack'}
+      status={confirmedStatus !== '—' ? confirmedStatus : undefined}
+      reference={first(confirmation ?? {}, ['reference']) || undefined}
       onDismiss={() => setSuccessFeedbackVisible(false)}
       testID="investment-success-feedback"
     />

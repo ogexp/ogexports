@@ -290,11 +290,23 @@ export default function Deposit() {
 
   const depositStatus = first(confirmation ?? {}, ['review_status', 'status']).trim();
   const normalizedDepositStatus = depositStatus.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
-  const depositExplicitlyCompleted = ['approved', 'settled', 'completed'].includes(normalizedDepositStatus);
-  const successTitle = depositExplicitlyCompleted ? `Deposit ${normalizedDepositStatus}` : 'Deposit request submitted';
-  const successBody = depositExplicitlyCompleted
+  const depositCompleted = ['settled', 'completed', 'credited'].includes(normalizedDepositStatus);
+  const depositApproved = normalizedDepositStatus === 'approved';
+  const depositStatusNeedsAttention = ['rejected', 'declined', 'failed', 'error', 'cancelled', 'canceled'].includes(normalizedDepositStatus);
+  const successTitle = depositCompleted
+    ? `Deposit ${normalizedDepositStatus}`
+    : depositApproved
+      ? 'Deposit approved'
+    : depositStatusNeedsAttention
+      ? 'Deposit status updated'
+      : 'Deposit request submitted';
+  const successBody = depositCompleted
     ? `OG Exports reports this deposit as ${depositStatus}.`
-    : 'Your deposit request was received. Its server status and wallet credit are shown on the confirmation screen.';
+    : depositApproved
+      ? 'OG Exports reports this deposit as approved. This does not confirm that the wallet has been credited.'
+    : depositStatusNeedsAttention
+      ? `OG Exports reports this deposit as ${depositStatus}. Review the returned status before relying on a wallet credit.`
+      : 'Your deposit request was received. Its server status and wallet credit are shown on the confirmation screen.';
 
   return <Screen key={stage} title="Add funds" subtitle={selectedPaymentMethod
     ? `Deposit via ${selectedPaymentMethod.label} · ${paymentCurrency || 'USD'}`
@@ -534,7 +546,9 @@ export default function Deposit() {
       visible={successFeedbackVisible}
       title={successTitle}
       body={successBody}
-      feedback={depositExplicitlyCompleted ? 'success' : 'ack'}
+      feedback={depositCompleted ? 'success' : depositApproved ? 'approved' : depositStatusNeedsAttention ? 'attention' : 'ack'}
+      status={depositStatus || undefined}
+      reference={first(confirmation ?? {}, ['reference', 'deposit_reference', 'bank_reference']) || undefined}
       onDismiss={() => setSuccessFeedbackVisible(false)}
       testID="deposit-success-feedback"
     />

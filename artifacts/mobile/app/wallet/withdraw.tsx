@@ -357,15 +357,20 @@ export default function Withdraw() {
   const normalizedWithdrawalStatus = withdrawalStatus.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
   const withdrawalTransferConfirmed = ['settled', 'completed', 'paid', 'paid out', 'transferred'].includes(normalizedWithdrawalStatus);
   const withdrawalApproved = normalizedWithdrawalStatus === 'approved';
+  const withdrawalNeedsAttention = ['rejected', 'declined', 'failed', 'error', 'cancelled', 'canceled'].includes(normalizedWithdrawalStatus);
   const successTitle = withdrawalTransferConfirmed
     ? 'Withdrawal completed'
     : withdrawalApproved
       ? 'Withdrawal approved'
-      : 'Withdrawal request submitted';
+      : withdrawalNeedsAttention
+        ? 'Withdrawal status updated'
+        : 'Withdrawal request submitted';
   const successBody = withdrawalTransferConfirmed
     ? `OG Exports reports this withdrawal as ${withdrawalStatus}.`
     : withdrawalApproved
       ? 'OG Exports reports this withdrawal as approved. This status does not confirm that the funds have been transferred.'
+      : withdrawalNeedsAttention
+        ? `OG Exports reports this withdrawal as ${withdrawalStatus}. Review the returned status before relying on a payment.`
       : 'Your withdrawal request was received. Processing and payment remain subject to the server status shown on the confirmation screen.';
 
   return <Screen title="Withdraw" subtitle="Request a payout from your OG Exports wallet">
@@ -670,7 +675,9 @@ export default function Withdraw() {
       visible={successFeedbackVisible}
       title={successTitle}
       body={successBody}
-      feedback={withdrawalTransferConfirmed ? 'success' : 'ack'}
+      feedback={withdrawalTransferConfirmed ? 'success' : withdrawalApproved ? 'approved' : withdrawalNeedsAttention ? 'attention' : 'ack'}
+      status={withdrawalStatus || undefined}
+      reference={first(confirmation ?? {}, ['reference', 'withdraw_id', 'id']) || undefined}
       onDismiss={() => setSuccessFeedbackVisible(false)}
       testID="withdraw-success-feedback"
     />

@@ -3474,7 +3474,7 @@ export async function submitInvestorDeposit(deposit: {
   investor: string; email: string; amount: string; method: string; ref: string
   projectId?: string; projectTitle?: string; amountNum?: number; currency?: string
   proofPath?: string; bankAccountId?: string; bankAccountName?: string; note?: string
-}): Promise<{ id: string; reference: string; bankReference?: string }> {
+}): Promise<{ id: string; reference: string; bankReference?: string; status?: string; message?: string }> {
   const id = `DEP-${Date.now().toString().slice(-4)}`
   const currency = String(deposit.currency || "USD").toUpperCase()
   const supported = ["USD", "GBP", "EUR", "CNY", "PKR", "SAR", "AED", "OMR", "QAR"]
@@ -3506,10 +3506,21 @@ export async function submitInvestorDeposit(deposit: {
       bank_account_name: deposit.bankAccountName || undefined,
       note: deposit.note || undefined,
     })
-    const mapped = mapDeposit(response?.data ?? response)
+    const responseRecord: any = response?.data ?? response
+    const mapped = mapDeposit(responseRecord)
     depositsCache = depositsCache.map(d => (d.id === id ? mapped : d))
     addAuditLog(`Investor deposit submitted ${mapped.id}`, "Finance")
-    return { id: mapped.id, reference: mapped.ref, bankReference: mapped.bankRef }
+    const status = [responseRecord?.status, responseRecord?.review_status, responseRecord?.state]
+      .find(value => typeof value === "string" && value.trim())
+    const message = [response?.message, responseRecord?.message]
+      .find(value => typeof value === "string" && value.trim())
+    return {
+      id: mapped.id,
+      reference: mapped.ref,
+      bankReference: mapped.bankRef,
+      status: status ? String(status).trim() : undefined,
+      message: message ? String(message).trim() : undefined,
+    }
   } catch (error) {
     depositsCache = depositsCache.filter(d => d.id !== id)
     throw error

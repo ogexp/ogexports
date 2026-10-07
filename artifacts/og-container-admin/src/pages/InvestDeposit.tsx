@@ -23,6 +23,7 @@ import { useInvestorDashboardBalance } from "@/lib/investor-balance"
 import { TransactionHistoryCard, type TransactionHistoryItem } from "@/components/invest/TransactionHistoryCard"
 import { type BankAccount } from "@/lib/bank-accounts"
 import { CompanyBankAccountsPanel } from "@/components/shared/CompanyBankAccountsPanel"
+import { TransactionSuccessDialog } from "@/components/invest/TransactionSuccessDialog"
 
 const DEPOSIT_CURRENCIES = ["USD", "GBP", "EUR", "CNY", "PKR", "SAR", "AED", "OMR", "QAR"] as const
 
@@ -102,6 +103,8 @@ export default function InvestDeposit() {
   const [selectedProjectId, setSelectedProjectId] = useState("")
   const [selectedBankAccountId, setSelectedBankAccountId] = useState("")
   const [liveStatus, setLiveStatus] = useState<string>("")
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false)
+  const [successStatus, setSuccessStatus] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [selectedBankAccount, setSelectedBankAccount] = useState<BankAccount | undefined>()
 
@@ -161,6 +164,38 @@ export default function InvestDeposit() {
   const walletProjectRequired = isWalletMethod && !selectedProjectId
     ? "Select a project to invest from your OG Wallet"
     : null
+  const normalizedSuccessStatus = successStatus.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim()
+  const successStatusNeedsAttention = ["rejected", "declined", "failed", "error", "cancelled", "canceled"].includes(normalizedSuccessStatus)
+  const successIsConfirmed = isWalletMethod
+    ? ["completed", "settled", "confirmed", "success", "successful"].includes(normalizedSuccessStatus)
+    : ["settled", "completed", "credited"].includes(normalizedSuccessStatus)
+  const successIsApproved = isWalletMethod
+    ? ["approved", "active"].includes(normalizedSuccessStatus)
+    : normalizedSuccessStatus === "approved"
+  const successTransaction = isWalletMethod ? "investment" : "deposit"
+  const successTitle = successStatusNeedsAttention
+    ? `${isWalletMethod ? "Investment" : "Deposit"} status updated`
+    : successIsApproved
+      ? isWalletMethod
+        ? normalizedSuccessStatus === "active" ? "Investment active" : "Investment approved"
+        : "Deposit approved"
+      : successIsConfirmed
+        ? isWalletMethod ? "Investment confirmed" : `Deposit ${paymentStatusLabel(successStatus).toLowerCase()}`
+        : `${isWalletMethod ? "Investment" : "Deposit"} request submitted`
+  const successDescription = successStatus
+    ? successStatusNeedsAttention
+      ? `OG Exports reports this ${successTransaction} as ${paymentStatusLabel(successStatus)}. Review the returned status before relying on any wallet movement.`
+      : successIsApproved
+        ? isWalletMethod
+          ? `OG Exports reports this investment as ${paymentStatusLabel(successStatus)}. This status does not indicate that the investment is complete.`
+          : "OG Exports reports this deposit as approved. This does not confirm that the wallet has been credited."
+        : successIsConfirmed
+          ? `OG Exports reports this ${successTransaction} as ${paymentStatusLabel(successStatus)}.`
+          : `Your ${successTransaction} request was received with status ${paymentStatusLabel(successStatus)}. Check your investor records for updates.`
+    : `Your ${successTransaction} request was received. Its server status and any funds movement appear in your investor records.`
+  const successTone = successStatusNeedsAttention
+    ? "attention"
+    : successIsApproved ? "approved" : successIsConfirmed ? "confirmed" : "submitted"
   const formCanContinue = Boolean(amount) && amountNum > 0
     && (isWalletMethod ? Boolean(walletProject?.currency) : Boolean(depositCurrency))
     && (!isWalletMethod ? Boolean(purpose) : Boolean(selectedProjectId) && !walletAmountError)
@@ -296,8 +331,10 @@ export default function InvestDeposit() {
       })
       setDepositId(submitted.reference || submitted.id)
       setRefNum(submitted.bankReference || reference || "—")
-      setLiveStatus(String((submitted as any)?.status || (submitted as any)?.state || "submitted"))
+      setSuccessStatus(submitted.status || "")
+      setLiveStatus(submitted.status || "submitted")
       setStep("status")
+      setSuccessDialogOpen(true)
       void queryClient.invalidateQueries({ queryKey: ["investor", "dashboard"] })
       void refetchHistory()
     } catch (err: any) {
@@ -796,6 +833,14 @@ export default function InvestDeposit() {
           loading={historyLoading}
           emptyMessage="No deposits yet. Submit one above."
           items={depositHistoryItems}
+        />
+        <TransactionSuccessDialog
+          open={successDialogOpen}
+          onOpenChange={setSuccessDialogOpen}
+          title={successTitle}
+          description={successDescription}
+          tone={successTone}
+          status={successStatus || undefined}
         />
       </div>
     </InvestPortalLayout>
