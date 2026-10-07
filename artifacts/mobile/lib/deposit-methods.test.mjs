@@ -17,9 +17,11 @@ test('mobile deposit methods contain the four supported choices without OG Walle
 test('each deposit method includes its description and visible transfer details', () => {
   for (const method of DEPOSIT_PAYMENT_METHODS) {
     assert.ok(method.description);
-    assert.ok(method.minMax);
+    assert.ok(method.minimumUsd > 0);
+    assert.ok(method.maximumUsd > method.minimumUsd);
     assert.ok(method.processing);
     assert.ok(method.currency);
+    assert.equal(method.feePercent, 0);
     assert.ok(method.fees);
   }
 });

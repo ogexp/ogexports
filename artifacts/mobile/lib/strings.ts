@@ -922,6 +922,7 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["These reported statuses are shown as provided and are not assigned to an investment category.","یہ فراہم کردہ حیثیتیں اسی طرح دکھائی گئی ہیں اور کسی سرمایہ کاری کے زمرے میں شامل نہیں کی گئیں۔","تُعرض الحالات المبلّغ عنها كما وردت ولا تُصنّف ضمن فئة استثمارية."],
   ["View full portfolio analytics","پورٹ فولیو کے مکمل تجزیات دیکھیں","عرض تحليلات المحفظة الكاملة"],
   ["Upcoming payout details have not been reported.","آئندہ ادائیگی کی تفصیلات رپورٹ نہیں کی گئیں۔","لم يتم الإبلاغ عن تفاصيل الدفعات القادمة."],
+  ["OG Exports fee (0%)","OG Exports فیس (0%)","رسوم OG Exports (0%)"],
 ];
 
 const translations = new Map<string, Readonly<Record<Exclude<AppLanguage, 'en'>, string>>>(

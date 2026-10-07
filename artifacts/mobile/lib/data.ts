@@ -122,6 +122,14 @@ export function moneyInSourceCurrency(value: unknown, currency?: string): string
   return money(value, currency, { preserveSource: true });
 }
 
+export function moneyWithDisplayCurrencyAndSource(value: unknown, currency?: string): string {
+  const candidate = currency?.trim().toUpperCase();
+  const sourceCode = candidate && /^[A-Z]{3}$/.test(candidate) ? candidate : 'USD';
+  const displayed = money(value, sourceCode);
+  if (displayCurrencyCode(sourceCode) === sourceCode) return displayed;
+  return `${displayed} (${moneyInSourceCurrency(value, sourceCode)})`;
+}
+
 export function messageOf(error: unknown): string {
   const source = record(error);
   const payload = record(source.data);

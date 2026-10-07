@@ -330,9 +330,9 @@ export default function InvestorHome() {
                 <Feather name="bell" size={17} color={colors.balanceCardText} />
                 {unreadNotificationCount > 0 ? <View
                   testID="home-notification-count"
-                  style={{ position: 'absolute', top: -3, right: -3, minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3, borderWidth: 1, borderColor: colors.balanceCardStart, backgroundColor: colors.destructive, alignItems: 'center', justifyContent: 'center' }}
+                  style={{ position: 'absolute', top: -3, right: -3, minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3, borderWidth: 1, borderColor: colors.balanceCardStart, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <Text numberOfLines={1} style={{ color: colors.destructiveForeground, fontSize: 8, lineHeight: 11, fontWeight: '700' }}>
+                  <Text numberOfLines={1} style={{ color: colors.accentForeground, fontSize: 8, lineHeight: 11, fontWeight: '700' }}>
                     {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
                   </Text>
                 </View> : null}

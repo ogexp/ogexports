@@ -15,7 +15,7 @@ import {
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
 import { formatUiStatus } from '@/lib/strings';
-import { amount as readAmount, first, list, messageOf, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
+import { amount as readAmount, first, list, messageOf, money, moneyInSourceCurrency, moneyWithDisplayCurrencyAndSource, record, unwrap } from '@/lib/data';
 import { DEPOSIT_PAYMENT_METHODS, type DepositPaymentMethodId } from '@/lib/deposit-methods';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
@@ -158,6 +158,9 @@ export default function Deposit() {
   const selectedProject = projects.find(item => first(item, ['id']) === projectId);
   const selectedPaymentMethod = DEPOSIT_PAYMENT_METHODS.find(item => item.id === paymentMethodId);
   const paymentCurrency = walletCurrency;
+  const paymentFeeAmount = selectedPaymentMethod
+    ? Number(amount || 0) * selectedPaymentMethod.feePercent / 100
+    : 0;
   const acceptedBankCurrencies = first(selectedBank ?? {}, ['currency']).toUpperCase() || walletCurrency;
   const bankAccountNumber = exactBankDetail(selectedBank ?? {}, ['account_number', 'accountNumber']);
   const bankIban = exactBankDetail(selectedBank ?? {}, ['iban']);
@@ -367,7 +370,9 @@ export default function Deposit() {
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={{ color: colors.mutedForeground, fontSize: 9, letterSpacing: 0.6 }}>MIN / MAX</Text>
-                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 11, fontWeight: '700', marginTop: 2 }}>{method.minMax}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 11, fontWeight: '700', marginTop: 2 }}>
+                  {money(method.minimumUsd, 'USD')} / {money(method.maximumUsd, 'USD')}
+                </Text>
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={{ color: colors.mutedForeground, fontSize: 9, letterSpacing: 0.6 }}>PROCESSING</Text>
@@ -495,7 +500,8 @@ export default function Deposit() {
 
     {stage === 'review' ? <Card>
       <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Review deposit</Text>
-      <DetailRow label="Amount" value={moneyInSourceCurrency(Number(amount), paymentCurrency || 'USD')} />
+      <DetailRow label="Amount" value={moneyWithDisplayCurrencyAndSource(Number(amount), paymentCurrency || 'USD')} />
+      <DetailRow label="OG Exports fee (0%)" value={moneyWithDisplayCurrencyAndSource(paymentFeeAmount, paymentCurrency || 'USD')} />
       <DetailRow label="Payment method" value={selectedPaymentMethod?.label ?? '—'} />
       <DetailRow label="Receiving bank" value={first(selectedBank ?? {}, ['bank_name', 'name'])} />
       <View style={{ marginTop: 4, borderTopWidth: 1, borderTopColor: colors.border }}>
@@ -533,7 +539,8 @@ export default function Deposit() {
          <Status value={formatUiStatus(first(confirmation, ['review_status_label', 'status'], '—'))} />
       </View>
       <DetailRow label="Deposit reference" value={first(confirmation, ['reference', 'deposit_reference'])} />
-      <DetailRow label="Amount" value={moneyInSourceCurrency(readAmount(confirmation, ['amount']), confirmationCurrency || 'USD')} />
+      <DetailRow label="Amount" value={moneyWithDisplayCurrencyAndSource(readAmount(confirmation, ['amount']), confirmationCurrency || 'USD')} />
+      <DetailRow label="OG Exports fee (0%)" value={moneyWithDisplayCurrencyAndSource(0, confirmationCurrency || 'USD')} />
       <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8 }}>Your deposit request is under review. Your wallet balance will update when the deposit is credited.</Text>
       <DepositProgress deposit={confirmation} />
       {receiptError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, marginTop: 10 }}>{receiptError}</Text> : null}
@@ -578,7 +585,7 @@ export default function Deposit() {
         <Card style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderColor: selected ? colors.primary : colors.border }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(item, ['reference', 'deposit_reference'], 'Deposit request')}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{moneyInSourceCurrency(readAmount(item, ['amount']), first(item, ['currency'], walletCurrency || 'USD'))} · {first(item, ['created_at', 'date'], '—')}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{moneyWithDisplayCurrencyAndSource(readAmount(item, ['amount']), first(item, ['currency'], walletCurrency || 'USD'))} · {first(item, ['created_at', 'date'], '—')}</Text>
           </View>
           <Status value={first(item, ['review_status_label', 'status'], '—')} />
         </Card>
@@ -590,9 +597,10 @@ export default function Deposit() {
       <DetailRow label="Server status" value={first(record(timelineDeposit), ['review_status', 'status'], 'Not provided')} />
       <DetailRow
         label="Amount returned by OG Exports"
-        value={readAmount(record(timelineDeposit), ['amount']) == null
-          ? 'Not provided'
-          : moneyInSourceCurrency(readAmount(record(timelineDeposit), ['amount']), first(record(timelineDeposit), ['currency', 'wallet_currency']))}
+        value={moneyWithDisplayCurrencyAndSource(
+          readAmount(record(timelineDeposit), ['amount']),
+          first(record(timelineDeposit), ['currency', 'wallet_currency']) || 'USD',
+        )}
       />
       <DetailRow label="Date returned by OG Exports" value={first(record(timelineDeposit), ['created_at', 'date'], 'Not provided')} />
       {receiptError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, marginTop: 8 }}>{receiptError}</Text> : null}

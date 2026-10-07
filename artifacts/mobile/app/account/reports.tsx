@@ -169,15 +169,15 @@ export default function Reports() {
                   <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{first(item, ['reference'], '—')} · {first(item, ['date_time'], '')}</Text>
                   {isWithdrawal ? <View style={{ marginTop: 5, gap: 2 }}>
                     <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-                      Payout: {payout === null ? 'Not recorded' : moneyInSourceCurrency(payout, withdrawalCurrency)}
+                      Payout: {payout === null ? moneyInSourceCurrency(null, withdrawalCurrency) : moneyInSourceCurrency(payout, withdrawalCurrency)}
                       {withdrawalCurrency !== 'USD' && payoutUsd !== null ? ` · USD ${moneyInSourceCurrency(payoutUsd, 'USD')}` : ''}
                     </Text>
                     <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-                      Fee: {fee === null ? 'Not recorded' : moneyInSourceCurrency(fee, withdrawalCurrency)}
+                      Fee: {fee === null ? moneyInSourceCurrency(null, withdrawalCurrency) : moneyInSourceCurrency(fee, withdrawalCurrency)}
                       {withdrawalCurrency !== 'USD' && feeUsd !== null ? ` · USD ${moneyInSourceCurrency(feeUsd, 'USD')}` : ''}
                     </Text>
                     <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-                      Total wallet debit: {totalDebit === null ? 'Not recorded' : moneyInSourceCurrency(totalDebit, withdrawalCurrency)}
+                      Total wallet debit: {totalDebit === null ? moneyInSourceCurrency(null, withdrawalCurrency) : moneyInSourceCurrency(totalDebit, withdrawalCurrency)}
                       {withdrawalCurrency !== 'USD' && totalDebitUsd !== null ? ` · USD ${moneyInSourceCurrency(totalDebitUsd, 'USD')}` : ''}
                     </Text>
                   </View> : <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>Principal {money(principal, itemCurrency || 'USD')} · Profit {money(profit, itemCurrency || 'USD')}</Text>}

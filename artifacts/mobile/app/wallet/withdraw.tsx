@@ -15,7 +15,7 @@ import {
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
 import { formatUiStatus } from '@/lib/strings';
 import { TransactionPasswordResetModal } from '@/components/TransactionPasswordResetModal';
-import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, money, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
+import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, money, moneyInSourceCurrency, moneyWithDisplayCurrencyAndSource, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { buildWithdrawalRequest, maximumWithdrawalPayout, parseWithdrawalAmount, resolveWithdrawalDisplayTerms } from '@/lib/withdrawal-flow';
@@ -414,9 +414,9 @@ export default function Withdraw() {
       </View>
       <Card>
         <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 3 }}>Withdrawal limits</Text>
-        <DetailRow label="Minimum withdrawal" value={moneyInSourceCurrency(minimumWithdrawalUsd, 'USD')} />
+        <DetailRow label="Minimum withdrawal" value={moneyWithDisplayCurrencyAndSource(minimumWithdrawalUsd, 'USD')} />
         {minimumWithdrawalAmount != null && minimumWithdrawalCurrency !== 'USD'
-          ? <DetailRow label="Minimum in wallet currency" value={moneyInSourceCurrency(minimumWithdrawalAmount, minimumWithdrawalCurrency)} />
+          ? <DetailRow label="Minimum in wallet currency" value={moneyWithDisplayCurrencyAndSource(minimumWithdrawalAmount, minimumWithdrawalCurrency)} />
           : null}
       </Card>
       {availableBalance != null && minimumWithdrawalAmount != null && availableBalance < minimumWithdrawalAmount
@@ -478,9 +478,9 @@ export default function Withdraw() {
       />
       <Field label="Withdrawal amount" value={amount} onChangeText={value => { setAmount(value); setError(''); }} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
       <DetailRow label="Wallet currency" value={withdrawalCurrency || 'Not provided'} />
-      <DetailRow label="Minimum withdrawal" value={moneyInSourceCurrency(minimumWithdrawalUsd, 'USD')} />
+      <DetailRow label="Minimum withdrawal" value={moneyWithDisplayCurrencyAndSource(minimumWithdrawalUsd, 'USD')} />
       {minimumWithdrawalAmount != null && minimumWithdrawalCurrency !== 'USD'
-        ? <DetailRow label="Minimum in wallet currency" value={moneyInSourceCurrency(minimumWithdrawalAmount, minimumWithdrawalCurrency)} />
+        ? <DetailRow label="Minimum in wallet currency" value={moneyWithDisplayCurrencyAndSource(minimumWithdrawalAmount, minimumWithdrawalCurrency)} />
         : null}
       {amount.trim() && amountNumber == null ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 11, lineHeight: 16, marginTop: 3 }}>
         {amountBelowMinimum
@@ -489,14 +489,14 @@ export default function Withdraw() {
       </Text> : null}
       <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4, marginBottom: 12 }}>
         <Text>Maximum payout after fee:</Text>
-        <Text> {maxPayout == null ? 'Unavailable' : moneyInSourceCurrency(maxPayout, withdrawalCurrency || 'USD')}</Text>
+        <Text> {maxPayout == null ? 'Unavailable' : moneyWithDisplayCurrencyAndSource(maxPayout, withdrawalCurrency || 'USD')}</Text>
       </Text>
-      <DetailRow label="Withdrawal fee (USD)" value={feeUsd == null ? 'Unavailable' : moneyInSourceCurrency(feeUsd, 'USD')} />
+      <DetailRow label="Withdrawal fee (USD)" value={feeUsd == null ? 'Unavailable' : moneyWithDisplayCurrencyAndSource(feeUsd, 'USD')} />
       {fee != null && feeCurrency !== 'USD'
-        ? <DetailRow label="Fee charged in wallet" value={moneyInSourceCurrency(fee, feeCurrency)} />
+        ? <DetailRow label="Fee charged in wallet" value={moneyWithDisplayCurrencyAndSource(fee, feeCurrency)} />
         : null}
       {amountNumber != null && fee != null
-        ? <DetailRow label="Total wallet debit" value={moneyInSourceCurrency(amountNumber + fee, withdrawalCurrency || 'USD')} />
+        ? <DetailRow label="Total wallet debit" value={moneyWithDisplayCurrencyAndSource(amountNumber + fee, withdrawalCurrency || 'USD')} />
         : null}
       <Field label="Bank name *" value={bankName} onChangeText={value => { setBankDetailsTouched(true); setAutoFillBank(false); setBankName(value); setError(''); }} placeholder="Bank name" autoCapitalize="words" maxLength={255} />
       <Field label="Account holder *" value={accountHolder} onChangeText={value => { setBankDetailsTouched(true); setAutoFillBank(false); setAccountHolder(value); setError(''); }} placeholder="Account holder name" autoCapitalize="words" maxLength={255} />
@@ -615,22 +615,18 @@ export default function Withdraw() {
       <DetailRow label="Reference" value={first(confirmation, ['withdraw_id', 'reference', 'id'], 'Not provided')} />
       <DetailRow
         label="Requested amount"
-        value={moneyInSourceCurrency(readAmount(confirmation, ['amount']) ?? submittedAmount, first(confirmation, ['currency'], withdrawalCurrency || 'USD'))}
+        value={moneyWithDisplayCurrencyAndSource(readAmount(confirmation, ['amount']) ?? submittedAmount, first(confirmation, ['currency'], withdrawalCurrency || 'USD'))}
       />
       <DetailRow
         label="Withdrawal fee (USD)"
-        value={readAmount(confirmation, ['fee_usd', 'withdrawal_fee_usd']) == null
-          ? 'Not provided'
-          : moneyInSourceCurrency(readAmount(confirmation, ['fee_usd', 'withdrawal_fee_usd']), 'USD')}
+        value={moneyWithDisplayCurrencyAndSource(readAmount(confirmation, ['fee_usd', 'withdrawal_fee_usd']), 'USD')}
       />
       {readAmount(confirmation, ['fee']) != null && first(confirmation, ['currency'], withdrawalCurrency || 'USD') !== 'USD'
-        ? <DetailRow label="Fee charged in wallet" value={moneyInSourceCurrency(readAmount(confirmation, ['fee']), first(confirmation, ['currency'], withdrawalCurrency || 'USD'))} />
+        ? <DetailRow label="Fee charged in wallet" value={moneyWithDisplayCurrencyAndSource(readAmount(confirmation, ['fee']), first(confirmation, ['currency'], withdrawalCurrency || 'USD'))} />
         : null}
       <DetailRow
         label="Total wallet debit"
-        value={readAmount(confirmation, ['total_debit']) == null
-          ? 'Not provided'
-          : moneyInSourceCurrency(readAmount(confirmation, ['total_debit']), first(confirmation, ['currency'], withdrawalCurrency || 'USD'))}
+        value={moneyWithDisplayCurrencyAndSource(readAmount(confirmation, ['total_debit']), first(confirmation, ['currency'], withdrawalCurrency || 'USD'))}
       />
       <DetailRow label="Processing time" value={first(confirmation, ['estimated_processing_time'], processingTime || 'Not provided')} />
       <WithdrawalProgress withdrawal={confirmation} />
@@ -684,7 +680,7 @@ export default function Withdraw() {
         <Card style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderColor: selected ? colors.primary : colors.border }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(item, ['reference', 'withdraw_id'], 'Withdrawal request')}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{moneyInSourceCurrency(readAmount(item, ['amount']), first(item, ['currency'], withdrawalCurrency || 'USD'))} · {first(item, ['created_at', 'date'], '—')}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{moneyWithDisplayCurrencyAndSource(readAmount(item, ['amount']), first(item, ['currency'], withdrawalCurrency || 'USD'))} · {first(item, ['created_at', 'date'], '—')}</Text>
           </View>
           <Status value={first(item, ['status', 'state'], '—')} />
         </Card>

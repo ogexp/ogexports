@@ -6,6 +6,7 @@ import {
   displayCurrencyCode,
   money,
   moneyInSourceCurrency,
+  moneyWithDisplayCurrencyAndSource,
 } from './data.ts';
 
 test('prefers dashboard summary available balance with wallet summary as fallback', () => {
@@ -47,6 +48,15 @@ test('missing monetary values use a display-only zero in the selected currency',
   assert.equal(money(null, 'PKR'), '$0.00');
   assert.equal(money(undefined, 'USD'), '$0.00');
   assert.equal(moneyInSourceCurrency(null, 'PKR'), '$0.00');
+});
+
+test('display summaries convert amounts while keeping the source-currency amount visible', () => {
+  configureMoneyDisplay({ language: 'en', currency: 'PKR', rates: { USD: 1, PKR: 278.52 } });
+
+  const display = moneyWithDisplayCurrencyAndSource(2, 'USD');
+  assert.match(display, /PKR/);
+  assert.match(display, /556\.00/);
+  assert.match(display, /\$2\.00/);
 });
 
 test('a selected profile currency converts displayed amounts using authenticated rates', () => {
