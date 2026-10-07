@@ -3,8 +3,8 @@ name: First-withdrawal device security
 description: When the investor app should prompt users to configure a device PIN or biometrics.
 ---
 
-App PIN or biometric setup should be offered during the user's first withdrawal, not forced from investment confirmation. Existing configured device confirmation may still authenticate investments; an investment should not require the user to open Account security when no method is configured.
+Do not show or require a first-withdrawal app PIN or biometric setup prompt. Keep existing OTP and transaction-password verification for withdrawal requests.
 
-**Why:** the user said first-time device-security setup belongs in the withdrawal flow and should not interrupt investing.
+**Why:** the user requested that new investors not see a device-security setup prompt before withdrawing.
 
-**How to apply:** use server withdrawal history to determine whether a withdrawal has already occurred; show the setup gate only when there is no prior withdrawal and no device method is configured. Keep the existing withdrawal authentication requirements intact.
+**How to apply:** do not gate the withdrawal flow on withdrawal history or configured device biometrics/PIN. Leave optional device-security settings and server-side withdrawal authentication unchanged.

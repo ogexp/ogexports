@@ -9,9 +9,9 @@ The user-confirmed withdrawal policy is a USD 2 fee added on top of the bank pay
 
 **Why:** The user explicitly chose an additional fee rather than deducting it from the payout, so showing a fee without increasing the wallet debit would be misleading.
 
-**How to apply:** Keep the bank payout amount unchanged; validate, reserve, approve, and refund payout plus fee. Display the server-returned fee in USD and its wallet-currency equivalent when applicable. Do not use a later live rate to rewrite a submitted PKR fee. If the connected API omits the policy, the mobile screen may show the confirmed USD 2 fee and processing estimate as reference and calculate the USD maximum payout after that fee, but it must keep withdrawal submission paused until the API confirms the USD 2 fee and wallet currency. For non-USD wallets, do not invent the wallet-currency fee using a live rate; provide a retry action for refreshed server terms.
+**How to apply:** Keep the bank payout amount unchanged; validate, reserve, approve, and refund payout plus fee. Display the server-returned fee in USD and its wallet-currency equivalent when applicable. Do not use a later live rate to rewrite a submitted PKR fee. If the API omits terms, the mobile app may show the USD 2 fee and processing estimate as reference, but must not show a server-confirmation warning or disable Proceed. Do not invent non-USD fee/minimum conversions on the client; send requests to Laravel, which remains authoritative for fee, minimum, balance, and reservation validation.
 
-**Why:** The balance endpoint can work while an older API omits withdrawal terms. Hiding the confirmed fee is confusing, but allowing a request before the server confirms the fee could promise a larger debit than the backend actually reserves.
+**Why:** The user requested that investors not see the server-confirmation notice and that Proceed remain active; Laravel still determines whether a withdrawal request is valid.
 
 The minimum bank payout is USD 100, with the USD 2 withdrawal fee charged on top. PKR payouts must meet the USD 100 equivalent using the exchange-rate snapshot used for that withdrawal.
 
