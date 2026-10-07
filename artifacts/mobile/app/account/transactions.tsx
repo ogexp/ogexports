@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useLocalSearchParams } from 'expo-router';
@@ -46,6 +46,17 @@ type TransactionRow = {
 const filters: Filter[] = ['All', 'Deposits', 'Investments', 'Withdrawals', 'Distributions'];
 const unavailable = '—';
 const pageSize = 100;
+const withdrawalStatuses = [
+  { label: 'Any status', value: '' },
+  { label: 'Pending', value: 'pending' },
+  { label: 'Under review', value: 'review' },
+  { label: 'Approved', value: 'approved' },
+  { label: 'Processing', value: 'processing' },
+  { label: 'Completed', value: 'completed' },
+  { label: 'Paid', value: 'paid' },
+  { label: 'Rejected', value: 'rejected' },
+  { label: 'Cancelled', value: 'cancelled' },
+];
 
 function formatDateTime(value: string) {
   if (!value) return unavailable;
@@ -114,6 +125,19 @@ function lastPageFor(data: unknown) {
   return readAmount(meta, ['last_page']) ?? readAmount(envelope, ['last_page']);
 }
 
+function totalFor(data: unknown) {
+  const envelope = record(data);
+  const meta = record(envelope.meta);
+  return readAmount(meta, ['total']) ?? readAmount(envelope, ['total']);
+}
+
+function isValidDateFilter(value: string) {
+  if (!value) return true;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
 function DetailLine({ label, value }: { label: string; value: string }) {
   const colors = useColors();
   return <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderColor: colors.border }}>
@@ -130,8 +154,29 @@ export default function Transactions() {
   const [search, setSearch] = useState(typeof params.search === 'string' ? params.search : '');
   const [selectedId, setSelectedId] = useState(typeof params.selected === 'string' ? params.selected : '');
   const [page, setPage] = useState(1);
+  const [serverReference, setServerReference] = useState('');
+  const [withdrawalStatus, setWithdrawalStatus] = useState('');
+  const [withdrawalDateFrom, setWithdrawalDateFrom] = useState('');
+  const [withdrawalDateTo, setWithdrawalDateTo] = useState('');
   const [busyPdfKey, setBusyPdfKey] = useState('');
   const [pdfError, setPdfError] = useState('');
+  const invalidWithdrawalDate = filter === 'Withdrawals'
+    && (!isValidDateFilter(withdrawalDateFrom) || !isValidDateFilter(withdrawalDateTo));
+  const invalidWithdrawalDateRange = filter === 'Withdrawals'
+    && !invalidWithdrawalDate
+    && Boolean(withdrawalDateFrom && withdrawalDateTo && withdrawalDateTo < withdrawalDateFrom);
+  const withdrawalDateError = invalidWithdrawalDate
+    ? 'Use dates in YYYY-MM-DD format.'
+    : invalidWithdrawalDateRange
+      ? 'End date must be on or after the start date.'
+      : '';
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setServerReference(filter === 'Withdrawals' ? search.trim() : '');
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [filter, search]);
 
   const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token), staleTime: 30_000 } });
   const walletTransactionsQuery = useGetInvestorWalletTransactions({ page, per_page: pageSize }, {
@@ -140,8 +185,32 @@ export default function Transactions() {
   const depositsQuery = useGetInvestorDeposits({ page, per_page: pageSize }, {
     query: { queryKey: ['investor-deposits', page, pageSize], enabled: Boolean(token), staleTime: 20_000 },
   });
-  const withdrawalsQuery = useGetInvestorWithdrawals({ page, per_page: pageSize }, {
-    query: { queryKey: ['investor-withdrawals', page, pageSize], enabled: Boolean(token), staleTime: 20_000 },
+  const withdrawalsQuery = useGetInvestorWithdrawals({
+    page,
+    per_page: pageSize,
+    ...(filter === 'Withdrawals' && serverReference ? { reference: serverReference } : {}),
+    ...(filter === 'Withdrawals' && withdrawalStatus ? { status: withdrawalStatus } : {}),
+    ...(filter === 'Withdrawals' && withdrawalDateFrom && isValidDateFilter(withdrawalDateFrom)
+      ? { date_from: withdrawalDateFrom }
+      : {}),
+    ...(filter === 'Withdrawals' && withdrawalDateTo && isValidDateFilter(withdrawalDateTo)
+      ? { date_to: withdrawalDateTo }
+      : {}),
+  }, {
+    query: {
+      queryKey: [
+        'investor-withdrawals',
+        page,
+        pageSize,
+        filter,
+        serverReference,
+        withdrawalStatus,
+        withdrawalDateFrom,
+        withdrawalDateTo,
+      ],
+      enabled: Boolean(token) && !withdrawalDateError,
+      staleTime: 20_000,
+    },
   });
   const investmentsQuery = useGetInvestorInvestments({ page, per_page: pageSize }, {
     query: { queryKey: ['investor-positions', page, pageSize], enabled: Boolean(token), staleTime: 30_000 },
@@ -281,6 +350,7 @@ export default function Transactions() {
     const walletKey = id || first(transaction, ['reference']);
     if (walletKey && usedWalletTransactions.has(walletKey)) return;
     const category = categoryForWalletTransaction(transaction);
+    if (filter === 'Withdrawals' && category === 'Withdrawals') return;
     const meta = record(transaction.meta);
     const investmentId = first(meta, ['investment_id'], first(transaction, ['investment_id']));
     const investment = investmentById.get(investmentId) ?? {};
@@ -327,7 +397,10 @@ export default function Transactions() {
     { name: 'Deposits', category: 'Deposits' as Filter, query: depositsQuery, data: depositsQuery.data },
     { name: 'Withdrawals', category: 'Withdrawals' as Filter, query: withdrawalsQuery, data: withdrawalsQuery.data },
     { name: 'Investments', category: 'Investments' as Filter, query: investmentsQuery, data: investmentsQuery.data },
-  ].filter(source => filter === 'All' || source.category === null || source.category === filter);
+  ].filter(source => filter === 'All'
+    || (filter === 'Withdrawals'
+      ? source.category === 'Withdrawals'
+      : source.category === null || source.category === filter));
   const failedSources = querySources.filter(source => source.query.isError);
   const isLoading = querySources.some(source => source.query.isLoading);
   const hasNextPage = querySources.some(source => {
@@ -376,7 +449,93 @@ export default function Transactions() {
         </Pressable>;
       })}
     </ScrollView>
-    <Field label="Search transactions" value={search} onChangeText={setSearch} placeholder="ID, reference, trade, status or project" autoCapitalize="none" />
+    <Field
+      label={filter === 'Withdrawals' ? 'Search withdrawal reference' : 'Search transactions'}
+      value={search}
+      onChangeText={value => {
+        setPage(1);
+        setSelectedId('');
+        setSearch(value);
+      }}
+      placeholder={filter === 'Withdrawals' ? 'Reference' : 'ID, reference, trade, status or project'}
+      autoCapitalize="none"
+      maxLength={100}
+    />
+    {filter === 'Withdrawals' ? <>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 12 }}>
+        {withdrawalStatuses.map(option => {
+          const active = withdrawalStatus === option.value;
+          return <Pressable
+            key={option.value || 'any-status'}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            onPress={() => {
+              setPage(1);
+              setSelectedId('');
+              setWithdrawalStatus(option.value);
+            }}
+            style={{
+              borderRadius: 18,
+              paddingVertical: 8,
+              paddingHorizontal: 13,
+              backgroundColor: active ? colors.primary : colors.secondary,
+              borderWidth: 1,
+              borderColor: active ? colors.primary : colors.border,
+            }}
+          >
+            <Text style={{ color: active ? colors.primaryForeground : colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>
+              {option.label}
+            </Text>
+          </Pressable>;
+        })}
+      </ScrollView>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <Field
+            label="From date (YYYY-MM-DD)"
+            value={withdrawalDateFrom}
+            onChangeText={value => {
+              setPage(1);
+              setSelectedId('');
+              setWithdrawalDateFrom(value);
+            }}
+            placeholder="2026-01-31"
+            maxLength={10}
+            autoCapitalize="none"
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Field
+            label="To date (YYYY-MM-DD)"
+            value={withdrawalDateTo}
+            onChangeText={value => {
+              setPage(1);
+              setSelectedId('');
+              setWithdrawalDateTo(value);
+            }}
+            placeholder="2026-12-31"
+            maxLength={10}
+            autoCapitalize="none"
+          />
+        </View>
+      </View>
+      {withdrawalDateError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, marginBottom: 10 }}>{withdrawalDateError}</Text> : null}
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          setPage(1);
+          setSelectedId('');
+          setSearch('');
+          setServerReference('');
+          setWithdrawalStatus('');
+          setWithdrawalDateFrom('');
+          setWithdrawalDateTo('');
+        }}
+        style={{ alignSelf: 'flex-start', paddingVertical: 4, marginBottom: 8 }}
+      >
+        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Clear withdrawal filters</Text>
+      </Pressable>
+    </> : null}
     {failedSources.length ? <Card style={{ borderColor: colors.destructive }}>
       <Text style={{ color: colors.foreground, fontWeight: '700' }}>Some records may be missing</Text>
       <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5 }}>{failedSources.map(source => source.name).join(', ')} could not be loaded from OG Exports.</Text>
@@ -386,7 +545,7 @@ export default function Transactions() {
     </Card> : null}
     {walletQuery.isError ? <Card><Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Wallet details could not be loaded. Amounts without a transaction currency are shown in USD.</Text></Card> : null}
     {isLoading ? <LoadingCard label="Loading transactions from OG Exports…" /> : null}
-    {!isLoading && !filteredRows.length && !failedSources.length ? <EmptyState title={search ? 'No matching transactions' : `No ${filter.toLowerCase()} found`} body={search ? 'Try a different ID, reference or search term.' : 'Records returned by OG Exports will appear here.'} /> : null}
+    {!isLoading && !filteredRows.length && !failedSources.length && !withdrawalDateError ? <EmptyState title={search ? 'No matching transactions' : `No ${filter.toLowerCase()} found`} body={search ? 'Try a different ID, reference or search term.' : 'Records returned by OG Exports will appear here.'} /> : null}
 
     {filteredRows.map((row, index) => {
       const active = selectedRow?.key === row.key;
@@ -445,7 +604,12 @@ export default function Transactions() {
     })}
 
     <View style={{ marginTop: 4, marginBottom: 18 }}>
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, textAlign: 'center', marginBottom: 9 }}>Page {page} · {filteredRows.length} records shown from the selected server pages</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, textAlign: 'center', marginBottom: 9 }}>
+        <Text>Page</Text> {page} · {filter === 'Withdrawals' && totalFor(withdrawalsQuery.data) != null
+          ? totalFor(withdrawalsQuery.data)
+          : filteredRows.length}{' '}
+        <Text>{filter === 'Withdrawals' && totalFor(withdrawalsQuery.data) != null ? 'matching withdrawals' : 'records on this page'}</Text>
+      </Text>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
         <Pressable accessibilityRole="button" disabled={page === 1 || isLoading} onPress={() => { setPage(value => value - 1); setSelectedId(''); }} style={{ borderRadius: 12, paddingVertical: 11, paddingHorizontal: 16, backgroundColor: colors.secondary, opacity: page === 1 || isLoading ? 0.45 : 1 }}>
           <Text style={{ color: colors.primary, fontWeight: '700' }}>Previous</Text>

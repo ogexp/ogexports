@@ -9,6 +9,21 @@
 export type GetInvestorWithdrawalsParams = {
 status?: string;
 /**
+ * @minLength 1
+ * @maxLength 100
+ */
+reference?: string;
+/**
+ * Inclusive start date (YYYY-MM-DD)
+ * @pattern ^\d{4}-\d{2}-\d{2}$
+ */
+date_from?: string;
+/**
+ * Inclusive end date (YYYY-MM-DD)
+ * @pattern ^\d{4}-\d{2}-\d{2}$
+ */
+date_to?: string;
+/**
  * @minimum 1
  */
 page?: number;

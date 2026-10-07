@@ -41,6 +41,34 @@ import {
 
 type Step = "overview" | "form" | "security" | "tracking"
 
+type WithdrawalHistoryFilters = {
+  reference: string
+  status: string
+  date_from: string
+  date_to: string
+}
+
+const EMPTY_WITHDRAWAL_HISTORY_FILTERS: WithdrawalHistoryFilters = {
+  reference: "",
+  status: "",
+  date_from: "",
+  date_to: "",
+}
+
+const WITHDRAWAL_HISTORY_STATUSES = [
+  { value: "", label: "Any status" },
+  { value: "pending", label: "Pending" },
+  { value: "review", label: "Under review" },
+  { value: "approved", label: "Approved" },
+  { value: "processing", label: "Processing" },
+  { value: "completed", label: "Completed" },
+  { value: "paid", label: "Paid" },
+  { value: "rejected", label: "Rejected" },
+  { value: "cancelled", label: "Cancelled" },
+]
+
+const WITHDRAWAL_HISTORY_PAGE_SIZE = 20
+
 type WithdrawBank = {
   bank_name?: string
   account_holder?: string
@@ -71,6 +99,9 @@ export default function InvestWithdraw() {
   const queryClient = useQueryClient()
   const dashboardBalanceQuery = useInvestorDashboardBalance()
   const [step, setStep] = useState<Step>("overview")
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyFilters, setHistoryFilters] = useState<WithdrawalHistoryFilters>(EMPTY_WITHDRAWAL_HISTORY_FILTERS)
+  const [historyDraftFilters, setHistoryDraftFilters] = useState<WithdrawalHistoryFilters>(EMPTY_WITHDRAWAL_HISTORY_FILTERS)
   const [amount, setAmount] = useState("")
   const [currency, setCurrency] = useState("")
   const [bankName, setBankName] = useState("")
@@ -218,11 +249,27 @@ export default function InvestWithdraw() {
     setStep("form")
   }
 
-  const { data: historyPayload, isLoading: historyLoading, refetch: refetchHistory } = useQuery({
-    queryKey: ["investor", "withdrawals"],
-    queryFn: () => api.get("/api/investor/withdrawals", { per_page: 20 }),
+  const historyQueryParams = useMemo(() => ({
+    page: historyPage,
+    per_page: WITHDRAWAL_HISTORY_PAGE_SIZE,
+    ...(historyFilters.reference ? { reference: historyFilters.reference } : {}),
+    ...(historyFilters.status ? { status: historyFilters.status } : {}),
+    ...(historyFilters.date_from ? { date_from: historyFilters.date_from } : {}),
+    ...(historyFilters.date_to ? { date_to: historyFilters.date_to } : {}),
+  }), [historyFilters, historyPage])
+  const historyQuery = useQuery({
+    queryKey: ["investor", "withdrawals", historyQueryParams],
+    queryFn: () => api.get("/api/investor/withdrawals", historyQueryParams),
   })
-  const withdrawalHistory = unwrapPage<any>(historyPayload).data
+  const { data: historyPayload, isLoading: historyLoading, refetch: refetchHistory } = historyQuery
+  const historyPageData = useMemo(() => unwrapPage<any>(historyPayload), [historyPayload])
+  const withdrawalHistory = historyPageData.data
+  const historyMeta = historyPageData.meta
+  const historyDateRangeInvalid = Boolean(
+    historyDraftFilters.date_from
+    && historyDraftFilters.date_to
+    && historyDraftFilters.date_to < historyDraftFilters.date_from,
+  )
 
   function formatWithdrawAmount(
     amt: number | null,
@@ -812,12 +859,134 @@ export default function InvestWithdraw() {
           </div>
         )}
 
-        <TransactionHistoryCard
-          title="Your Withdrawal History"
-          loading={historyLoading}
-          emptyMessage="No withdrawals yet. Submit one above."
-          items={withdrawalHistoryItems}
-        />
+        <form
+          className="space-y-4 rounded-xl border border-border/60 bg-card/60 p-4"
+          onSubmit={event => {
+            event.preventDefault()
+            if (historyDateRangeInvalid) return
+            setHistoryPage(1)
+            setHistoryFilters({
+              ...historyDraftFilters,
+              reference: historyDraftFilters.reference.trim(),
+            })
+          }}
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="withdrawal-history-reference">Reference</Label>
+              <Input
+                id="withdrawal-history-reference"
+                data-testid="withdrawal-history-reference"
+                value={historyDraftFilters.reference}
+                onChange={event => setHistoryDraftFilters(filters => ({ ...filters, reference: event.target.value }))}
+                placeholder="Search withdrawal reference"
+                maxLength={100}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="withdrawal-history-status">Status</Label>
+              <select
+                id="withdrawal-history-status"
+                data-testid="withdrawal-history-status"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={historyDraftFilters.status}
+                onChange={event => setHistoryDraftFilters(filters => ({ ...filters, status: event.target.value }))}
+              >
+                {WITHDRAWAL_HISTORY_STATUSES.map(status => (
+                  <option key={status.value || "any"} value={status.value}>{status.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="withdrawal-history-date-from">From date</Label>
+              <Input
+                id="withdrawal-history-date-from"
+                data-testid="withdrawal-history-date-from"
+                type="date"
+                max={historyDraftFilters.date_to || undefined}
+                value={historyDraftFilters.date_from}
+                onChange={event => setHistoryDraftFilters(filters => ({ ...filters, date_from: event.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="withdrawal-history-date-to">To date</Label>
+              <Input
+                id="withdrawal-history-date-to"
+                data-testid="withdrawal-history-date-to"
+                type="date"
+                min={historyDraftFilters.date_from || undefined}
+                value={historyDraftFilters.date_to}
+                onChange={event => setHistoryDraftFilters(filters => ({ ...filters, date_to: event.target.value }))}
+              />
+            </div>
+          </div>
+          {historyDateRangeInvalid && (
+            <p role="alert" className="text-sm text-destructive">
+              End date must be on or after the start date.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" size="sm" disabled={historyDateRangeInvalid} data-testid="withdrawal-history-apply">
+              Apply filters
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="withdrawal-history-clear"
+              onClick={() => {
+                setHistoryDraftFilters({ ...EMPTY_WITHDRAWAL_HISTORY_FILTERS })
+                setHistoryFilters({ ...EMPTY_WITHDRAWAL_HISTORY_FILTERS })
+                setHistoryPage(1)
+              }}
+            >
+              Clear filters
+            </Button>
+          </div>
+        </form>
+
+        {historyQuery.isError ? (
+          <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            <span>Withdrawal history could not be loaded.</span>
+            <Button variant="outline" size="sm" onClick={() => void historyQuery.refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <>
+            <TransactionHistoryCard
+              title="Your Withdrawal History"
+              loading={historyLoading}
+              emptyMessage="No withdrawals match these filters."
+              items={withdrawalHistoryItems}
+            />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-muted-foreground" data-testid="withdrawal-history-page">
+                Page {historyPage} of {historyMeta.last_page} · {historyMeta.total} matching withdrawals
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-testid="withdrawal-history-previous"
+                  disabled={historyLoading || historyPage <= 1}
+                  onClick={() => setHistoryPage(page => Math.max(1, page - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-testid="withdrawal-history-next"
+                  disabled={historyLoading || historyPage >= historyMeta.last_page}
+                  onClick={() => setHistoryPage(page => page + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <Dialog open={showResetModal} onOpenChange={setShowResetModal}>

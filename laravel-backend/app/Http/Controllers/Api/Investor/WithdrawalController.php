@@ -35,13 +35,45 @@ class WithdrawalController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Withdrawal::query()->where('investor_id', $request->user()->id);
+        $filters = $request->validate([
+            'status' => ['nullable', 'string', 'max:40'],
+            'reference' => ['nullable', 'string', 'max:100'],
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d'],
+        ]);
 
-        if ($status = $request->input('status')) {
-            $query->where('status', $status);
+        if (
+            filled($filters['date_from'] ?? null)
+            && filled($filters['date_to'] ?? null)
+            && $filters['date_to'] < $filters['date_from']
+        ) {
+            throw ValidationException::withMessages([
+                'date_to' => 'The end date must be on or after the start date.',
+            ]);
         }
 
-        $paginator = $query->latest()->paginate($this->perPage($request));
+        $query = Withdrawal::query()->where('investor_id', $request->user()->id);
+
+        if ($status = trim((string) ($filters['status'] ?? ''))) {
+            $query->whereRaw('LOWER(status) = ?', [strtolower($status)]);
+        }
+
+        if ($reference = trim((string) ($filters['reference'] ?? ''))) {
+            $query->whereRaw('LOWER(reference) LIKE ?', ['%'.strtolower($reference).'%']);
+        }
+
+        if (filled($filters['date_from'] ?? null)) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (filled($filters['date_to'] ?? null)) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
+        $paginator = $query
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate($this->perPage($request));
         $paginator->getCollection()->transform(fn (Withdrawal $w) => $this->transformWithdrawal($w));
 
         return response()->json($paginator);

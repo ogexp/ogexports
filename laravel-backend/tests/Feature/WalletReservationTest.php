@@ -89,6 +89,103 @@ beforeEach(function () {
     ]);
 });
 
+it('filters and paginates withdrawal history by reference, status, and date', function () {
+    $today = now()->startOfDay();
+    $makeWithdrawal = function (int $investorId, string $reference, string $status, \Illuminate\Support\Carbon $createdAt) {
+        $withdrawal = Withdrawal::query()->create([
+            'investor_id' => $investorId,
+            'amount' => 250000,
+            'amount_usd' => 806.45,
+            'exchange_rate' => 310,
+            'fee' => 2500,
+            'fee_usd' => 8.06,
+            'total_debit' => 252500,
+            'total_debit_usd' => 814.52,
+            'bank_details' => ['currency' => 'PKR'],
+            'reference' => $reference,
+            'status' => $status,
+        ]);
+        $withdrawal->forceFill(['created_at' => $createdAt])->save();
+
+        return $withdrawal;
+    };
+
+    $olderMatch = $makeWithdrawal(
+        $this->investor->id,
+        'OGWITH-SEARCH-APR-A',
+        'approved',
+        $today->copy()->subDays(8)->setTime(12, 0),
+    );
+    $newerMatch = $makeWithdrawal(
+        $this->investor->id,
+        'OGWITH-SEARCH-APR-B',
+        'approved',
+        $today->copy()->subDays(4)->setTime(12, 0),
+    );
+    $makeWithdrawal(
+        $this->investor->id,
+        'OGWITH-OTHER-APR',
+        'rejected',
+        $today->copy()->subDays(5)->setTime(12, 0),
+    );
+    $makeWithdrawal(
+        $this->investor->id,
+        'OGWITH-SEARCH-OLD',
+        'approved',
+        $today->copy()->subDays(12)->setTime(12, 0),
+    );
+    $makeWithdrawal(
+        $this->admin->id,
+        'OGWITH-SEARCH-APR-OTHER-USER',
+        'approved',
+        $today->copy()->subDays(3)->setTime(12, 0),
+    );
+
+    $params = [
+        'reference' => 'ogwith-search-apr',
+        'status' => 'APPROVED',
+        'date_from' => $today->copy()->subDays(10)->toDateString(),
+        'date_to' => $today->copy()->subDays(2)->toDateString(),
+        'per_page' => 1,
+    ];
+
+    $this->actingAs($this->investor)
+        ->getJson('/api/investor/withdrawals?'.http_build_query($params))
+        ->assertOk()
+        ->assertJsonPath('current_page', 1)
+        ->assertJsonPath('last_page', 2)
+        ->assertJsonPath('per_page', 1)
+        ->assertJsonPath('total', 2)
+        ->assertJsonPath('data.0.id', $newerMatch->id)
+        ->assertJsonPath('data.0.amount', 250000)
+        ->assertJsonPath('data.0.amount_usd', 806.45)
+        ->assertJsonPath('data.0.exchange_rate', 310)
+        ->assertJsonPath('data.0.fee', 2500)
+        ->assertJsonPath('data.0.fee_usd', 8.06)
+        ->assertJsonPath('data.0.total_debit', 252500)
+        ->assertJsonPath('data.0.total_debit_usd', 814.52)
+        ->assertJsonPath('data.0.currency', 'PKR');
+
+    $this->actingAs($this->investor)
+        ->getJson('/api/investor/withdrawals?'.http_build_query([...$params, 'page' => 2]))
+        ->assertOk()
+        ->assertJsonPath('current_page', 2)
+        ->assertJsonPath('total', 2)
+        ->assertJsonPath('data.0.id', $olderMatch->id)
+        ->assertJsonPath('data.0.amount_usd', 806.45)
+        ->assertJsonPath('data.0.fee_usd', 8.06)
+        ->assertJsonPath('data.0.total_debit_usd', 814.52)
+        ->assertJsonPath('data.0.currency', 'PKR');
+
+    $this->actingAs($this->investor)
+        ->getJson('/api/investor/withdrawals?'.http_build_query([
+            'date_from' => $today->copy()->subDays(2)->toDateString(),
+            'date_to' => $today->copy()->subDays(8)->toDateString(),
+        ]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['date_to']);
+});
+
 it('auto-approves wallet investment and credits platform wallet', function () {
     $this->actingAs($this->investor)
         ->postJson("/api/investor/projects/{$this->project->id}/invest", ['amount' => 1500])

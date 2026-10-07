@@ -882,6 +882,20 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Withdrawal fee information could not be loaded. Retry before continuing.","رقم نکلوانے کی فیس کی معلومات لوڈ نہیں ہو سکیں۔ جاری رکھنے سے پہلے دوبارہ کوشش کریں۔","تعذر تحميل معلومات رسوم السحب. أعد المحاولة قبل المتابعة."],
   ["Enter a valid payout amount that fits the available balance after the withdrawal fee.","رقم نکلوانے کی فیس کے بعد دستیاب بیلنس میں آنے والی درست ادائیگی کی رقم درج کریں۔","أدخل مبلغ تحويل صالحًا ضمن الرصيد المتاح بعد رسوم السحب."],
   ["Review the payout amount after the fee and complete the required bank details.","فیس کے بعد ادائیگی کی رقم دوبارہ دیکھیں اور مطلوبہ بینک تفصیلات مکمل کریں۔","راجع مبلغ التحويل بعد الرسوم وأكمل تفاصيل البنك المطلوبة."],
+  ["Any status","کوئی بھی حیثیت","أي حالة"],
+  ["Approved","منظور شدہ","موافق عليه"],
+  ["Cancelled","منسوخ","ملغاة"],
+  ["Clear withdrawal filters","رقم نکلوانے کے فلٹر صاف کریں","مسح عوامل تصفية السحب"],
+  ["End date must be on or after the start date.","اختتامی تاریخ، آغاز کی تاریخ کے برابر یا بعد کی ہونی چاہیے۔","يجب أن يكون تاريخ الانتهاء في تاريخ البدء أو بعده."],
+  ["From date (YYYY-MM-DD)","آغاز کی تاریخ (YYYY-MM-DD)","من تاريخ (YYYY-MM-DD)"],
+  ["matching withdrawals","مماثل رقم نکلوانے کی درخواستیں","طلبات السحب المطابقة"],
+  ["Page","صفحہ","صفحة"],
+  ["records on this page","اس صفحے کے ریکارڈ","السجلات في هذه الصفحة"],
+  ["Rejected","مسترد","مرفوض"],
+  ["Search withdrawal reference","رقم نکلوانے کا حوالہ تلاش کریں","ابحث عن مرجع السحب"],
+  ["To date (YYYY-MM-DD)","اختتامی تاریخ (YYYY-MM-DD)","إلى تاريخ (YYYY-MM-DD)"],
+  ["Under review","زیرِ جائزہ","قيد المراجعة"],
+  ["Use dates in YYYY-MM-DD format.","تاریخیں YYYY-MM-DD کی صورت میں درج کریں۔","أدخل التواريخ بالتنسيق YYYY-MM-DD."],
 ];
 
 const translations = new Map<string, Readonly<Record<Exclude<AppLanguage, 'en'>, string>>>(

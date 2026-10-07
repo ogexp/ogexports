@@ -1268,6 +1268,10 @@ export const CreateInvestorDepositResponse = zod.record(zod.string(), zod.unknow
 /**
  * @summary List investor withdrawals
  */
+export const getInvestorWithdrawalsQueryReferenceMax = 100;
+
+export const getInvestorWithdrawalsQueryDateFromRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getInvestorWithdrawalsQueryDateToRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 
 export const getInvestorWithdrawalsQueryPerPageMax = 100;
 
@@ -1275,6 +1279,9 @@ export const getInvestorWithdrawalsQueryPerPageMax = 100;
 
 export const GetInvestorWithdrawalsQueryParams = zod.object({
   "status": zod.coerce.string().optional(),
+  "reference": zod.coerce.string().min(1).max(getInvestorWithdrawalsQueryReferenceMax).optional(),
+  "date_from": zod.coerce.string().regex(getInvestorWithdrawalsQueryDateFromRegExp).optional().describe('Inclusive start date (YYYY-MM-DD)'),
+  "date_to": zod.coerce.string().regex(getInvestorWithdrawalsQueryDateToRegExp).optional().describe('Inclusive end date (YYYY-MM-DD)'),
   "page": zod.coerce.number().int().min(1).optional(),
   "per_page": zod.coerce.number().int().min(1).max(getInvestorWithdrawalsQueryPerPageMax).optional()
 })
