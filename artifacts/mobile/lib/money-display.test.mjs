@@ -41,6 +41,14 @@ test('USD is the default display currency while source formatting remains availa
   assert.match(moneyInSourceCurrency(147615.6, 'PKR'), /147,615\.60/);
 });
 
+test('missing monetary values use a display-only zero in the selected currency', () => {
+  configureMoneyDisplay({ language: 'en', currency: 'USD', rates: { USD: 1, PKR: 278.52 } });
+
+  assert.equal(money(null, 'PKR'), '$0.00');
+  assert.equal(money(undefined, 'USD'), '$0.00');
+  assert.equal(moneyInSourceCurrency(null, 'PKR'), '$0.00');
+});
+
 test('a selected profile currency converts displayed amounts using authenticated rates', () => {
   configureMoneyDisplay({ language: 'en', currency: 'PKR', rates: { USD: 1, PKR: 278.52 } });
 

@@ -86,7 +86,7 @@ function formatWithdrawalAmount(
   usdAmount: number | null,
   exchangeRate: number | null,
 ) {
-  if (value === null) return 'Not recorded';
+  if (value === null) return money(null, currency, { preserveSource: true });
   const currencyCode = currency.trim().toUpperCase();
   if (!currencyCode) return `${value.toFixed(2)} (currency not recorded)`;
 

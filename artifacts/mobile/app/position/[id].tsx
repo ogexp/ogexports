@@ -78,7 +78,7 @@ export default function PositionDetail() {
   const investedAmountText = [
     investedAmount != null ? money(investedAmount, currency || 'USD') : null,
     investedPkr != null ? money(investedPkr, 'PKR') : null,
-  ].filter(Boolean).join(' · ') || notProvided;
+  ].filter(Boolean).join(' · ') || money(null, currency || 'USD');
   const amountText = (value: number | null) => money(value, currency || 'USD');
   const tradeCycle = first(row, ['trade_cycle', 'estimated_trade_cycle', 'duration'], first(project, ['trade_cycle', 'estimated_trade_cycle', 'duration'], first(trade, ['trade_cycle', 'estimated_trade_cycle', 'duration'], '')));
   const tradeCycleDays = first(row, ['investment_period_days', 'trade_cycle_days', 'duration_days'], first(project, ['investment_period_days', 'trade_cycle_days', 'duration_days'], first(trade, ['investment_period_days', 'trade_cycle_days', 'duration_days'], '')));

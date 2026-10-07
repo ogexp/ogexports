@@ -30,7 +30,7 @@ function supplied(value: string, fallback = '—') {
 }
 
 function reportedMoney(value: number | null, currency: string) {
-  return value == null ? 'Not reported' : money(value, currency);
+  return money(value, currency);
 }
 
 function reportedDate(value: string) {
@@ -143,7 +143,7 @@ export default function Portfolio() {
     const amountLabel = [
       investedAmount != null ? money(investedAmount, investmentCurrency || 'USD') : null,
       investedPkr != null ? money(investedPkr, 'PKR') : null,
-    ].filter(Boolean).join(' · ') || 'Not reported';
+    ].filter(Boolean).join(' · ') || money(null, investmentCurrency || 'USD');
     const expectedProfit = amount(item, ['expected_profit']) ?? amount(dashboardInvestment, ['expected_profit']);
     const roi = amount(dashboardInvestment, ['roi'])
       ?? amount(item, ['roi', 'expected_return_pct'])

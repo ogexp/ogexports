@@ -72,7 +72,7 @@ function createAllocation(trades: TradeAggregate[], field: 'commodity' | 'destin
 function moneyLabel(value: number | null, currency: string, loading: boolean, error: boolean) {
   if (loading) return 'Loading…';
   if (error) return 'Unavailable';
-  if (value == null) return notProvided;
+  if (value == null) return money(null, currency || 'USD');
   return money(value, currency || 'USD');
 }
 

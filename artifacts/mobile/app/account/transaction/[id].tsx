@@ -55,7 +55,7 @@ export default function TransactionDetails() {
   const status = first(transaction, ['status', 'state'], unavailable);
   const formatRecordedAmount = (key: string) => {
     const value = amount(withdrawalBreakdown, [key]);
-    if (value === null) return 'Not recorded';
+    if (value === null) return money(null, breakdownCurrency || currency || 'USD', { preserveSource: true });
     return breakdownCurrency
       ? money(value, breakdownCurrency, { preserveSource: true })
       : value.toFixed(2);
