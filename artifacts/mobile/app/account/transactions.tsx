@@ -57,6 +57,13 @@ const withdrawalStatuses = [
   { label: 'Rejected', value: 'rejected' },
   { label: 'Cancelled', value: 'cancelled' },
 ];
+const depositStatuses = [
+  { label: 'Any status', value: '' },
+  { label: 'Pending', value: 'pending' },
+  { label: 'Approved', value: 'approved' },
+  { label: 'Rejected', value: 'rejected' },
+  { label: 'Cancelled', value: 'cancelled' },
+];
 
 function formatDateTime(value: string) {
   if (!value) return unavailable;
@@ -163,6 +170,9 @@ export default function Transactions() {
   const [withdrawalStatus, setWithdrawalStatus] = useState('');
   const [withdrawalDateFrom, setWithdrawalDateFrom] = useState('');
   const [withdrawalDateTo, setWithdrawalDateTo] = useState('');
+  const [depositStatus, setDepositStatus] = useState('');
+  const [depositDateFrom, setDepositDateFrom] = useState('');
+  const [depositDateTo, setDepositDateTo] = useState('');
   const [busyPdfKey, setBusyPdfKey] = useState('');
   const [pdfError, setPdfError] = useState('');
 
@@ -183,10 +193,20 @@ export default function Transactions() {
     : invalidWithdrawalDateRange
       ? 'End date must be on or after the start date.'
       : '';
+  const invalidDepositDate = filter === 'Deposits'
+    && (!isValidDateFilter(depositDateFrom) || !isValidDateFilter(depositDateTo));
+  const invalidDepositDateRange = filter === 'Deposits'
+    && !invalidDepositDate
+    && Boolean(depositDateFrom && depositDateTo && depositDateTo < depositDateFrom);
+  const depositDateError = invalidDepositDate
+    ? 'Use dates in YYYY-MM-DD format.'
+    : invalidDepositDateRange
+      ? 'End date must be on or after the start date.'
+      : '';
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      setServerReference(filter === 'Withdrawals' ? search.trim() : '');
+      setServerReference(filter === 'Withdrawals' || filter === 'Deposits' ? search.trim() : '');
     }, 300);
     return () => clearTimeout(timeout);
   }, [filter, search]);
@@ -195,8 +215,32 @@ export default function Transactions() {
   const walletTransactionsQuery = useGetInvestorWalletTransactions({ page, per_page: pageSize }, {
     query: { queryKey: ['investor-wallet-transactions', page, pageSize], enabled: Boolean(token), staleTime: 20_000 },
   });
-  const depositsQuery = useGetInvestorDeposits({ page, per_page: pageSize }, {
-    query: { queryKey: ['investor-deposits', page, pageSize], enabled: Boolean(token), staleTime: 20_000 },
+  const depositsQuery = useGetInvestorDeposits({
+    page,
+    per_page: pageSize,
+    ...(filter === 'Deposits' && serverReference ? { reference: serverReference } : {}),
+    ...(filter === 'Deposits' && depositStatus ? { status: depositStatus } : {}),
+    ...(filter === 'Deposits' && depositDateFrom && isValidDateFilter(depositDateFrom)
+      ? { date_from: depositDateFrom }
+      : {}),
+    ...(filter === 'Deposits' && depositDateTo && isValidDateFilter(depositDateTo)
+      ? { date_to: depositDateTo }
+      : {}),
+  }, {
+    query: {
+      queryKey: [
+        'investor-deposits',
+        page,
+        pageSize,
+        filter,
+        serverReference,
+        depositStatus,
+        depositDateFrom,
+        depositDateTo,
+      ],
+      enabled: Boolean(token) && !invalidDepositDate,
+      staleTime: 20_000,
+    },
   });
   const withdrawalsQuery = useGetInvestorWithdrawals({
     page,
@@ -363,7 +407,8 @@ export default function Transactions() {
     const walletKey = id || first(transaction, ['reference']);
     if (walletKey && usedWalletTransactions.has(walletKey)) return;
     const category = categoryForWalletTransaction(transaction);
-    if (filter === 'Withdrawals' && category === 'Withdrawals') return;
+    if ((filter === 'Withdrawals' && category === 'Withdrawals')
+      || (filter === 'Deposits' && category === 'Deposits')) return;
     const meta = record(transaction.meta);
     const investmentId = first(meta, ['investment_id'], first(transaction, ['investment_id']));
     const investment = investmentById.get(investmentId) ?? {};
@@ -410,12 +455,20 @@ export default function Transactions() {
     { name: 'Deposits', category: 'Deposits' as Filter, query: depositsQuery, data: depositsQuery.data },
     { name: 'Withdrawals', category: 'Withdrawals' as Filter, query: withdrawalsQuery, data: withdrawalsQuery.data },
     { name: 'Investments', category: 'Investments' as Filter, query: investmentsQuery, data: investmentsQuery.data },
-  ].filter(source => filter === 'All'
-    || (filter === 'Withdrawals'
-      ? source.category === 'Withdrawals'
-      : source.category === null || source.category === filter));
+  ].filter(source => {
+    if (filter === 'All') return true;
+    if (filter === 'Deposits' || filter === 'Withdrawals') return source.category === filter;
+    return source.category === null || source.category === filter;
+  });
   const failedSources = querySources.filter(source => source.query.isError);
   const isLoading = querySources.some(source => source.query.isLoading);
+  const serverHistoryData = filter === 'Deposits'
+    ? depositsQuery.data
+    : filter === 'Withdrawals'
+      ? withdrawalsQuery.data
+      : null;
+  const serverHistoryTotal = totalFor(serverHistoryData);
+  const serverHistoryLastPage = lastPageFor(serverHistoryData);
   const hasNextPage = querySources.some(source => {
     const lastPage = lastPageFor(source.data);
     return lastPage != null ? page < lastPage : list(source.data).length >= pageSize;
@@ -463,17 +516,98 @@ export default function Transactions() {
       })}
     </ScrollView>
     <Field
-      label={filter === 'Withdrawals' ? 'Search withdrawal reference' : 'Search transactions'}
+      label={filter === 'Withdrawals'
+        ? 'Search withdrawal reference'
+        : filter === 'Deposits'
+          ? 'Search deposit reference'
+          : 'Search transactions'}
       value={search}
       onChangeText={value => {
         setPage(1);
         setSelectedId('');
         setSearch(value);
       }}
-      placeholder={filter === 'Withdrawals' ? 'Reference' : 'ID, reference, trade, status or project'}
+      placeholder={filter === 'Withdrawals' || filter === 'Deposits'
+        ? 'Reference'
+        : 'ID, reference, trade, status or project'}
       autoCapitalize="none"
       maxLength={100}
     />
+    {filter === 'Deposits' ? <>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 12 }}>
+        {depositStatuses.map(option => {
+          const active = depositStatus === option.value;
+          return <Pressable
+            key={option.value || 'any-status'}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            onPress={() => {
+              setPage(1);
+              setSelectedId('');
+              setDepositStatus(option.value);
+            }}
+            style={{
+              borderRadius: 18,
+              paddingVertical: 8,
+              paddingHorizontal: 13,
+              backgroundColor: active ? colors.primary : colors.secondary,
+              borderWidth: 1,
+              borderColor: active ? colors.primary : colors.border,
+            }}
+          >
+            <Text style={{ color: active ? colors.primaryForeground : colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>
+              {option.label}
+            </Text>
+          </Pressable>;
+        })}
+      </ScrollView>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <Field
+            label="From date (YYYY-MM-DD)"
+            value={depositDateFrom}
+            onChangeText={value => {
+              setPage(1);
+              setSelectedId('');
+              setDepositDateFrom(value);
+            }}
+            placeholder="2026-01-31"
+            maxLength={10}
+            autoCapitalize="none"
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Field
+            label="To date (YYYY-MM-DD)"
+            value={depositDateTo}
+            onChangeText={value => {
+              setPage(1);
+              setSelectedId('');
+              setDepositDateTo(value);
+            }}
+            placeholder="2026-12-31"
+            maxLength={10}
+            autoCapitalize="none"
+          />
+        </View>
+      </View>
+      {depositDateError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, marginBottom: 10 }}>{depositDateError}</Text> : null}
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          setPage(1);
+          setSelectedId('');
+          setSearch('');
+          setServerReference('');
+          setDepositStatus('');
+          setDepositDateFrom('');
+          setDepositDateTo('');
+        }}
+        style={{ alignSelf: 'flex-start', paddingVertical: 4, marginBottom: 8 }}
+      >
+        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Clear deposit filters</Text>
+      </Pressable>
+    </> : null}
     {filter === 'Withdrawals' ? <>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 12 }}>
         {withdrawalStatuses.map(option => {
@@ -558,9 +692,9 @@ export default function Transactions() {
     </Card> : null}
     {walletQuery.isError ? <Card><Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Wallet details could not be loaded. Amounts without a transaction currency are shown in USD.</Text></Card> : null}
     {isLoading ? <LoadingCard label="Loading transactions from OG Exports…" /> : null}
-    {!isLoading && !filteredRows.length && !failedSources.length && !withdrawalDateError ? <EmptyState title={search ? 'No matching transactions' : `No ${filter.toLowerCase()} found`} body={search ? 'Try a different ID, reference or search term.' : 'Records returned by OG Exports will appear here.'} /> : null}
+    {!isLoading && !filteredRows.length && !failedSources.length && !withdrawalDateError && !depositDateError ? <EmptyState title={search ? 'No matching transactions' : `No ${filter.toLowerCase()} found`} body={search ? 'Try a different ID, reference or search term.' : 'Records returned by OG Exports will appear here.'} /> : null}
 
-    {filteredRows.map((row, index) => {
+    {(depositDateError ? [] : filteredRows).map((row, index) => {
       const active = selectedRow?.key === row.key;
       const amountLabel = row.category === 'Withdrawals'
         ? formatWithdrawalAmount(row.amount, row.currency, null, null)
@@ -618,16 +752,18 @@ export default function Transactions() {
 
     <View style={{ marginTop: 4, marginBottom: 18 }}>
       <Text style={{ color: colors.mutedForeground, fontSize: 11, textAlign: 'center', marginBottom: 9 }}>
-        <Text>Page</Text> {page} · {filter === 'Withdrawals' && totalFor(withdrawalsQuery.data) != null
-          ? totalFor(withdrawalsQuery.data)
-          : filteredRows.length}{' '}
-        <Text>{filter === 'Withdrawals' && totalFor(withdrawalsQuery.data) != null ? 'matching withdrawals' : 'records on this page'}</Text>
+        <Text>Page</Text> {page}{serverHistoryLastPage != null ? ` of ${serverHistoryLastPage}` : ''} · {serverHistoryTotal ?? filteredRows.length}{' '}
+        <Text>{filter === 'Deposits' && serverHistoryTotal != null
+          ? 'matching deposits'
+          : filter === 'Withdrawals' && serverHistoryTotal != null
+            ? 'matching withdrawals'
+            : 'records on this page'}</Text>
       </Text>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
-        <Pressable accessibilityRole="button" disabled={page === 1 || isLoading} onPress={() => { setPage(value => value - 1); setSelectedId(''); }} style={{ borderRadius: 12, paddingVertical: 11, paddingHorizontal: 16, backgroundColor: colors.secondary, opacity: page === 1 || isLoading ? 0.45 : 1 }}>
+        <Pressable accessibilityRole="button" disabled={page === 1 || isLoading || Boolean(depositDateError)} onPress={() => { setPage(value => value - 1); setSelectedId(''); }} style={{ borderRadius: 12, paddingVertical: 11, paddingHorizontal: 16, backgroundColor: colors.secondary, opacity: page === 1 || isLoading || depositDateError ? 0.45 : 1 }}>
           <Text style={{ color: colors.primary, fontWeight: '700' }}>Previous</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" disabled={!hasNextPage || isLoading} onPress={() => { setPage(value => value + 1); setSelectedId(''); }} style={{ borderRadius: 12, paddingVertical: 11, paddingHorizontal: 16, backgroundColor: colors.secondary, opacity: !hasNextPage || isLoading ? 0.45 : 1 }}>
+        <Pressable accessibilityRole="button" disabled={!hasNextPage || isLoading || Boolean(depositDateError)} onPress={() => { setPage(value => value + 1); setSelectedId(''); }} style={{ borderRadius: 12, paddingVertical: 11, paddingHorizontal: 16, backgroundColor: colors.secondary, opacity: !hasNextPage || isLoading || depositDateError ? 0.45 : 1 }}>
           <Text style={{ color: colors.primary, fontWeight: '700' }}>Load older transactions</Text>
         </Pressable>
       </View>

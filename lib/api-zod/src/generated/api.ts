@@ -1243,13 +1243,22 @@ export const GetInvestorPaymentBankAccountsResponse = zod.record(zod.string(), z
 /**
  * @summary List investor deposits
  */
+export const getInvestorDepositsQueryReferenceMax = 100;
+
+export const getInvestorDepositsQueryStatusMax = 40;
+
+export const getInvestorDepositsQueryDateFromRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getInvestorDepositsQueryDateToRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 
 export const getInvestorDepositsQueryPerPageMax = 100;
 
 
 
 export const GetInvestorDepositsQueryParams = zod.object({
-  "status": zod.coerce.string().optional(),
+  "reference": zod.coerce.string().min(1).max(getInvestorDepositsQueryReferenceMax).optional().describe('Case-insensitive partial match against the deposit or bank-transfer reference'),
+  "status": zod.coerce.string().max(getInvestorDepositsQueryStatusMax).optional(),
+  "date_from": zod.coerce.string().regex(getInvestorDepositsQueryDateFromRegExp).optional().describe('Inclusive start date (YYYY-MM-DD)'),
+  "date_to": zod.coerce.string().regex(getInvestorDepositsQueryDateToRegExp).optional().describe('Inclusive end date (YYYY-MM-DD)'),
   "page": zod.coerce.number().int().min(1).optional(),
   "per_page": zod.coerce.number().int().min(1).max(getInvestorDepositsQueryPerPageMax).optional()
 })

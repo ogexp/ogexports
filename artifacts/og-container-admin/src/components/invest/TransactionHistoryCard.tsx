@@ -11,6 +11,7 @@ export type TransactionHistoryItem = {
   id: string
   primary: string
   reference?: string
+  paymentReference?: string
   date?: string
   status: string
   statusLabel?: string
@@ -52,7 +53,10 @@ export function TransactionHistoryCard({ title, loading, emptyMessage, items }: 
   }
 
   function detailLine(item: TransactionHistoryItem) {
-    const parts = [item.date, item.reference, `ID: ${item.id}`].filter(Boolean)
+    const paymentReference = item.paymentReference && item.paymentReference !== item.reference
+      ? `Payment reference: ${item.paymentReference}`
+      : undefined
+    const parts = [item.date, item.reference, paymentReference, `ID: ${item.id}`].filter(Boolean)
     return parts.join(" · ")
   }
 

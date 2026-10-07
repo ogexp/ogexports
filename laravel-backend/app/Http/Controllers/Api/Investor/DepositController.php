@@ -19,6 +19,7 @@ use App\Services\InvestorTransactionPdfGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class DepositController extends Controller
 {
@@ -26,15 +27,59 @@ class DepositController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $filters = $request->validate([
+            'reference' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'string', 'max:40'],
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        if (
+            filled($filters['date_from'] ?? null)
+            && filled($filters['date_to'] ?? null)
+            && $filters['date_to'] < $filters['date_from']
+        ) {
+            throw ValidationException::withMessages([
+                'date_to' => 'The end date must be on or after the start date.',
+            ]);
+        }
+
         $query = Deposit::query()
             ->where('investor_id', $request->user()->id)
             ->with('project');
 
-        if ($status = $request->input('status')) {
-            $query->where('status', DepositReviewStatuses::normalize($status));
+        if ($reference = trim((string) ($filters['reference'] ?? ''))) {
+            $like = '%'.strtolower($reference).'%';
+            $query->where(function ($referenceQuery) use ($like) {
+                $referenceQuery
+                    ->whereRaw('LOWER(reference) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(bank_reference) LIKE ?', [$like]);
+            });
         }
 
-        $deposits = $query->latest()->paginate($this->perPage($request));
+        if ($status = trim((string) ($filters['status'] ?? ''))) {
+            $normalizedStatus = DepositReviewStatuses::normalize($status);
+            $storedStatuses = match ($normalizedStatus) {
+                DepositReviewStatuses::PENDING => ['pending', 'pending_verification'],
+                DepositReviewStatuses::APPROVED => ['approved', 'paid', 'partial'],
+                DepositReviewStatuses::CANCELLED => ['cancelled', 'canceled'],
+                default => [$normalizedStatus],
+            };
+            $query->whereIn('status', $storedStatuses);
+        }
+
+        if (filled($filters['date_from'] ?? null)) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (filled($filters['date_to'] ?? null)) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
+        $deposits = $query
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate($this->perPage($request));
         $deposits->setCollection(
             $deposits->getCollection()->map(function (Deposit $deposit) {
                 $row = $deposit->toArray();

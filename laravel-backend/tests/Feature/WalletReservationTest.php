@@ -3,6 +3,7 @@
 use App\Models\Investment;
 use App\Models\AppNotification;
 use App\Models\InvestmentProject;
+use App\Models\Deposit;
 use App\Models\InvestorBankAccountVerification;
 use App\Models\KycApplication;
 use App\Models\PlatformSetting;
@@ -180,6 +181,104 @@ it('filters and paginates withdrawal history by reference, status, and date', fu
 
     $this->actingAs($this->investor)
         ->getJson('/api/investor/withdrawals?'.http_build_query([
+            'date_from' => $today->copy()->subDays(2)->toDateString(),
+            'date_to' => $today->copy()->subDays(8)->toDateString(),
+        ]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['date_to']);
+});
+
+it('filters and paginates investor deposit history by partial reference, review status, and inclusive dates', function () {
+    $today = now()->startOfDay();
+    $makeDeposit = function (int $investorId, string $reference, string $bankReference, string $status, \Illuminate\Support\Carbon $createdAt) {
+        $deposit = Deposit::query()->create([
+            'investor_id' => $investorId,
+            'amount' => 1250.50,
+            'currency' => 'EUR',
+            'method' => 'bank_transfer',
+            'reference' => $reference,
+            'bank_reference' => $bankReference,
+            'status' => $status,
+        ]);
+        $deposit->forceFill(['created_at' => $createdAt])->save();
+
+        return $deposit;
+    };
+
+    $olderMatch = $makeDeposit(
+        $this->investor->id,
+        'OGDEP-SEARCH-APR-A',
+        'BANK-TRANSFER-OLDER',
+        'approved',
+        $today->copy()->subDays(8)->setTime(12, 0),
+    );
+    $newerMatch = $makeDeposit(
+        $this->investor->id,
+        'OGDEP-SEARCH-APR-B',
+        'BANK-TRANSFER-NEWER',
+        'approved',
+        $today->copy()->subDays(2)->setTime(12, 0),
+    );
+    $makeDeposit(
+        $this->investor->id,
+        'OGDEP-OTHER-APR',
+        'BANK-TRANSFER-SEARCH',
+        'rejected',
+        $today->copy()->subDays(5)->setTime(12, 0),
+    );
+    $makeDeposit(
+        $this->investor->id,
+        'OGDEP-SEARCH-OLD',
+        'BANK-TRANSFER-OLD',
+        'approved',
+        $today->copy()->subDays(12)->setTime(12, 0),
+    );
+    $makeDeposit(
+        $this->admin->id,
+        'OGDEP-SEARCH-APR-OTHER-USER',
+        'BANK-TRANSFER-OTHER-USER',
+        'approved',
+        $today->copy()->subDays(3)->setTime(12, 0),
+    );
+
+    $params = [
+        'reference' => 'ogdep-search-apr',
+        'status' => 'APPROVED',
+        'date_from' => $today->copy()->subDays(8)->toDateString(),
+        'date_to' => $today->copy()->subDays(2)->toDateString(),
+        'per_page' => 1,
+    ];
+
+    $this->actingAs($this->investor)
+        ->getJson('/api/investor/deposits?'.http_build_query($params))
+        ->assertOk()
+        ->assertJsonPath('current_page', 1)
+        ->assertJsonPath('last_page', 2)
+        ->assertJsonPath('per_page', 1)
+        ->assertJsonPath('total', 2)
+        ->assertJsonPath('data.0.id', $newerMatch->id)
+        ->assertJsonPath('data.0.amount', '1250.50')
+        ->assertJsonPath('data.0.currency', 'EUR')
+        ->assertJsonPath('data.0.review_status', 'approved')
+        ->assertJsonPath('data.0.original_amount', 1250.5)
+        ->assertJsonPath('data.0.original_currency', 'EUR');
+
+    $this->actingAs($this->investor)
+        ->getJson('/api/investor/deposits?'.http_build_query([...$params, 'page' => 2]))
+        ->assertOk()
+        ->assertJsonPath('current_page', 2)
+        ->assertJsonPath('total', 2)
+        ->assertJsonPath('data.0.id', $olderMatch->id);
+
+    $this->actingAs($this->investor)
+        ->getJson('/api/investor/deposits?'.http_build_query([
+            'reference' => 'bank-transfer-search',
+        ]))
+        ->assertOk()
+        ->assertJsonPath('total', 1);
+
+    $this->actingAs($this->investor)
+        ->getJson('/api/investor/deposits?'.http_build_query([
             'date_from' => $today->copy()->subDays(2)->toDateString(),
             'date_to' => $today->copy()->subDays(8)->toDateString(),
         ]))

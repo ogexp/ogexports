@@ -27,6 +27,30 @@ import { TransactionSuccessDialog } from "@/components/invest/TransactionSuccess
 
 const DEPOSIT_CURRENCIES = ["USD", "GBP", "EUR", "CNY", "PKR", "SAR", "AED", "OMR", "QAR"] as const
 
+type DepositHistoryFilters = {
+  reference: string
+  status: string
+  date_from: string
+  date_to: string
+}
+
+const EMPTY_DEPOSIT_HISTORY_FILTERS: DepositHistoryFilters = {
+  reference: "",
+  status: "",
+  date_from: "",
+  date_to: "",
+}
+
+const DEPOSIT_HISTORY_STATUSES = [
+  { value: "", label: "Any status" },
+  { value: "pending", label: "Pending" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+  { value: "cancelled", label: "Cancelled" },
+]
+
+const DEPOSIT_HISTORY_PAGE_SIZE = 20
+
 function buildPaymentMethods() {
   return [
     {
@@ -107,6 +131,9 @@ export default function InvestDeposit() {
   const [successStatus, setSuccessStatus] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [selectedBankAccount, setSelectedBankAccount] = useState<BankAccount | undefined>()
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyFilters, setHistoryFilters] = useState<DepositHistoryFilters>(EMPTY_DEPOSIT_HISTORY_FILTERS)
+  const [historyDraftFilters, setHistoryDraftFilters] = useState<DepositHistoryFilters>(EMPTY_DEPOSIT_HISTORY_FILTERS)
 
   const { data: liveProjects = [] } = useQuery<AdminInvestProject[]>({
     queryKey: ["investor", "deposit-options"],
@@ -132,11 +159,26 @@ export default function InvestDeposit() {
 
   const PAYMENT_METHODS = useMemo(() => buildPaymentMethods(), [])
 
-  const { data: historyPayload, isLoading: historyLoading, refetch: refetchHistory } = useQuery({
-    queryKey: ["investor", "deposits"],
-    queryFn: () => api.get("/api/investor/deposits", { per_page: 20 }),
+  const historyQueryParams = useMemo(() => ({
+    page: historyPage,
+    per_page: DEPOSIT_HISTORY_PAGE_SIZE,
+    ...(historyFilters.reference ? { reference: historyFilters.reference } : {}),
+    ...(historyFilters.status ? { status: historyFilters.status } : {}),
+    ...(historyFilters.date_from ? { date_from: historyFilters.date_from } : {}),
+    ...(historyFilters.date_to ? { date_to: historyFilters.date_to } : {}),
+  }), [historyFilters, historyPage])
+  const historyQuery = useQuery({
+    queryKey: ["investor", "deposits", historyQueryParams],
+    queryFn: () => api.get("/api/investor/deposits", historyQueryParams),
   })
-  const depositHistory = unwrapPage<any>(historyPayload).data
+  const { data: historyPayload, isLoading: historyLoading, refetch: refetchHistory } = historyQuery
+  const historyPageData = useMemo(() => unwrapPage<any>(historyPayload), [historyPayload])
+  const depositHistory = historyPageData.data
+  const historyDateRangeInvalid = Boolean(
+    historyDraftFilters.date_from
+    && historyDraftFilters.date_to
+    && historyDraftFilters.date_to < historyDraftFilters.date_from,
+  )
 
   const method = PAYMENT_METHODS.find(m => m.id === selectedMethod)
   const amountNum = parseFloat(amount) || 0
@@ -251,6 +293,7 @@ export default function InvestDeposit() {
     id: String(d.id),
     primary: `${formatMethodLabel(d.method)} · ${formatDepositAmount(d)}`,
     reference: d.reference || `OGDEP-INV-${String(d.id).padStart(3, "0")}`,
+    paymentReference: d.bank_reference || undefined,
     date: d.created_at
       ? new Date(d.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
       : undefined,
@@ -828,12 +871,134 @@ export default function InvestDeposit() {
           </div>
         )}
 
-        <TransactionHistoryCard
-          title="Your Deposit History"
-          loading={historyLoading}
-          emptyMessage="No deposits yet. Submit one above."
-          items={depositHistoryItems}
-        />
+        <form
+          className="space-y-4 rounded-xl border border-border/60 bg-card/60 p-4"
+          onSubmit={event => {
+            event.preventDefault()
+            if (historyDateRangeInvalid) return
+            setHistoryPage(1)
+            setHistoryFilters({
+              ...historyDraftFilters,
+              reference: historyDraftFilters.reference.trim(),
+            })
+          }}
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="deposit-history-reference">Reference</Label>
+              <Input
+                id="deposit-history-reference"
+                data-testid="deposit-history-reference"
+                value={historyDraftFilters.reference}
+                onChange={event => setHistoryDraftFilters(filters => ({ ...filters, reference: event.target.value }))}
+                placeholder="Search deposit or transfer reference"
+                maxLength={100}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="deposit-history-status">Status</Label>
+              <select
+                id="deposit-history-status"
+                data-testid="deposit-history-status"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={historyDraftFilters.status}
+                onChange={event => setHistoryDraftFilters(filters => ({ ...filters, status: event.target.value }))}
+              >
+                {DEPOSIT_HISTORY_STATUSES.map(status => (
+                  <option key={status.value || "any"} value={status.value}>{status.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="deposit-history-date-from">From date</Label>
+              <Input
+                id="deposit-history-date-from"
+                data-testid="deposit-history-date-from"
+                type="date"
+                max={historyDraftFilters.date_to || undefined}
+                value={historyDraftFilters.date_from}
+                onChange={event => setHistoryDraftFilters(filters => ({ ...filters, date_from: event.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="deposit-history-date-to">To date</Label>
+              <Input
+                id="deposit-history-date-to"
+                data-testid="deposit-history-date-to"
+                type="date"
+                min={historyDraftFilters.date_from || undefined}
+                value={historyDraftFilters.date_to}
+                onChange={event => setHistoryDraftFilters(filters => ({ ...filters, date_to: event.target.value }))}
+              />
+            </div>
+          </div>
+          {historyDateRangeInvalid && (
+            <p role="alert" className="text-sm text-destructive">
+              End date must be on or after the start date.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" size="sm" disabled={historyDateRangeInvalid} data-testid="deposit-history-apply">
+              Apply filters
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="deposit-history-clear"
+              onClick={() => {
+                setHistoryDraftFilters({ ...EMPTY_DEPOSIT_HISTORY_FILTERS })
+                setHistoryFilters({ ...EMPTY_DEPOSIT_HISTORY_FILTERS })
+                setHistoryPage(1)
+              }}
+            >
+              Clear filters
+            </Button>
+          </div>
+        </form>
+
+        {historyQuery.isError ? (
+          <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            <span>Deposit history could not be loaded.</span>
+            <Button variant="outline" size="sm" onClick={() => void historyQuery.refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <>
+            <TransactionHistoryCard
+              title="Your Deposit History"
+              loading={historyLoading}
+              emptyMessage="No deposits match these filters."
+              items={depositHistoryItems}
+            />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-muted-foreground" data-testid="deposit-history-page">
+                Page {historyPage} of {historyPageData.meta.last_page} · {historyPageData.meta.total} matching deposits
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-testid="deposit-history-previous"
+                  disabled={historyLoading || historyPage <= 1}
+                  onClick={() => setHistoryPage(page => Math.max(1, page - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-testid="deposit-history-next"
+                  disabled={historyLoading || historyPage >= historyPageData.meta.last_page}
+                  onClick={() => setHistoryPage(page => Math.min(historyPageData.meta.last_page, page + 1))}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
         <TransactionSuccessDialog
           open={successDialogOpen}
           onOpenChange={setSuccessDialogOpen}
