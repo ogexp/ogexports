@@ -102,6 +102,61 @@ function TravelingMarker({ kind, progress, width, height }: {
   );
 }
 
+function MovingWater({ progress, reveal, width, height }: {
+  progress: Animated.Value;
+  reveal: Animated.Value;
+  width: number;
+  height: number;
+}) {
+  const colors = useColors();
+  const scale = Math.min(width / 300, height / 220);
+  const renderedWidth = 300 * scale;
+  const renderedHeight = 220 * scale;
+  const offsetX = (width - renderedWidth) / 2;
+  const offsetY = (height - renderedHeight) / 2;
+  const translateX = progress.interpolate({ inputRange: [0, 1], outputRange: [0, -60 * scale] });
+
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        left: offsetX,
+        top: offsetY,
+        width: renderedWidth,
+        height: renderedHeight,
+        overflow: 'hidden',
+        pointerEvents: 'none',
+      }}
+    >
+      <Animated.View
+        style={{
+          width: 360 * scale,
+          height: renderedHeight,
+          opacity: reveal,
+          transform: [{ translateX }],
+        }}
+      >
+        <Svg width="100%" height="100%" viewBox="0 0 360 220">
+          <Path
+            d="M-30 190 C-10 184 10 196 30 190 C50 184 70 196 90 190 C110 184 130 196 150 190 C170 184 190 196 210 190 C230 184 250 196 270 190 C290 184 310 196 330 190 C350 184 370 196 390 190"
+            fill="none"
+            stroke={colors.tint}
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <Path
+            d="M-30 199 C-10 194 10 204 30 199 C50 194 70 204 90 199 C110 194 130 204 150 199 C170 194 190 204 210 199 C230 194 250 204 270 199 C290 194 310 204 330 199 C350 194 370 204 390 199"
+            fill="none"
+            stroke={colors.border}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </Svg>
+      </Animated.View>
+    </View>
+  );
+}
+
 function IllustrationLayer({ kind, stage, progress }: {
   kind: IllustrationKind;
   stage: IllustrationStage;
@@ -172,8 +227,6 @@ function IllustrationLayer({ kind, stage, progress }: {
         {kind === 'shipment' && stage === 'C' ? <>
       <Path d="M34 130 H265 L239 169 C235 176 230 179 219 179 H78 C64 179 58 174 52 163 Z" fill={colors.primary} stroke={colors.primary} strokeWidth="1.5" strokeLinejoin="round" />
       <Path d="M52 151 H251" stroke={colors.accent} strokeOpacity="0.7" strokeWidth="2" />
-      <Path d="M39 190 C58 184 73 196 93 190 C113 184 128 196 149 190 C170 184 187 196 207 190 C227 184 243 196 261 190" fill="none" stroke={colors.tint} strokeWidth="2" strokeLinecap="round" />
-      <Path d="M55 199 C74 194 88 204 108 199 M192 199 C211 194 225 204 245 199" fill="none" stroke={colors.border} strokeWidth="1.5" strokeLinecap="round" />
         </> : null}
         {kind === 'portfolio' && stage === 'A' ? <>
       <Rect x="42" y="29" width="216" height="163" rx="18" fill={colors.card} stroke={colors.border} strokeWidth="1.5" />
@@ -250,6 +303,9 @@ function OnboardingIllustration({ kind, stageA, stageB, stageC, reduceMotion }: 
       <IllustrationLayer kind={kind} stage="A" progress={stageA} />
       <IllustrationLayer kind={kind} stage="B" progress={stageB} />
       <IllustrationLayer kind={kind} stage="C" progress={stageC} />
+      {kind === 'shipment' && viewport.width > 0 && viewport.height > 0 ? (
+        <MovingWater progress={travelProgress} reveal={stageC} width={viewport.width} height={viewport.height} />
+      ) : null}
       {viewport.width > 0 && viewport.height > 0 ? (
         <TravelingMarker kind={kind} progress={travelProgress} width={viewport.width} height={viewport.height} />
       ) : null}
