@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
+use App\Models\Withdrawal;
 use App\Support\InvestmentReviewService;
 use App\Support\InvestorBankAccountPresenter;
 use App\Support\PlatformWalletService;
@@ -372,6 +373,15 @@ it('reserves the payout and fee on withdrawal request, then clears the full debi
         ->and((float) $transaction->meta['payout_amount'])->toBe(2500.0)
         ->and((float) $transaction->meta['fee'])->toBe(2.0);
 
+    $this->actingAs($this->investor)
+        ->getJson("/api/investor/wallet/transactions/{$transaction->id}")
+        ->assertOk()
+        ->assertJsonPath('data.withdrawal_breakdown.payout_amount', 2500)
+        ->assertJsonPath('data.withdrawal_breakdown.fee', 2)
+        ->assertJsonPath('data.withdrawal_breakdown.total_debit', 2502)
+        ->assertJsonPath('data.withdrawal_breakdown.currency', 'USD')
+        ->assertJsonPath('data.withdrawal_breakdown.exchange_rate', null);
+
     $this->actingAs($this->admin)
         ->postJson("/api/admin/finance/withdrawals/{$withdrawalId}/approve")
         ->assertOk();
@@ -382,6 +392,71 @@ it('reserves the payout and fee on withdrawal request, then clears the full debi
         ->and((float) $wallet->pending_balance)->toBe(0.0)
         ->and($transaction->status)->toBe('completed')
         ->and((float) $transaction->amount)->toBe(2502.0);
+});
+
+it('does not invent a fee for older withdrawals without a recorded fee', function () {
+    $withdrawal = Withdrawal::query()->create([
+        'investor_id' => $this->investor->id,
+        'amount' => 2500,
+        'bank_details' => [
+            'bank_name' => 'Test Bank',
+            'account_holder' => 'Jane Investor',
+            'account_number' => '1234567890',
+            'currency' => 'USD',
+        ],
+        'reference' => 'OGWITH-LEGACY-001',
+        'status' => 'pending',
+    ]);
+    $transaction = WalletTransaction::query()->create([
+        'wallet_id' => Wallet::query()->where('user_id', $this->investor->id)->value('id'),
+        'type' => 'withdrawal',
+        'amount' => 2500,
+        'direction' => 'debit',
+        'reference' => $withdrawal->reference,
+        'status' => 'pending',
+        'meta' => ['withdrawal_id' => $withdrawal->id, 'currency' => 'USD'],
+    ]);
+
+    $this->actingAs($this->investor)
+        ->getJson("/api/investor/withdrawals/{$withdrawal->id}")
+        ->assertOk()
+        ->assertJsonPath('data.fee', null)
+        ->assertJsonPath('data.fee_usd', null)
+        ->assertJsonPath('data.withdrawal_fee', null)
+        ->assertJsonPath('data.total_debit', null);
+
+    $detail = $this->actingAs($this->investor)
+        ->getJson("/api/investor/wallet/transactions/{$transaction->id}")
+        ->assertOk()
+        ->assertJsonPath('data.withdrawal_breakdown.fee', null)
+        ->assertJsonPath('data.withdrawal_breakdown.fee_usd', null)
+        ->assertJsonPath('data.withdrawal_breakdown.total_debit', 2500)
+        ->assertJsonPath('data.withdrawal_breakdown.currency', 'USD');
+
+    $breakdown = \App\Support\InvestorWithdrawalBreakdown::fromWithdrawal($withdrawal, $transaction);
+    $html = view('pdf.withdrawal-receipt', [
+        'withdrawal' => $withdrawal,
+        'withdrawalBreakdown' => $breakdown,
+        'user' => $this->investor,
+        'generatedAt' => now()->format('d M Y H:i'),
+    ])->render();
+
+    expect($html)
+        ->toContain('Requested bank payout')
+        ->toContain('Total wallet debit')
+        ->toContain('USD 2,500.00')
+        ->toContain('Not recorded')
+        ->not->toContain('USD 0.00');
+
+    $this->actingAs($this->investor)
+        ->get("/api/investor/withdrawals/{$withdrawal->id}/pdf")
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
+
+    $this->actingAs($this->investor)
+        ->get("/api/investor/wallet/transactions/{$transaction->id}/pdf")
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
 });
 
 it('returns the full payout plus fee reservation when a withdrawal is rejected', function () {

@@ -54,14 +54,18 @@
     </tr>
     <tr>
       <td>
-        <div class="label">Amount</div>
-        <div class="value">{{ number_format((float) $withdrawal->amount, 2) }}</div>
+        <div class="label">Requested bank payout</div>
+        <div class="value">{{ $withdrawalBreakdown['currency'] ? $withdrawalBreakdown['currency'].' ' : '' }}{{ number_format((float) $withdrawalBreakdown['payout_amount'], 2) }}</div>
+        @if($withdrawalBreakdown['currency'] !== 'USD' && $withdrawalBreakdown['payout_amount_usd'] !== null)
+          <div class="muted">USD {{ number_format((float) $withdrawalBreakdown['payout_amount_usd'], 2) }}</div>
+        @endif
       </td>
       <td>
         <div class="label">Status</div>
         <div class="value">{{ ucfirst((string) $withdrawal->status) }}</div>
       </td>
     </tr>
+    @include('pdf.partials.withdrawal-breakdown', ['withdrawalBreakdown' => $withdrawalBreakdown, 'showPayout' => false])
     <tr>
       <td>
         <div class="label">Bank</div>

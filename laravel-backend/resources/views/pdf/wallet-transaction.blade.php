@@ -57,7 +57,7 @@
     </tr>
     <tr>
       <td>
-        <div class="label">Amount</div>
+        <div class="label">{{ $withdrawalBreakdown ? 'Ledger amount' : 'Amount' }}</div>
         <div class="value">{{ number_format((float) $transaction->amount, 2) }} {{ $transaction->wallet->currency ?? '' }}</div>
       </td>
       <td>
@@ -65,6 +65,9 @@
         <div class="value">{{ ucfirst((string) $transaction->status) }}</div>
       </td>
     </tr>
+    @if($withdrawalBreakdown)
+      @include('pdf.partials.withdrawal-breakdown', ['withdrawalBreakdown' => $withdrawalBreakdown])
+    @endif
     @php $meta = is_array($transaction->meta) ? $transaction->meta : []; @endphp
     @if(!empty($meta['original_currency']) || !empty($meta['original_amount']))
     <tr>

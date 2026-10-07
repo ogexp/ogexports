@@ -7,8 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Deposit;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
+use App\Models\Withdrawal;
 use App\Support\ExchangeRateService;
 use App\Support\InvestorMarket;
+use App\Support\InvestorWithdrawalBreakdown;
 use App\Support\WithdrawalTerms;
 use App\Services\InvestorTransactionPdfGenerator;
 use Illuminate\Http\JsonResponse;
@@ -99,8 +101,18 @@ class WalletController extends Controller
             ->firstOrFail();
 
         $transaction = $wallet->transactions()->findOrFail($id);
+        $meta = is_array($transaction->meta) ? $transaction->meta : [];
+        $withdrawal = $transaction->type === 'withdrawal' && is_numeric($meta['withdrawal_id'] ?? null)
+            ? Withdrawal::query()
+                ->where('investor_id', $request->user()->id)
+                ->find($meta['withdrawal_id'])
+            : null;
+        $transactionData = $transaction->toArray();
+        $transactionData['withdrawal_breakdown'] = $withdrawal
+            ? InvestorWithdrawalBreakdown::fromWithdrawal($withdrawal, $transaction)
+            : null;
 
-        return response()->json(['data' => $transaction]);
+        return response()->json(['data' => $transactionData]);
     }
 
     public function transactionPdf(Request $request, int $id, InvestorTransactionPdfGenerator $pdf): \Symfony\Component\HttpFoundation\Response

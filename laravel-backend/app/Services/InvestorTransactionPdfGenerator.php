@@ -9,6 +9,7 @@ use App\Models\WalletTransaction;
 use App\Models\Withdrawal;
 use App\Support\ContainerProjectStatus;
 use App\Support\DepositReviewStatuses;
+use App\Support\InvestorWithdrawalBreakdown;
 use App\Support\InvestmentReferenceGenerator;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -18,9 +19,18 @@ class InvestorTransactionPdfGenerator
     public function walletTransaction(WalletTransaction $transaction, User $user): \Symfony\Component\HttpFoundation\Response
     {
         $transaction->loadMissing('wallet');
+        $meta = is_array($transaction->meta) ? $transaction->meta : [];
+        $withdrawal = $transaction->type === 'withdrawal' && is_numeric($meta['withdrawal_id'] ?? null)
+            ? Withdrawal::query()
+                ->where('investor_id', $user->id)
+                ->find($meta['withdrawal_id'])
+            : null;
 
         $html = view('pdf.wallet-transaction', [
             'transaction' => $transaction,
+            'withdrawalBreakdown' => $withdrawal
+                ? InvestorWithdrawalBreakdown::fromWithdrawal($withdrawal, $transaction)
+                : null,
             'user' => $user,
             'generatedAt' => now()->format('d M Y H:i'),
         ])->render();
@@ -50,6 +60,7 @@ class InvestorTransactionPdfGenerator
     {
         $html = view('pdf.withdrawal-receipt', [
             'withdrawal' => $withdrawal,
+            'withdrawalBreakdown' => InvestorWithdrawalBreakdown::fromWithdrawal($withdrawal),
             'user' => $user,
             'generatedAt' => now()->format('d M Y H:i'),
         ])->render();

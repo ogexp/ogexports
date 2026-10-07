@@ -14,14 +14,26 @@ export interface InvestorWithdrawalRecord {
      * @nullable
      */
   amount_usd?: number | null;
-  /** Withdrawal fee in the investor wallet currency. */
-  fee: number;
-  /** Withdrawal fee in USD. */
-  fee_usd: number;
-  /** Total amount reserved or debited from the investor wallet. */
-  total_debit: number;
-  /** Submission-time USD equivalent of the total wallet debit. */
-  total_debit_usd: number;
+  /**
+     * Recorded withdrawal fee in the investor wallet currency; null when none was saved.
+     * @nullable
+     */
+  fee: number | null;
+  /**
+     * Saved USD equivalent of the withdrawal fee; null when none was saved.
+     * @nullable
+     */
+  fee_usd: number | null;
+  /**
+     * Recorded total amount reserved or debited from the investor wallet.
+     * @nullable
+     */
+  total_debit: number | null;
+  /**
+     * Saved USD equivalent of the total wallet debit; null when none was recorded.
+     * @nullable
+     */
+  total_debit_usd: number | null;
   /** Currency used for amount, fee, and total_debit. */
   currency: string;
   /**

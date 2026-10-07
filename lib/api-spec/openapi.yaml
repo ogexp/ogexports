@@ -433,7 +433,7 @@ paths:
           description: Wallet transaction
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/JsonObject" }
+              schema: { $ref: "#/components/schemas/InvestorWalletTransactionResponse" }
         "404":
           description: Transaction not found for this investor
   /investor/wallet/exchange-rates:
@@ -1637,6 +1637,51 @@ components:
             estimated_processing_time:
               type: string
               description: Server-provided estimated withdrawal processing time.
+    InvestorWalletWithdrawalBreakdown:
+      type: object
+      additionalProperties: false
+      required: [payout_amount, payout_amount_usd, fee, fee_usd, total_debit, total_debit_usd, currency, exchange_rate]
+      properties:
+        payout_amount:
+          type: number
+          description: Requested bank payout in the wallet currency.
+        payout_amount_usd:
+          type: ["number", "null"]
+          description: Saved USD equivalent of the payout, when one was recorded.
+        fee:
+          type: ["number", "null"]
+          description: Recorded withdrawal fee in the wallet currency; null when no fee was saved.
+        fee_usd:
+          type: ["number", "null"]
+          description: Saved USD equivalent of the fee; null when none was recorded.
+        total_debit:
+          type: ["number", "null"]
+          description: Recorded total debit, or actual ledger debit for older withdrawals.
+        total_debit_usd:
+          type: ["number", "null"]
+          description: Saved USD equivalent of the total debit, when one was recorded.
+        currency:
+          type: ["string", "null"]
+          description: Currency recorded for the wallet withdrawal.
+        exchange_rate:
+          type: ["number", "null"]
+          description: Saved PKR-per-USD exchange-rate snapshot, when one was recorded.
+    InvestorWalletTransactionDetail:
+      type: object
+      additionalProperties: true
+      required: [withdrawal_breakdown]
+      properties:
+        withdrawal_breakdown:
+          anyOf:
+            - $ref: "#/components/schemas/InvestorWalletWithdrawalBreakdown"
+            - type: "null"
+    InvestorWalletTransactionResponse:
+      type: object
+      additionalProperties: true
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/InvestorWalletTransactionDetail"
     InvestorWithdrawalRecord:
       type: object
       additionalProperties: true
@@ -1649,17 +1694,17 @@ components:
           type: [number, "null"]
           description: Submission-time USD equivalent of the payout amount when an FX snapshot applies.
         fee:
-          type: number
-          description: Withdrawal fee in the investor wallet currency.
+          type: ["number", "null"]
+          description: Recorded withdrawal fee in the investor wallet currency; null when none was saved.
         fee_usd:
-          type: number
-          description: Withdrawal fee in USD.
+          type: ["number", "null"]
+          description: Saved USD equivalent of the withdrawal fee; null when none was saved.
         total_debit:
-          type: number
-          description: Total amount reserved or debited from the investor wallet.
+          type: ["number", "null"]
+          description: Recorded total amount reserved or debited from the investor wallet.
         total_debit_usd:
-          type: number
-          description: Submission-time USD equivalent of the total wallet debit.
+          type: ["number", "null"]
+          description: Saved USD equivalent of the total wallet debit; null when none was recorded.
         currency:
           type: string
           description: Currency used for amount, fee, and total_debit.

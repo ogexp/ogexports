@@ -175,9 +175,12 @@ class WithdrawalController extends Controller
                 [
                     'withdrawal_id' => $withdrawal->id,
                     'payout_amount' => $amount,
+                    'amount_usd' => $amountUsd,
+                    'exchange_rate' => $exchangeRate,
                     'fee' => $fee,
                     'fee_usd' => $feeUsd,
                     'total_debit' => $totalDebit,
+                    'total_debit_usd' => $totalDebitUsd,
                     'currency' => $walletCurrency,
                 ],
             );
@@ -318,17 +321,17 @@ class WithdrawalController extends Controller
             'amount' => (float) $withdrawal->amount,
             'amount_usd' => $withdrawal->amount_usd !== null ? (float) $withdrawal->amount_usd : null,
             'exchange_rate' => $withdrawal->exchange_rate !== null ? (float) $withdrawal->exchange_rate : null,
-            'fee' => $withdrawal->fee !== null ? (float) $withdrawal->fee : 0.0,
-            'fee_usd' => $withdrawal->fee_usd !== null ? (float) $withdrawal->fee_usd : 0.0,
+            'fee' => $withdrawal->fee !== null ? (float) $withdrawal->fee : null,
+            'fee_usd' => $withdrawal->fee_usd !== null ? (float) $withdrawal->fee_usd : null,
             'total_debit' => $withdrawal->total_debit !== null
                 ? (float) $withdrawal->total_debit
-                : (float) $withdrawal->amount,
+                : null,
             'total_debit_usd' => $withdrawal->total_debit_usd !== null
                 ? (float) $withdrawal->total_debit_usd
-                : ($withdrawal->amount_usd !== null ? (float) $withdrawal->amount_usd : null),
+                : null,
             'currency' => strtoupper((string) (is_array($withdrawal->bank_details) ? ($withdrawal->bank_details['currency'] ?? 'USD') : 'USD')),
-            'withdrawal_fee' => $withdrawal->fee !== null ? (float) $withdrawal->fee : 0.0,
-            'withdrawal_fee_usd' => $withdrawal->fee_usd !== null ? (float) $withdrawal->fee_usd : 0.0,
+            'withdrawal_fee' => $withdrawal->fee !== null ? (float) $withdrawal->fee : null,
+            'withdrawal_fee_usd' => $withdrawal->fee_usd !== null ? (float) $withdrawal->fee_usd : null,
             'estimated_processing_time' => (string) config('withdrawal.estimated_processing_time', '1 to 2 working days'),
             'bank_details' => InvestorBankAccountPresenter::maskBankDetails(
                 is_array($withdrawal->bank_details) ? $withdrawal->bank_details : []

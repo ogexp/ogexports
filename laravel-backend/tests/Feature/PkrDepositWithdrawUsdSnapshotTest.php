@@ -199,6 +199,36 @@ it('stores USD amount and PKR-per-USD rate when a Pakistani user withdraws', fun
         ->and((float) $withdrawal->fee_usd)->toBe(2.0)
         ->and((float) $withdrawal->total_debit)->toBe(28407.0)
         ->and((float) $withdrawal->total_debit_usd)->toBe(102.0);
+
+    $transaction = \App\Models\WalletTransaction::query()
+        ->where('meta->withdrawal_id', $withdrawal->id)
+        ->firstOrFail();
+
+    $this->actingAs($investor)
+        ->getJson("/api/investor/wallet/transactions/{$transaction->id}")
+        ->assertOk()
+        ->assertJsonPath('data.withdrawal_breakdown.payout_amount', 27850)
+        ->assertJsonPath('data.withdrawal_breakdown.payout_amount_usd', 100)
+        ->assertJsonPath('data.withdrawal_breakdown.fee', 557)
+        ->assertJsonPath('data.withdrawal_breakdown.fee_usd', 2)
+        ->assertJsonPath('data.withdrawal_breakdown.total_debit', 28407)
+        ->assertJsonPath('data.withdrawal_breakdown.total_debit_usd', 102)
+        ->assertJsonPath('data.withdrawal_breakdown.currency', 'PKR')
+        ->assertJsonPath('data.withdrawal_breakdown.exchange_rate', 278.5);
+
+    $receiptHtml = view('pdf.withdrawal-receipt', [
+        'withdrawal' => $withdrawal,
+        'withdrawalBreakdown' => \App\Support\InvestorWithdrawalBreakdown::fromWithdrawal($withdrawal, $transaction),
+        'user' => $investor,
+        'generatedAt' => now()->format('d M Y H:i'),
+    ])->render();
+
+    expect($receiptHtml)
+        ->toContain('PKR 27,850.00')
+        ->toContain('USD 100.00')
+        ->toContain('PKR 557.00 (USD 2.00)')
+        ->toContain('PKR 28,407.00 (USD 102.00)')
+        ->toContain('1 USD = 278.50000000 PKR');
 });
 
 it('rejects a PKR payout below the USD 100 minimum at the request rate', function () {

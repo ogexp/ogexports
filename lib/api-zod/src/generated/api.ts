@@ -1206,7 +1206,20 @@ export const GetInvestorWalletTransactionParams = zod.object({
   "id": zod.coerce.number().int().min(1)
 })
 
-export const GetInvestorWalletTransactionResponse = zod.record(zod.string(), zod.unknown())
+export const GetInvestorWalletTransactionResponse = zod.object({
+  "data": zod.object({
+  "withdrawal_breakdown": zod.union([zod.object({
+  "payout_amount": zod.number().describe('Requested bank payout in the wallet currency.'),
+  "payout_amount_usd": zod.number().nullable().describe('Saved USD equivalent of the payout, when one was recorded.'),
+  "fee": zod.number().nullable().describe('Recorded withdrawal fee in the wallet currency; null when no fee was saved.'),
+  "fee_usd": zod.number().nullable().describe('Saved USD equivalent of the fee; null when none was recorded.'),
+  "total_debit": zod.number().nullable().describe('Recorded total debit, or actual ledger debit for older withdrawals.'),
+  "total_debit_usd": zod.number().nullable().describe('Saved USD equivalent of the total debit, when one was recorded.'),
+  "currency": zod.string().nullable().describe('Currency recorded for the wallet withdrawal.'),
+  "exchange_rate": zod.number().nullable().describe('Saved PKR-per-USD exchange-rate snapshot, when one was recorded.')
+}),zod.null()])
+})
+})
 
 
 /**
@@ -1270,10 +1283,10 @@ export const GetInvestorWithdrawalsResponse = zod.object({
   "data": zod.array(zod.object({
   "amount": zod.number().describe('Amount requested for payout to the investor\'s bank.'),
   "amount_usd": zod.number().nullish().describe('Submission-time USD equivalent of the payout amount when an FX snapshot applies.'),
-  "fee": zod.number().describe('Withdrawal fee in the investor wallet currency.'),
-  "fee_usd": zod.number().describe('Withdrawal fee in USD.'),
-  "total_debit": zod.number().describe('Total amount reserved or debited from the investor wallet.'),
-  "total_debit_usd": zod.number().describe('Submission-time USD equivalent of the total wallet debit.'),
+  "fee": zod.number().nullable().describe('Recorded withdrawal fee in the investor wallet currency; null when none was saved.'),
+  "fee_usd": zod.number().nullable().describe('Saved USD equivalent of the withdrawal fee; null when none was saved.'),
+  "total_debit": zod.number().nullable().describe('Recorded total amount reserved or debited from the investor wallet.'),
+  "total_debit_usd": zod.number().nullable().describe('Saved USD equivalent of the total wallet debit; null when none was recorded.'),
   "currency": zod.string().describe('Currency used for amount, fee, and total_debit.'),
   "exchange_rate": zod.number().nullish().describe('Submission-time PKR per USD rate when an FX snapshot applies.'),
   "status": zod.string()
@@ -1335,10 +1348,10 @@ export const CreateInvestorWithdrawalResponse = zod.object({
   "data": zod.object({
   "amount": zod.number().describe('Amount requested for payout to the investor\'s bank.'),
   "amount_usd": zod.number().nullish().describe('Submission-time USD equivalent of the payout amount when an FX snapshot applies.'),
-  "fee": zod.number().describe('Withdrawal fee in the investor wallet currency.'),
-  "fee_usd": zod.number().describe('Withdrawal fee in USD.'),
-  "total_debit": zod.number().describe('Total amount reserved or debited from the investor wallet.'),
-  "total_debit_usd": zod.number().describe('Submission-time USD equivalent of the total wallet debit.'),
+  "fee": zod.number().nullable().describe('Recorded withdrawal fee in the investor wallet currency; null when none was saved.'),
+  "fee_usd": zod.number().nullable().describe('Saved USD equivalent of the withdrawal fee; null when none was saved.'),
+  "total_debit": zod.number().nullable().describe('Recorded total amount reserved or debited from the investor wallet.'),
+  "total_debit_usd": zod.number().nullable().describe('Saved USD equivalent of the total wallet debit; null when none was recorded.'),
   "currency": zod.string().describe('Currency used for amount, fee, and total_debit.'),
   "exchange_rate": zod.number().nullish().describe('Submission-time PKR per USD rate when an FX snapshot applies.'),
   "status": zod.string()

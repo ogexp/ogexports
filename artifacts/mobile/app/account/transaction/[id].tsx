@@ -40,12 +40,30 @@ export default function TransactionDetails() {
   });
   const transaction = unwrap(query.data);
   const meta = record(transaction.meta);
+  const withdrawalBreakdown = record(transaction.withdrawal_breakdown);
+  const hasWithdrawalBreakdown = Object.keys(withdrawalBreakdown).length > 0;
   const transactionId = first(transaction, ['id', 'transaction_id'], id);
   const title = first(transaction, ['description', 'title'], first(transaction, ['type', 'transaction_type'], 'Transaction'));
   const currency = first(transaction, ['currency'], first(meta, ['currency', 'wallet_currency']));
+  const breakdownCurrency = first(withdrawalBreakdown, ['currency'], currency);
   const reportedAmount = amount(transaction, ['amount']);
-  const amountLabel = money(reportedAmount, currency || 'USD');
+  const amountLabel = money(
+    reportedAmount,
+    (hasWithdrawalBreakdown ? breakdownCurrency : currency) || 'USD',
+    { preserveSource: hasWithdrawalBreakdown },
+  );
   const status = first(transaction, ['status', 'state'], unavailable);
+  const formatRecordedAmount = (key: string) => {
+    const value = amount(withdrawalBreakdown, [key]);
+    if (value === null) return 'Not recorded';
+    return breakdownCurrency
+      ? money(value, breakdownCurrency, { preserveSource: true })
+      : value.toFixed(2);
+  };
+  const exchangeRate = amount(withdrawalBreakdown, ['exchange_rate']);
+  const exchangeRateLabel = exchangeRate === null
+    ? 'Not recorded'
+    : `1 USD = ${exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${breakdownCurrency || 'PKR'}`;
 
   return <Screen title="Transaction details" subtitle="Transaction information reported by OG Exports">
     {query.isLoading ? <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
@@ -71,6 +89,16 @@ export default function TransactionDetails() {
         {first(meta, ['investment_id']) ? <DetailLine label="Investment ID" value={first(meta, ['investment_id'])} /> : null}
         {first(meta, ['trade_id', 'trade_reference']) ? <DetailLine label="Trade ID" value={first(meta, ['trade_id', 'trade_reference'])} /> : null}
       </Card>
+      {hasWithdrawalBreakdown ? <>
+        <Section title="Withdrawal breakdown" />
+        <Card>
+          <DetailLine label="Requested bank payout" value={formatRecordedAmount('payout_amount')} />
+          <DetailLine label="Withdrawal fee" value={formatRecordedAmount('fee')} />
+          <DetailLine label="Total wallet debit" value={formatRecordedAmount('total_debit')} />
+          <DetailLine label="Currency" value={breakdownCurrency || 'Not recorded'} />
+          <DetailLine label="Saved exchange rate" value={exchangeRateLabel} />
+        </Card>
+      </> : null}
     </> : null}
     {!query.isLoading && !query.isError && !id ? <ErrorState message="This transaction link is invalid." /> : null}
     {!query.isLoading && query.isError && query.error && String(query.error).includes('404') ? <Text accessibilityRole="alert" style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8 }}>This transaction was not found in your account.</Text> : null}

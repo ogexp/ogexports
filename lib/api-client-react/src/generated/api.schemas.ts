@@ -662,6 +662,56 @@ export interface InvestorWalletResponse {
   [key: string]: unknown;
  }
 
+export interface InvestorWalletWithdrawalBreakdown {
+  /** Requested bank payout in the wallet currency. */
+  payout_amount: number;
+  /**
+     * Saved USD equivalent of the payout, when one was recorded.
+     * @nullable
+     */
+  payout_amount_usd: number | null;
+  /**
+     * Recorded withdrawal fee in the wallet currency; null when no fee was saved.
+     * @nullable
+     */
+  fee: number | null;
+  /**
+     * Saved USD equivalent of the fee; null when none was recorded.
+     * @nullable
+     */
+  fee_usd: number | null;
+  /**
+     * Recorded total debit, or actual ledger debit for older withdrawals.
+     * @nullable
+     */
+  total_debit: number | null;
+  /**
+     * Saved USD equivalent of the total debit, when one was recorded.
+     * @nullable
+     */
+  total_debit_usd: number | null;
+  /**
+     * Currency recorded for the wallet withdrawal.
+     * @nullable
+     */
+  currency: string | null;
+  /**
+     * Saved PKR-per-USD exchange-rate snapshot, when one was recorded.
+     * @nullable
+     */
+  exchange_rate: number | null;
+}
+
+export interface InvestorWalletTransactionDetail {
+  withdrawal_breakdown: InvestorWalletWithdrawalBreakdown | null;
+  [key: string]: unknown;
+ }
+
+export interface InvestorWalletTransactionResponse {
+  data: InvestorWalletTransactionDetail;
+  [key: string]: unknown;
+ }
+
 export interface InvestorWithdrawalRecord {
   /** Amount requested for payout to the investor's bank. */
   amount: number;
@@ -670,14 +720,26 @@ export interface InvestorWithdrawalRecord {
      * @nullable
      */
   amount_usd?: number | null;
-  /** Withdrawal fee in the investor wallet currency. */
-  fee: number;
-  /** Withdrawal fee in USD. */
-  fee_usd: number;
-  /** Total amount reserved or debited from the investor wallet. */
-  total_debit: number;
-  /** Submission-time USD equivalent of the total wallet debit. */
-  total_debit_usd: number;
+  /**
+     * Recorded withdrawal fee in the investor wallet currency; null when none was saved.
+     * @nullable
+     */
+  fee: number | null;
+  /**
+     * Saved USD equivalent of the withdrawal fee; null when none was saved.
+     * @nullable
+     */
+  fee_usd: number | null;
+  /**
+     * Recorded total amount reserved or debited from the investor wallet.
+     * @nullable
+     */
+  total_debit: number | null;
+  /**
+     * Saved USD equivalent of the total wallet debit; null when none was recorded.
+     * @nullable
+     */
+  total_debit_usd: number | null;
   /** Currency used for amount, fee, and total_debit. */
   currency: string;
   /**

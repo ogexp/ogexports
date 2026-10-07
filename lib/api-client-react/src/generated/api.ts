@@ -54,6 +54,7 @@ import type {
   InvestorPushTokenRegistration,
   InvestorPushTokenRevocation,
   InvestorWalletResponse,
+  InvestorWalletTransactionResponse,
   InvestorWithdrawalInput,
   InvestorWithdrawalResponse,
   InvestorWithdrawalsResponse,
@@ -2930,9 +2931,9 @@ export const getGetInvestorWalletTransactionUrl = (id: number,) => {
 /**
  * @summary Get one wallet transaction owned by the authenticated investor
  */
-export const getInvestorWalletTransaction = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const getInvestorWalletTransaction = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<InvestorWalletTransactionResponse> => {
 
-  return customFetch<JsonObject>(getGetInvestorWalletTransactionUrl(id),
+  return customFetch<InvestorWalletTransactionResponse>(getGetInvestorWalletTransactionUrl(id),
   {
     ...options,
     method: 'GET'
