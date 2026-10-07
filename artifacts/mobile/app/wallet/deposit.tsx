@@ -24,7 +24,8 @@ import { useColors } from '@/hooks/useColors';
 import { motionHaptic } from '@/lib/motion';
 
 const depositStages = ['Submitted', 'Under Review', 'Verified', 'Credited'] as const;
-const completedStatuses = new Set(['approved', 'verified', 'credited', 'completed']);
+const verificationStatuses = new Set(['approved', 'verified']);
+const walletCreditStatuses = new Set(['credited', 'completed', 'settled']);
 const reviewStatuses = new Set(['pending', 'under review', 'review', 'in review', 'pending verification']);
 
 function isEnabled(value: string) {
@@ -35,13 +36,18 @@ function DepositProgress({ deposit }: { deposit: Record<string, unknown> }) {
   const colors = useColors();
   const rawStatus = first(deposit, ['review_status', 'status'], '—');
   const status = rawStatus.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
-  const approved = completedStatuses.has(status);
+  const walletCredited = walletCreditStatuses.has(status);
+  const verificationComplete = verificationStatuses.has(status) || walletCredited;
   const inReview = reviewStatuses.has(status);
   const stopped = ['rejected', 'declined', 'failed', 'error', 'cancelled', 'canceled'].includes(status);
-  const completeCount = approved ? 4 : stopped ? (status === 'rejected' ? 2 : 1) : inReview ? 1 : status === 'submitted' ? 0 : 0;
-  const activeIndex = approved || stopped ? -1 : inReview ? 1 : status === 'submitted' ? 0 : -1;
-  const explanation = approved
+  const completeCount = walletCredited ? 4 : verificationComplete ? 3 : stopped ? (status === 'rejected' ? 2 : 1) : inReview ? 1 : status === 'submitted' ? 0 : 0;
+  const activeIndex = walletCredited || stopped ? -1 : verificationComplete ? 3 : inReview ? 1 : status === 'submitted' ? 0 : -1;
+  const explanation = walletCredited
     ? 'Your deposit has been credited to your wallet.'
+    : status === 'approved'
+      ? 'Your deposit was approved. Check your wallet balance to confirm whether funds were credited.'
+    : status === 'verified'
+      ? 'Your deposit details have been verified. Check your wallet balance to confirm whether funds were credited.'
     : inReview
       ? 'OG Exports is reviewing the request. Your wallet has not been credited yet.'
       : stopped
@@ -65,7 +71,7 @@ function DepositProgress({ deposit }: { deposit: Record<string, unknown> }) {
         </View>;
       })}
     </View>
-    <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 4 }}>{explanation}</Text>
+    <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 4 }}>{explanation}</Text>
   </Card>;
 }
 
@@ -84,13 +90,6 @@ function exactBankDetail(row: Record<string, unknown>, keys: string[]): string {
     if (typeof value === 'number' && Number.isFinite(value)) return String(value);
   }
   return '';
-}
-
-function formatBankDetailForReview(key: PaymentBankDetailKey, value: string): string {
-  if (key === 'swift') return value.trim().toUpperCase();
-  if (key !== 'iban') return value;
-  const compactIban = value.replace(/\s+/g, '').toUpperCase();
-  return compactIban.match(/.{1,4}/g)?.join(' ') ?? compactIban;
 }
 
 type PaymentBankDetailKey = 'account-number' | 'iban' | 'swift';
@@ -281,7 +280,7 @@ export default function Deposit() {
       setConfirmation(deposit);
       setSuccessFeedbackVisible(true);
       setSelectedDepositId(first(deposit, ['id', 'reference', 'deposit_reference']));
-      setNotice(first(response, ['message'], 'Deposit request received from OG Exports.'));
+      setNotice('Your deposit request has been received.');
       setStage('submitted');
       setAmount('');
       setReference('');
@@ -300,21 +299,26 @@ export default function Deposit() {
   const normalizedDepositStatus = depositStatus.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
   const depositCompleted = ['settled', 'completed', 'credited'].includes(normalizedDepositStatus);
   const depositApproved = normalizedDepositStatus === 'approved';
+  const depositVerified = normalizedDepositStatus === 'verified';
   const depositStatusNeedsAttention = ['rejected', 'declined', 'failed', 'error', 'cancelled', 'canceled'].includes(normalizedDepositStatus);
   const successTitle = depositCompleted
     ? 'Deposit complete'
     : depositApproved
       ? 'Deposit approved'
-    : depositStatusNeedsAttention
-      ? 'Deposit status updated'
-      : 'Deposit request received';
+      : depositVerified
+        ? 'Deposit verified'
+        : depositStatusNeedsAttention
+          ? 'Deposit status updated'
+          : 'Deposit request received';
   const successBody = depositCompleted
     ? 'Your deposit has been credited to your wallet.'
     : depositApproved
-      ? 'Your deposit was approved. Check your wallet for the updated balance.'
-    : depositStatusNeedsAttention
-      ? 'This deposit was not approved. No wallet credit was recorded for this request.'
-      : 'Your deposit request is under review. Your wallet balance will update after approval.';
+      ? 'Your deposit was approved. Check your wallet balance to confirm whether funds were credited.'
+      : depositVerified
+        ? 'Your deposit details have been verified. Check your wallet balance to confirm whether funds were credited.'
+        : depositStatusNeedsAttention
+          ? 'This deposit was not approved. No wallet credit was recorded for this request.'
+      : 'Your deposit request is under review. Your wallet balance will update when the deposit is credited.';
 
   return <Screen key={stage} title="Add funds" subtitle={selectedPaymentMethod
     ? `Deposit via ${selectedPaymentMethod.label} · ${paymentCurrency || 'USD'}`
@@ -471,7 +475,7 @@ export default function Deposit() {
           }} />
         </View>
       </Card>
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginBottom: 12 }}>Use the selected OG Exports payment instructions and submit the transfer reference. Wallet funds are credited only after server approval.</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>Use the selected OG Exports payment instructions and submit the transfer reference. Your wallet balance updates when the deposit is credited.</Text>
     </> : null}
 
     {stage === 'review' ? <Card>
@@ -485,15 +489,21 @@ export default function Deposit() {
           style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8, borderBottomWidth: index === reviewBankDetails.length - 1 ? 0 : 1, borderBottomColor: colors.border }}
         >
            <Text style={{ color: colors.mutedForeground, fontSize: 12, flex: 0.85 }}>{detail.label}</Text>
-           <Text testID={`review-${detail.key}-value`} selectable style={{ color: detail.value ? colors.foreground : colors.mutedForeground, fontFamily: 'monospace', fontSize: 14, fontWeight: '600', flex: 1.5, flexShrink: 1, lineHeight: 20, textAlign: 'right', writingDirection: 'ltr' }}>
-             {detail.value ? formatBankDetailForReview(detail.key, detail.value) : 'Not provided'}
-          </Text>
+           <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
+             style={{ flex: 1.5 }}
+             contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+             <Text testID={`review-${detail.key}-value`} numberOfLines={1} selectable
+               accessibilityLabel={`${detail.label}: ${detail.value || 'Not provided'}`}
+               style={{ color: detail.value ? colors.foreground : colors.mutedForeground, fontFamily: 'monospace', fontSize: 14, fontWeight: '600', flexShrink: 0, lineHeight: 20, textAlign: 'right', writingDirection: 'ltr' }}>
+               {detail.value || 'Not provided'}
+             </Text>
+           </ScrollView>
         </View>)}
       </View>
       <DetailRow label="Transaction reference" value={reference.trim()} />
       <DetailRow label="Proof of transfer" value={proofName || (proofRequired ? 'Required, but not attached' : 'Not attached')} />
       {selectedProject ? <DetailRow label="Project association" value={first(selectedProject, ['title', 'name'], 'Investment project')} /> : null}
-       <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8, marginBottom: 12 }}>OG Exports will review this request. Your wallet balance will update after approval.</Text>
+       <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8, marginBottom: 12 }}>OG Exports will review this request. Your wallet balance will update when the deposit is credited.</Text>
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
       <Action title="Submit deposit request" icon="lock" loading={create.isPending} onPress={() => void submit()} />
       <View style={{ marginTop: 10 }}><Action title="Edit deposit" secondary onPress={() => { setError(''); setStage('form'); }} /></View>
@@ -509,7 +519,7 @@ export default function Deposit() {
       </View>
       <DetailRow label="Deposit reference" value={first(confirmation, ['reference', 'deposit_reference'])} />
       <DetailRow label="Amount" value={moneyInSourceCurrency(readAmount(confirmation, ['amount']), confirmationCurrency || 'USD')} />
-      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8 }}>Your deposit request is under review. Your wallet balance will update after approval.</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8 }}>Your deposit request is under review. Your wallet balance will update when the deposit is credited.</Text>
       <DepositProgress deposit={confirmation} />
       <View style={{ marginTop: 14 }}><Action title="Record another deposit" secondary onPress={() => {
         setConfirmation(null);
@@ -554,7 +564,7 @@ export default function Deposit() {
       visible={successFeedbackVisible}
       title={successTitle}
       body={successBody}
-      feedback={depositCompleted ? 'success' : depositApproved ? 'approved' : depositStatusNeedsAttention ? 'attention' : 'ack'}
+      feedback={depositCompleted ? 'success' : depositApproved || depositVerified ? 'approved' : depositStatusNeedsAttention ? 'attention' : 'ack'}
       status={depositStatus ? formatUiStatus(depositStatus) : undefined}
       reference={first(confirmation ?? {}, ['reference', 'deposit_reference', 'bank_reference']) || undefined}
       onDismiss={() => setSuccessFeedbackVisible(false)}

@@ -222,7 +222,7 @@ export function Status({ value }: { value: string }) {
   const label = value.trim() || '—';
   const normalized = label.toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
   const successStatuses = new Set(['approved', 'active', 'complete', 'completed', 'paid', 'verified', 'success', 'successful', 'settled', 'delivered', 'distributed', 'released', 'disbursed']);
-  const pendingStatuses = new Set(['pending', 'review', 'under review', 'processing', 'submitted', 'initiated', 'awaiting', 'awaiting update', 'in transit', 'shipped', 'scheduled', 'queued', 'in progress']);
+  const pendingStatuses = new Set(['pending', 'pending review', 'review', 'under review', 'processing', 'submitted', 'initiated', 'awaiting', 'awaiting review', 'awaiting update', 'in transit', 'shipped', 'scheduled', 'queued', 'in progress']);
   const errorStatuses = new Set(['rejected', 'failed', 'error', 'declined', 'cancelled', 'canceled', 'expired', 'blocked', 'suspended', 'overdue', 'returned']);
   const tone = successStatuses.has(normalized) ? 'success'
     : pendingStatuses.has(normalized) ? 'pending'
@@ -547,7 +547,7 @@ export function SuccessFeedback({
         <Text style={{ color: colors.foreground, fontSize: 19, fontWeight: '700', textAlign: 'center', marginTop: 15 }}>
           {title}
         </Text>
-        <Text style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 7 }}>
+        <Text style={{ color: colors.mutedForeground, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 7 }}>
           {body}
         </Text>
         {status?.trim() || reference?.trim() ? <View style={{
@@ -568,10 +568,10 @@ export function SuccessFeedback({
             borderBottomWidth: reference?.trim() ? 1 : 0,
             borderBottomColor: colors.border,
           }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Status</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Status</Text>
             <Text style={{
               color: feedback === 'success' ? colors.statusSuccess : feedback === 'attention' ? colors.destructive : colors.statusPending,
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: '700',
               textAlign: 'right',
               flexShrink: 1,
@@ -584,10 +584,10 @@ export function SuccessFeedback({
             justifyContent: 'space-between',
             gap: 12,
           }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Reference</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Reference</Text>
             <Text selectable style={{
               color: colors.foreground,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: '700',
               textAlign: 'right',
               flexShrink: 1,

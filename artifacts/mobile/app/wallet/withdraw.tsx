@@ -13,6 +13,7 @@ import {
   useSendInvestorWithdrawalOtp,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
+import { formatUiStatus } from '@/lib/strings';
 import { TransactionPasswordResetModal } from '@/components/TransactionPasswordResetModal';
 import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, money, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
@@ -338,7 +339,7 @@ export default function Withdraw() {
       setSuccessFeedbackVisible(true);
       setSelectedWithdrawalId(first(withdrawal, ['id', 'reference', 'withdraw_id']));
       setSubmittedAmount(validAmount);
-      setNotice(first(response, ['message'], 'Withdrawal request received from OG Exports.'));
+      setNotice('Your withdrawal request has been received.');
       setStage('submitted');
       setOtp('');
       setOtpEmail('');
@@ -364,14 +365,14 @@ export default function Withdraw() {
       ? 'Withdrawal approved'
       : withdrawalNeedsAttention
         ? 'Withdrawal status updated'
-        : 'Withdrawal request submitted';
+        : 'Withdrawal request received';
   const successBody = withdrawalTransferConfirmed
-    ? `OG Exports reports this withdrawal as ${withdrawalStatus}.`
+    ? 'This withdrawal is marked as completed in your OG Exports account. This does not verify receipt by your bank.'
     : withdrawalApproved
-      ? 'OG Exports reports this withdrawal as approved. This status does not confirm that the funds have been transferred.'
+      ? 'Your withdrawal has been approved. Approval does not confirm that funds have reached your bank account.'
       : withdrawalNeedsAttention
-        ? `OG Exports reports this withdrawal as ${withdrawalStatus}. Review the returned status before relying on a payment.`
-      : 'Your withdrawal request was received. Processing and payment remain subject to the server status shown on the confirmation screen.';
+        ? 'The withdrawal request needs attention. Review the current status and any note in your withdrawal history.'
+      : 'Your withdrawal request is under review. A submitted request does not confirm that funds have reached your bank account.';
 
   return <Screen title="Withdraw" subtitle="Request a payout from your OG Exports wallet">
     {dashboardQuery.isError && availableBalance == null
@@ -592,9 +593,9 @@ export default function Withdraw() {
 
     {stage === 'submitted' && confirmation ? <Card style={{ borderColor: colors.primary }} testID="withdraw-submitted">
       <SuccessMark feedback="none" />
-      <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', marginTop: 10 }}>Withdrawal submitted</Text>
+       <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', marginTop: 10 }}>Withdrawal request received</Text>
       <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>
-        <Text>Current status:</Text><Text> {first(confirmation, ['status', 'state'], 'Not provided')}.</Text>
+         <Text>Current status:</Text><Text> {formatUiStatus(first(confirmation, ['status', 'state'], 'Not provided'))}.</Text>
       </Text>
       <DetailRow label="Reference" value={first(confirmation, ['withdraw_id', 'reference', 'id'], 'Not provided')} />
       <DetailRow
@@ -676,7 +677,7 @@ export default function Withdraw() {
       title={successTitle}
       body={successBody}
       feedback={withdrawalTransferConfirmed ? 'success' : withdrawalApproved ? 'approved' : withdrawalNeedsAttention ? 'attention' : 'ack'}
-      status={withdrawalStatus || undefined}
+      status={withdrawalStatus ? formatUiStatus(withdrawalStatus) : undefined}
       reference={first(confirmation ?? {}, ['reference', 'withdraw_id', 'id']) || undefined}
       onDismiss={() => setSuccessFeedbackVisible(false)}
       testID="withdraw-success-feedback"

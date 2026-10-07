@@ -358,8 +358,6 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["4 · Transaction Reference","4 · ٹرانزیکشن ریفرنس","4 · مرجع العملية"],
   ["A PDF statement will be generated from your investor account records.","آپ کے سرمایہ کار اکاؤنٹ کے ریکارڈ سے ایک پی ڈی ایف اسٹیٹمنٹ تیار کی جائے گی۔","سيتم إنشاء كشف حساب بصيغة PDF من سجلات حساب المستثمر الخاص بك."],
   ["A financial cost breakdown has not been provided.","مالی اخراجات کی تفصیل فراہم نہیں کی گئی ہے۔","لم يتم تقديم تفاصيل التكاليف المالية."],
-  ["A submitted request is not yet a wallet credit. Follow the server status below.","جمع کرائی گئی درخواست ابھی تک والیٹ کریڈٹ نہیں ہے۔ نیچے سرور کی حیثیت کو فالو کریں۔","الطلب المقدم لم يُعتمد كرصيد في المحفظة بعد. تابع حالة الخادم أدناه."],
-  ["A submitted withdrawal is not yet completed. Check the server status in your withdrawal history.","جمع کرائی گئی واپسی ابھی مکمل نہیں ہوئی ہے۔ اپنی واپسی کی ہسٹری میں سرور کی حیثیت چیک کریں۔","طلب السحب المقدم لم يكتمل بعد. تحقق من حالة الخادم في سجل السحوبات الخاص بك."],
   ["Additional payment instructions were not provided by OG Exports.","ادائیگی کی اضافی ہدایات OG Exports کی طرف سے فراہم نہیں کی گئیں۔","لم يتم تقديم تعليمات دفع إضافية من قبل OG Exports."],
   ["Already have an account? Sign In","کیا آپ کا پہلے سے اکاؤنٹ موجود ہے؟ سائن ان کریں","هل لديك حساب بالفعل؟ سجل الدخول"],
   ["As shown on your identity document","جیسا کہ آپ کی شناختی دستاویز پر درج ہے","كما هو موضح في وثيقة هويتك"],
@@ -456,7 +454,6 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["OG Exports has not supplied route or transport details for this trade.","OG Exports نے اس تجارت کے لیے روٹ یا ٹرانسپورٹ کی تفصیلات فراہم نہیں کی ہیں۔","لم تقدم OG Exports تفاصيل المسار أو النقل لهذه التجارة."],
   ["OG Exports no longer reports this account as verified. The investment flow is blocked until verification is complete.","OG Exports اب اس اکاؤنٹ کو تصدیق شدہ نہیں مانتا۔ تصدیق مکمل ہونے تک سرمایہ کاری کا عمل بلاک ہے۔","لم تعد OG Exports تبلغ عن هذا الحساب كحساب موثق. تم حظر تدفق الاستثمار حتى اكتمال التحقق."],
   ["OG Exports verifies the email code and transaction password when a withdrawal is submitted.","جب نکاسی کی درخواست جمع کرائی جاتی ہے تو OG Exports ای میل کوڈ اور ٹرانزیکشن پاس ورڈ کی تصدیق کرتا ہے۔","تقوم OG Exports بالتحقق من رمز البريد الإلكتروني وكلمة مرور المعاملة عند تقديم طلب السحب."],
-  ["OG Exports will review this request. The wallet balance will change only after the server confirms approval.","OG Exports اس درخواست کا جائزہ لے گا۔ والیٹ بیلنس صرف سرور کی منظوری کے بعد تبدیل ہوگا۔","ستقوم OG Exports بمراجعة هذا الطلب. سيتغير رصيد المحفظة فقط بعد تأكيد الخادم للموافقة."],
   ["Official Terms of Service have not been published in investor app settings. You cannot acknowledge or submit this investment until they are available.","سرکاری سروس کی شرائط انویسٹر ایپ سیٹنگز میں شائع نہیں کی گئی ہیں۔ جب تک یہ دستیاب نہ ہوں، آپ اس سرمایہ کاری کو تسلیم یا جمع نہیں کر سکتے۔","لم يتم نشر شروط الخدمة الرسمية في إعدادات تطبيق المستثمر. لا يمكنك الإقرار بهذا الاستثمار أو تقديمه حتى تصبح متاحة."],
   ["Official content not available","سرکاری مواد دستیاب نہیں","المحتوى الرسمي غير متاح"],
   ["Official content published by OG Exports","OG Exports کی طرف سے شائع کردہ سرکاری مواد","محتوى رسمي منشور بواسطة OG Exports"],
@@ -580,7 +577,6 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Uploaded files are attached to the investor application. Their verification status is controlled by OG Exports.","اپ لوڈ کردہ فائلیں سرمایہ کار کی درخواست کے ساتھ منسلک ہیں۔ ان کی توثیق کا اسٹیٹس OG Exports کے کنٹرول میں ہے۔","الملفات المحملة مرفقة بطلب المستثمر. يتم التحكم في حالة التحقق منها من قبل OG Exports."],
   ["Use a code sent to the email address on your account when signing in.","سائن ان کرتے وقت اپنے اکاؤنٹ پر موجود ای میل ایڈریس پر بھیجا گیا کوڈ استعمال کریں۔","استخدم الرمز المرسل إلى عنوان البريد الإلكتروني الموجود في حسابك عند تسجيل الدخول."],
   ["Use the legal details shown on your identity document.","اپنی شناختی دستاویز پر دکھائی گئی قانونی تفصیلات کا استعمال کریں۔","استخدم التفاصيل القانونية الموضحة في وثيقة هويتك."],
-  ["Use the selected OG Exports payment instructions and submit the transfer reference. Wallet funds are credited only after server approval.","منتخب کردہ OG Exports ادائیگی کی ہدایات کا استعمال کریں اور ٹرانسفر ریفرنس جمع کروائیں۔ والیٹ فنڈز سرور کی منظوری کے بعد ہی کریڈٹ کیے جاتے ہیں۔","استخدم تعليمات الدفع المحددة الخاصة بـ OG Exports وأرسل مرجع التحويل. يتم إضافة أموال المحفظة فقط بعد موافقة الخادم."],
   ["Verification helps protect your account and is required for investing.","توثیق آپ کے اکاؤنٹ کو محفوظ رکھنے میں مدد کرتی ہے اور سرمایہ کاری کے لیے ضروری ہے۔","يساعد التحقق في حماية حسابك وهو مطلوب للاستثمار."],
   ["Verification required to invest","سرمایہ کاری کے لیے توثیق ضروری ہے","التحقق مطلوب للاستثمار"],
   ["Verified destination account","توثیق شدہ منزل مقصود اکاؤنٹ","حساب الوجهة الموثق"],
@@ -780,7 +776,6 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Uploaded files are attached to the investor application. Their verification status is controlled by OG Exports.","اپ لوڈ کردہ فائلیں سرمایہ کار کی درخواست کے ساتھ منسلک ہیں۔ ان کی توثیق کا اسٹیٹس OG Exports کے کنٹرول میں ہے۔","الملفات المحملة مرفقة بطلب المستثمر. يتم التحكم في حالة التحقق منها من قبل OG Exports."],
   ["Use a code sent to the email address on your account when signing in.","سائن ان کرتے وقت اپنے اکاؤنٹ پر موجود ای میل ایڈریس پر بھیجا گیا کوڈ استعمال کریں۔","استخدم الرمز المرسل إلى عنوان البريد الإلكتروني الموجود في حسابك عند تسجيل الدخول."],
   ["Use the legal details shown on your identity document.","اپنی شناختی دستاویز پر دکھائی گئی قانونی تفصیلات کا استعمال کریں۔","استخدم التفاصيل القانونية الموضحة في وثيقة هويتك."],
-  ["Use the selected OG Exports payment instructions and submit the transfer reference. Wallet funds are credited only after server approval.","منتخب کردہ OG Exports ادائیگی کی ہدایات کا استعمال کریں اور ٹرانسفر ریفرنس جمع کروائیں۔ والیٹ فنڈز سرور کی منظوری کے بعد ہی کریڈٹ کیے جاتے ہیں۔","استخدم تعليمات الدفع المحددة الخاصة بـ OG Exports وأرسل مرجع التحويل. يتم إضافة أموال المحفظة فقط بعد موافقة الخادم."],
   ["Verification helps protect your account and is required for investing.","توثیق آپ کے اکاؤنٹ کو محفوظ رکھنے میں مدد کرتی ہے اور سرمایہ کاری کے لیے ضروری ہے۔","يساعد التحقق في حماية حسابك وهو مطلوب للاستثمار."],
   ["Verification required to invest","سرمایہ کاری کے لیے توثیق ضروری ہے","التحقق مطلوب للاستثمار"],
   ["Verified destination account","توثیق شدہ منزل مقصود اکاؤنٹ","حساب الوجهة الموثق"],
@@ -896,6 +891,34 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["To date (YYYY-MM-DD)","اختتامی تاریخ (YYYY-MM-DD)","إلى تاريخ (YYYY-MM-DD)"],
   ["Under review","زیرِ جائزہ","قيد المراجعة"],
   ["Use dates in YYYY-MM-DD format.","تاریخیں YYYY-MM-DD کی صورت میں درج کریں۔","أدخل التواريخ بالتنسيق YYYY-MM-DD."],
+  ["Current status","موجودہ حیثیت","الحالة الحالية"],
+  ["Status","حیثیت","الحالة"],
+  ["Pending review","جائزے کے انتظار میں","بانتظار المراجعة"],
+  ["Deposit request received","ڈپازٹ کی درخواست موصول ہوگئی","تم استلام طلب الإيداع"],
+  ["Deposit complete","ڈپازٹ مکمل","اكتمل الإيداع"],
+  ["Deposit approved","ڈپازٹ منظور ہوگیا","تمت الموافقة على الإيداع"],
+  ["Deposit status updated","ڈپازٹ کی حیثیت اپ ڈیٹ ہوگئی","تم تحديث حالة الإيداع"],
+  ["Your deposit request has been received.","آپ کی ڈپازٹ درخواست موصول ہوگئی ہے۔","تم استلام طلب الإيداع الخاص بك."],
+  ["Your deposit request is under review. Your wallet balance will update when the deposit is credited.","آپ کی ڈپازٹ درخواست زیرِ جائزہ ہے۔ ڈپازٹ کریڈٹ ہونے پر آپ کا والیٹ بیلنس اپ ڈیٹ ہوگا۔","طلب الإيداع الخاص بك قيد المراجعة. سيتم تحديث رصيد محفظتك عند إضافة مبلغ الإيداع."],
+  ["Your deposit has been credited to your wallet.","آپ کا ڈپازٹ والیٹ میں جمع کر دیا گیا ہے۔","تم إضافة مبلغ الإيداع إلى محفظتك."],
+  ["Your deposit was approved. Check your wallet balance to confirm whether funds were credited.","آپ کا ڈپازٹ منظور ہوگیا ہے۔ رقم جمع ہونے کی تصدیق کے لیے اپنا والیٹ بیلنس دیکھیں۔","تمت الموافقة على إيداعك. تحقق من رصيد محفظتك للتأكد من إضافة الأموال."],
+  ["Deposit verified","ڈپازٹ کی تصدیق ہوگئی","تم التحقق من الإيداع"],
+  ["Your deposit details have been verified. Check your wallet balance to confirm whether funds were credited.","آپ کی ڈپازٹ تفصیلات کی تصدیق ہوگئی ہے۔ رقم جمع ہونے کی تصدیق کے لیے اپنا والیٹ بیلنس دیکھیں۔","تم التحقق من تفاصيل الإيداع. تحقق من رصيد محفظتك للتأكد من إضافة الأموال."],
+  ["This deposit was not approved. No wallet credit was recorded for this request.","یہ ڈپازٹ منظور نہیں ہوا۔ اس درخواست کے لیے والیٹ میں کوئی رقم جمع نہیں کی گئی۔","لم تتم الموافقة على هذا الإيداع. لم يُسجّل أي رصيد في المحفظة لهذا الطلب."],
+  ["OG Exports will review this request. Your wallet balance will update when the deposit is credited.","OG Exports اس درخواست کا جائزہ لے گا۔ ڈپازٹ کریڈٹ ہونے پر آپ کا والیٹ بیلنس اپ ڈیٹ ہوگا۔","ستراجع OG Exports هذا الطلب. سيتم تحديث رصيد محفظتك عند إضافة مبلغ الإيداع."],
+  ["OG Exports is reviewing the request. Your wallet has not been credited yet.","OG Exports درخواست کا جائزہ لے رہا ہے۔ ابھی والیٹ میں رقم جمع نہیں ہوئی۔","تراجع OG Exports الطلب. لم تتم إضافة الأموال إلى محفظتك بعد."],
+  ["This deposit request did not complete. Review the status and contact support if you need help.","یہ ڈپازٹ درخواست مکمل نہیں ہوئی۔ حیثیت دیکھیں اور مدد کے لیے سپورٹ سے رابطہ کریں۔","لم يكتمل طلب الإيداع. راجع الحالة وتواصل مع الدعم إذا احتجت إلى مساعدة."],
+  ["This status has not been confirmed. Check again for an update.","اس حیثیت کی تصدیق نہیں ہوئی۔ تازہ اپ ڈیٹ کے لیے دوبارہ دیکھیں۔","لم يتم تأكيد هذه الحالة. تحقق مرة أخرى للاطلاع على تحديث."],
+  ["Withdrawal request received","رقم نکلوانے کی درخواست موصول ہوگئی","تم استلام طلب السحب"],
+  ["Withdrawal completed","رقم نکلوانے کا عمل مکمل ہوگیا","اكتمل السحب"],
+  ["Withdrawal approved","رقم نکلوانے کی درخواست منظور ہوگئی","تمت الموافقة على طلب السحب"],
+  ["Withdrawal status updated","رقم نکلوانے کی حیثیت اپ ڈیٹ ہوگئی","تم تحديث حالة السحب"],
+  ["Your withdrawal request has been received.","آپ کی رقم نکلوانے کی درخواست موصول ہوگئی ہے۔","تم استلام طلب السحب الخاص بك."],
+  ["Your withdrawal request is under review. A submitted request does not confirm that funds have reached your bank account.","آپ کی رقم نکلوانے کی درخواست زیرِ جائزہ ہے۔ درخواست جمع ہونے سے یہ تصدیق نہیں ہوتی کہ رقم آپ کے بینک اکاؤنٹ میں پہنچ گئی ہے۔","طلب السحب الخاص بك قيد المراجعة. تقديم الطلب لا يؤكد وصول الأموال إلى حسابك البنكي."],
+  ["Your withdrawal has been approved. Approval does not confirm that funds have reached your bank account.","آپ کی رقم نکلوانے کی درخواست منظور ہوگئی ہے۔ منظوری سے یہ تصدیق نہیں ہوتی کہ رقم آپ کے بینک اکاؤنٹ میں پہنچ گئی ہے۔","تمت الموافقة على طلب السحب. ولا تؤكد الموافقة وصول الأموال إلى حسابك البنكي."],
+  ["This withdrawal is marked as completed in your OG Exports account. This does not verify receipt by your bank.","آپ کے OG Exports اکاؤنٹ میں اس رقم نکلوانے کی حیثیت مکمل ہے۔ اس سے بینک کی جانب سے رقم موصول ہونے کی تصدیق نہیں ہوتی۔","تظهر حالة السحب مكتملة في حساب OG Exports. ولا يؤكد ذلك استلام الأموال من قبل البنك."],
+  ["The withdrawal request needs attention. Review the current status and any note in your withdrawal history.","رقم نکلوانے کی درخواست پر توجہ درکار ہے۔ اپنی ہسٹری میں موجودہ حیثیت اور کوئی نوٹ دیکھیں۔","يتطلب طلب السحب الانتباه. راجع الحالة الحالية وأي ملاحظات في سجل السحب."],
+  ["Use the selected OG Exports payment instructions and submit the transfer reference. Your wallet balance updates when the deposit is credited.","OG Exports کی منتخب کردہ ادائیگی ہدایات کے مطابق رقم منتقل کریں اور حوالہ جمع کریں۔ ڈپازٹ کریڈٹ ہونے پر آپ کا والیٹ بیلنس اپ ڈیٹ ہوگا۔","استخدم تعليمات الدفع المحددة من OG Exports وأرسل مرجع التحويل. سيتم تحديث رصيد محفظتك عند إضافة مبلغ الإيداع."],
 ];
 
 const translations = new Map<string, Readonly<Record<Exclude<AppLanguage, 'en'>, string>>>(
@@ -918,4 +941,12 @@ export function translateUi(value: string, language: AppLanguage): string {
     if (plural) return `${leading}${count[1]} ${plural}${trailing}`;
   }
   return value;
+}
+
+export function formatUiStatus(value: string): string {
+  const normalized = value.trim().toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ');
+  if (!normalized) return 'Not provided';
+  if (['pending', 'pending review', 'awaiting review'].includes(normalized)) return 'Pending review';
+  if (['review', 'in review', 'under review'].includes(normalized)) return 'Under review';
+  return normalized.replace(/\b[a-z]/g, letter => letter.toUpperCase());
 }
