@@ -9,7 +9,7 @@ The user-confirmed withdrawal policy is a USD 2 fee added on top of the bank pay
 
 **Why:** The user explicitly chose an additional fee rather than deducting it from the payout, so showing a fee without increasing the wallet debit would be misleading.
 
-**How to apply:** Keep the bank payout amount unchanged; validate, reserve, approve, and refund payout plus fee. Display the server-returned fee in USD and its wallet-currency equivalent when applicable. Do not use a later live rate to rewrite a submitted PKR fee. If the API omits terms, the mobile app may show the USD 2 fee and processing estimate as reference, but must not show a server-confirmation warning or disable Proceed. Do not invent non-USD fee/minimum conversions on the client; send requests to Laravel, which remains authoritative for fee, minimum, balance, and reservation validation.
+**How to apply:** Keep the bank payout amount unchanged; validate, reserve, approve, and refund payout plus fee. Display the server-returned fee in USD and its wallet-currency equivalent when applicable. Do not use a later live rate to rewrite a submitted PKR fee. If the API omits terms, the mobile app may show the USD 2 fee and processing estimate as reference and calculate the USD maximum payout after that fee, but must not show a server-confirmation warning or disable Proceed. Keep the mobile overview balance equal to the available balance and show the fee only after proceeding to the request form. For the web portal, require API-confirmed USD and wallet-currency fee amounts before showing the fee-adjusted maximum or enabling withdrawal, and provide a retry action when terms are missing. Do not invent non-USD fee/minimum conversions on the client; Laravel remains authoritative for fee, minimum, balance, and reservation validation.
 
 On mobile, show the full dashboard-reported available wallet balance as the withdrawable balance on the overview. Do not subtract or reveal the withdrawal fee there; show the fee on the request form after the investor proceeds. The fee remains one flat charge per withdrawal, added to the requested payout.
 
@@ -17,7 +17,7 @@ On mobile, show the full dashboard-reported available wallet balance as the with
 
 **How to apply:** Keep overview balance displays equal to the available balance. On the request form, show the fee once in USD and the wallet currency, and preserve the payout-plus-fee balance validation and total debit preview.
 
-**Why:** The user requested that investors not see the server-confirmation notice and that Proceed remain active; Laravel still determines whether a withdrawal request is valid.
+**Why:** The user requested that mobile investors not see a server-confirmation notice or have Proceed disabled, and that the mobile overview show full available balance with fee details only on the request form. The web portal needs a confirmed wallet fee to show a safe fee-adjusted maximum; Laravel remains financially authoritative.
 
 The minimum bank payout is USD 100, with the USD 2 withdrawal fee charged on top. PKR payouts must meet the USD 100 equivalent using the exchange-rate snapshot used for that withdrawal.
 

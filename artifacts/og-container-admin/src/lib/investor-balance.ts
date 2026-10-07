@@ -1,12 +1,18 @@
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { useCurrency } from "@/lib/use-currency"
+import { parseInvestorWithdrawalTerms } from "@/lib/investor-withdrawal-terms"
 
 export const INVESTOR_DASHBOARD_QUERY_KEY = ["investor", "dashboard"] as const
 
 export interface InvestorDashboardBalance {
   availableBalance: number | null
   currency: string
+  serverWalletCurrency: string
+  withdrawalFee: number | null
+  withdrawalFeeUsd: number | null
+  withdrawalFeeCurrency: string
+  withdrawalProcessingTime: string
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -31,6 +37,7 @@ export function parseInvestorDashboardBalance(response: unknown): InvestorDashbo
   const dashboard = asRecord(envelope.data ?? response)
   const summary = asRecord(dashboard.summary)
   const wallet = asRecord(dashboard.wallet)
+  const withdrawalTerms = parseInvestorWithdrawalTerms(response)
 
   return {
     // Match the Home dashboard's precedence exactly.
@@ -38,6 +45,11 @@ export function parseInvestorDashboardBalance(response: unknown): InvestorDashbo
       parseOptionalAmount(summary.available_balance)
       ?? parseOptionalAmount(wallet.available_balance),
     currency: parseCurrency(wallet.currency),
+    serverWalletCurrency: parseCurrency(wallet.currency),
+    withdrawalFee: withdrawalTerms.fee,
+    withdrawalFeeUsd: withdrawalTerms.feeUsd,
+    withdrawalFeeCurrency: withdrawalTerms.feeCurrency,
+    withdrawalProcessingTime: withdrawalTerms.processingTime,
   }
 }
 

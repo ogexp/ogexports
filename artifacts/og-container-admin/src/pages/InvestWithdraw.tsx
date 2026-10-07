@@ -30,6 +30,10 @@ import {
   hasUsableBankAccount,
   normalizeBankAccount,
 } from "@/lib/investor-bank-accounts"
+import {
+  maximumWithdrawalPayout,
+  withdrawalFeeTermsConfirmed,
+} from "@/lib/investor-withdrawal-terms"
 
 type Step = "overview" | "form" | "security" | "tracking"
 
@@ -41,6 +45,20 @@ type WithdrawBank = {
   swift?: string
   branch?: string
   currency?: string
+}
+
+function formatSourceAmount(amount: number | null, currency: string): string {
+  if (amount == null || !Number.isFinite(amount) || !currency) return "Not provided"
+  return `${currency} ${amount.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
+}
+
+function readResponseAmount(value: unknown): number | null {
+  if (value == null || String(value).trim() === "") return null
+  const amount = Number(value)
+  return Number.isFinite(amount) ? amount : null
 }
 
 export default function InvestWithdraw() {
@@ -62,10 +80,24 @@ export default function InvestWithdraw() {
   const [txPassword, setTxPassword] = useState("")
   const [withdrawId, setWithdrawId] = useState("")
   const [withdrawStatus, setWithdrawStatus] = useState("")
+  const [withdrawalConfirmation, setWithdrawalConfirmation] = useState<Record<string, unknown> | null>(null)
   const availableBalance = dashboardBalanceQuery.data?.availableBalance ?? null
   const [pendingBalance, setPendingBalance] = useState<number | null>(null)
   const [walletCurrencyFromWallet, setWalletCurrencyFromWallet] = useState("")
   const ledgerCurrency = dashboardBalanceQuery.data?.currency || walletCurrencyFromWallet
+  const withdrawalFee = dashboardBalanceQuery.data?.withdrawalFee ?? null
+  const withdrawalFeeUsd = dashboardBalanceQuery.data?.withdrawalFeeUsd ?? null
+  const withdrawalFeeCurrency = dashboardBalanceQuery.data?.withdrawalFeeCurrency ?? ""
+  const withdrawalProcessingTime = dashboardBalanceQuery.data?.withdrawalProcessingTime ?? ""
+  const withdrawalTermsConfirmed = withdrawalFeeTermsConfirmed(
+    {
+      fee: withdrawalFee,
+      feeUsd: withdrawalFeeUsd,
+      feeCurrency: withdrawalFeeCurrency,
+      processingTime: withdrawalProcessingTime,
+    },
+    dashboardBalanceQuery.data?.serverWalletCurrency ?? "",
+  )
   const fmtW = (amount: number | null, usdAmount?: number | null) =>
     amount == null || !ledgerCurrency
       ? "Not provided"
@@ -90,13 +122,16 @@ export default function InvestWithdraw() {
   const [resetForm, setResetForm] = useState({ login: "", tx: "", confirm: "" })
   const [resetSaving, setResetSaving] = useState(false)
 
-  const withdrawableBalance = availableBalance
-  const maxWithdrawal = availableBalance
+  const maxWithdrawal = maximumWithdrawalPayout(
+    availableBalance,
+    withdrawalTermsConfirmed ? withdrawalFee : null,
+  )
   const amountNum = parseFloat(amount) || 0
   const exceedsBalance =
     dashboardBalanceQuery.isError
     || availableBalance == null
-    || amountNum > availableBalance
+    || (maxWithdrawal != null
+      && Math.round(amountNum * 100) > Math.round(maxWithdrawal * 100))
 
   const applyWithdrawBank = useCallback((bank: WithdrawBank) => {
     setBankName(bank.bank_name || "")
@@ -264,6 +299,10 @@ export default function InvestWithdraw() {
 
   async function handleContinueToSecurity() {
     setFormError("")
+    if (!withdrawalTermsConfirmed || maxWithdrawal == null) {
+      setFormError("Withdrawal fee information could not be confirmed by OG Exports. Retry before continuing.")
+      return
+    }
     if (dashboardBalanceQuery.isError || dashboardBalanceQuery.isFetching) {
       setFormError(dashboardBalanceQuery.isError
         ? "Available balance could not be loaded. Retry before continuing."
@@ -298,7 +337,13 @@ export default function InvestWithdraw() {
         : "Please wait while the available balance is refreshed.")
       return
     }
-    if (amountNum <= 0 || availableBalance == null || amountNum > availableBalance || !currency) {
+    if (
+      !withdrawalTermsConfirmed
+      || maxWithdrawal == null
+      || amountNum <= 0
+      || Math.round(amountNum * 100) > Math.round(maxWithdrawal * 100)
+      || !currency
+    ) {
       setFormError("Invalid withdrawal amount.")
       return
     }
@@ -323,6 +368,7 @@ export default function InvestWithdraw() {
         note: purpose || undefined,
       })
       const data = res?.data ?? res
+      setWithdrawalConfirmation(data && typeof data === "object" ? data as Record<string, unknown> : null)
       const ref = data?.withdraw_id || data?.reference || ""
       setWithdrawId(ref)
       setWithdrawStatus(String(data?.status || data?.state || "submitted"))
@@ -387,11 +433,19 @@ export default function InvestWithdraw() {
                 </Button>
               </div>
             )}
+            {!balanceLoading && !dashboardBalanceQuery.isError && !withdrawalTermsConfirmed && (
+              <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+                <span>Withdrawal fee information could not be confirmed. Retry before continuing.</span>
+                <Button variant="outline" size="sm" onClick={() => void dashboardBalanceQuery.refetch()}>
+                  Retry
+                </Button>
+              </div>
+            )}
             <div className="grid sm:grid-cols-3 gap-4">
               {[
                 { label: "Available Balance", value: dashboardBalanceQuery.isError ? "Unavailable" : balanceLoading ? "…" : fmtW(availableBalance), color: "text-foreground", icon: Wallet },
-                { label: "Withdrawable Balance", value: dashboardBalanceQuery.isError ? "Unavailable" : balanceLoading ? "…" : fmtW(withdrawableBalance), color: "text-emerald-500", icon: CheckCircle2 },
-                { label: "Minimum / Maximum Withdrawal", value: `Not published / ${dashboardBalanceQuery.isError ? "Unavailable" : balanceLoading ? "…" : fmtW(maxWithdrawal)}`, color: "text-muted-foreground", icon: Info },
+                { label: "Maximum Payout After Fee", value: dashboardBalanceQuery.isError ? "Unavailable" : balanceLoading ? "…" : maxWithdrawal == null ? "Unavailable" : fmtW(maxWithdrawal), color: "text-emerald-500", icon: CheckCircle2 },
+                { label: "Minimum / Maximum Withdrawal", value: `Not published / ${dashboardBalanceQuery.isError ? "Unavailable" : balanceLoading ? "…" : maxWithdrawal == null ? "Unavailable" : fmtW(maxWithdrawal)}`, color: "text-muted-foreground", icon: Info },
               ].map(s => (
                 <Card key={s.label} className="glass-card">
                   <CardContent className="p-5 flex items-center gap-4">
@@ -415,8 +469,11 @@ export default function InvestWithdraw() {
                 </div>
                 <div className="grid sm:grid-cols-2 gap-3 text-sm">
                   {[
-                    ["Processing Time", "Not provided"],
-                    ["Withdrawal Fees", "Not provided"],
+                    ["Processing Time", withdrawalProcessingTime || "Not provided"],
+                    ["Withdrawal Fee (USD)", withdrawalTermsConfirmed ? formatSourceAmount(withdrawalFeeUsd, "USD") : "Unavailable"],
+                    ...(withdrawalTermsConfirmed && withdrawalFeeCurrency !== "USD"
+                      ? [["Fee Charged in Wallet", formatSourceAmount(withdrawalFee, withdrawalFeeCurrency)]]
+                      : []),
                     ["Tax Treatment", "Not specified"],
                     ["Wallet Currency", currency || "Not provided"],
                   ].map(([l, v]) => (
@@ -440,7 +497,7 @@ export default function InvestWithdraw() {
               <p className="text-xs text-amber-600">Pending withdrawals reserved: {fmtW(pendingBalance)}</p>
             )}
 
-            <Button className="w-full" onClick={() => void proceedToWithdrawForm()} disabled={balanceLoading || dashboardBalanceQuery.isError || availableBalance == null || availableBalance <= 0 || !currency}>
+            <Button className="w-full" onClick={() => void proceedToWithdrawForm()} disabled={balanceLoading || dashboardBalanceQuery.isError || availableBalance == null || maxWithdrawal == null || maxWithdrawal <= 0 || !withdrawalTermsConfirmed || !currency}>
               Proceed to Withdraw <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
@@ -473,12 +530,47 @@ export default function InvestWithdraw() {
                 </p>
               )}
 
+              <div
+                className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2 text-sm"
+                data-testid="withdrawal-fee-summary"
+              >
+                <div className="font-semibold">Withdrawal fee and payout limit</div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Withdrawal fee (USD)</span>
+                  <span className="font-medium" data-testid="withdrawal-fee-usd">
+                    {withdrawalTermsConfirmed ? formatSourceAmount(withdrawalFeeUsd, "USD") : "Unavailable"}
+                  </span>
+                </div>
+                {withdrawalTermsConfirmed && withdrawalFeeCurrency !== "USD" && (
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">Fee charged in wallet</span>
+                    <span className="font-medium" data-testid="withdrawal-fee-wallet">
+                      {formatSourceAmount(withdrawalFee, withdrawalFeeCurrency)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Maximum payout after fee</span>
+                  <span className="font-semibold" data-testid="withdrawal-maximum-payout">
+                    {maxWithdrawal == null ? "Unavailable" : formatSourceAmount(maxWithdrawal, currency)}
+                  </span>
+                </div>
+              </div>
+
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Withdrawal Amount <span className="text-red-400">*</span></Label>
-                  <Input type="number" min={0} max={availableBalance ?? undefined} placeholder="Enter amount" value={amount} onChange={e => { setAmount(e.target.value); setFormError("") }} />
-                  <p className="text-xs text-muted-foreground">Max withdrawable: {dashboardBalanceQuery.isError ? "Unavailable" : dashboardBalanceQuery.isFetching ? "Refreshing…" : fmtW(withdrawableBalance)}</p>
-                  {exceedsBalance && <p className="text-xs text-red-500">Amount cannot exceed available balance.</p>}
+                  <Input data-testid="withdrawal-amount" type="number" min={0} step="0.01" max={maxWithdrawal ?? undefined} placeholder="Enter amount" value={amount} onChange={e => { setAmount(e.target.value); setFormError("") }} />
+                  <p className="text-xs text-muted-foreground">Maximum payout after fee: {dashboardBalanceQuery.isError ? "Unavailable" : dashboardBalanceQuery.isFetching ? "Refreshing…" : maxWithdrawal == null ? "Unavailable" : formatSourceAmount(maxWithdrawal, currency)}</p>
+                  {exceedsBalance && <p className="text-xs text-red-500">Payout plus withdrawal fee cannot exceed available balance.</p>}
+                  {amountNum > 0 && withdrawalTermsConfirmed && (
+                    <p className="text-xs text-muted-foreground" data-testid="withdrawal-total-debit-preview">
+                      Total wallet debit: {formatSourceAmount(
+                        Math.round((Math.round(amountNum * 100) / 100 + (withdrawalFee ?? 0)) * 100) / 100,
+                        currency,
+                      )}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Currency</Label>
@@ -543,7 +635,7 @@ export default function InvestWithdraw() {
                 <Button variant="outline" onClick={() => setStep("overview")}>Back</Button>
                 <Button
                   className="flex-1"
-                  disabled={otpSending || balanceUnavailable || !amount || amountNum <= 0 || exceedsBalance || !currency || !bankName || !accountHolder || !accountNumber}
+                  disabled={otpSending || balanceUnavailable || !withdrawalTermsConfirmed || maxWithdrawal == null || !amount || amountNum <= 0 || exceedsBalance || !currency || !bankName || !accountHolder || !accountNumber}
                   onClick={() => void handleContinueToSecurity()}
                 >
                   {otpSending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
@@ -630,16 +722,47 @@ export default function InvestWithdraw() {
                 </div>
                 <h2 className="text-2xl font-heading font-bold">Withdrawal Submitted!</h2>
                 <p className="text-muted-foreground">
-                  Current status: {withdrawStatus ? paymentStatusLabel(withdrawStatus) : "Not provided"}. Fees and processing time are not included unless returned by the service.
+                  Current status: {withdrawStatus ? paymentStatusLabel(withdrawStatus) : "Not provided"}.
                 </p>
-                <div className="flex justify-center gap-6 pt-2 flex-wrap">
+                <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3 pt-2 text-left max-w-lg mx-auto">
                   <div>
                     <div className="text-xs text-muted-foreground uppercase tracking-wide">Withdraw ID</div>
                     <div className="font-mono font-semibold text-sm">{withdrawId}</div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground uppercase tracking-wide">Requested Amount</div>
-                    <div className="font-semibold text-sm">{formatWithdrawAmount(amountNum, null, null, currency)}</div>
+                    <div className="font-semibold text-sm" data-testid="withdrawal-confirmed-payout">
+                      {formatSourceAmount(readResponseAmount(withdrawalConfirmation?.amount) ?? amountNum, String(withdrawalConfirmation?.currency || currency))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Withdrawal Fee (USD)</div>
+                    <div className="font-semibold text-sm" data-testid="withdrawal-confirmed-fee-usd">
+                      {formatSourceAmount(
+                        readResponseAmount(withdrawalConfirmation?.fee_usd ?? withdrawalConfirmation?.withdrawal_fee_usd),
+                        "USD",
+                      )}
+                    </div>
+                  </div>
+                  {String(withdrawalConfirmation?.currency || currency).toUpperCase() !== "USD" && (
+                    <div>
+                      <div className="text-xs text-muted-foreground uppercase tracking-wide">Fee Charged in Wallet</div>
+                      <div className="font-semibold text-sm" data-testid="withdrawal-confirmed-fee-wallet">
+                        {formatSourceAmount(
+                          readResponseAmount(withdrawalConfirmation?.fee ?? withdrawalConfirmation?.withdrawal_fee),
+                          String(withdrawalConfirmation?.currency || currency),
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Total Wallet Debit</div>
+                    <div className="font-semibold text-sm" data-testid="withdrawal-confirmed-total-debit">
+                      {formatSourceAmount(
+                        readResponseAmount(withdrawalConfirmation?.total_debit),
+                        String(withdrawalConfirmation?.currency || currency),
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -659,7 +782,7 @@ export default function InvestWithdraw() {
               </CardContent>
             </Card>
 
-            <Button variant="outline" className="w-full" onClick={() => { setStep("overview"); setAmount(""); setOtp(""); setTxPassword(""); void refetchHistory() }}>
+            <Button variant="outline" className="w-full" onClick={() => { setStep("overview"); setAmount(""); setOtp(""); setTxPassword(""); setWithdrawalConfirmation(null); void refetchHistory() }}>
               New Withdrawal Request
             </Button>
           </div>
