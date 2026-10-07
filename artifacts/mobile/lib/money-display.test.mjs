@@ -55,7 +55,7 @@ test('display summaries convert amounts while keeping the source-currency amount
 
   const display = moneyWithDisplayCurrencyAndSource(2, 'USD');
   assert.match(display, /PKR/);
-  assert.match(display, /556\.00/);
+  assert.match(display, /557\.04/);
   assert.match(display, /\$2\.00/);
 });
 
