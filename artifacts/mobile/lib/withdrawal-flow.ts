@@ -1,21 +1,29 @@
 export const FALLBACK_WITHDRAWAL_FEE_USD = 2;
 export const FALLBACK_WITHDRAWAL_PROCESSING_TIME = '1 to 2 working days';
+export const MINIMUM_WITHDRAWAL_USD = 100;
 
 export function resolveWithdrawalDisplayTerms({
   apiFee,
   apiFeeUsd,
   apiFeeCurrency,
   apiProcessingTime,
+  apiMinimumWithdrawal,
+  apiMinimumWithdrawalUsd,
+  apiMinimumWithdrawalCurrency,
   walletCurrency,
 }: {
   apiFee: number | null;
   apiFeeUsd: number | null;
   apiFeeCurrency: string;
   apiProcessingTime: string;
+  apiMinimumWithdrawal: number | null;
+  apiMinimumWithdrawalUsd: number | null;
+  apiMinimumWithdrawalCurrency: string;
   walletCurrency: string;
 }) {
   const normalizedWalletCurrency = walletCurrency.trim().toUpperCase();
   const normalizedFeeCurrency = apiFeeCurrency.trim().toUpperCase();
+  const normalizedMinimumCurrency = apiMinimumWithdrawalCurrency.trim().toUpperCase();
   const normalizedProcessingTime = apiProcessingTime.trim();
   const processingTime = normalizedProcessingTime && normalizedProcessingTime !== '—'
     ? normalizedProcessingTime
@@ -26,11 +34,20 @@ export function resolveWithdrawalDisplayTerms({
     feeUsd: apiFeeUsd ?? FALLBACK_WITHDRAWAL_FEE_USD,
     feeCurrency: normalizedFeeCurrency || normalizedWalletCurrency,
     processingTime,
+    minimumWithdrawalUsd: MINIMUM_WITHDRAWAL_USD,
+    minimumWithdrawalAmount: normalizedWalletCurrency === 'USD'
+      ? MINIMUM_WITHDRAWAL_USD
+      : (apiMinimumWithdrawalUsd === MINIMUM_WITHDRAWAL_USD ? apiMinimumWithdrawal : null),
+    minimumWithdrawalCurrency: normalizedMinimumCurrency || normalizedWalletCurrency,
     serverConfirmed:
       apiFee !== null
       && apiFeeUsd === FALLBACK_WITHDRAWAL_FEE_USD
       && normalizedWalletCurrency !== ''
-      && normalizedFeeCurrency === normalizedWalletCurrency,
+      && normalizedFeeCurrency === normalizedWalletCurrency
+      && apiMinimumWithdrawal !== null
+      && apiMinimumWithdrawalUsd === MINIMUM_WITHDRAWAL_USD
+      && normalizedMinimumCurrency === normalizedWalletCurrency
+      && (normalizedWalletCurrency !== 'USD' || apiMinimumWithdrawal === MINIMUM_WITHDRAWAL_USD),
   };
 }
 
@@ -56,10 +73,18 @@ export function parseWithdrawalAmount(
   value: string,
   availableBalance: number | null,
   withdrawalFee = 0,
+  minimumPayout = 0.01,
 ): number | null {
   if (availableBalance == null || !value.trim()) return null;
   const amount = Number(value);
-  if (!Number.isFinite(amount) || !Number.isFinite(withdrawalFee) || withdrawalFee < 0 || amount <= 0) return null;
+  if (
+    !Number.isFinite(amount)
+    || !Number.isFinite(withdrawalFee)
+    || !Number.isFinite(minimumPayout)
+    || withdrawalFee < 0
+    || minimumPayout <= 0
+    || amount < minimumPayout
+  ) return null;
   if (Math.round((amount + withdrawalFee) * 100) > Math.round(availableBalance * 100)) return null;
   return amount;
 }

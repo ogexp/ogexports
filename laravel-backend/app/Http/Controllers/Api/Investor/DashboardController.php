@@ -272,6 +272,9 @@ class DashboardController extends Controller
                 'withdrawal_fee' => $withdrawalTerms['fee'],
                 'withdrawal_fee_usd' => $withdrawalTerms['fee_usd'],
                 'withdrawal_fee_currency' => $withdrawalTerms['fee_currency'],
+                'minimum_withdrawal_amount' => $withdrawalTerms['minimum_withdrawal_amount'],
+                'minimum_withdrawal_usd' => $withdrawalTerms['minimum_withdrawal_usd'],
+                'minimum_withdrawal_currency' => $withdrawalTerms['minimum_withdrawal_currency'],
                 'estimated_processing_time' => $withdrawalTerms['estimated_processing_time'],
                 'fx' => [
                     'avg_deposit_usd_rate' => $avgDepositRate,
