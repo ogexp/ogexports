@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Image, PanResponder, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Image, PanResponder, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
-import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Action, Card } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
@@ -29,6 +29,78 @@ const slides = [
 
 type IllustrationKind = (typeof slides)[number]['illustration'];
 type IllustrationStage = 'A' | 'B' | 'C';
+type IllustrationPoint = { x: number; y: number };
+
+const travelRoutes: Record<IllustrationKind, { points: IllustrationPoint[]; radius: number }> = {
+  container: {
+    points: [
+      { x: 35, y: 57 },
+      { x: 82, y: 36 },
+      { x: 142, y: 31 },
+      { x: 202, y: 42 },
+      { x: 253, y: 68 },
+    ],
+    radius: 5,
+  },
+  shipment: {
+    points: [{ x: 49, y: 39 }, { x: 251, y: 39 }],
+    radius: 5,
+  },
+  portfolio: {
+    points: [
+      { x: 165, y: 164 },
+      { x: 179, y: 155 },
+      { x: 190, y: 160 },
+      { x: 205, y: 143 },
+      { x: 218, y: 148 },
+      { x: 232, y: 135 },
+    ],
+    radius: 3.5,
+  },
+};
+
+function TravelingMarker({ kind, progress, width, height }: {
+  kind: IllustrationKind;
+  progress: Animated.Value;
+  width: number;
+  height: number;
+}) {
+  const colors = useColors();
+  const route = travelRoutes[kind];
+  const start = route.points[0];
+  const scale = Math.min(width / 300, height / 220);
+  const renderedWidth = 300 * scale;
+  const renderedHeight = 220 * scale;
+  const offsetX = (width - renderedWidth) / 2;
+  const offsetY = (height - renderedHeight) / 2;
+  const inputRange = route.points.map((_, index) => index / (route.points.length - 1));
+  const translateX = progress.interpolate({
+    inputRange,
+    outputRange: route.points.map(point => (point.x - start.x) * scale),
+  });
+  const translateY = progress.interpolate({
+    inputRange,
+    outputRange: route.points.map(point => (point.y - start.y) * scale),
+  });
+  const diameter = route.radius * 2 * scale;
+
+  return (
+    <Animated.View
+      accessible={false}
+      style={{
+        position: 'absolute',
+        left: offsetX + start.x * scale - diameter / 2,
+        top: offsetY + start.y * scale - diameter / 2,
+        width: diameter,
+        height: diameter,
+        borderRadius: diameter / 2,
+        backgroundColor: colors.accent,
+        pointerEvents: 'none',
+        transform: [{ translateX }, { translateY }],
+      }}
+    />
+  );
+}
 
 function IllustrationLayer({ kind, stage, progress }: {
   kind: IllustrationKind;
@@ -59,7 +131,6 @@ function IllustrationLayer({ kind, stage, progress }: {
         {kind === 'container' && stage === 'A' ? <>
         <Circle cx="148" cy="112" r="79" fill={colors.lightGreen} fillOpacity="0.58" />
         <Path d="M35 57 C86 17 197 23 253 68" fill="none" stroke={colors.tint} strokeWidth="1.5" strokeDasharray="4 6" />
-        <Circle cx="35" cy="57" r="5" fill={colors.accent} />
         <Circle cx="253" cy="68" r="5" fill={colors.primary} />
         </> : null}
         {kind === 'container' && stage === 'B' ? <>
@@ -83,7 +154,6 @@ function IllustrationLayer({ kind, stage, progress }: {
       <Circle cx="150" cy="115" r="83" fill={colors.lightGreen} fillOpacity="0.48" />
       <Path d="M49 39 H251" fill="none" stroke={colors.border} strokeWidth="2" />
       <Path d="M49 39 H150" fill="none" stroke={colors.primary} strokeWidth="2" />
-      <Circle cx="49" cy="39" r="7" fill={colors.accent} />
       <Circle cx="150" cy="39" r="7" fill={colors.primary} />
       <Circle cx="251" cy="39" r="7" fill={colors.card} stroke={colors.primary} strokeWidth="1.5" />
         </> : null}
@@ -129,7 +199,6 @@ function IllustrationLayer({ kind, stage, progress }: {
       <Rect x="92" y="147" width="29" height="5" rx="2.5" fill={colors.border} />
       <Rect x="153" y="124" width="90" height="53" rx="9" fill={colors.secondary} />
       <Path d="M165 164 L179 155 L190 160 L205 143 L218 148 L232 135" fill="none" stroke={colors.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <Circle cx="232" cy="135" r="3" fill={colors.accent} />
       <Path d="M164 167 H233" stroke={colors.border} strokeWidth="1" />
         </> : null}
       </Svg>
@@ -137,17 +206,35 @@ function IllustrationLayer({ kind, stage, progress }: {
   );
 }
 
-function OnboardingIllustration({ kind, stageA, stageB, stageC }: {
+function OnboardingIllustration({ kind, stageA, stageB, stageC, reduceMotion }: {
   kind: IllustrationKind;
   stageA: Animated.Value;
   stageB: Animated.Value;
   stageC: Animated.Value;
+  reduceMotion: boolean;
 }) {
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  const travelProgress = useRef(new Animated.Value(0)).current;
   const accessibleLabel = kind === 'container'
     ? 'Shipping container connected to a global trade route'
     : kind === 'shipment'
       ? 'Cargo ship moving through cargo preparation, shipment and destination milestones'
       : 'Digital investor portfolio with trade investments, wallet and performance';
+
+  useEffect(() => {
+    travelProgress.setValue(0);
+    if (reduceMotion || viewport.width <= 0 || viewport.height <= 0) return;
+
+    const travelLoop = Animated.loop(Animated.timing(travelProgress, {
+      toValue: 1,
+      duration: 2000,
+      easing: Easing.linear,
+      useNativeDriver: Platform.OS !== 'web',
+      isInteraction: false,
+    }));
+    travelLoop.start();
+    return () => travelLoop.stop();
+  }, [kind, reduceMotion, travelProgress, viewport.height, viewport.width]);
 
   return (
     <View
@@ -155,10 +242,17 @@ function OnboardingIllustration({ kind, stageA, stageB, stageC }: {
       accessibilityRole="image"
       accessibilityLabel={accessibleLabel}
       style={{ flex: 1, width: '100%', height: '100%' }}
+      onLayout={event => {
+        const { width, height } = event.nativeEvent.layout;
+        setViewport(current => current.width === width && current.height === height ? current : { width, height });
+      }}
     >
       <IllustrationLayer kind={kind} stage="A" progress={stageA} />
       <IllustrationLayer kind={kind} stage="B" progress={stageB} />
       <IllustrationLayer kind={kind} stage="C" progress={stageC} />
+      {viewport.width > 0 && viewport.height > 0 ? (
+        <TravelingMarker kind={kind} progress={travelProgress} width={viewport.width} height={viewport.height} />
+      ) : null}
     </View>
   );
 }
@@ -300,7 +394,7 @@ export default function Onboarding() {
         <Animated.View {...swipeResponder.panHandlers} style={{ opacity, transform: [{ translateX }] }}>
           <Animated.View style={{ opacity: illustrationOpacity, transform: [{ scale: illustrationScale }] }}>
             <Card style={{ height: 218, padding: 0, overflow: 'hidden', backgroundColor: colors.secondary, borderColor: colors.border, marginBottom: 23 }}>
-              <OnboardingIllustration kind={slide.illustration} stageA={illustrationStages[0]} stageB={illustrationStages[1]} stageC={illustrationStages[2]} />
+              <OnboardingIllustration kind={slide.illustration} stageA={illustrationStages[0]} stageB={illustrationStages[1]} stageC={illustrationStages[2]} reduceMotion={reduceMotion} />
             </Card>
           </Animated.View>
           <Animated.View style={{ opacity: copyOpacity, transform: [{ translateY: copyOffset }] }}>
