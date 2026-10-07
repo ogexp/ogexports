@@ -271,6 +271,16 @@ it('allows admin to increase target amount above active raised', function () {
     expect((float) $this->project->target_amount)->toBe(15000.0);
 });
 
+it('returns withdrawal fee and processing terms from the investor dashboard', function () {
+    $this->actingAs($this->investor)
+        ->getJson('/api/investor/dashboard')
+        ->assertOk()
+        ->assertJsonPath('data.withdrawal_fee', 2)
+        ->assertJsonPath('data.withdrawal_fee_usd', 2)
+        ->assertJsonPath('data.withdrawal_fee_currency', 'USD')
+        ->assertJsonPath('data.estimated_processing_time', '1 to 2 working days');
+});
+
 it('returns platform wallet stats for admin finance endpoint', function () {
     $this->actingAs($this->investor)
         ->postJson("/api/investor/projects/{$this->project->id}/invest", ['amount' => 2000])
