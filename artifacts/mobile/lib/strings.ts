@@ -570,7 +570,6 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Two-factor authentication","ٹو فیکٹر توثیق","المصادقة الثنائية"],
   ["Two-factor status could not be loaded.","ٹو فیکٹر اسٹیٹس لوڈ نہیں ہو سکا۔","تعذر تحميل حالة المصادقة الثنائية."],
   ["Unlock your OG Exports account","اپنا OG Exports اکاؤنٹ ان لاک کریں","إلغاء قفل حساب OG Exports الخاص بك"],
-  ["Upcoming payout details are not available from the server.","آئندہ کی ادائیگی کی تفصیلات سرور سے دستیاب نہیں ہیں۔","تفاصيل الدفعات القادمة غير متوفرة من الخادم."],
   ["Update times, statuses, descriptions, and supporting files are provided by OG Exports.","اپ ڈیٹ کے اوقات، اسٹیٹس، تفصیلات، اور معاون فائلیں OG Exports کی جانب سے فراہم کی جاتی ہیں۔","يتم توفير أوقات التحديث والحالات والأوصاف والملفات الداعمة من قبل OG Exports."],
   ["Upload a bank statement or cancelled cheque showing the account holder and identifier. Proof is stored privately and only administrators can open it.","بینک اسٹیٹمنٹ یا کینسل شدہ چیک اپ لوڈ کریں جس میں اکاؤنٹ ہولڈر اور شناخت کنندہ ظاہر ہو۔ ثبوت کو نجی طور پر محفوظ کیا جاتا ہے اور صرف ایڈمنسٹریٹرز ہی اسے کھول سکتے ہیں۔","قم بتحميل كشف حساب بنكي أو شيك ملغي يوضح صاحب الحساب والمعرّف. يتم تخزين الإثبات بشكل خاص ولا يمكن لأحد فتحه سوى المسؤولين."],
   ["Uploaded files are attached to the investor application. Their verification status is controlled by OG Exports.","اپ لوڈ کردہ فائلیں سرمایہ کار کی درخواست کے ساتھ منسلک ہیں۔ ان کی توثیق کا اسٹیٹس OG Exports کے کنٹرول میں ہے۔","الملفات المحملة مرفقة بطلب المستثمر. يتم التحكم في حالة التحقق منها من قبل OG Exports."],
@@ -768,7 +767,6 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Two-factor authentication","ٹو فیکٹر توثیق","المصادقة الثنائية"],
   ["Two-factor status could not be loaded.","ٹو فیکٹر اسٹیٹس لوڈ نہیں ہو سکا۔","تعذر تحميل حالة المصادقة الثنائية."],
   ["Unlock your OG Exports account","اپنا OG Exports اکاؤنٹ ان لاک کریں","إلغاء قفل حساب OG Exports الخاص بك"],
-  ["Upcoming payout details are not available from the server.","آئندہ کی ادائیگی کی تفصیلات سرور سے دستیاب نہیں ہیں۔","تفاصيل الدفعات القادمة غير متوفرة من الخادم."],
   ["Update times, statuses, descriptions, and supporting files are provided by OG Exports.","اپ ڈیٹ کے اوقات، اسٹیٹس، تفصیلات، اور معاون فائلیں OG Exports کی جانب سے فراہم کی جاتی ہیں۔","يتم توفير أوقات التحديث والحالات والأوصاف والملفات الداعمة من قبل OG Exports."],
   ["Upload a bank statement or cancelled cheque showing the account holder and identifier. Proof is stored privately and only administrators can open it.","بینک اسٹیٹمنٹ یا کینسل شدہ چیک اپ لوڈ کریں جس میں اکاؤنٹ ہولڈر اور شناخت کنندہ ظاہر ہو۔ ثبوت کو نجی طور پر محفوظ کیا جاتا ہے اور صرف ایڈمنسٹریٹرز ہی اسے کھول سکتے ہیں۔","قم بتحميل كشف حساب بنكي أو شيك ملغي يوضح صاحب الحساب والمعرّف. يتم تخزين الإثبات بشكل خاص ولا يمكن لأحد فتحه سوى المسؤولين."],
   ["Uploaded files are attached to the investor application. Their verification status is controlled by OG Exports.","اپ لوڈ کردہ فائلیں سرمایہ کار کی درخواست کے ساتھ منسلک ہیں۔ ان کی توثیق کا اسٹیٹس OG Exports کے کنٹرول میں ہے۔","الملفات المحملة مرفقة بطلب المستثمر. يتم التحكم في حالة التحقق منها من قبل OG Exports."],
@@ -923,6 +921,7 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Portfolio summary could not be loaded.","پورٹ فولیو کا خلاصہ لوڈ نہیں ہو سکا۔","تعذر تحميل ملخص المحفظة."],
   ["These reported statuses are shown as provided and are not assigned to an investment category.","یہ فراہم کردہ حیثیتیں اسی طرح دکھائی گئی ہیں اور کسی سرمایہ کاری کے زمرے میں شامل نہیں کی گئیں۔","تُعرض الحالات المبلّغ عنها كما وردت ولا تُصنّف ضمن فئة استثمارية."],
   ["View full portfolio analytics","پورٹ فولیو کے مکمل تجزیات دیکھیں","عرض تحليلات المحفظة الكاملة"],
+  ["Upcoming payout details have not been reported.","آئندہ ادائیگی کی تفصیلات رپورٹ نہیں کی گئیں۔","لم يتم الإبلاغ عن تفاصيل الدفعات القادمة."],
 ];
 
 const translations = new Map<string, Readonly<Record<Exclude<AppLanguage, 'en'>, string>>>(

@@ -38,7 +38,7 @@ function displayDate(value: string) {
 
 function balanceLabel(value: number | null, currency: string, loading: boolean, error: boolean) {
   if (loading) return 'Loading…';
-  if (error) return 'Unavailable';
+  if (error && value == null) return 'Unavailable';
   if (value == null) return 'Not reported';
   return money(value, currency || 'USD');
 }
