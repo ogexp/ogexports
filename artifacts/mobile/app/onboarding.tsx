@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Image, PanResponder, Platform, Pressable, View } from 'react-native';
+import { Animated, Image, PanResponder, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
-import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Action, Card } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
@@ -27,19 +27,42 @@ const slides = [
   },
 ];
 
-function OnboardingIllustration({ kind }: { kind: (typeof slides)[number]['illustration'] }) {
+type IllustrationKind = (typeof slides)[number]['illustration'];
+type IllustrationStage = 'A' | 'B' | 'C';
+
+function IllustrationLayer({ kind, stage, progress }: {
+  kind: IllustrationKind;
+  stage: IllustrationStage;
+  progress: Animated.Value;
+}) {
   const colors = useColors();
-  const accessibleLabel = kind === 'container'
-    ? 'Shipping container connected to a global trade route'
-    : kind === 'shipment'
-      ? 'Cargo ship moving through cargo preparation, shipment and destination milestones'
-      : 'Digital investor portfolio with trade investments, wallet and performance'
-  return <Svg width="100%" height="100%" viewBox="0 0 300 220" accessibilityRole="image" accessibilityLabel={accessibleLabel}>
-    {kind === 'container' ? <>
-      <Circle cx="148" cy="112" r="79" fill={colors.lightGreen} fillOpacity="0.58" />
-      <Path d="M35 57 C86 17 197 23 253 68" fill="none" stroke={colors.tint} strokeWidth="1.5" strokeDasharray="4 6" />
-      <Circle cx="35" cy="57" r="5" fill={colors.accent} />
-      <Circle cx="253" cy="68" r="5" fill={colors.primary} />
+  const entranceX = progress.interpolate({ inputRange: [0, 1], outputRange: [stage === 'C' ? 4 : -4, 0] });
+  const entranceY = progress.interpolate({ inputRange: [0, 1], outputRange: [6, 0] });
+  const entranceScale = progress.interpolate({ inputRange: [0, 1], outputRange: [0.985, 1] });
+
+  return (
+    <Animated.View
+      style={[
+        StyleSheet.absoluteFill,
+        {
+          opacity: progress,
+          pointerEvents: 'none',
+          transform: [
+            { translateX: entranceX },
+            { translateY: entranceY },
+            { scale: entranceScale },
+          ],
+        },
+      ]}
+    >
+      <Svg width="100%" height="100%" viewBox="0 0 300 220">
+        {kind === 'container' && stage === 'A' ? <>
+        <Circle cx="148" cy="112" r="79" fill={colors.lightGreen} fillOpacity="0.58" />
+        <Path d="M35 57 C86 17 197 23 253 68" fill="none" stroke={colors.tint} strokeWidth="1.5" strokeDasharray="4 6" />
+        <Circle cx="35" cy="57" r="5" fill={colors.accent} />
+        <Circle cx="253" cy="68" r="5" fill={colors.primary} />
+        </> : null}
+        {kind === 'container' && stage === 'B' ? <>
       <Path d="M48 82 L76 62 H216 L189 82 Z" fill={colors.secondary} stroke={colors.primary} strokeWidth="1.5" strokeLinejoin="round" />
       <Path d="M189 82 L216 62 V137 L189 158 Z" fill={colors.lightGreen} stroke={colors.primary} strokeWidth="1.5" strokeLinejoin="round" />
       <Rect x="48" y="82" width="141" height="76" rx="3" fill={colors.card} stroke={colors.primary} strokeWidth="1.8" />
@@ -47,20 +70,24 @@ function OnboardingIllustration({ kind }: { kind: (typeof slides)[number]['illus
       <Path d="M119 83 V158 M113 112 H116 M123 112 H126" stroke={colors.primary} strokeWidth="1.5" />
       <Rect x="77" y="115" width="28" height="15" rx="3" fill={colors.secondary} />
       <Path d="M83 120 H99 M83 125 H95" stroke={colors.primary} strokeWidth="1.2" strokeLinecap="round" />
+        </> : null}
+        {kind === 'container' && stage === 'C' ? <>
       <Path d="M197 77 V150 M206 70 V145" stroke={colors.tint} strokeOpacity="0.65" strokeWidth="1.4" />
       <Path d="M211 158 C222 150 226 144 229 136" fill="none" stroke={colors.primary} strokeWidth="1.5" strokeDasharray="3 4" />
       <Circle cx="251" cy="116" r="25" fill={colors.card} stroke={colors.border} strokeWidth="1.5" />
       <Ellipse cx="251" cy="116" rx="11" ry="25" fill="none" stroke={colors.tint} strokeWidth="1.2" />
       <Path d="M227 116 H275 M232 104 C243 109 259 109 270 104 M232 128 C243 123 259 123 270 128" fill="none" stroke={colors.tint} strokeWidth="1.2" />
       <Circle cx="262" cy="105" r="3.5" fill={colors.accent} />
-    </> : null}
-    {kind === 'shipment' ? <>
+        </> : null}
+        {kind === 'shipment' && stage === 'A' ? <>
       <Circle cx="150" cy="115" r="83" fill={colors.lightGreen} fillOpacity="0.48" />
       <Path d="M49 39 H251" fill="none" stroke={colors.border} strokeWidth="2" />
       <Path d="M49 39 H150" fill="none" stroke={colors.primary} strokeWidth="2" />
       <Circle cx="49" cy="39" r="7" fill={colors.accent} />
       <Circle cx="150" cy="39" r="7" fill={colors.primary} />
       <Circle cx="251" cy="39" r="7" fill={colors.card} stroke={colors.primary} strokeWidth="1.5" />
+        </> : null}
+        {kind === 'shipment' && stage === 'B' ? <>
       <Rect x="83" y="55" width="37" height="33" rx="3" fill={colors.lightGreen} stroke={colors.primary} strokeWidth="1.4" />
       <Rect x="122" y="55" width="37" height="33" rx="3" fill={colors.card} stroke={colors.primary} strokeWidth="1.4" />
       <Rect x="65" y="90" width="37" height="36" rx="3" fill={colors.card} stroke={colors.primary} strokeWidth="1.4" />
@@ -71,17 +98,21 @@ function OnboardingIllustration({ kind }: { kind: (typeof slides)[number]['illus
       <Rect x="190" y="97" width="9" height="10" rx="1" fill={colors.card} />
       <Rect x="204" y="97" width="9" height="10" rx="1" fill={colors.card} />
       <Rect x="218" y="97" width="9" height="10" rx="1" fill={colors.card} />
+        </> : null}
+        {kind === 'shipment' && stage === 'C' ? <>
       <Path d="M34 130 H265 L239 169 C235 176 230 179 219 179 H78 C64 179 58 174 52 163 Z" fill={colors.primary} stroke={colors.primary} strokeWidth="1.5" strokeLinejoin="round" />
       <Path d="M52 151 H251" stroke={colors.accent} strokeOpacity="0.7" strokeWidth="2" />
       <Path d="M39 190 C58 184 73 196 93 190 C113 184 128 196 149 190 C170 184 187 196 207 190 C227 184 243 196 261 190" fill="none" stroke={colors.tint} strokeWidth="2" strokeLinecap="round" />
       <Path d="M55 199 C74 194 88 204 108 199 M192 199 C211 194 225 204 245 199" fill="none" stroke={colors.border} strokeWidth="1.5" strokeLinecap="round" />
-    </> : null}
-    {kind === 'portfolio' ? <>
+        </> : null}
+        {kind === 'portfolio' && stage === 'A' ? <>
       <Rect x="42" y="29" width="216" height="163" rx="18" fill={colors.card} stroke={colors.border} strokeWidth="1.5" />
       <Circle cx="61" cy="49" r="4" fill={colors.primary} />
       <Rect x="73" y="46" width="69" height="6" rx="3" fill={colors.tint} fillOpacity="0.55" />
       <Rect x="203" y="39" width="40" height="23" rx="6" fill={colors.lightGreen} stroke={colors.border} strokeWidth="1" />
       <Path d="M210 46 H235 M210 52 H223" stroke={colors.primary} strokeWidth="1.5" strokeLinecap="round" />
+        </> : null}
+        {kind === 'portfolio' && stage === 'B' ? <>
       <Rect x="57" y="72" width="186" height="42" rx="10" fill={colors.secondary} />
       <Rect x="68" y="84" width="22" height="17" rx="3" fill={colors.card} stroke={colors.primary} strokeWidth="1.3" />
       <Path d="M73 86 V99 M78 85 V100 M83 85 V100" stroke={colors.tint} strokeWidth="1" />
@@ -89,6 +120,8 @@ function OnboardingIllustration({ kind }: { kind: (typeof slides)[number]['illus
       <Rect x="99" y="94" width="51" height="5" rx="2.5" fill={colors.border} />
       <Circle cx="225" cy="93" r="7" fill={colors.lightGreen} />
       <Path d="M221 93 L224 96 L229 90" fill="none" stroke={colors.primary} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </> : null}
+        {kind === 'portfolio' && stage === 'C' ? <>
       <Rect x="57" y="124" width="84" height="53" rx="9" fill={colors.lightGreen} />
       <Circle cx="75" cy="150" r="11" fill={colors.card} />
       <Path d="M69 150 H80 M77 146 L81 150 L77 154" fill="none" stroke={colors.primary} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -98,8 +131,36 @@ function OnboardingIllustration({ kind }: { kind: (typeof slides)[number]['illus
       <Path d="M165 164 L179 155 L190 160 L205 143 L218 148 L232 135" fill="none" stroke={colors.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       <Circle cx="232" cy="135" r="3" fill={colors.accent} />
       <Path d="M164 167 H233" stroke={colors.border} strokeWidth="1" />
-    </> : null}
-  </Svg>;
+        </> : null}
+      </Svg>
+    </Animated.View>
+  );
+}
+
+function OnboardingIllustration({ kind, stageA, stageB, stageC }: {
+  kind: IllustrationKind;
+  stageA: Animated.Value;
+  stageB: Animated.Value;
+  stageC: Animated.Value;
+}) {
+  const accessibleLabel = kind === 'container'
+    ? 'Shipping container connected to a global trade route'
+    : kind === 'shipment'
+      ? 'Cargo ship moving through cargo preparation, shipment and destination milestones'
+      : 'Digital investor portfolio with trade investments, wallet and performance';
+
+  return (
+    <View
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={accessibleLabel}
+      style={{ flex: 1, width: '100%', height: '100%' }}
+    >
+      <IllustrationLayer kind={kind} stage="A" progress={stageA} />
+      <IllustrationLayer kind={kind} stage="B" progress={stageB} />
+      <IllustrationLayer kind={kind} stage="C" progress={stageC} />
+    </View>
+  );
 }
 
 export default function Onboarding() {
@@ -112,6 +173,11 @@ export default function Onboarding() {
   const translateX = useRef(new Animated.Value(0)).current;
   const illustrationOpacity = useRef(new Animated.Value(0)).current;
   const illustrationScale = useRef(new Animated.Value(0.96)).current;
+  const illustrationStages = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]).current;
   const copyOpacity = useRef(new Animated.Value(0)).current;
   const copyOffset = useRef(new Animated.Value(10)).current;
   const swipeDirection = useRef(1);
@@ -135,15 +201,23 @@ export default function Onboarding() {
     if (reduceMotion) {
       illustrationOpacity.setValue(1);
       illustrationScale.setValue(1);
+      illustrationStages.forEach(stage => stage.setValue(1));
       copyOpacity.setValue(1);
       copyOffset.setValue(0);
       return;
     }
     illustrationOpacity.setValue(0);
     illustrationScale.setValue(0.96);
+    illustrationStages.forEach(stage => stage.setValue(0));
     copyOpacity.setValue(0);
     copyOffset.setValue(10);
     const useNativeDriver = Platform.OS !== 'web';
+    const illustrationReveal = Animated.stagger(105, illustrationStages.map(stage => Animated.timing(stage, {
+      toValue: 1,
+      duration: 115,
+      easing: MOTION.easeOut,
+      useNativeDriver,
+    })));
     const reveal = Animated.stagger(45, [
       Animated.parallel([
         Animated.timing(illustrationOpacity, {
@@ -173,9 +247,13 @@ export default function Onboarding() {
         }),
       ]),
     ]);
+    illustrationReveal.start();
     reveal.start();
-    return () => reveal.stop();
-  }, [copyOffset, copyOpacity, illustrationOpacity, illustrationScale, reduceMotion, step]);
+    return () => {
+      reveal.stop();
+      illustrationReveal.stop();
+    };
+  }, [copyOffset, copyOpacity, illustrationOpacity, illustrationScale, illustrationStages, reduceMotion, step]);
 
   const swipeResponder = useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_, gesture) => !reduceMotion && Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
@@ -222,7 +300,7 @@ export default function Onboarding() {
         <Animated.View {...swipeResponder.panHandlers} style={{ opacity, transform: [{ translateX }] }}>
           <Animated.View style={{ opacity: illustrationOpacity, transform: [{ scale: illustrationScale }] }}>
             <Card style={{ height: 218, padding: 0, overflow: 'hidden', backgroundColor: colors.secondary, borderColor: colors.border, marginBottom: 23 }}>
-              <OnboardingIllustration kind={slide.illustration} />
+              <OnboardingIllustration kind={slide.illustration} stageA={illustrationStages[0]} stageB={illustrationStages[1]} stageC={illustrationStages[2]} />
             </Card>
           </Animated.View>
           <Animated.View style={{ opacity: copyOpacity, transform: [{ translateY: copyOffset }] }}>
