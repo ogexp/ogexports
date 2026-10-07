@@ -527,7 +527,7 @@ export default function OpportunityDetail() {
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 6, marginBottom: 13 }}>
           {appPinEnabled || biometricEnabled
             ? 'Authenticate locally before the investment request is sent. This device confirmation is separate from account sign-in verification.'
-            : 'You can submit this investment using your signed-in account. Device security setup is offered during your first withdrawal.'}
+            : 'You can submit this investment using your signed-in account. Withdrawals require email verification and your transaction password.'}
         </Text>
         {appPinEnabled ? <Field label="Six-digit app PIN" value={pin} onChangeText={value => setPin(value.replace(/\D/g, '').slice(0, 6))} placeholder="Enter your six-digit PIN" keyboardType="numeric" secureTextEntry autoCapitalize="none" /> : null}
         {biometricEnabled ? <View style={{ backgroundColor: colors.lightGreen, borderRadius: 12, padding: 12, marginBottom: 13, flexDirection: 'row', alignItems: 'center', gap: 9 }}>

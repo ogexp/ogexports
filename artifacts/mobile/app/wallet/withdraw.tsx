@@ -387,27 +387,20 @@ export default function Withdraw() {
         <Card style={{ flex: 1, borderTopWidth: 3, borderTopColor: colors.primary }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '600' }}>Withdrawable balance</Text>
           <Text style={{ color: colors.primary, fontSize: 19, fontWeight: '700', marginTop: 7 }}>
-            {maxPayout == null ? 'Unavailable' : money(maxPayout, withdrawalCurrency || 'USD')}
+            {availableBalance == null ? 'Unavailable' : money(availableBalance, withdrawalCurrency || 'USD')}
           </Text>
         </Card>
       </View>
-      {availableBalance != null ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: -2, marginBottom: 12 }}>
-        Maximum payout is the available balance less the withdrawal fee.
-      </Text> : null}
       <Card>
         <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 3 }}>Withdrawal limits</Text>
         <DetailRow label="Minimum withdrawal" value={moneyInSourceCurrency(minimumWithdrawalUsd, 'USD')} />
         {minimumWithdrawalAmount != null && minimumWithdrawalCurrency !== 'USD'
           ? <DetailRow label="Minimum in wallet currency" value={moneyInSourceCurrency(minimumWithdrawalAmount, minimumWithdrawalCurrency)} />
           : null}
-        <DetailRow label="Maximum payout" value={maxPayout == null ? 'Unavailable' : moneyInSourceCurrency(maxPayout, withdrawalCurrency || 'USD')} />
-        <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 4 }}>
-          The minimum applies to the payout amount; the withdrawal fee is added separately.
-        </Text>
       </Card>
-      {maxPayout != null && minimumWithdrawalAmount != null && maxPayout < minimumWithdrawalAmount
+      {availableBalance != null && minimumWithdrawalAmount != null && availableBalance < minimumWithdrawalAmount
         ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17 }}>
-            Available balance does not cover the minimum payout and fee.
+            Available balance is below the minimum payout.
           </Text>
         : null}
       <Card testID="withdraw-processing-info">
@@ -418,10 +411,6 @@ export default function Withdraw() {
           <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 14 }}>Processing information</Text>
         </View>
         <DetailRow label="Processing time" value={processingTime || 'Not provided'} />
-        <DetailRow label="Withdrawal fee (USD)" value={feeUsd == null ? 'Unavailable' : moneyInSourceCurrency(feeUsd, 'USD')} />
-        {fee != null && feeCurrency !== 'USD'
-          ? <DetailRow label="Fee charged in wallet" value={moneyInSourceCurrency(fee, feeCurrency)} />
-          : null}
         <DetailRow label="Tax treatment" value={taxTreatment || 'Not specified'} />
         <DetailRow label="Wallet currency" value={withdrawalCurrency || 'Not provided'} />
       </Card>
@@ -432,9 +421,6 @@ export default function Withdraw() {
         </Text>
       </Card> : null}
       <Card>
-        <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginBottom: 12 }}>
-        The payout plus the withdrawal fee must fit the available balance returned by OG Exports. Locked and pending amounts are not included.
-        </Text>
         <Action
           title="Proceed to Withdraw"
           icon="arrow-right"

@@ -616,6 +616,7 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Explore","دریافت کریں","استكشاف"],
   ["Home","ہوم","الرئيسية"],
   ["Available balance","دستیاب بیلنس","الرصيد المتاح"],
+  ["Available balance is below the minimum payout.","دستیاب بیلنس کم از کم ادائیگی کی رقم سے کم ہے۔","الرصيد المتاح أقل من الحد الأدنى لمبلغ السحب."],
   ["Bank Details & Amount","بینک کی تفصیلات اور رقم","تفاصيل البنك والمبلغ"],
   ["Bank name *","بینک کا نام *","اسم البنك *"],
   ["Account holder *","اکاؤنٹ ہولڈر *","صاحب الحساب *"],
@@ -671,7 +672,6 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["The payout amount must be at least USD 100.00. The withdrawal fee is added separately.","ادائیگی کی رقم کم از کم 100 امریکی ڈالر ہونی چاہیے۔ رقم نکلوانے کی فیس الگ سے شامل ہوگی۔","يجب ألا يقل مبلغ التحويل عن 100 دولار أمريكي. تُضاف رسوم السحب بشكل منفصل."],
   ["Minimum in wallet currency","والیٹ کی کرنسی میں کم از کم رقم","الحد الأدنى بعملة المحفظة"],
   ["The minimum applies to the payout amount; the withdrawal fee is added separately.","کم از کم حد بینک کو بھیجی جانے والی رقم پر لاگو ہے؛ رقم نکلوانے کی فیس الگ سے شامل ہوگی۔","ينطبق الحد الأدنى على مبلغ التحويل إلى البنك؛ وتُضاف رسوم السحب بشكل منفصل."],
-  ["Available balance does not cover the minimum payout and fee.","دستیاب بیلنس کم از کم ادائیگی اور فیس کے لیے کافی نہیں ہے۔","الرصيد المتاح لا يغطي الحد الأدنى للتحويل والرسوم."],
   ["Payout must meet the minimum withdrawal shown above.","ادائیگی کی رقم اوپر دکھائی گئی کم از کم حد کے برابر یا اس سے زیادہ ہونی چاہیے۔","يجب أن يساوي مبلغ التحويل الحد الأدنى للسحب المعروض أعلاه أو يتجاوزه."],
   ["Enter a payout that meets the minimum shown above and fits the available balance after the fee.","ایسی ادائیگی کی رقم درج کریں جو اوپر دکھائی گئی کم از کم حد پوری کرے اور فیس کے بعد دستیاب بیلنس میں سما جائے۔","أدخل مبلغ تحويل يحقق الحد الأدنى الموضح أعلاه ويناسب الرصيد المتاح بعد الرسوم."],
   ["Only the available balance returned by OG Exports can be requested. Locked and pending amounts are not included.","صرف OG Exports کی فراہم کردہ دستیاب رقم ہی نکلوانے کی درخواست میں شامل ہو سکتی ہے۔ لاک اور زیرِ التواء رقم شامل نہیں۔","يمكن طلب الرصيد المتاح الذي تعيده OG Exports فقط. لا تشمل المبالغ المقفلة أو المعلقة."],
@@ -855,9 +855,8 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["I acknowledge the investment details and want to submit this investment request.","میں سرمایہ کاری کی تفصیلات کا اقرار کرتا/کرتی ہوں اور یہ درخواست جمع کرنا چاہتا/چاہتی ہوں۔","أقرّ بتفاصيل الاستثمار وأرغب في إرسال طلب الاستثمار هذا."],
   ["Read the published Terms of Service and Risk Disclosure, then acknowledge each and the investment request separately before proceeding.","شائع شدہ سروس کی شرائط اور رسک ڈسکلوزر پڑھیں، پھر آگے بڑھنے سے پہلے دونوں اور سرمایہ کاری کی درخواست کا الگ الگ اقرار کریں۔","اقرأ شروط الخدمة وإقرار المخاطر المنشورَين، ثم أقرّ بكلٍ منهما وبطلب الاستثمار بشكل منفصل قبل المتابعة."],
   ["Confirm investment","سرمایہ کاری کی تصدیق کریں","تأكيد الاستثمار"],
-  ["You can submit this investment using your signed-in account. Device security setup is offered during your first withdrawal.","آپ اپنے لاگ اِن اکاؤنٹ سے یہ سرمایہ کاری جمع کرا سکتے ہیں۔ ڈیوائس سکیورٹی کا سیٹ اپ پہلی بار رقم نکلوانے کے دوران پیش کیا جائے گا۔","يمكنك إرسال هذا الاستثمار باستخدام حسابك المسجل. سيُعرض إعداد أمان الجهاز أثناء أول عملية سحب."],
+  ["You can submit this investment using your signed-in account. Withdrawals require email verification and your transaction password.","آپ اپنے لاگ اِن اکاؤنٹ سے یہ سرمایہ کاری جمع کرا سکتے ہیں۔ رقم نکلوانے کے لیے ای میل کی تصدیق اور آپ کا ٹرانزیکشن پاس ورڈ درکار ہے۔","يمكنك إرسال هذا الاستثمار باستخدام حسابك المسجل. تتطلب عمليات السحب التحقق عبر البريد الإلكتروني وكلمة مرور المعاملة."],
   ["Confirm & submit request","تصدیق کریں اور درخواست جمع کروائیں","أكّد وأرسل الطلب"],
-  ["Set an app PIN or enable device biometrics in Account security. This setup is only required before your first withdrawal.","اکاؤنٹ سکیورٹی میں ایپ PIN سیٹ کریں یا ڈیوائس بائیومیٹرکس فعال کریں۔ یہ سیٹ اپ صرف پہلی بار رقم نکلوانے سے پہلے درکار ہے۔","أنشئ رمز PIN للتطبيق أو فعّل المقاييس الحيوية للجهاز من إعدادات أمان الحساب. هذا الإعداد مطلوب مرة واحدة فقط قبل أول عملية سحب."],
   ["Set up device security","ڈیوائس سکیورٹی سیٹ اپ کریں","إعداد أمان الجهاز"],
   ["Your withdrawal history could not be checked. Retry before continuing.","آپ کی رقم نکلوانے کی ہسٹری چیک نہیں ہو سکی۔ آگے بڑھنے سے پہلے دوبارہ کوشش کریں۔","تعذر التحقق من سجل السحب. أعد المحاولة قبل المتابعة."],
   ["Checking withdrawal history. Wait before continuing.","رقم نکلوانے کی ہسٹری چیک ہو رہی ہے۔ آگے بڑھنے سے پہلے انتظار کریں۔","يجري التحقق من سجل السحب. انتظر قبل المتابعة."],
@@ -883,8 +882,6 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Withdrawal fee information could not be loaded. Retry before continuing.","رقم نکلوانے کی فیس کی معلومات لوڈ نہیں ہو سکیں۔ جاری رکھنے سے پہلے دوبارہ کوشش کریں۔","تعذر تحميل معلومات رسوم السحب. أعد المحاولة قبل المتابعة."],
   ["Enter a valid payout amount that fits the available balance after the withdrawal fee.","رقم نکلوانے کی فیس کے بعد دستیاب بیلنس میں آنے والی درست ادائیگی کی رقم درج کریں۔","أدخل مبلغ تحويل صالحًا ضمن الرصيد المتاح بعد رسوم السحب."],
   ["Review the payout amount after the fee and complete the required bank details.","فیس کے بعد ادائیگی کی رقم دوبارہ دیکھیں اور مطلوبہ بینک تفصیلات مکمل کریں۔","راجع مبلغ التحويل بعد الرسوم وأكمل تفاصيل البنك المطلوبة."],
-  ["Maximum payout is the available balance less the withdrawal fee.","زیادہ سے زیادہ ادائیگی دستیاب بیلنس میں سے رقم نکلوانے کی فیس منہا کرنے کے بعد ہے۔","الحد الأقصى للتحويل هو الرصيد المتاح بعد خصم رسوم السحب."],
-  ["The payout plus the withdrawal fee must fit the available balance returned by OG Exports. Locked and pending amounts are not included.","ادائیگی اور رقم نکلوانے کی فیس، OG Exports کے بتائے گئے دستیاب بیلنس کے اندر ہونی چاہیے۔ لاک شدہ اور زیرِ التوا رقوم شامل نہیں ہیں۔","يجب أن يكون مبلغ التحويل مع رسوم السحب ضمن الرصيد المتاح الذي يحدده OG Exports. لا تشمل الأرصدة المقفلة أو المعلقة."],
 ];
 
 const translations = new Map<string, Readonly<Record<Exclude<AppLanguage, 'en'>, string>>>(

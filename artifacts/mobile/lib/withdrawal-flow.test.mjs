@@ -101,6 +101,8 @@ test('withdrawal amount must be positive and within the server-reported availabl
 
 test('withdrawal fee is added on top of the requested payout and must fit the available balance', () => {
   assert.equal(parseWithdrawalAmount('100', 102, 2, 100), 100);
+  assert.equal(parseWithdrawalAmount('500', 502, 2, 100), 500);
+  assert.equal(parseWithdrawalAmount('500', 501.99, 2, 100), null);
   assert.equal(parseWithdrawalAmount('99.99', 102, 2, 100), null);
   assert.equal(parseWithdrawalAmount('100', 101.99, 2, 100), null);
   assert.equal(parseWithdrawalAmount('100', 102, 2.01, 100), null);
