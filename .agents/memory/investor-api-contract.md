@@ -9,7 +9,9 @@ The user-confirmed withdrawal policy is a USD 2 fee added on top of the bank pay
 
 **Why:** The user explicitly chose an additional fee rather than deducting it from the payout, so showing a fee without increasing the wallet debit would be misleading.
 
-**How to apply:** Keep the bank payout amount unchanged; validate, reserve, approve, and refund payout plus fee. Display the server-returned fee in USD and its wallet-currency equivalent when applicable. Do not use a later live rate to rewrite a submitted PKR fee.
+**How to apply:** Keep the bank payout amount unchanged; validate, reserve, approve, and refund payout plus fee. Display the server-returned fee in USD and its wallet-currency equivalent when applicable. Do not use a later live rate to rewrite a submitted PKR fee. If the connected API omits the policy, the mobile screen may show the confirmed USD 2 fee and processing estimate as reference and calculate the USD maximum payout after that fee, but it must keep withdrawal submission paused until the API confirms the USD 2 fee and wallet currency. For non-USD wallets, do not invent the wallet-currency fee using a live rate; provide a retry action for refreshed server terms.
+
+**Why:** The balance endpoint can work while an older API omits withdrawal terms. Hiding the confirmed fee is confusing, but allowing a request before the server confirms the fee could promise a larger debit than the backend actually reserves.
 
 The mobile app's investor data API is the existing Laravel service. The workspace Express API is a separate supplemental service, not a replacement source for Laravel investor project or investment responses. When Laravel implementation code is outside this workspace, define and generate the contract here, but keep the external server implementation boundary explicit; do not store parallel local shipment data that investors cannot receive.
 

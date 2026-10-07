@@ -1,6 +1,59 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildWithdrawalRequest, parseWithdrawalAmount } from './withdrawal-flow.ts';
+import {
+  buildWithdrawalRequest,
+  FALLBACK_WITHDRAWAL_FEE_USD,
+  FALLBACK_WITHDRAWAL_PROCESSING_TIME,
+  maximumWithdrawalPayout,
+  parseWithdrawalAmount,
+  resolveWithdrawalDisplayTerms,
+} from './withdrawal-flow.ts';
+
+test('shows the confirmed policy as display-only when the API omits withdrawal terms', () => {
+  const terms = resolveWithdrawalDisplayTerms({
+    apiFee: null,
+    apiFeeUsd: null,
+    apiFeeCurrency: '',
+    apiProcessingTime: '',
+    walletCurrency: 'USD',
+  });
+
+  assert.equal(FALLBACK_WITHDRAWAL_FEE_USD, 2);
+  assert.equal(FALLBACK_WITHDRAWAL_PROCESSING_TIME, '1 to 2 working days');
+  assert.deepEqual(terms, {
+    fee: 2,
+    feeUsd: 2,
+    feeCurrency: 'USD',
+    processingTime: '1 to 2 working days',
+    serverConfirmed: false,
+  });
+});
+
+test('only treats server-returned USD 2 terms as confirmed for a USD wallet', () => {
+  const terms = resolveWithdrawalDisplayTerms({
+    apiFee: 2,
+    apiFeeUsd: 2,
+    apiFeeCurrency: 'USD',
+    apiProcessingTime: '1 to 2 working days',
+    walletCurrency: 'USD',
+  });
+  const staleTerms = resolveWithdrawalDisplayTerms({
+    apiFee: 0,
+    apiFeeUsd: 0,
+    apiFeeCurrency: 'USD',
+    apiProcessingTime: '1 to 2 working days',
+    walletCurrency: 'USD',
+  });
+
+  assert.equal(terms.serverConfirmed, true);
+  assert.equal(staleTerms.serverConfirmed, false);
+});
+
+test('maximum payout is the available wallet balance less the fee', () => {
+  assert.equal(maximumWithdrawalPayout(1750.33, 2), 1748.33);
+  assert.equal(maximumWithdrawalPayout(1.5, 2), 0);
+  assert.equal(maximumWithdrawalPayout(1750.33, null), null);
+});
 
 test('withdrawal amount must be positive and within the server-reported available balance', () => {
   assert.equal(parseWithdrawalAmount('125.50', 200), 125.5);

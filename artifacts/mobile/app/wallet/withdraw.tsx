@@ -17,7 +17,7 @@ import { TransactionPasswordResetModal } from '@/components/TransactionPasswordR
 import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, money, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
-import { buildWithdrawalRequest, parseWithdrawalAmount } from '@/lib/withdrawal-flow';
+import { buildWithdrawalRequest, maximumWithdrawalPayout, parseWithdrawalAmount, resolveWithdrawalDisplayTerms } from '@/lib/withdrawal-flow';
 import { motionHaptic } from '@/lib/motion';
 
 const withdrawalPurposes = ['Profit Withdrawal', 'Principal Return', 'Business Expense', 'Personal Use'] as const;
@@ -165,14 +165,19 @@ export default function Withdraw() {
   const pendingBalance = readAmount(wallet, ['pending_balance']);
   const savedBankDetails = useMemo(() => savedWithdrawalBank(profile), [profile]);
   const withdrawals = list(historyQuery.data);
-  const fee = readAmount(dashboard, ['withdrawal_fee', 'transaction_fee', 'fee'])
-    ?? readAmount(wallet, ['withdrawal_fee', 'transaction_fee', 'fee']);
-  const feeUsd = readAmount(dashboard, ['withdrawal_fee_usd'])
-    ?? readAmount(wallet, ['withdrawal_fee_usd']);
-  const feeCurrency = first(dashboard, ['withdrawal_fee_currency'],
-    first(wallet, ['withdrawal_fee_currency'], walletCurrency));
-  const processingTime = first(dashboard, ['estimated_processing_time', 'processing_time'],
-    first(wallet, ['estimated_processing_time', 'processing_time'], 'Not provided'));
+  const withdrawalTerms = resolveWithdrawalDisplayTerms({
+    apiFee: readAmount(dashboard, ['withdrawal_fee', 'transaction_fee', 'fee'])
+      ?? readAmount(wallet, ['withdrawal_fee', 'transaction_fee', 'fee']),
+    apiFeeUsd: readAmount(dashboard, ['withdrawal_fee_usd'])
+      ?? readAmount(wallet, ['withdrawal_fee_usd']),
+    apiFeeCurrency: first(dashboard, ['withdrawal_fee_currency'],
+      first(wallet, ['withdrawal_fee_currency'])),
+    apiProcessingTime: first(dashboard, ['estimated_processing_time', 'processing_time'],
+      first(wallet, ['estimated_processing_time', 'processing_time'])),
+    walletCurrency,
+  });
+  const { fee, feeUsd, feeCurrency, processingTime } = withdrawalTerms;
+  const withdrawalTermsConfirmed = withdrawalTerms.serverConfirmed;
   const taxTreatment = first(dashboard, ['tax_treatment', 'tax_status'],
     first(wallet, ['tax_treatment', 'tax_status']));
   const deviceSecurityConfigured = appPinEnabled || biometricEnabled;
@@ -207,7 +212,7 @@ export default function Withdraw() {
   const [successFeedbackVisible, setSuccessFeedbackVisible] = useState(false);
   const [selectedWithdrawalId, setSelectedWithdrawalId] = useState('');
   const withdrawalCurrency = walletCurrency;
-  const maxPayout = availableBalance == null || fee == null ? null : Math.max(0, availableBalance - fee);
+  const maxPayout = maximumWithdrawalPayout(availableBalance, fee);
   const amountNumber = parseWithdrawalAmount(amount, availableBalance, fee ?? 0);
   const historySelection = withdrawals.find(item => first(item, ['id', 'reference', 'withdraw_id']) === selectedWithdrawalId);
   const progressWithdrawal = confirmation ?? (historySelection ? record(historySelection) : null);
@@ -267,6 +272,10 @@ export default function Withdraw() {
         : 'Please wait while the available balance is refreshed.');
       return;
     }
+    if (!withdrawalTermsConfirmed) {
+      setError('Withdrawal fees have not been confirmed by the connected server. Update the OG Exports API before continuing.');
+      return;
+    }
     if (fee == null || feeUsd == null) {
       setError('Withdrawal fee information could not be loaded. Retry before continuing.');
       return;
@@ -303,6 +312,11 @@ export default function Withdraw() {
       setError(dashboardQuery.isError
         ? 'Available balance could not be loaded. Retry before continuing.'
         : 'Please wait while the available balance is refreshed.');
+      return;
+    }
+    if (!withdrawalTermsConfirmed) {
+      setError('Withdrawal fees have not been confirmed by the connected server. Update the OG Exports API before continuing.');
+      setStage('form');
       return;
     }
     const validAmount = parseWithdrawalAmount(amount, availableBalance, fee ?? 0);
@@ -373,6 +387,23 @@ export default function Withdraw() {
     {!dashboardQuery.isLoading && !dashboardQuery.isError && availableBalance == null
       ? <ErrorState message="Available balance was not returned by OG Exports." onRetry={() => void dashboardQuery.refetch()} />
       : null}
+    {!dashboardQuery.isLoading && !withdrawalTermsConfirmed && stage !== 'submitted' ? <Card testID="withdraw-terms-warning">
+      <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 13, marginBottom: 5 }}>Withdrawal terms need server confirmation</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17 }}>
+        The connected OG Exports API has not confirmed this fee. The displayed policy is for reference; withdrawals remain paused until the server confirms the charge.
+      </Text>
+      <View style={{ marginTop: 10 }}>
+        <Action
+          title="Retry terms"
+          icon="refresh-cw"
+          secondary
+          loading={dashboardQuery.isFetching || walletQuery.isFetching}
+          disabled={dashboardQuery.isFetching || walletQuery.isFetching}
+          onPress={() => { void dashboardQuery.refetch(); void walletQuery.refetch(); }}
+          testID="withdraw-retry-terms"
+        />
+      </View>
+    </Card> : null}
 
     {firstWithdrawalHistoryPending ? <Card>
       <View testID="withdraw-security-history-loading">
@@ -442,7 +473,7 @@ export default function Withdraw() {
         <Action
           title="Proceed to Withdraw"
           icon="arrow-right"
-          disabled={dashboardQuery.isLoading || dashboardQuery.isFetching || dashboardQuery.isError || availableBalance == null || maxPayout == null || maxPayout <= 0 || fee == null || feeUsd == null || !withdrawalCurrency}
+          disabled={dashboardQuery.isLoading || dashboardQuery.isFetching || dashboardQuery.isError || availableBalance == null || maxPayout == null || maxPayout <= 0 || fee == null || feeUsd == null || !withdrawalCurrency || !withdrawalTermsConfirmed}
           onPress={() => { setError(''); setNotice(''); setBankDetailsTouched(false); setStage('form'); }}
         />
       </Card>
@@ -528,7 +559,7 @@ export default function Withdraw() {
             title="Continue to Security"
             icon="arrow-right"
             loading={sendOtp.isPending}
-            disabled={dashboardQuery.isFetching || dashboardQuery.isError || fee == null || feeUsd == null}
+            disabled={dashboardQuery.isFetching || dashboardQuery.isError || fee == null || feeUsd == null || !withdrawalTermsConfirmed}
             onPress={() => void continueToSecurity()}
           />
         </View>

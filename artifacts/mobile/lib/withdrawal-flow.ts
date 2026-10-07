@@ -1,3 +1,57 @@
+export const FALLBACK_WITHDRAWAL_FEE_USD = 2;
+export const FALLBACK_WITHDRAWAL_PROCESSING_TIME = '1 to 2 working days';
+
+export function resolveWithdrawalDisplayTerms({
+  apiFee,
+  apiFeeUsd,
+  apiFeeCurrency,
+  apiProcessingTime,
+  walletCurrency,
+}: {
+  apiFee: number | null;
+  apiFeeUsd: number | null;
+  apiFeeCurrency: string;
+  apiProcessingTime: string;
+  walletCurrency: string;
+}) {
+  const normalizedWalletCurrency = walletCurrency.trim().toUpperCase();
+  const normalizedFeeCurrency = apiFeeCurrency.trim().toUpperCase();
+  const normalizedProcessingTime = apiProcessingTime.trim();
+  const processingTime = normalizedProcessingTime && normalizedProcessingTime !== '—'
+    ? normalizedProcessingTime
+    : FALLBACK_WITHDRAWAL_PROCESSING_TIME;
+
+  return {
+    fee: apiFee ?? (normalizedWalletCurrency === 'USD' ? FALLBACK_WITHDRAWAL_FEE_USD : null),
+    feeUsd: apiFeeUsd ?? FALLBACK_WITHDRAWAL_FEE_USD,
+    feeCurrency: normalizedFeeCurrency || normalizedWalletCurrency,
+    processingTime,
+    serverConfirmed:
+      apiFee !== null
+      && apiFeeUsd === FALLBACK_WITHDRAWAL_FEE_USD
+      && normalizedWalletCurrency !== ''
+      && normalizedFeeCurrency === normalizedWalletCurrency,
+  };
+}
+
+export function maximumWithdrawalPayout(
+  availableBalance: number | null,
+  withdrawalFee: number | null,
+): number | null {
+  if (
+    availableBalance == null
+    || withdrawalFee == null
+    || !Number.isFinite(availableBalance)
+    || !Number.isFinite(withdrawalFee)
+    || availableBalance < 0
+    || withdrawalFee < 0
+  ) {
+    return null;
+  }
+
+  return Math.max(0, Math.round((availableBalance - withdrawalFee) * 100) / 100);
+}
+
 export function parseWithdrawalAmount(
   value: string,
   availableBalance: number | null,
