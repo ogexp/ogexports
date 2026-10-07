@@ -15,6 +15,7 @@ import { shareInvestorFile } from '@/lib/file-download';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
+import { savedUsdEquivalentForRecordedAmount } from '@/lib/withdrawal-history';
 
 type Filter = 'All' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
 type Category = Exclude<Filter, 'All'> | 'Other';
@@ -34,6 +35,12 @@ type TransactionRow = {
   paymentReference: string;
   pdfPath: string;
   searchText: string;
+  withdrawalBreakdown?: {
+    payout: string;
+    fee: string;
+    totalDebit: string;
+    exchangeRate: string;
+  };
 };
 
 const filters: Filter[] = ['All', 'Deposits', 'Investments', 'Withdrawals', 'Distributions'];
@@ -53,6 +60,25 @@ function formatDateTime(value: string) {
 function formatLabel(value: string) {
   if (!value) return unavailable;
   return value.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+}
+
+function formatWithdrawalAmount(
+  value: number | null,
+  currency: string,
+  usdAmount: number | null,
+  exchangeRate: number | null,
+) {
+  if (value === null) return 'Not recorded';
+  const currencyCode = currency.trim().toUpperCase();
+  if (!currencyCode) return `${value.toFixed(2)} (currency not recorded)`;
+
+  const sourceAmount = money(value, currencyCode, { preserveSource: true });
+  if (currencyCode === 'USD') return sourceAmount;
+
+  const usdEquivalent = savedUsdEquivalentForRecordedAmount(value, currencyCode, usdAmount, exchangeRate);
+  return usdEquivalent === null
+    ? sourceAmount
+    : `${sourceAmount} (${money(usdEquivalent, 'USD', { preserveSource: true })} USD equivalent)`;
 }
 
 function categoryForWalletTransaction(item: Json): Category {
@@ -183,6 +209,14 @@ export default function Transactions() {
     const matched = findWalletTransaction('withdrawal', id, reference);
     markWalletTransactionUsed(matched);
     const bankDetails = record(withdrawal.bank_details);
+    const currency = first(withdrawal, ['currency', 'amount_currency'], first(bankDetails, ['currency']));
+    const exchangeRate = readAmount(withdrawal, ['exchange_rate']);
+    const payout = readAmount(withdrawal, ['amount']);
+    const payoutUsd = readAmount(withdrawal, ['amount_usd']);
+    const fee = readAmount(withdrawal, ['fee', 'withdrawal_fee']);
+    const feeUsd = readAmount(withdrawal, ['fee_usd', 'withdrawal_fee_usd']);
+    const totalDebit = readAmount(withdrawal, ['total_debit']);
+    const totalDebitUsd = readAmount(withdrawal, ['total_debit_usd']);
     const key = `withdrawal:${id || reference || `${page}-${index}`}`;
     const title = first(withdrawal, ['description'], 'Withdrawal');
     const paymentMethod = first(withdrawal, ['payment_method', 'method'], first(bankDetails, ['payment_method', 'method']));
@@ -193,8 +227,16 @@ export default function Transactions() {
       transactionId: matched ? first(matched, ['id', 'transaction_id']) : first(withdrawal, ['transaction_id']),
       investmentId: '',
       tradeId: '',
-      amount: readAmount(withdrawal, ['amount']),
-      currency: first(withdrawal, ['currency', 'amount_currency'], first(bankDetails, ['currency'], walletCurrency)),
+      amount: payout,
+      currency,
+      withdrawalBreakdown: {
+        payout: formatWithdrawalAmount(payout, currency, payoutUsd, exchangeRate),
+        fee: formatWithdrawalAmount(fee, currency, feeUsd, exchangeRate),
+        totalDebit: formatWithdrawalAmount(totalDebit, currency, totalDebitUsd, exchangeRate),
+        exchangeRate: exchangeRate === null
+          ? 'Not recorded'
+          : `1 USD = ${exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${currency || 'PKR'}`,
+      },
       occurredAt: first(withdrawal, ['created_at', 'date']),
       status: first(withdrawal, ['status', 'state']),
       paymentMethod,
@@ -348,7 +390,9 @@ export default function Transactions() {
 
     {filteredRows.map((row, index) => {
       const active = selectedRow?.key === row.key;
-      const amountLabel = money(row.amount, row.currency || 'USD');
+      const amountLabel = row.category === 'Withdrawals'
+        ? formatWithdrawalAmount(row.amount, row.currency, null, null)
+        : money(row.amount, row.currency || 'USD');
       return <MotionReveal key={`${row.key}-${active}`} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}>
       <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => {
         setSelectedId(active ? '' : row.key);
@@ -366,6 +410,11 @@ export default function Transactions() {
             <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 11, flex: 1 }}>{row.reference || unavailable}</Text>
             <Status value={row.status || unavailable} />
           </View>
+          {row.withdrawalBreakdown ? <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: 10, paddingTop: 2 }}>
+            <DetailLine label="Payout" value={row.withdrawalBreakdown.payout} />
+            <DetailLine label="Withdrawal fee" value={row.withdrawalBreakdown.fee} />
+            <DetailLine label="Total wallet debit" value={row.withdrawalBreakdown.totalDebit} />
+          </View> : null}
           {active ? <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: 12, paddingTop: 4 }}>
             <DetailLine label="Transaction ID" value={row.transactionId} />
             {row.category === 'Investments' || row.category === 'Distributions' || row.investmentId
@@ -375,6 +424,9 @@ export default function Transactions() {
               ? <DetailLine label="Trade ID" value={row.tradeId} />
               : null}
             <DetailLine label="Amount" value={amountLabel} />
+            {row.withdrawalBreakdown
+              ? <DetailLine label="Saved exchange rate" value={row.withdrawalBreakdown.exchangeRate} />
+              : null}
             <DetailLine label="Date / time" value={formatDateTime(row.occurredAt)} />
             <DetailLine label="Status" value={formatLabel(row.status)} />
             <DetailLine label="Payment method" value={formatLabel(row.paymentMethod)} />

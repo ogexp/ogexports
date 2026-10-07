@@ -15,6 +15,11 @@ export type TransactionHistoryItem = {
   status: string
   statusLabel?: string
   pdfPath?: string
+  breakdown?: {
+    payout: string
+    fee: string
+    totalDebit: string
+  }
 }
 
 type Props = {
@@ -70,9 +75,19 @@ export function TransactionHistoryCard({ title, loading, emptyMessage, items }: 
             key={item.id}
             className="flex items-center justify-between gap-3 py-2 border-b border-border/50 last:border-0"
           >
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium truncate">{item.primary}</p>
               <p className="text-[11px] text-muted-foreground truncate">{detailLine(item)}</p>
+              {item.breakdown && (
+                <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px] leading-4 text-muted-foreground">
+                  <dt>Payout</dt>
+                  <dd className="text-right">{item.breakdown.payout}</dd>
+                  <dt>Fee</dt>
+                  <dd className="text-right">{item.breakdown.fee}</dd>
+                  <dt>Total debit</dt>
+                  <dd className="text-right font-medium text-foreground">{item.breakdown.totalDebit}</dd>
+                </dl>
+              )}
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <Badge className={`border-0 text-[10px] ${paymentStatusBadgeClass(item.status)}`}>

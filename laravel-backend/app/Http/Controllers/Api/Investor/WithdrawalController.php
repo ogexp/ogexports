@@ -14,6 +14,7 @@ use App\Support\ExchangeRateService;
 use App\Support\InvestorBankAccountPresenter;
 use App\Support\InvestorBankAccounts;
 use App\Support\InvestorNotificationTypes;
+use App\Support\InvestorWithdrawalBreakdown;
 use App\Support\NotifiesAdmins;
 use App\Support\NotifiesUsers;
 use App\Support\UserDisplayCurrency;
@@ -314,24 +315,47 @@ class WithdrawalController extends Controller
      */
     private function transformWithdrawal(Withdrawal $withdrawal): array
     {
+        $bankDetails = is_array($withdrawal->bank_details) ? $withdrawal->bank_details : [];
+        $currency = strtoupper(trim((string) ($bankDetails['currency'] ?? '')));
+        $needsStoredFallback = $currency === ''
+            || $withdrawal->fee === null
+            || $withdrawal->total_debit === null
+            || ($currency === 'PKR' && (
+                $withdrawal->amount_usd === null
+                || $withdrawal->exchange_rate === null
+                || $withdrawal->fee_usd === null
+                || $withdrawal->total_debit_usd === null
+            ));
+
+        // Only legacy rows need a wallet-transaction lookup for recorded metadata.
+        // Current rows already contain the full breakdown in the withdrawal columns.
+        $breakdown = $needsStoredFallback
+            ? InvestorWithdrawalBreakdown::fromWithdrawal($withdrawal)
+            : [
+                'payout_amount' => (float) $withdrawal->amount,
+                'payout_amount_usd' => $withdrawal->amount_usd !== null ? (float) $withdrawal->amount_usd : null,
+                'fee' => (float) $withdrawal->fee,
+                'fee_usd' => $withdrawal->fee_usd !== null ? (float) $withdrawal->fee_usd : null,
+                'total_debit' => (float) $withdrawal->total_debit,
+                'total_debit_usd' => $withdrawal->total_debit_usd !== null ? (float) $withdrawal->total_debit_usd : null,
+                'currency' => $currency,
+                'exchange_rate' => $withdrawal->exchange_rate !== null ? (float) $withdrawal->exchange_rate : null,
+            ];
+
         return [
             'id' => $withdrawal->id,
             'withdraw_id' => $withdrawal->reference ?: sprintf('OGWITH-INV-%03d', $withdrawal->id),
             'reference' => $withdrawal->reference ?: sprintf('OGWITH-INV-%03d', $withdrawal->id),
-            'amount' => (float) $withdrawal->amount,
-            'amount_usd' => $withdrawal->amount_usd !== null ? (float) $withdrawal->amount_usd : null,
-            'exchange_rate' => $withdrawal->exchange_rate !== null ? (float) $withdrawal->exchange_rate : null,
-            'fee' => $withdrawal->fee !== null ? (float) $withdrawal->fee : null,
-            'fee_usd' => $withdrawal->fee_usd !== null ? (float) $withdrawal->fee_usd : null,
-            'total_debit' => $withdrawal->total_debit !== null
-                ? (float) $withdrawal->total_debit
-                : null,
-            'total_debit_usd' => $withdrawal->total_debit_usd !== null
-                ? (float) $withdrawal->total_debit_usd
-                : null,
-            'currency' => strtoupper((string) (is_array($withdrawal->bank_details) ? ($withdrawal->bank_details['currency'] ?? 'USD') : 'USD')),
-            'withdrawal_fee' => $withdrawal->fee !== null ? (float) $withdrawal->fee : null,
-            'withdrawal_fee_usd' => $withdrawal->fee_usd !== null ? (float) $withdrawal->fee_usd : null,
+            'amount' => $breakdown['payout_amount'],
+            'amount_usd' => $breakdown['payout_amount_usd'],
+            'exchange_rate' => $breakdown['exchange_rate'],
+            'fee' => $breakdown['fee'],
+            'fee_usd' => $breakdown['fee_usd'],
+            'total_debit' => $breakdown['total_debit'],
+            'total_debit_usd' => $breakdown['total_debit_usd'],
+            'currency' => $breakdown['currency'],
+            'withdrawal_fee' => $breakdown['fee'],
+            'withdrawal_fee_usd' => $breakdown['fee_usd'],
             'estimated_processing_time' => (string) config('withdrawal.estimated_processing_time', '1 to 2 working days'),
             'bank_details' => InvestorBankAccountPresenter::maskBankDetails(
                 is_array($withdrawal->bank_details) ? $withdrawal->bank_details : []

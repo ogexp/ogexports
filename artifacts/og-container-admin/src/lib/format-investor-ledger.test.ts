@@ -4,7 +4,11 @@
  *   npx --yes tsx src/lib/format-investor-ledger.test.ts
  */
 import assert from "node:assert/strict"
-import { formatInvestorLedgerAmount, type InvestorLedgerCurrency } from "./format-investor-ledger.ts"
+import {
+  formatInvestorLedgerAmount,
+  savedUsdEquivalentForRecordedAmount,
+  type InvestorLedgerCurrency,
+} from "./format-investor-ledger.ts"
 import { formatPkrFirst } from "./format-pkr-first.ts"
 
 const LOCALE_OPTS: Intl.NumberFormatOptions = {
@@ -92,6 +96,27 @@ assert.equal(
   }),
   "PKR 2,785.00 ($10.00)",
   "PK on without usdAmount → fmtWalletAmount dual",
+)
+
+assert.equal(
+  savedUsdEquivalentForRecordedAmount(27850, "PKR", 100, 300),
+  100,
+  "a recorded USD equivalent takes precedence over any other rate",
+)
+assert.equal(
+  savedUsdEquivalentForRecordedAmount(27850, "PKR", null, 278.5),
+  100,
+  "PKR is converted only with the saved exchange-rate snapshot",
+)
+assert.equal(
+  savedUsdEquivalentForRecordedAmount(27850, "PKR", null, null),
+  null,
+  "no current-rate conversion is used when the record has no snapshot",
+)
+assert.equal(
+  savedUsdEquivalentForRecordedAmount(null, "PKR", 2, 278.5),
+  null,
+  "a missing recorded amount stays unavailable even if a USD field exists",
 )
 
 console.log("format-investor-ledger.test.ts: all assertions passed")

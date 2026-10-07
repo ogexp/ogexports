@@ -25,6 +25,26 @@ export interface FormatInvestorLedgerOptions {
 }
 
 /**
+ * Return a saved USD equivalent for a recorded wallet amount.
+ * Prefer the API's stored equivalent; only convert PKR when a recorded
+ * exchange-rate snapshot is available.
+ */
+export function savedUsdEquivalentForRecordedAmount(
+  walletAmount: number | null,
+  ledgerCurrency: string | null,
+  storedUsdAmount: number | null,
+  lockedRate: number | null,
+): number | null {
+  if (walletAmount == null || !Number.isFinite(walletAmount)) return null
+  if (storedUsdAmount != null && Number.isFinite(storedUsdAmount)) return storedUsdAmount
+
+  if (String(ledgerCurrency || "").trim().toUpperCase() !== "PKR") return null
+  if (lockedRate == null || !Number.isFinite(lockedRate) || lockedRate <= 0) return null
+
+  return Math.round((walletAmount / lockedRate) * 100) / 100
+}
+
+/**
  * Format a wallet-ledger amount for investor UI.
  * - PK display on + usdAmount → dual/PKR via fmtDual
  * - PK display off + usdAmount → USD via fmtNative

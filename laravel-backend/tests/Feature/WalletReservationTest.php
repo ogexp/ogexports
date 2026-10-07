@@ -382,6 +382,14 @@ it('reserves the payout and fee on withdrawal request, then clears the full debi
         ->assertJsonPath('data.withdrawal_breakdown.currency', 'USD')
         ->assertJsonPath('data.withdrawal_breakdown.exchange_rate', null);
 
+    $this->actingAs($this->investor)
+        ->getJson('/api/investor/withdrawals')
+        ->assertOk()
+        ->assertJsonPath('data.0.amount', 2500)
+        ->assertJsonPath('data.0.fee', 2)
+        ->assertJsonPath('data.0.total_debit', 2502)
+        ->assertJsonPath('data.0.currency', 'USD');
+
     $this->actingAs($this->admin)
         ->postJson("/api/admin/finance/withdrawals/{$withdrawalId}/approve")
         ->assertOk();
@@ -423,7 +431,14 @@ it('does not invent a fee for older withdrawals without a recorded fee', functio
         ->assertJsonPath('data.fee', null)
         ->assertJsonPath('data.fee_usd', null)
         ->assertJsonPath('data.withdrawal_fee', null)
-        ->assertJsonPath('data.total_debit', null);
+        ->assertJsonPath('data.total_debit', 2500);
+
+    $this->actingAs($this->investor)
+        ->getJson('/api/investor/withdrawals')
+        ->assertOk()
+        ->assertJsonPath('data.0.fee', null)
+        ->assertJsonPath('data.0.total_debit', 2500)
+        ->assertJsonPath('data.0.currency', 'USD');
 
     $detail = $this->actingAs($this->investor)
         ->getJson("/api/investor/wallet/transactions/{$transaction->id}")
@@ -457,6 +472,45 @@ it('does not invent a fee for older withdrawals without a recorded fee', functio
         ->get("/api/investor/wallet/transactions/{$transaction->id}/pdf")
         ->assertOk()
         ->assertHeader('Content-Type', 'application/pdf');
+});
+
+it('returns a historical fee when it was recorded in wallet transaction metadata', function () {
+    $withdrawal = Withdrawal::query()->create([
+        'investor_id' => $this->investor->id,
+        'amount' => 2500,
+        'bank_details' => [
+            'bank_name' => 'Test Bank',
+            'account_holder' => 'Jane Investor',
+            'account_number' => '1234567890',
+            'currency' => 'USD',
+        ],
+        'reference' => 'OGWITH-LEGACY-002',
+        'status' => 'pending',
+    ]);
+    WalletTransaction::query()->create([
+        'wallet_id' => Wallet::query()->where('user_id', $this->investor->id)->value('id'),
+        'type' => 'withdrawal',
+        'amount' => 2503,
+        'direction' => 'debit',
+        'reference' => $withdrawal->reference,
+        'status' => 'pending',
+        'meta' => [
+            'withdrawal_id' => $withdrawal->id,
+            'currency' => 'USD',
+            'fee' => 3,
+            'fee_usd' => 3,
+            'total_debit' => 2503,
+            'total_debit_usd' => 2503,
+        ],
+    ]);
+
+    $this->actingAs($this->investor)
+        ->getJson('/api/investor/withdrawals')
+        ->assertOk()
+        ->assertJsonPath('data.0.fee', 3)
+        ->assertJsonPath('data.0.fee_usd', 3)
+        ->assertJsonPath('data.0.total_debit', 2503)
+        ->assertJsonPath('data.0.total_debit_usd', 2503);
 });
 
 it('returns the full payout plus fee reservation when a withdrawal is rejected', function () {

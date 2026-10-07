@@ -18,7 +18,11 @@ import {
 } from "lucide-react"
 import { useLocalAuth } from "@/lib/local-auth"
 import { useCurrency } from "@/lib/use-currency"
-import { formatInvestorLedgerAmount } from "@/lib/format-investor-ledger"
+import {
+  formatInvestorLedgerAmount,
+  savedUsdEquivalentForRecordedAmount,
+} from "@/lib/format-investor-ledger"
+import { formatMoneyCode } from "@/lib/format-pkr-first"
 import { api, unwrapPage, ApiError } from "@/lib/api"
 import { paymentStatusLabel } from "@/lib/deposit-statuses"
 import { useInvestorDashboardBalance } from "@/lib/investor-balance"
@@ -226,13 +230,24 @@ export default function InvestWithdraw() {
     amountUsd?: number | null,
     amountCurrency?: string | null,
   ) {
-    const currencyCode = String(amountCurrency || ledgerCurrency).trim().toUpperCase()
-    if (amt == null || !Number.isFinite(amt) || !currencyCode) return "Not provided"
-    return formatInvestorLedgerAmount(c, Number(amt) || 0, {
-      usdAmount: amountUsd,
-      ledgerCurrency: currencyCode,
-      lockedRate,
-    })
+    if (amt == null || !Number.isFinite(amt)) return "Not recorded"
+    const currencyCode = String(amountCurrency || "").trim().toUpperCase()
+    if (!currencyCode) {
+      return `${amt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (currency not recorded)`
+    }
+
+    const recordedAmount = formatMoneyCode(amt, currencyCode)
+    if (currencyCode === "USD") return recordedAmount
+
+    const usdEquivalent = savedUsdEquivalentForRecordedAmount(
+      amt,
+      currencyCode,
+      amountUsd ?? null,
+      lockedRate ?? null,
+    )
+    return usdEquivalent == null
+      ? recordedAmount
+      : `${recordedAmount} (${formatMoneyCode(usdEquivalent, "USD")})`
   }
 
   const withdrawalHistoryItems: TransactionHistoryItem[] = useMemo(
@@ -241,11 +256,20 @@ export default function InvestWithdraw() {
       const bank = bankDetails.bank_name || bankDetails.bank || w.bank_name || w.bank || "Bank Transfer"
       const ref = w.withdraw_id || w.reference || `OGWITH-INV-${String(w.id).padStart(3, "0")}`
       const lockedRate = w.exchange_rate != null ? Number(w.exchange_rate) : null
-      const amountUsd = w.amount_usd != null ? Number(w.amount_usd) : null
-      const amountCurrency = w.amount_currency || w.wallet_currency || w.currency
+      const amountUsd = readResponseAmount(w.amount_usd)
+      const fee = readResponseAmount(w.fee ?? w.withdrawal_fee)
+      const feeUsd = readResponseAmount(w.fee_usd ?? w.withdrawal_fee_usd)
+      const totalDebit = readResponseAmount(w.total_debit)
+      const totalDebitUsd = readResponseAmount(w.total_debit_usd)
+      const amountCurrency = w.currency || bankDetails.currency || w.amount_currency || w.wallet_currency || ""
       return {
         id: String(w.id),
-        primary: `${bank} · ${formatWithdrawAmount(w.amount == null ? null : Number(w.amount), lockedRate, amountUsd, amountCurrency)}`,
+        primary: `${bank} · ${formatWithdrawAmount(readResponseAmount(w.amount), lockedRate, amountUsd, amountCurrency)}`,
+        breakdown: {
+          payout: formatWithdrawAmount(readResponseAmount(w.amount), lockedRate, amountUsd, amountCurrency),
+          fee: formatWithdrawAmount(fee, lockedRate, feeUsd, amountCurrency),
+          totalDebit: formatWithdrawAmount(totalDebit, lockedRate, totalDebitUsd, amountCurrency),
+        },
         reference: ref,
         date: w.created_at
           ? new Date(w.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
