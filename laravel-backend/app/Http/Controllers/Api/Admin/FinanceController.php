@@ -279,13 +279,19 @@ class FinanceController extends Controller
                 InvestorNotificationTypes::DEPOSIT_APPROVED,
                 "Deposit approved — {$currency} {$amount}",
                 "Your deposit of {$currency} {$amount} has been verified and credited to your wallet. Reference: ".($deposit->reference ?? sprintf('OGDEP-INV-%03d', $deposit->id)),
-                ['deposit_id' => $deposit->id, 'href' => '/invest/wallet'],
+                [
+                    'deposit_id' => $deposit->id,
+                    'transaction_type' => 'deposit',
+                    'transaction_status' => 'approved',
+                    'reference' => $deposit->reference ?? sprintf('OGDEP-INV-%03d', $deposit->id),
+                    'href' => "/invest/transactions/deposit/{$deposit->id}",
+                ],
                 'deposit_approved',
                 [
                     'amount' => $amount,
                     'currency' => $currency,
                     'reference' => $deposit->reference ?? sprintf('OGDEP-INV-%03d', $deposit->id),
-                    'portal_url' => config('app.frontend_url', config('app.url')).'/invest/wallet',
+                    'portal_url' => config('app.frontend_url', config('app.url'))."/invest/transactions/deposit/{$deposit->id}",
                 ]
             );
         }
@@ -324,16 +330,23 @@ class FinanceController extends Controller
 
             NotifiesUsers::notifyAndEmail(
                 $deposit->investor,
-                InvestorNotificationTypes::DEPOSIT,
+                InvestorNotificationTypes::DEPOSIT_REJECTED,
                 'Deposit rejected',
-                $body,
-                ['deposit_id' => $deposit->id, 'href' => '/invest/wallet'],
+                $body.' No wallet credit was recorded for this deposit.',
+                [
+                    'deposit_id' => $deposit->id,
+                    'transaction_type' => 'deposit',
+                    'transaction_status' => 'rejected',
+                    'reference' => $deposit->reference ?? sprintf('OGDEP-INV-%03d', $deposit->id),
+                    'href' => "/invest/transactions/deposit/{$deposit->id}",
+                ],
                 'deposit_rejected',
                 [
                     'amount' => $amount,
                     'currency' => $currency,
                     'reference' => $deposit->reference ?? sprintf('OGDEP-INV-%03d', $deposit->id),
                     'notes' => $note ?? '',
+                    'portal_url' => config('app.frontend_url', config('app.url'))."/invest/transactions/deposit/{$deposit->id}",
                 ]
             );
         }
@@ -367,14 +380,21 @@ class FinanceController extends Controller
             $currency = strtoupper($deposit->currency ?: 'USD');
             NotifiesUsers::notifyAndEmail(
                 $deposit->investor,
-                InvestorNotificationTypes::DEPOSIT,
+                InvestorNotificationTypes::DEPOSIT_CANCELLED,
                 'Deposit cancelled',
-                "Your pending deposit of {$currency} {$amount} has been cancelled by the platform.",
-                ['deposit_id' => $deposit->id, 'href' => '/invest/wallet'],
+                "Your pending deposit of {$currency} {$amount} has been cancelled by the platform. No wallet credit was recorded for this deposit.",
+                [
+                    'deposit_id' => $deposit->id,
+                    'transaction_type' => 'deposit',
+                    'transaction_status' => 'cancelled',
+                    'reference' => $deposit->reference ?? sprintf('OGDEP-INV-%03d', $deposit->id),
+                    'href' => "/invest/transactions/deposit/{$deposit->id}",
+                ],
                 'deposit_cancelled',
                 [
                     'reference' => $deposit->reference ?? sprintf('OGDEP-INV-%03d', $deposit->id),
                     'notes' => $request->input('note') ?? '',
+                    'portal_url' => config('app.frontend_url', config('app.url'))."/invest/transactions/deposit/{$deposit->id}",
                 ]
             );
         }
@@ -530,14 +550,21 @@ class FinanceController extends Controller
             NotifiesUsers::notifyAndEmail(
                 $withdrawal->investor,
                 InvestorNotificationTypes::WITHDRAWAL_APPROVED,
-                "Withdrawal completed — {$amount}",
-                'Your withdrawal of '.$amount.' has been processed and transferred to your registered bank account. Reference: '.($withdrawal->reference ?? sprintf('OGWITH-INV-%03d', $withdrawal->id)),
-                ['withdrawal_id' => $withdrawal->id, 'href' => '/invest/withdraw'],
+                "Withdrawal approved — {$amount}",
+                'Your withdrawal request of '.$amount.' has been approved. This does not confirm that funds have reached your bank account. Current server status: approved. Reference: '.($withdrawal->reference ?? sprintf('OGWITH-INV-%03d', $withdrawal->id)),
+                [
+                    'withdrawal_id' => $withdrawal->id,
+                    'transaction_type' => 'withdrawal',
+                    'transaction_status' => 'approved',
+                    'reference' => $withdrawal->reference ?? sprintf('OGWITH-INV-%03d', $withdrawal->id),
+                    'href' => "/invest/transactions/withdrawal/{$withdrawal->id}",
+                ],
                 'withdraw_approved',
                 [
                     'withdraw_id' => $withdrawal->reference ?? sprintf('OGWITH-INV-%03d', $withdrawal->id),
                     'amount' => $amount,
                     'currency' => strtoupper(is_array($withdrawal->bank_details) ? ($withdrawal->bank_details['currency'] ?? 'USD') : 'USD'),
+                    'portal_url' => config('app.frontend_url', config('app.url'))."/invest/transactions/withdrawal/{$withdrawal->id}",
                 ]
             );
         }
@@ -595,20 +622,27 @@ class FinanceController extends Controller
             $note = $request->input('note');
             $body = filled($note)
                 ? "Your withdrawal request of {$amount} was rejected. Reason: {$note}"
-                : "Your withdrawal request of {$amount} was rejected. The funds have been returned to your wallet.";
+                : "Your withdrawal request of {$amount} was rejected. Check your wallet balance and transaction history for the current available funds.";
 
             NotifiesUsers::notifyAndEmail(
                 $withdrawal->investor,
-                InvestorNotificationTypes::WITHDRAWAL,
+                InvestorNotificationTypes::WITHDRAWAL_REJECTED,
                 'Withdrawal rejected',
                 $body,
-                ['withdrawal_id' => $withdrawal->id, 'href' => '/invest/withdraw'],
+                [
+                    'withdrawal_id' => $withdrawal->id,
+                    'transaction_type' => 'withdrawal',
+                    'transaction_status' => 'rejected',
+                    'reference' => $withdrawal->reference ?? sprintf('OGWITH-INV-%03d', $withdrawal->id),
+                    'href' => "/invest/transactions/withdrawal/{$withdrawal->id}",
+                ],
                 'withdraw_rejected',
                 [
                     'withdraw_id' => $withdrawal->reference ?? sprintf('OGWITH-INV-%03d', $withdrawal->id),
                     'amount' => $amount,
                     'currency' => strtoupper(is_array($withdrawal->bank_details) ? ($withdrawal->bank_details['currency'] ?? 'USD') : 'USD'),
                     'notes' => $note ?? '',
+                    'portal_url' => config('app.frontend_url', config('app.url'))."/invest/transactions/withdrawal/{$withdrawal->id}",
                 ]
             );
         }

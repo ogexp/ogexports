@@ -12,7 +12,9 @@ use App\Support\ExchangeRateService;
 use App\Support\MediaStorage;
 use App\Support\UserDisplayCurrency;
 use App\Support\AdminNotificationTypes;
+use App\Support\InvestorNotificationTypes;
 use App\Support\NotifiesAdmins;
+use App\Support\NotifiesUsers;
 use App\Services\InvestorTransactionPdfGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -173,6 +175,21 @@ class DepositController extends Controller
                 'href' => $href,
                 'deposit_id' => $deposit->id,
                 'user_id' => $request->user()->id,
+            ]
+        );
+
+        $reference = $deposit->reference ?? sprintf('OGDEP-INV-%03d', $deposit->id);
+        NotifiesUsers::notify(
+            $request->user(),
+            InvestorNotificationTypes::DEPOSIT_SUBMITTED,
+            "Deposit submitted — {$reference}",
+            "Your deposit request for {$currency} {$amount} was submitted for review. It has not been approved or credited to your wallet.",
+            [
+                'deposit_id' => $deposit->id,
+                'transaction_type' => 'deposit',
+                'transaction_status' => 'pending',
+                'reference' => $reference,
+                'href' => "/invest/transactions/deposit/{$deposit->id}",
             ]
         );
 

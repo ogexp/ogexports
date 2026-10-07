@@ -160,8 +160,14 @@ class ProjectController extends Controller
             $user,
             InvestorNotificationTypes::INVESTMENT,
             'Investment confirmed — '.$ref,
-            'Your investment in '.($project?->title ?? 'the project').' has been confirmed. '.$walletNote,
-            ['investment_id' => $investment->id, 'href' => '/invest/containers'],
+            'Your investment in '.($project?->title ?? 'the project').' is active. '.$walletNote,
+            [
+                'investment_id' => $investment->id,
+                'transaction_type' => 'investment',
+                'transaction_status' => $investment->status,
+                'reference' => $ref,
+                'href' => '/invest/positions/'.$investment->id,
+            ],
             'investment_confirmed',
             [
                 'reference' => $ref,
@@ -169,7 +175,7 @@ class ProjectController extends Controller
                 'amount_pkr' => $amountPkr !== null ? number_format($amountPkr, 2) : null,
                 'currency' => $amountPkr !== null ? 'USD' : strtoupper($project?->currency ?? InvestorMarket::currencyForUser($user)),
                 'project_name' => $project?->title ?? 'Investment Project',
-                'portal_url' => config('app.frontend_url', config('app.url')).'/invest/containers',
+                'portal_url' => config('app.frontend_url', config('app.url')).'/invest/positions/'.$investment->id,
             ]
         );
 

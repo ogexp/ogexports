@@ -186,17 +186,23 @@ class ProjectInvestmentController extends Controller
         $ref = $investment->reference ?: 'INV-'.$investment->id;
         NotifiesUsers::notifyAndEmail(
             $investor,
-            InvestorNotificationTypes::INVESTMENT,
+            InvestorNotificationTypes::INVESTMENT_APPROVED,
             'Investment approved — '.$ref,
             'Your investment in '.($project?->title ?? 'the project').' has been approved.',
-            ['investment_id' => $investment->id, 'href' => '/invest/containers'],
+            [
+                'investment_id' => $investment->id,
+                'transaction_type' => 'investment',
+                'transaction_status' => $investment->status,
+                'reference' => $ref,
+                'href' => '/invest/positions/'.$investment->id,
+            ],
             'investment_approved',
             [
                 'reference' => $ref,
                 'amount' => number_format((float) $investment->amount, 2),
                 'currency' => strtoupper($project?->currency ?? 'USD'),
                 'project_name' => $project?->title ?? 'Investment Project',
-                'portal_url' => config('app.frontend_url', config('app.url')).'/invest/containers',
+                'portal_url' => config('app.frontend_url', config('app.url')).'/invest/positions/'.$investment->id,
             ]
         );
     }
@@ -214,10 +220,17 @@ class ProjectInvestmentController extends Controller
         $ref = $investment->reference ?: 'INV-'.$investment->id;
         NotifiesUsers::notifyAndEmail(
             $investor,
-            InvestorNotificationTypes::INVESTMENT,
+            InvestorNotificationTypes::INVESTMENT_REJECTED,
             'Investment not approved — '.$ref,
-            'Your investment in '.($project?->title ?? 'the project').' was not approved. Funds returned to wallet.',
-            ['investment_id' => $investment->id, 'href' => '/invest/containers'],
+            'Your investment in '.($project?->title ?? 'the project').' was not approved. Its server status is cancelled; review your wallet transaction history for any balance adjustment.',
+            [
+                'investment_id' => $investment->id,
+                'transaction_type' => 'investment',
+                'transaction_status' => $investment->status,
+                'decision' => 'rejected',
+                'reference' => $ref,
+                'href' => '/invest/positions/'.$investment->id,
+            ],
             'investment_rejected',
             [
                 'reference' => $ref,
@@ -225,6 +238,7 @@ class ProjectInvestmentController extends Controller
                 'currency' => strtoupper($project?->currency ?? 'USD'),
                 'project_name' => $project?->title ?? 'Investment Project',
                 'notes' => $note ?? '',
+                'portal_url' => config('app.frontend_url', config('app.url')).'/invest/positions/'.$investment->id,
             ]
         );
     }

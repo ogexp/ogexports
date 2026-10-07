@@ -230,15 +230,22 @@ class WithdrawalController extends Controller
 
         NotifiesUsers::notifyAndEmail(
             $user,
-            InvestorNotificationTypes::WITHDRAWAL,
+            InvestorNotificationTypes::WITHDRAWAL_SUBMITTED,
             'Withdrawal submitted — '.$withdrawal->reference,
-            'Your withdrawal request is pending admin review.',
-            ['withdrawal_id' => $withdrawal->id, 'href' => '/invest/withdraw'],
+            'Your withdrawal request is pending admin review. It has not been approved or sent to your bank.',
+            [
+                'withdrawal_id' => $withdrawal->id,
+                'transaction_type' => 'withdrawal',
+                'transaction_status' => $withdrawal->status,
+                'reference' => $withdrawal->reference,
+                'href' => "/invest/transactions/withdrawal/{$withdrawal->id}",
+            ],
             'withdraw_submitted',
             [
                 'withdraw_id' => $withdrawal->reference,
                 'amount' => number_format($amount, 2),
                 'currency' => $currency,
+                'portal_url' => config('app.frontend_url', config('app.url'))."/invest/transactions/withdrawal/{$withdrawal->id}",
             ]
         );
 

@@ -1,7 +1,7 @@
 type TransactionHref = {
   pathname: '/account/transactions';
   params: {
-    tab?: 'Wallet' | 'Investments';
+    tab?: 'Wallet' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
     search?: string;
     selected?: string;
   };
@@ -74,7 +74,9 @@ export function resolvePostAuthHref(returnTo?: string | string[]): PostAuthHref 
     return {
       pathname: '/account/transactions',
       params: {
-        tab: tab === 'Investments' ? 'Investments' : 'Wallet',
+        tab: ['Deposits', 'Investments', 'Withdrawals', 'Distributions'].includes(tab)
+          ? tab as TransactionHref['params']['tab']
+          : 'Wallet',
         search: queryValue(query, 'search') || undefined,
         selected: queryValue(query, 'selected') || undefined,
       },

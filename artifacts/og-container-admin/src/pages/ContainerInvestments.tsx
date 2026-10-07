@@ -20,6 +20,13 @@ export default function ContainerInvestments() {
   const [statusFilter, setStatusFilter] = useState("")
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
+  const [refreshVersion, setRefreshVersion] = useState(0)
+
+  useEffect(() => {
+    const refresh = () => setRefreshVersion(version => version + 1)
+    window.addEventListener("og-investor-records-updated", refresh)
+    return () => window.removeEventListener("og-investor-records-updated", refresh)
+  }, [])
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -52,7 +59,7 @@ export default function ContainerInvestments() {
       }
     })()
     return () => { cancelled = true }
-  }, [statusFilter, search])
+  }, [statusFilter, search, refreshVersion])
 
   const summary = useMemo(() => {
     return {

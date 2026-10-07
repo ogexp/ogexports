@@ -34,16 +34,16 @@ class EmailTemplateSeeder extends Seeder
             [
                 'slug' => 'deposit_rejected',
                 'subject' => '{{app_name}} — Deposit Not Approved',
-                'body_html' => '<p>Dear {{user_name}},</p><p>Your deposit of <strong>{{currency}} {{amount}}</strong> could not be approved at this time.</p><p>Reference: {{reference}}</p><p>{{notes}}</p><p>Contact support or submit a new deposit from your portal.</p><p>Thank you,<br>{{app_name}} Team</p>',
-                'body_text' => "Dear {{user_name}},\n\nYour deposit of {{currency}} {{amount}} was not approved.\nReference: {{reference}}\n\n{{notes}}\n\nThank you,\n{{app_name}} Team",
-                'placeholders' => ['user_name', 'amount', 'currency', 'reference', 'notes', 'app_name'],
+                'body_html' => '<p>Dear {{user_name}},</p><p>Your deposit of <strong>{{currency}} {{amount}}</strong> could not be approved at this time.</p><p>Reference: {{reference}}</p><p>{{notes}}</p><p>Contact support or submit a new deposit from your portal. <a href="{{portal_url}}">View this deposit</a>.</p><p>Thank you,<br>{{app_name}} Team</p>',
+                'body_text' => "Dear {{user_name}},\n\nYour deposit of {{currency}} {{amount}} was not approved.\nReference: {{reference}}\n\n{{notes}}\n\nView this deposit: {{portal_url}}\n\nThank you,\n{{app_name}} Team",
+                'placeholders' => ['user_name', 'amount', 'currency', 'reference', 'notes', 'portal_url', 'app_name'],
             ],
             [
                 'slug' => 'deposit_cancelled',
                 'subject' => '{{app_name}} — Deposit Cancelled',
-                'body_html' => '<p>Dear {{user_name}},</p><p>Your pending deposit (Reference: {{reference}}) has been cancelled.</p><p>{{notes}}</p><p>Thank you,<br>{{app_name}} Team</p>',
-                'body_text' => "Dear {{user_name}},\n\nYour deposit {{reference}} has been cancelled.\n\n{{notes}}\n\nThank you,\n{{app_name}} Team",
-                'placeholders' => ['user_name', 'reference', 'notes', 'app_name'],
+                'body_html' => '<p>Dear {{user_name}},</p><p>Your pending deposit (Reference: {{reference}}) has been cancelled.</p><p>{{notes}}</p><p><a href="{{portal_url}}">View this deposit</a>.</p><p>Thank you,<br>{{app_name}} Team</p>',
+                'body_text' => "Dear {{user_name}},\n\nYour deposit {{reference}} has been cancelled.\n\n{{notes}}\n\nView this deposit: {{portal_url}}\n\nThank you,\n{{app_name}} Team",
+                'placeholders' => ['user_name', 'reference', 'notes', 'portal_url', 'app_name'],
             ],
             [
                 'slug' => 'withdraw_submitted',
@@ -55,16 +55,16 @@ class EmailTemplateSeeder extends Seeder
             [
                 'slug' => 'withdraw_approved',
                 'subject' => '{{app_name}} — Withdrawal Approved ({{withdraw_id}})',
-                'body_html' => '<p>Dear {{user_name}},</p><p>Your withdrawal <strong>{{withdraw_id}}</strong> for <strong>{{currency}} {{amount}}</strong> has been approved and is being processed for transfer to your bank account.</p><p>Thank you,<br>{{app_name}} Team</p>',
-                'body_text' => "Dear {{user_name}},\n\nWithdrawal {{withdraw_id}} for {{currency}} {{amount}} has been approved.\n\nThank you,\n{{app_name}} Team",
-                'placeholders' => ['user_name', 'withdraw_id', 'amount', 'currency', 'app_name'],
+                'body_html' => '<p>Dear {{user_name}},</p><p>Your withdrawal request <strong>{{withdraw_id}}</strong> for <strong>{{currency}} {{amount}}</strong> has been approved. Approval does not confirm that funds have reached your bank account. <a href="{{portal_url}}">View the current server status</a>.</p><p>Thank you,<br>{{app_name}} Team</p>',
+                'body_text' => "Dear {{user_name}},\n\nWithdrawal request {{withdraw_id}} for {{currency}} {{amount}} has been approved. This does not confirm that funds have reached your bank account.\n\nView the current server status: {{portal_url}}\n\nThank you,\n{{app_name}} Team",
+                'placeholders' => ['user_name', 'withdraw_id', 'amount', 'currency', 'portal_url', 'app_name'],
             ],
             [
                 'slug' => 'withdraw_rejected',
                 'subject' => '{{app_name}} — Withdrawal Not Approved ({{withdraw_id}})',
-                'body_html' => '<p>Dear {{user_name}},</p><p>Your withdrawal <strong>{{withdraw_id}}</strong> for {{currency}} {{amount}} could not be approved.</p><p>{{notes}}</p><p>Funds have been returned to your available wallet balance.</p><p>Thank you,<br>{{app_name}} Team</p>',
-                'body_text' => "Dear {{user_name}},\n\nWithdrawal {{withdraw_id}} was rejected.\nAmount: {{currency}} {{amount}}\n\n{{notes}}\n\nFunds returned to wallet.\n\nThank you,\n{{app_name}} Team",
-                'placeholders' => ['user_name', 'withdraw_id', 'amount', 'currency', 'notes', 'app_name'],
+                'body_html' => '<p>Dear {{user_name}},</p><p>Your withdrawal <strong>{{withdraw_id}}</strong> for {{currency}} {{amount}} could not be approved.</p><p>{{notes}}</p><p>Check your wallet balance and transaction history for the current available funds. <a href="{{portal_url}}">View this withdrawal</a>.</p><p>Thank you,<br>{{app_name}} Team</p>',
+                'body_text' => "Dear {{user_name}},\n\nWithdrawal {{withdraw_id}} was rejected.\nAmount: {{currency}} {{amount}}\n\n{{notes}}\n\nCheck your wallet balance and transaction history for the current available funds.\nView this withdrawal: {{portal_url}}\n\nThank you,\n{{app_name}} Team",
+                'placeholders' => ['user_name', 'withdraw_id', 'amount', 'currency', 'notes', 'portal_url', 'app_name'],
             ],
             [
                 'slug' => 'withdraw_otp',
@@ -111,9 +111,9 @@ class EmailTemplateSeeder extends Seeder
             [
                 'slug' => 'investment_rejected',
                 'subject' => '{{app_name}} — Investment Not Approved ({{reference}})',
-                'body_html' => '<p>Dear {{user_name}},</p><p>Your investment of {{currency}} {{amount}} in <strong>{{project_name}}</strong> was not approved.</p><p>Reference: {{reference}}</p><p>{{notes}}</p><p>Funds have been returned to your available wallet balance.</p><p>Thank you,<br>{{app_name}} Team</p>',
-                'body_text' => "Dear {{user_name}},\n\nInvestment {{reference}} was rejected.\nProject: {{project_name}}\nAmount: {{currency}} {{amount}}\n\n{{notes}}\n\nFunds returned to wallet.\n\nThank you,\n{{app_name}} Team",
-                'placeholders' => ['user_name', 'amount', 'currency', 'project_name', 'reference', 'notes', 'app_name'],
+                'body_html' => '<p>Dear {{user_name}},</p><p>Your investment of {{currency}} {{amount}} in <strong>{{project_name}}</strong> was not approved. Its server status is cancelled.</p><p>Reference: {{reference}}</p><p>{{notes}}</p><p>Check your wallet balance and transaction history for the current available funds. <a href="{{portal_url}}">View this investment</a>.</p><p>Thank you,<br>{{app_name}} Team</p>',
+                'body_text' => "Dear {{user_name}},\n\nInvestment {{reference}} was not approved. Its server status is cancelled.\nProject: {{project_name}}\nAmount: {{currency}} {{amount}}\n\n{{notes}}\n\nCheck your wallet balance and transaction history for the current available funds.\nView this investment: {{portal_url}}\n\nThank you,\n{{app_name}} Team",
+                'placeholders' => ['user_name', 'amount', 'currency', 'project_name', 'reference', 'notes', 'portal_url', 'app_name'],
             ],
             [
                 'slug' => 'investment_confirmed',
@@ -125,9 +125,9 @@ class EmailTemplateSeeder extends Seeder
             [
                 'slug' => 'investment_completed',
                 'subject' => '{{app_name}} — Investment Completed ({{reference}})',
-                'body_html' => '<p>Dear {{user_name}},</p><p>Your investment in <strong>{{project_name}}</strong> has completed.</p><ul><li><strong>Invested:</strong> {{invested_amount}}</li><li><strong>Profit:</strong> {{profit_amount}}</li><li><strong>Total return:</strong> {{total_return}}</li></ul><p>Principal and profit have been credited to your wallet.</p><p>Reference: {{reference}}</p><p>Thank you,<br>{{app_name}} Team</p>',
-                'body_text' => "Dear {{user_name}},\n\nInvestment completed: {{project_name}}\nReference: {{reference}}\nInvested: {{invested_amount}}\nProfit: {{profit_amount}}\nTotal return: {{total_return}}\n\nFunds credited to your wallet.\n\nThank you,\n{{app_name}} Team",
-                'placeholders' => ['user_name', 'reference', 'invested_amount', 'profit_amount', 'total_return', 'project_name', 'project_type', 'app_name'],
+                'body_html' => '<p>Dear {{user_name}},</p><p>Your investment in <strong>{{project_name}}</strong> has completed.</p><ul><li><strong>Invested:</strong> {{invested_amount}}</li><li><strong>Profit:</strong> {{profit_amount}}</li><li><strong>Total return:</strong> {{total_return}}</li></ul><p>Principal and profit have been credited to your wallet.</p><p>Reference: {{reference}}</p><p><a href="{{portal_url}}">View this investment</a>.</p><p>Thank you,<br>{{app_name}} Team</p>',
+                'body_text' => "Dear {{user_name}},\n\nInvestment completed: {{project_name}}\nReference: {{reference}}\nInvested: {{invested_amount}}\nProfit: {{profit_amount}}\nTotal return: {{total_return}}\n\nPrincipal and profit have been credited to your wallet.\nView this investment: {{portal_url}}\n\nThank you,\n{{app_name}} Team",
+                'placeholders' => ['user_name', 'reference', 'invested_amount', 'profit_amount', 'total_return', 'project_name', 'project_type', 'portal_url', 'app_name'],
             ],
             [
                 'slug' => 'investment_payout_progress',

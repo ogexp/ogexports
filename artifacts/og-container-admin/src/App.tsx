@@ -39,6 +39,7 @@ const InvestDetail         = lazy(() => import('@/pages/InvestDetail'));
 const InvestDashboard      = lazy(() => import('@/pages/InvestDashboard'));
 const ContainerInvestments = lazy(() => import('@/pages/ContainerInvestments'));
 const InvestmentPositionDetail = lazy(() => import('@/pages/InvestmentPositionDetail'));
+const InvestorTransactionDetail = lazy(() => import('@/pages/InvestorTransactionDetail'));
 const InvestDeposit        = lazy(() => import('@/pages/InvestDeposit'));
 const InvestWithdraw       = lazy(() => import('@/pages/InvestWithdraw'));
 const InvestReports        = lazy(() => import('@/pages/InvestReports'));
@@ -335,6 +336,7 @@ const SHARED_ROUTES = (
     <Route path="/invest/dashboard">{() => <GuardedInvestor Page={InvestDashboard} />}</Route>
     <Route path="/invest/containers">{() => <GuardedInvestor Page={ContainerInvestments} />}</Route>
     <Route path="/invest/positions/:id">{() => <GuardedInvestor Page={InvestmentPositionDetail} />}</Route>
+    <Route path="/invest/transactions/:type/:id">{() => <GuardedInvestor Page={InvestorTransactionDetail} />}</Route>
     <Route path="/invest/deposit">{() => <GuardedInvestor Page={InvestDeposit} />}</Route>
     <Route path="/invest/withdraw">{() => <GuardedInvestor Page={InvestWithdraw} />}</Route>
     <Route path="/invest/reports">{() => <GuardedInvestor Page={InvestReports} />}</Route>

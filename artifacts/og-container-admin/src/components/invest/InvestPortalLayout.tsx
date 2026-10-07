@@ -7,7 +7,7 @@ import {
   Wheat, LogIn, MessageSquare, Building2
 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useSafeAuth } from "@/lib/use-safe-auth"
 import { ImpersonationBanner } from "@/components/ImpersonationBanner"
 import { Button } from "@/components/ui/button"
@@ -67,6 +67,7 @@ export function InvestPortalLayout({ children, title, subtitle }: InvestPortalLa
   const [location, setLocation] = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { displayName, email, isSignedIn, isLoaded, logout, impersonating, stopImpersonating } = useSafeAuth()
+  const queryClient = useQueryClient()
   const { investCategoryVisible, refetch: refetchPlatformSettings } = usePlatformSettings()
   const [msgUnread, setMsgUnread] = useState(0)
   const [notifUnread, setNotifUnread] = useState(0)
@@ -83,6 +84,21 @@ export function InvestPortalLayout({ children, title, subtitle }: InvestPortalLa
   })
   const kycTopBar = kycTopBarBadge(dashPayload?.data?.kyc_status)
 
+  const refreshInvestorRecords = useCallback(() => {
+    for (const queryKey of [
+      ["investor", "deposits"],
+      ["investor", "withdrawals"],
+      ["investor", "positions"],
+      ["investor", "notifications"],
+      ["investor", "wallet"],
+      ["investor-reports"],
+      ["investor", "dashboard"],
+    ]) {
+      void queryClient.invalidateQueries({ queryKey })
+    }
+    window.dispatchEvent(new Event("og-investor-records-updated"))
+  }, [queryClient])
+
   // Redirect unauthenticated users to sign-in, preserving the intended destination
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -92,14 +108,17 @@ export function InvestPortalLayout({ children, title, subtitle }: InvestPortalLa
 
   useEffect(() => {
     const onKyc = () => { void refetchDash() }
-    const onFocus = () => { void refetchDash() }
+    const onFocus = () => {
+      void refetchDash()
+      refreshInvestorRecords()
+    }
     window.addEventListener("og-kyc-updated", onKyc)
     window.addEventListener("focus", onFocus)
     return () => {
       window.removeEventListener("og-kyc-updated", onKyc)
       window.removeEventListener("focus", onFocus)
     }
-  }, [refetchDash])
+  }, [refetchDash, refreshInvestorRecords])
 
   const fetchUnread = useCallback(async () => {
     try {
@@ -135,13 +154,16 @@ export function InvestPortalLayout({ children, title, subtitle }: InvestPortalLa
       else fetchUnread()
     }
     window.addEventListener("og-unread-notifications", onNotif)
-    const t = setInterval(fetchUnread, 30000)
+    const t = setInterval(() => {
+      fetchUnread()
+      refreshInvestorRecords()
+    }, 30000)
     return () => {
       window.removeEventListener("og-unread-messages", onCustom)
       window.removeEventListener("og-unread-notifications", onNotif)
       clearInterval(t)
     }
-  }, [isSignedIn, fetchUnread])
+  }, [isSignedIn, fetchUnread, refreshInvestorRecords])
 
   // Loading state
   if (!isLoaded) {

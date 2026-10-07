@@ -131,6 +131,11 @@ function totalFor(data: unknown) {
   return readAmount(meta, ['total']) ?? readAmount(envelope, ['total']);
 }
 
+function filterFromRoute(value?: string): Filter | undefined {
+  if (value === 'Wallet') return 'All';
+  return filters.includes(value as Filter) ? value as Filter : undefined;
+}
+
 function isValidDateFilter(value: string) {
   if (!value) return true;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -150,7 +155,7 @@ export default function Transactions() {
   const { token, apiOrigin } = useAuth();
   const colors = useColors();
   const params = useLocalSearchParams<{ search?: string; tab?: string; selected?: string }>();
-  const [filter, setFilter] = useState<Filter>('All');
+  const [filter, setFilter] = useState<Filter>(filterFromRoute(params.tab) ?? 'All');
   const [search, setSearch] = useState(typeof params.search === 'string' ? params.search : '');
   const [selectedId, setSelectedId] = useState(typeof params.selected === 'string' ? params.selected : '');
   const [page, setPage] = useState(1);
@@ -160,6 +165,14 @@ export default function Transactions() {
   const [withdrawalDateTo, setWithdrawalDateTo] = useState('');
   const [busyPdfKey, setBusyPdfKey] = useState('');
   const [pdfError, setPdfError] = useState('');
+
+  useEffect(() => {
+    setFilter(filterFromRoute(typeof params.tab === 'string' ? params.tab : undefined) ?? 'All');
+    setSearch(typeof params.search === 'string' ? params.search : '');
+    setSelectedId(typeof params.selected === 'string' ? params.selected : '');
+    setPage(1);
+    setPdfError('');
+  }, [params.tab, params.search, params.selected]);
   const invalidWithdrawalDate = filter === 'Withdrawals'
     && (!isValidDateFilter(withdrawalDateFrom) || !isValidDateFilter(withdrawalDateTo));
   const invalidWithdrawalDateRange = filter === 'Withdrawals'

@@ -14,6 +14,7 @@ import {
   useGetInvestorWallet,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
+import { formatUiStatus } from '@/lib/strings';
 import { amount as readAmount, first, list, messageOf, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
 import { DEPOSIT_PAYMENT_METHODS, type DepositPaymentMethodId } from '@/lib/deposit-methods';
 import { uploadInvestorFile } from '@/lib/file-upload';
@@ -36,16 +37,16 @@ function DepositProgress({ deposit }: { deposit: Record<string, unknown> }) {
   const status = rawStatus.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
   const approved = completedStatuses.has(status);
   const inReview = reviewStatuses.has(status);
-  const stopped = ['rejected', 'cancelled', 'canceled'].includes(status);
+  const stopped = ['rejected', 'declined', 'failed', 'error', 'cancelled', 'canceled'].includes(status);
   const completeCount = approved ? 4 : stopped ? (status === 'rejected' ? 2 : 1) : inReview ? 1 : status === 'submitted' ? 0 : 0;
   const activeIndex = approved || stopped ? -1 : inReview ? 1 : status === 'submitted' ? 0 : -1;
   const explanation = approved
-    ? 'OG Exports approves the deposit and credits the wallet in the same server transaction.'
+    ? 'Your deposit has been credited to your wallet.'
     : inReview
-      ? 'The request is awaiting OG Exports review. The wallet is not credited yet.'
+      ? 'OG Exports is reviewing the request. Your wallet has not been credited yet.'
       : stopped
-        ? `OG Exports reports this request as ${rawStatus}. Later steps are not shown as complete.`
-        : `OG Exports reports ${rawStatus}. Later steps are not inferred.`;
+        ? 'This deposit request did not complete. Review the status and contact support if you need help.'
+        : 'This status has not been confirmed. Check again for an update.';
 
   return <Card style={{ marginTop: 12 }}>
     <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>Deposit progress</Text>
@@ -85,6 +86,13 @@ function exactBankDetail(row: Record<string, unknown>, keys: string[]): string {
   return '';
 }
 
+function formatBankDetailForReview(key: PaymentBankDetailKey, value: string): string {
+  if (key === 'swift') return value.trim().toUpperCase();
+  if (key !== 'iban') return value;
+  const compactIban = value.replace(/\s+/g, '').toUpperCase();
+  return compactIban.match(/.{1,4}/g)?.join(' ') ?? compactIban;
+}
+
 type PaymentBankDetailKey = 'account-number' | 'iban' | 'swift';
 
 function CopyableBankDetailRow({ label, value, copied, accessibilityLabel, testID, onCopy }: {
@@ -97,11 +105,11 @@ function CopyableBankDetailRow({ label, value, copied, accessibilityLabel, testI
 }) {
   const colors = useColors();
   return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-    <Text style={{ color: colors.mutedForeground, fontSize: 11, width: 76 }}>{label}</Text>
+    <Text style={{ color: colors.mutedForeground, fontSize: 12, width: 76 }}>{label}</Text>
     <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator style={{ flex: 1 }}
       contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
       <Text numberOfLines={1} ellipsizeMode="clip" accessibilityLabel={`${label}: ${value || '—'}`}
-        style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right', writingDirection: 'ltr', flexShrink: 0 }}>
+        style={{ color: colors.foreground, fontSize: 14, fontWeight: '600', textAlign: 'right', writingDirection: 'ltr', flexShrink: 0 }}>
         {value || '—'}
       </Text>
     </ScrollView>
@@ -294,19 +302,19 @@ export default function Deposit() {
   const depositApproved = normalizedDepositStatus === 'approved';
   const depositStatusNeedsAttention = ['rejected', 'declined', 'failed', 'error', 'cancelled', 'canceled'].includes(normalizedDepositStatus);
   const successTitle = depositCompleted
-    ? `Deposit ${normalizedDepositStatus}`
+    ? 'Deposit complete'
     : depositApproved
       ? 'Deposit approved'
     : depositStatusNeedsAttention
       ? 'Deposit status updated'
-      : 'Deposit request submitted';
+      : 'Deposit request received';
   const successBody = depositCompleted
-    ? `OG Exports reports this deposit as ${depositStatus}.`
+    ? 'Your deposit has been credited to your wallet.'
     : depositApproved
-      ? 'OG Exports reports this deposit as approved. This does not confirm that the wallet has been credited.'
+      ? 'Your deposit was approved. Check your wallet for the updated balance.'
     : depositStatusNeedsAttention
-      ? `OG Exports reports this deposit as ${depositStatus}. Review the returned status before relying on a wallet credit.`
-      : 'Your deposit request was received. Its server status and wallet credit are shown on the confirmation screen.';
+      ? 'This deposit was not approved. No wallet credit was recorded for this request.'
+      : 'Your deposit request is under review. Your wallet balance will update after approval.';
 
   return <Screen key={stage} title="Add funds" subtitle={selectedPaymentMethod
     ? `Deposit via ${selectedPaymentMethod.label} · ${paymentCurrency || 'USD'}`
@@ -476,16 +484,16 @@ export default function Deposit() {
           key={detail.key}
           style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8, borderBottomWidth: index === reviewBankDetails.length - 1 ? 0 : 1, borderBottomColor: colors.border }}
         >
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, flex: 0.85 }}>{detail.label}</Text>
-          <Text testID={`review-${detail.key}-value`} selectable style={{ color: detail.value ? colors.foreground : colors.mutedForeground, fontFamily: 'monospace', fontSize: 10, fontWeight: '600', flex: 1.5, flexShrink: 1, lineHeight: 16, textAlign: 'right', writingDirection: 'ltr' }}>
-            {detail.value || 'Not provided'}
+           <Text style={{ color: colors.mutedForeground, fontSize: 12, flex: 0.85 }}>{detail.label}</Text>
+           <Text testID={`review-${detail.key}-value`} selectable style={{ color: detail.value ? colors.foreground : colors.mutedForeground, fontFamily: 'monospace', fontSize: 14, fontWeight: '600', flex: 1.5, flexShrink: 1, lineHeight: 20, textAlign: 'right', writingDirection: 'ltr' }}>
+             {detail.value ? formatBankDetailForReview(detail.key, detail.value) : 'Not provided'}
           </Text>
         </View>)}
       </View>
       <DetailRow label="Transaction reference" value={reference.trim()} />
       <DetailRow label="Proof of transfer" value={proofName || (proofRequired ? 'Required, but not attached' : 'Not attached')} />
       {selectedProject ? <DetailRow label="Project association" value={first(selectedProject, ['title', 'name'], 'Investment project')} /> : null}
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 8, marginBottom: 12 }}>OG Exports will review this request. The wallet balance will change only after the server confirms approval.</Text>
+       <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8, marginBottom: 12 }}>OG Exports will review this request. Your wallet balance will update after approval.</Text>
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
       <Action title="Submit deposit request" icon="lock" loading={create.isPending} onPress={() => void submit()} />
       <View style={{ marginTop: 10 }}><Action title="Edit deposit" secondary onPress={() => { setError(''); setStage('form'); }} /></View>
@@ -493,15 +501,15 @@ export default function Deposit() {
 
     {stage === 'submitted' && confirmation ? <Card style={{ borderColor: colors.primary }}>
       <SuccessMark feedback="none" />
-      <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Deposit request submitted</Text>
+       <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Deposit request received</Text>
       {notice ? <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginTop: 7 }}>{notice}</Text> : null}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 9, marginTop: 6 }}>
-        <Text style={{ color: colors.mutedForeground }}>Server status</Text>
-        <Status value={first(confirmation, ['review_status_label', 'status'], '—')} />
+         <Text style={{ color: colors.mutedForeground }}>Current status</Text>
+         <Status value={formatUiStatus(first(confirmation, ['review_status_label', 'status'], '—'))} />
       </View>
       <DetailRow label="Deposit reference" value={first(confirmation, ['reference', 'deposit_reference'])} />
       <DetailRow label="Amount" value={moneyInSourceCurrency(readAmount(confirmation, ['amount']), confirmationCurrency || 'USD')} />
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 8 }}>A submitted request is not yet a wallet credit. Follow the server status below.</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8 }}>Your deposit request is under review. Your wallet balance will update after approval.</Text>
       <DepositProgress deposit={confirmation} />
       <View style={{ marginTop: 14 }}><Action title="Record another deposit" secondary onPress={() => {
         setConfirmation(null);
@@ -547,7 +555,7 @@ export default function Deposit() {
       title={successTitle}
       body={successBody}
       feedback={depositCompleted ? 'success' : depositApproved ? 'approved' : depositStatusNeedsAttention ? 'attention' : 'ack'}
-      status={depositStatus || undefined}
+      status={depositStatus ? formatUiStatus(depositStatus) : undefined}
       reference={first(confirmation ?? {}, ['reference', 'deposit_reference', 'bank_reference']) || undefined}
       onDismiss={() => setSuccessFeedbackVisible(false)}
       testID="deposit-success-feedback"

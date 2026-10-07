@@ -37,14 +37,19 @@ interface TypeConfig {
 }
 
 const PORTAL_TYPE_CONFIG: Record<string, TypeConfig> = {
-  deposit: { icon: ArrowDownRight, color: "text-emerald-500", bg: "bg-emerald-500/15", tab: "transactions", actionLabel: "View", defaultHref: "/invest/wallet" },
-  deposit_approved: { icon: ArrowDownRight, color: "text-emerald-500", bg: "bg-emerald-500/15", tab: "approvals", actionLabel: "View Wallet", defaultHref: "/invest/wallet" },
-  deposit_rejected: { icon: AlertCircle, color: "text-red-500", bg: "bg-red-500/15", tab: "approvals", actionLabel: "View Wallet", defaultHref: "/invest/wallet" },
-  withdrawal: { icon: ArrowUpRight, color: "text-red-400", bg: "bg-red-500/15", tab: "transactions", actionLabel: "View", defaultHref: "/invest/withdraw" },
-  withdrawal_approved: { icon: ArrowUpRight, color: "text-blue-500", bg: "bg-blue-500/15", tab: "approvals", actionLabel: "View Withdrawals", defaultHref: "/invest/withdraw" },
-  withdrawal_rejected: { icon: AlertCircle, color: "text-red-500", bg: "bg-red-500/15", tab: "approvals", actionLabel: "View Withdrawals", defaultHref: "/invest/withdraw" },
+  deposit: { icon: ArrowDownRight, color: "text-emerald-500", bg: "bg-emerald-500/15", tab: "transactions", actionLabel: "View Deposit", defaultHref: "/invest/deposit" },
+  deposit_submitted: { icon: ArrowDownRight, color: "text-amber-500", bg: "bg-amber-500/15", tab: "transactions", actionLabel: "View Deposit", defaultHref: "/invest/deposit" },
+  deposit_approved: { icon: ArrowDownRight, color: "text-emerald-500", bg: "bg-emerald-500/15", tab: "approvals", actionLabel: "View Deposit", defaultHref: "/invest/deposit" },
+  deposit_rejected: { icon: AlertCircle, color: "text-red-500", bg: "bg-red-500/15", tab: "approvals", actionLabel: "View Deposit", defaultHref: "/invest/deposit" },
+  deposit_cancelled: { icon: AlertCircle, color: "text-muted-foreground", bg: "bg-muted", tab: "approvals", actionLabel: "View Deposit", defaultHref: "/invest/deposit" },
+  withdrawal: { icon: ArrowUpRight, color: "text-red-400", bg: "bg-red-500/15", tab: "transactions", actionLabel: "View Withdrawal", defaultHref: "/invest/withdraw" },
+  withdrawal_submitted: { icon: ArrowUpRight, color: "text-amber-500", bg: "bg-amber-500/15", tab: "transactions", actionLabel: "View Withdrawal", defaultHref: "/invest/withdraw" },
+  withdrawal_approved: { icon: ArrowUpRight, color: "text-blue-500", bg: "bg-blue-500/15", tab: "approvals", actionLabel: "View Withdrawal", defaultHref: "/invest/withdraw" },
+  withdrawal_rejected: { icon: AlertCircle, color: "text-red-500", bg: "bg-red-500/15", tab: "approvals", actionLabel: "View Withdrawal", defaultHref: "/invest/withdraw" },
   investment: { icon: TrendingUp, color: "text-violet-500", bg: "bg-violet-500/15", tab: "approvals", actionLabel: "View", defaultHref: "/invest/containers" },
-  investment_approved: { icon: TrendingUp, color: "text-violet-500", bg: "bg-violet-500/15", tab: "approvals", actionLabel: "View", defaultHref: "/invest/containers" },
+  investment_approved: { icon: TrendingUp, color: "text-violet-500", bg: "bg-violet-500/15", tab: "approvals", actionLabel: "View Investment", defaultHref: "/invest/containers" },
+  investment_rejected: { icon: AlertCircle, color: "text-red-500", bg: "bg-red-500/15", tab: "approvals", actionLabel: "View Investment", defaultHref: "/invest/containers" },
+  investment_completed: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/15", tab: "approvals", actionLabel: "View Investment", defaultHref: "/invest/containers" },
   update: { icon: Info, color: "text-primary", bg: "bg-primary/15", tab: "platform" },
   shipment_update: { icon: Ship, color: "text-blue-500", bg: "bg-blue-500/15", tab: "platform", actionLabel: "Track", defaultHref: "/buyer/shipments" },
   freight_accepted: { icon: Package, color: "text-cyan-500", bg: "bg-cyan-500/15", tab: "platform" },
@@ -78,6 +83,9 @@ export const APPROVAL_NOTIFICATION_TYPES = new Set([
   "kyc_rejected",
   "deposit_approved",
   "deposit_rejected",
+  "deposit_submitted",
+  "deposit_cancelled",
+  "withdrawal_submitted",
   "withdrawal_approved",
   "withdrawal_rejected",
   "buyer_payment_approved",
@@ -88,6 +96,8 @@ export const APPROVAL_NOTIFICATION_TYPES = new Set([
   "quotation_reply",
   "investment",
   "investment_approved",
+  "investment_rejected",
+  "investment_completed",
 ])
 
 export function mapPortalNotification(row: ApiNotification): MappedNotification & { portalTab: PortalNotifTab } {

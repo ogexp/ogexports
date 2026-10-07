@@ -254,10 +254,16 @@ class InvestmentReviewService
                     : '$'.number_format($totalReturnUsd, 2);
                 NotifiesUsers::notifyAndEmail(
                     $investment->investor,
-                    InvestorNotificationTypes::INVESTMENT,
+                    InvestorNotificationTypes::INVESTMENT_COMPLETED,
                     'Investment completed — '.$ref,
                     'Your investment in '.$project->title.' has completed. '.$returnLabel.' (principal + profit) credited to your wallet.',
-                    ['investment_id' => $investment->id, 'href' => '/invest/dashboard'],
+                    [
+                        'investment_id' => $investment->id,
+                        'transaction_type' => 'investment',
+                        'transaction_status' => 'completed',
+                        'reference' => $ref,
+                        'href' => '/invest/positions/'.$investment->id,
+                    ],
                     'investment_completed',
                     [
                         'reference' => $ref,
@@ -266,6 +272,7 @@ class InvestmentReviewService
                         'total_return' => number_format($totalReturnUsd, 2),
                         'project_name' => $project->title,
                         'project_type' => $project->type,
+                        'portal_url' => config('app.frontend_url', config('app.url')).'/invest/positions/'.$investment->id,
                     ]
                 );
             }

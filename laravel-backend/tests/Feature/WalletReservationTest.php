@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Investment;
+use App\Models\AppNotification;
 use App\Models\InvestmentProject;
 use App\Models\InvestorBankAccountVerification;
 use App\Models\KycApplication;
@@ -317,8 +318,15 @@ it('completes investment by debiting platform wallet and crediting user with pro
     app(InvestmentReviewService::class)->complete($investment);
 
     $investment->refresh();
+    $notification = AppNotification::query()
+        ->where('user_id', $this->investor->id)
+        ->where('type', 'investment_completed')
+        ->sole();
     expect($investment->status)->toBe('completed')
-        ->and((float) $investment->profit_amount)->toBe(80.0);
+        ->and((float) $investment->profit_amount)->toBe(80.0)
+        ->and($notification->data['investment_id'])->toBe($investment->id)
+        ->and($notification->data['transaction_status'])->toBe('completed')
+        ->and($notification->data['href'])->toBe("/invest/positions/{$investment->id}");
 
     $wallet = Wallet::query()->where('user_id', $this->investor->id)->first();
     expect((float) $wallet->available_balance)->toBe(10080.0);
@@ -459,6 +467,15 @@ it('reserves the payout and fee on withdrawal request, then clears the full debi
         ->assertJsonPath('data.estimated_processing_time', '1 to 2 working days');
     $withdrawalId = $response->json('data.id');
 
+    $submittedNotification = AppNotification::query()
+        ->where('user_id', $this->investor->id)
+        ->where('type', 'withdrawal_submitted')
+        ->sole();
+    expect($submittedNotification->data['transaction_status'])->toBe('pending')
+        ->and($submittedNotification->data['withdrawal_id'])->toBe($withdrawalId)
+        ->and($submittedNotification->data['href'])->toBe("/invest/transactions/withdrawal/{$withdrawalId}")
+        ->and($submittedNotification->body)->toContain('not been approved or sent to your bank');
+
     $wallet = Wallet::query()->where('user_id', $this->investor->id)->first();
     expect((float) $wallet->available_balance)->toBe(7498.0)
         ->and((float) $wallet->pending_balance)->toBe(2502.0);
@@ -491,12 +508,22 @@ it('reserves the payout and fee on withdrawal request, then clears the full debi
         ->postJson("/api/admin/finance/withdrawals/{$withdrawalId}/approve")
         ->assertOk();
 
+    $approvedNotification = AppNotification::query()
+        ->where('user_id', $this->investor->id)
+        ->where('type', 'withdrawal_approved')
+        ->sole();
     $wallet->refresh();
     $transaction->refresh();
     expect((float) $wallet->available_balance)->toBe(7498.0)
         ->and((float) $wallet->pending_balance)->toBe(0.0)
         ->and($transaction->status)->toBe('completed')
-        ->and((float) $transaction->amount)->toBe(2502.0);
+        ->and((float) $transaction->amount)->toBe(2502.0)
+        ->and($approvedNotification->title)->toContain('approved')
+        ->and($approvedNotification->title)->not->toContain('completed')
+        ->and($approvedNotification->body)->toContain('does not confirm that funds have reached your bank account')
+        ->and($approvedNotification->body)->not->toContain('transferred to your registered bank account')
+        ->and($approvedNotification->data['transaction_status'])->toBe('approved')
+        ->and($approvedNotification->data['href'])->toBe("/invest/transactions/withdrawal/{$withdrawalId}");
 });
 
 it('does not invent a fee for older withdrawals without a recorded fee', function () {
@@ -636,6 +663,10 @@ it('returns the full payout plus fee reservation when a withdrawal is rejected',
         ->postJson("/api/admin/finance/withdrawals/{$withdrawalId}/reject")
         ->assertOk();
 
+    $rejectedNotification = AppNotification::query()
+        ->where('user_id', $this->investor->id)
+        ->where('type', 'withdrawal_rejected')
+        ->sole();
     $wallet = Wallet::query()->where('user_id', $this->investor->id)->first();
     $transaction = WalletTransaction::query()
         ->where('meta->withdrawal_id', $withdrawalId)
@@ -643,7 +674,10 @@ it('returns the full payout plus fee reservation when a withdrawal is rejected',
     expect((float) $wallet->available_balance)->toBe(10000.0)
         ->and((float) $wallet->pending_balance)->toBe(0.0)
         ->and($transaction->status)->toBe('rejected')
-        ->and((float) $transaction->amount)->toBe(2502.0);
+        ->and((float) $transaction->amount)->toBe(2502.0)
+        ->and($rejectedNotification->data['transaction_status'])->toBe('rejected')
+        ->and($rejectedNotification->data['href'])->toBe("/invest/transactions/withdrawal/{$withdrawalId}")
+        ->and($rejectedNotification->body)->not->toContain('funds have been returned');
 });
 
 it('rejects a payout that fits the balance only before applying the withdrawal fee', function () {

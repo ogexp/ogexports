@@ -353,8 +353,15 @@ it('approves a pending project investment via global endpoint', function () {
         ->assertOk()
         ->assertJsonPath('data.status', 'active');
 
+    $notification = AppNotification::query()
+        ->where('user_id', $this->investor->id)
+        ->where('type', 'investment_approved')
+        ->sole();
     expect($this->project->fresh()->raised_amount)->toBe('3000.00')
-        ->and($investment->fresh()->status)->toBe('active');
+        ->and($investment->fresh()->status)->toBe('active')
+        ->and($notification->data['investment_id'])->toBe($investment->id)
+        ->and($notification->data['transaction_status'])->toBe('active')
+        ->and($notification->data['href'])->toBe("/invest/positions/{$investment->id}");
 });
 
 it('rejects a pending project investment and refunds wallet', function () {
@@ -366,10 +373,18 @@ it('rejects a pending project investment and refunds wallet', function () {
         ->assertOk()
         ->assertJsonPath('data.status', 'cancelled');
 
+    $notification = AppNotification::query()
+        ->where('user_id', $this->investor->id)
+        ->where('type', 'investment_rejected')
+        ->sole();
     $wallet->refresh();
     expect((float) $wallet->available_balance)->toBe(1500.0)
         ->and((float) $wallet->pending_balance)->toBe(0.0)
-        ->and($investment->fresh()->status)->toBe('cancelled');
+        ->and($investment->fresh()->status)->toBe('cancelled')
+        ->and($notification->data['investment_id'])->toBe($investment->id)
+        ->and($notification->data['transaction_status'])->toBe('cancelled')
+        ->and($notification->data['decision'])->toBe('rejected')
+        ->and($notification->data['href'])->toBe("/invest/positions/{$investment->id}");
 });
 
 it('updates status from pending to active via patch', function () {

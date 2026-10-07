@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Deposit;
+use App\Models\AppNotification;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\Wallet;
@@ -52,7 +53,17 @@ it('stores deposit in the submitted original currency', function () {
         ->assertJsonPath('data.amount', '100.00');
 
     $deposit = Deposit::query()->where('investor_id', $investor->id)->first();
-    expect($deposit->currency)->toBe('USD');
+    $notification = AppNotification::query()
+        ->where('user_id', $investor->id)
+        ->where('type', 'deposit_submitted')
+        ->sole();
+
+    expect($deposit->currency)->toBe('USD')
+        ->and($notification->body)->toContain('submitted for review')
+        ->and($notification->body)->toContain('not been approved or credited')
+        ->and($notification->data['deposit_id'])->toBe($deposit->id)
+        ->and($notification->data['transaction_status'])->toBe('pending')
+        ->and($notification->data['href'])->toBe("/invest/transactions/deposit/{$deposit->id}");
 });
 
 it('requires a supported currency on deposit submit', function () {
@@ -96,9 +107,16 @@ it('converts USD deposit to PKR wallet on approval for pakistan investors', func
         ->and($wallet->currency)->toBe('PKR');
 
     $deposit->refresh();
+    $notification = AppNotification::query()
+        ->where('user_id', $investor->id)
+        ->where('type', 'deposit_approved')
+        ->sole();
     expect((float) $deposit->converted_amount)->toBe(27850.0)
         ->and($deposit->wallet_currency)->toBe('PKR')
-        ->and($deposit->exchange_rate)->not->toBeNull();
+        ->and($deposit->exchange_rate)->not->toBeNull()
+        ->and($notification->data['transaction_status'])->toBe('approved')
+        ->and($notification->data['href'])->toBe("/invest/transactions/deposit/{$deposit->id}")
+        ->and($notification->body)->toContain('credited to your wallet');
 });
 
 it('converts GBP deposit to USD wallet on approval for international investors', function () {
@@ -205,6 +223,21 @@ it('rejects and cancels pending investor deposits', function () {
         ->postJson("/api/admin/finance/deposits/{$cancel->id}/cancel")
         ->assertOk()
         ->assertJsonPath('data.status', 'cancelled');
+
+    $rejectedNotification = AppNotification::query()
+        ->where('user_id', $investor->id)
+        ->where('type', 'deposit_rejected')
+        ->sole();
+    $cancelledNotification = AppNotification::query()
+        ->where('user_id', $investor->id)
+        ->where('type', 'deposit_cancelled')
+        ->sole();
+
+    expect($rejectedNotification->data['transaction_status'])->toBe('rejected')
+        ->and($rejectedNotification->body)->toContain('No wallet credit was recorded')
+        ->and($rejectedNotification->data['href'])->toBe("/invest/transactions/deposit/{$reject->id}")
+        ->and($cancelledNotification->data['transaction_status'])->toBe('cancelled')
+        ->and($cancelledNotification->data['href'])->toBe("/invest/transactions/deposit/{$cancel->id}");
 });
 
 it('approves investor deposit once and prevents double credit', function () {

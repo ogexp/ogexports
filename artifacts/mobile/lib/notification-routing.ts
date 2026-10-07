@@ -4,7 +4,13 @@ import type { PostAuthHref } from '@/lib/post-auth-route';
 type NotificationTarget =
   | { kind: 'trade'; id: string }
   | { kind: 'investment'; id: string }
-  | { kind: 'transaction'; id?: string }
+  | {
+      kind: 'transaction';
+      id?: string;
+      tab?: 'Deposits' | 'Withdrawals' | 'Investments';
+      search?: string;
+      selected?: string;
+    }
   | { kind: 'screen'; path: '/account/kyc' | '/wallet/deposit' | '/wallet/withdraw' | '/account/reports' | '/account/messages' | '/account/portfolio' | '/(tabs)/opportunities' | '/(tabs)/wallet' };
 
 function decode(value: string) {
@@ -23,6 +29,27 @@ function safeId(value: string) {
 export function notificationTarget(item: Record<string, unknown>): NotificationTarget | null {
   const payload = record(item.data ?? item.metadata ?? item.payload);
   const route = first(payload, ['deep_link', 'action_url', 'route', 'url', 'link'], first(item, ['deep_link', 'action_url', 'route', 'url', 'link']));
+  const reference = first(payload, ['reference', 'deposit_reference', 'withdrawal_reference', 'transaction_reference']);
+  const depositId = safeId(first(payload, ['deposit_id']));
+  if (depositId) {
+    return {
+      kind: 'transaction',
+      id: depositId,
+      tab: 'Deposits',
+      search: reference || depositId,
+      selected: `deposit:${depositId}`,
+    };
+  }
+  const withdrawalId = safeId(first(payload, ['withdrawal_id']));
+  if (withdrawalId) {
+    return {
+      kind: 'transaction',
+      id: withdrawalId,
+      tab: 'Withdrawals',
+      search: reference || withdrawalId,
+      selected: `withdrawal:${withdrawalId}`,
+    };
+  }
   const tradePath = route.match(/(?:^|\/)project\/([^/?#]+)/i);
   const linkedTradeId = safeId(tradePath?.[1] ?? '');
   if (linkedTradeId) return { kind: 'trade', id: linkedTradeId };
@@ -86,6 +113,16 @@ export function notificationHref(item: Record<string, unknown>): PostAuthHref | 
   if (target.kind === 'trade') return { pathname: '/project/[id]', params: { id: target.id } };
   if (target.kind === 'investment') return { pathname: '/position/[id]', params: { id: target.id } };
   if (target.kind === 'transaction') {
+    if (target.tab) {
+      return {
+        pathname: '/account/transactions',
+        params: {
+          tab: target.tab,
+          search: target.search || target.id,
+          selected: target.selected,
+        },
+      };
+    }
     if (target.id && /^\d+$/.test(target.id)) {
       return { pathname: '/account/transaction/[id]', params: { id: target.id } };
     }

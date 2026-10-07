@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Platform, StatusBar as NativeStatusBar } from 'react-native';
+import { AppState, Platform, StatusBar as NativeStatusBar } from 'react-native';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -60,6 +60,38 @@ function RootLayoutNav() {
     }
     previousSessionScope.current = sessionScope;
   }, [ready, sessionScope, sessionQueryClient]);
+
+  useEffect(() => {
+    if (!ready || !token) return;
+
+    const refreshInvestorRecords = () => {
+      const prefixes = [
+        'investor-wallet',
+        'investor-deposits',
+        'investor-withdrawals',
+        'investor-position',
+        'investor-positions',
+        'investor-notifications',
+        'investor-dashboard',
+        'investor-reports',
+      ];
+      void sessionQueryClient.invalidateQueries({
+        predicate: query => {
+          const rootKey = String(query.queryKey[0] ?? '').toLowerCase();
+          return prefixes.some(prefix => rootKey.startsWith(prefix));
+        },
+      });
+    };
+
+    const interval = setInterval(refreshInvestorRecords, 30_000);
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') refreshInvestorRecords();
+    });
+    return () => {
+      clearInterval(interval);
+      subscription.remove();
+    };
+  }, [ready, token, sessionQueryClient]);
 
   useEffect(() => {
     if (Platform.OS === 'web' || (Platform.OS === 'android' && isRunningInExpoGo())) return;

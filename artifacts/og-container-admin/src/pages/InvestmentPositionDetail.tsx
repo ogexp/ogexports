@@ -20,6 +20,13 @@ export default function InvestmentPositionDetail() {
   const [pdfLoading, setPdfLoading] = useState(false)
   const [position, setPosition] = useState<InvestmentPositionData | null>(null)
   const [raw, setRaw] = useState<any>(null)
+  const [refreshVersion, setRefreshVersion] = useState(0)
+
+  useEffect(() => {
+    const refresh = () => setRefreshVersion(version => version + 1)
+    window.addEventListener("og-investor-records-updated", refresh)
+    return () => window.removeEventListener("og-investor-records-updated", refresh)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -43,7 +50,7 @@ export default function InvestmentPositionDetail() {
       }
     })()
     return () => { cancelled = true }
-  }, [investmentId])
+  }, [investmentId, refreshVersion])
 
   const project = raw?.project || {}
   const docs = Array.isArray(project.documents) ? project.documents : []
