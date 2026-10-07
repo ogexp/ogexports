@@ -20,6 +20,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { buildWithdrawalRequest, maximumWithdrawalPayout, parseWithdrawalAmount, resolveWithdrawalDisplayTerms } from '@/lib/withdrawal-flow';
 import { motionHaptic } from '@/lib/motion';
+import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
 
 const withdrawalPurposes = ['Profit Withdrawal', 'Principal Return', 'Business Expense', 'Personal Use'] as const;
 
@@ -218,6 +219,8 @@ export default function Withdraw() {
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
   const [successFeedbackVisible, setSuccessFeedbackVisible] = useState(false);
   const [selectedWithdrawalId, setSelectedWithdrawalId] = useState('');
+  const [receiptBusy, setReceiptBusy] = useState(false);
+  const [receiptError, setReceiptError] = useState('');
   const withdrawalCurrency = walletCurrency;
   const maxPayout = maximumWithdrawalPayout(availableBalance, fee);
   const minimumPayoutForValidation = minimumWithdrawalAmount
@@ -235,6 +238,18 @@ export default function Withdraw() {
     && Math.round(enteredAmount * 100) < Math.round(minimumWithdrawalAmount * 100);
   const historySelection = withdrawals.find(item => first(item, ['id', 'reference', 'withdraw_id']) === selectedWithdrawalId);
   const progressWithdrawal = confirmation ?? (historySelection ? record(historySelection) : null);
+
+  async function downloadReceipt(source: Record<string, unknown>) {
+    setReceiptError('');
+    setReceiptBusy(true);
+    try {
+      await saveTransactionReceipt(createTransactionReceipt('withdrawal', source));
+    } catch (err) {
+      setReceiptError(messageOf(err));
+    } finally {
+      setReceiptBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (otpCooldown <= 0) return;
@@ -620,6 +635,16 @@ export default function Withdraw() {
       <DetailRow label="Processing time" value={first(confirmation, ['estimated_processing_time'], processingTime || 'Not provided')} />
       <WithdrawalProgress withdrawal={confirmation} />
       {notice ? <Text style={{ color: colors.primary, lineHeight: 19, marginTop: 10 }}>{notice}</Text> : null}
+      {receiptError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, marginTop: 10 }}>{receiptError}</Text> : null}
+      <View style={{ marginTop: 12 }}>
+        <Action
+          title={receiptBusy ? 'Preparing receipt…' : 'Save / share receipt'}
+          icon="download"
+          loading={receiptBusy}
+          disabled={receiptBusy}
+          onPress={() => void downloadReceipt(confirmation)}
+        />
+      </View>
       <View style={{ marginTop: 14 }}><Action title="Request another withdrawal" secondary onPress={() => {
         setConfirmation(null);
         setSelectedWithdrawalId('');
@@ -665,6 +690,40 @@ export default function Withdraw() {
         </Card>
       </Pressable>;
     })}
+    {historySelection && stage !== 'submitted' ? <Card style={{ borderColor: colors.primary }}>
+      <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>Withdrawal record</Text>
+      <DetailRow label="Server reference" value={first(historySelection, ['withdraw_id', 'reference'], 'Not provided')} />
+      <DetailRow label="Server status" value={first(historySelection, ['status', 'state', 'withdrawal_status'], 'Not provided')} />
+      <DetailRow
+        label="Requested amount returned by OG Exports"
+        value={readAmount(historySelection, ['amount']) == null
+          ? 'Not provided'
+          : moneyInSourceCurrency(readAmount(historySelection, ['amount']), first(historySelection, ['currency', 'amount_currency', 'wallet_currency']))}
+      />
+      <DetailRow label="Date returned by OG Exports" value={first(historySelection, ['created_at', 'date'], 'Not provided')} />
+      <DetailRow
+        label="Withdrawal fee returned by OG Exports"
+        value={readAmount(historySelection, ['fee', 'withdrawal_fee']) == null
+          ? 'Not provided'
+          : moneyInSourceCurrency(readAmount(historySelection, ['fee', 'withdrawal_fee']), first(historySelection, ['fee_currency', 'currency', 'wallet_currency']))}
+      />
+      <DetailRow
+        label="Total wallet debit returned by OG Exports"
+        value={readAmount(historySelection, ['total_debit']) == null
+          ? 'Not provided'
+          : moneyInSourceCurrency(readAmount(historySelection, ['total_debit']), first(historySelection, ['total_debit_currency', 'wallet_currency', 'currency']))}
+      />
+      {receiptError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, marginTop: 8 }}>{receiptError}</Text> : null}
+      <View style={{ marginTop: 10 }}>
+        <Action
+          title={receiptBusy ? 'Preparing receipt…' : 'Save / share receipt'}
+          icon="download"
+          loading={receiptBusy}
+          disabled={receiptBusy}
+          onPress={() => void downloadReceipt(record(historySelection))}
+        />
+      </View>
+    </Card> : null}
     {progressWithdrawal && stage !== 'submitted' ? <WithdrawalProgress withdrawal={progressWithdrawal} /> : null}
 
     <TransactionPasswordResetModal

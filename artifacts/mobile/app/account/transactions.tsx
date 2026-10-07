@@ -11,11 +11,11 @@ import {
 } from '@workspace/api-client-react';
 import { Card, EmptyState, Field, LoadingCard, Screen, Status } from '@/components/InvestorUI';
 import { amount as readAmount, first, Json, list, messageOf, money, record, unwrap } from '@/lib/data';
-import { shareInvestorFile } from '@/lib/file-download';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
 import { savedUsdEquivalentForRecordedAmount } from '@/lib/withdrawal-history';
+import { createTransactionReceipt, saveTransactionReceipt, type TransactionReceipt } from '@/lib/transaction-receipt';
 
 type Filter = 'All' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
 type Category = Exclude<Filter, 'All'> | 'Other';
@@ -33,7 +33,7 @@ type TransactionRow = {
   paymentMethod: string;
   reference: string;
   paymentReference: string;
-  pdfPath: string;
+  receipt: TransactionReceipt;
   searchText: string;
   withdrawalBreakdown?: {
     payout: string;
@@ -108,12 +108,6 @@ function categoryForWalletTransaction(item: Json): Category {
   return 'Other';
 }
 
-function safePdfPath(resource: string, id: string) {
-  const numericId = Number(id);
-  if (!Number.isInteger(numericId) || numericId < 1) return '';
-  return `/api/investor/${resource}/${encodeURIComponent(id)}/pdf`;
-}
-
 function tradeIdFor(investment: Json, transaction?: Json) {
   const project = record(investment.project);
   const projectMeta = record(project.meta);
@@ -159,7 +153,7 @@ function DetailLine({ label, value }: { label: string; value: string }) {
 }
 
 export default function Transactions() {
-  const { token, apiOrigin } = useAuth();
+  const { token } = useAuth();
   const colors = useColors();
   const params = useLocalSearchParams<{ search?: string; tab?: string; selected?: string }>();
   const [filter, setFilter] = useState<Filter>(filterFromRoute(params.tab) ?? 'All');
@@ -173,15 +167,15 @@ export default function Transactions() {
   const [depositStatus, setDepositStatus] = useState('');
   const [depositDateFrom, setDepositDateFrom] = useState('');
   const [depositDateTo, setDepositDateTo] = useState('');
-  const [busyPdfKey, setBusyPdfKey] = useState('');
-  const [pdfError, setPdfError] = useState('');
+  const [busyReceiptKey, setBusyReceiptKey] = useState('');
+  const [receiptError, setReceiptError] = useState('');
 
   useEffect(() => {
     setFilter(filterFromRoute(typeof params.tab === 'string' ? params.tab : undefined) ?? 'All');
     setSearch(typeof params.search === 'string' ? params.search : '');
     setSelectedId(typeof params.selected === 'string' ? params.selected : '');
     setPage(1);
-    setPdfError('');
+    setReceiptError('');
   }, [params.tab, params.search, params.selected]);
   const invalidWithdrawalDate = filter === 'Withdrawals'
     && (!isValidDateFilter(withdrawalDateFrom) || !isValidDateFilter(withdrawalDateTo));
@@ -324,7 +318,7 @@ export default function Transactions() {
       paymentMethod,
       reference,
       paymentReference,
-      pdfPath: safePdfPath('deposits', id) || (matched ? safePdfPath('wallet/transactions', first(matched, ['id'])) : ''),
+      receipt: createTransactionReceipt('deposit', deposit),
       searchText: [id, reference, paymentReference, title, paymentMethod, first(deposit, ['status'])].join(' '),
     });
   });
@@ -368,7 +362,7 @@ export default function Transactions() {
       paymentMethod,
       reference,
       paymentReference: '',
-      pdfPath: safePdfPath('withdrawals', id) || (matched ? safePdfPath('wallet/transactions', first(matched, ['id'])) : ''),
+      receipt: createTransactionReceipt('withdrawal', withdrawal),
       searchText: [id, reference, title, paymentMethod, first(withdrawal, ['status'])].join(' '),
     });
   });
@@ -397,7 +391,7 @@ export default function Transactions() {
       paymentMethod,
       reference: reference || first(matched ?? {}, ['reference']),
       paymentReference: '',
-      pdfPath: safePdfPath('investments', id),
+      receipt: createTransactionReceipt('investment', investment),
       searchText: [id, reference, title, paymentMethod, tradeIdFor(investment, matched), first(investment, ['status'])].join(' '),
     });
   });
@@ -429,7 +423,13 @@ export default function Transactions() {
       paymentMethod,
       reference: first(transaction, ['reference', 'transaction_reference']),
       paymentReference: '',
-      pdfPath: safePdfPath('wallet/transactions', id),
+      receipt: createTransactionReceipt(
+        category === 'Deposits' ? 'deposit'
+          : category === 'Withdrawals' ? 'withdrawal'
+            : category === 'Investments' ? 'investment'
+              : 'transaction',
+        transaction,
+      ),
       searchText: [id, investmentId, title, paymentMethod, first(transaction, ['reference']), first(transaction, ['type', 'transaction_type']), first(transaction, ['status'])].join(' '),
     });
   });
@@ -474,25 +474,15 @@ export default function Transactions() {
     return lastPage != null ? page < lastPage : list(source.data).length >= pageSize;
   });
 
-  async function accessPdf(row: TransactionRow) {
-    if (!row.pdfPath) {
-      setPdfError('A PDF receipt or statement is not available for this record.');
-      return;
-    }
-    if (!apiOrigin) {
-      setPdfError('Set the OG Exports investor server address in Settings before downloading.');
-      return;
-    }
-    setBusyPdfKey(row.key);
-    setPdfError('');
+  async function accessReceipt(row: TransactionRow) {
+    setBusyReceiptKey(row.key);
+    setReceiptError('');
     try {
-      const url = new URL(row.pdfPath, apiOrigin).toString();
-      const name = `OG-Exports-${row.category}-${row.reference || row.transactionId || row.key}`;
-      await shareInvestorFile(url, name, apiOrigin, 'application/pdf', 'pdf');
+      await saveTransactionReceipt(row.receipt);
     } catch (error) {
-      setPdfError(messageOf(error));
+      setReceiptError(messageOf(error));
     } finally {
-      setBusyPdfKey('');
+      setBusyReceiptKey('');
     }
   }
 
@@ -509,7 +499,7 @@ export default function Transactions() {
           setFilter(item);
           setSelectedId('');
           setPage(1);
-          setPdfError('');
+          setReceiptError('');
         }} style={{ borderRadius: 18, paddingVertical: 9, paddingHorizontal: 14, backgroundColor: active ? colors.primary : colors.secondary, borderWidth: 1, borderColor: active ? colors.primary : colors.border }}>
           <Text style={{ color: active ? colors.primaryForeground : colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>{item}</Text>
         </Pressable>;
@@ -702,7 +692,7 @@ export default function Transactions() {
       return <MotionReveal key={`${row.key}-${active}`} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}>
       <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => {
         setSelectedId(active ? '' : row.key);
-        setPdfError('');
+        setReceiptError('');
       }}>
         <Card style={{ marginBottom: 10, borderColor: active ? colors.primary : colors.border }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
@@ -740,9 +730,9 @@ export default function Transactions() {
             {row.paymentReference && row.paymentReference !== row.reference
               ? <DetailLine label="Payment reference" value={row.paymentReference} />
               : null}
-            {pdfError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginTop: 9 }}>{pdfError}</Text> : null}
-            <Pressable accessibilityRole="button" testID={`transaction-pdf-${row.key}`} disabled={!row.pdfPath || busyPdfKey === row.key} onPress={() => void accessPdf(row)} style={{ marginTop: 12, borderRadius: 12, padding: 12, alignItems: 'center', backgroundColor: colors.secondary, opacity: !row.pdfPath || busyPdfKey === row.key ? 0.5 : 1 }}>
-              <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{busyPdfKey === row.key ? 'Preparing PDF…' : 'Access PDF receipt / statement'}</Text>
+            {receiptError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginTop: 9 }}>{receiptError}</Text> : null}
+            <Pressable accessibilityRole="button" testID={`transaction-receipt-${row.key}`} disabled={busyReceiptKey === row.key} onPress={() => void accessReceipt(row)} style={{ marginTop: 12, borderRadius: 12, padding: 12, alignItems: 'center', backgroundColor: colors.secondary, opacity: busyReceiptKey === row.key ? 0.5 : 1 }}>
+              <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{busyReceiptKey === row.key ? 'Preparing receipt…' : 'Save / share transaction receipt'}</Text>
             </Pressable>
           </View> : null}
         </Card>

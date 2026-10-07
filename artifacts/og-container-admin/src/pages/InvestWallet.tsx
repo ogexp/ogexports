@@ -14,6 +14,7 @@ import { api, unwrapPage, downloadAuthenticatedFile } from "@/lib/api"
 import { notify } from "@/lib/notify"
 import { paymentStatusBadgeClass, paymentStatusLabel } from "@/lib/deposit-statuses"
 import { useInvestorDashboardBalance } from "@/lib/investor-balance"
+import { createTransactionReceipt, downloadTransactionReceipt } from "@/lib/transaction-receipt"
 
 const CURRENCY_META = [
   { code: "USD", name: "US Dollar",        symbol: "$",   flag: "🇺🇸" },
@@ -48,6 +49,7 @@ interface WalletTxn {
   desc: string
   originalAmount?: number
   originalCurrency?: string
+  serverRecord: Record<string, unknown>
 }
 
 function formatCurrencyAmount(amount: number, code: string, symbol: string): string {
@@ -113,6 +115,7 @@ function mapWalletTxn(t: any, walletCurrency: string): WalletTxn {
     desc: formatTxnDescription(t, walletCurrency),
     originalAmount: parseOptionalNumber(meta.original_amount) ?? undefined,
     originalCurrency: meta.original_currency ? String(meta.original_currency).toUpperCase() : undefined,
+    serverRecord: t,
   }
 }
 
@@ -306,9 +309,18 @@ export default function InvestWallet() {
   async function handleDownloadPdf(txn: WalletTxn) {
     setDownloadingId(txn.id)
     try {
-      await downloadAuthenticatedFile(`/api/investor/wallet/transactions/${txn.id}/pdf`, txn.ref)
+      downloadTransactionReceipt(createTransactionReceipt(
+        txn.type.toLowerCase().includes("deposit")
+          ? "deposit"
+          : txn.type.toLowerCase().includes("withdraw")
+            ? "withdrawal"
+            : txn.type.toLowerCase().includes("invest")
+              ? "investment"
+              : "transaction",
+        txn.serverRecord,
+      ))
     } catch {
-      notify.error("Could not download PDF. Please try again.")
+      notify.error("Could not download the transaction receipt. Please try again.")
     } finally {
       setDownloadingId(null)
     }
@@ -622,7 +634,9 @@ export default function InvestWallet() {
                                   className="h-7 w-7"
                                   disabled={downloadingId === t.id}
                                   onClick={() => handleDownloadPdf(t)}
-                                  title="Download PDF"
+                                  title="Download transaction receipt"
+                                  aria-label={`Download receipt for ${t.ref}`}
+                                  data-testid={`wallet-transaction-receipt-${t.id}`}
                                 >
                                   {downloadingId === t.id
                                     ? <Loader2 className="w-3.5 h-3.5 animate-spin" />

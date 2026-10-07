@@ -13,7 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog"
 import {
-  Wallet, Shield, CheckCircle2, Clock, ChevronRight, ArrowRight,
+  Wallet, Shield, CheckCircle2, Clock, FileText, ChevronRight, ArrowRight,
   AlertCircle, Building2, Info, Lock, Loader2
 } from "lucide-react"
 import { useLocalAuth } from "@/lib/local-auth"
@@ -28,6 +28,7 @@ import { paymentStatusLabel } from "@/lib/deposit-statuses"
 import { useInvestorDashboardBalance } from "@/lib/investor-balance"
 import { TransactionHistoryCard, type TransactionHistoryItem } from "@/components/invest/TransactionHistoryCard"
 import { TransactionSuccessDialog } from "@/components/invest/TransactionSuccessDialog"
+import { createTransactionReceipt, downloadTransactionReceipt } from "@/lib/transaction-receipt"
 import { notify } from "@/lib/notify"
 import {
   type InvestorBankAccount,
@@ -354,7 +355,8 @@ export default function InvestWithdraw() {
           : undefined,
         status: w.status || "unknown",
         statusLabel: paymentStatusLabel(w.status),
-        pdfPath: `/api/investor/withdrawals/${w.id}/pdf`,
+        receipt: createTransactionReceipt("withdrawal", w),
+        detailHref: /^\d+$/.test(String(w.id ?? "")) ? `/invest/transactions/withdrawal/${w.id}` : undefined,
       }
     }),
     [withdrawalHistory, ledgerCurrency, c],
@@ -832,6 +834,16 @@ export default function InvestWithdraw() {
                 <p className="text-muted-foreground">
                   Current status: {withdrawStatus ? paymentStatusLabel(withdrawStatus) : "Not provided"}.
                 </p>
+                {withdrawalConfirmation ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-testid="withdrawal-submission-receipt"
+                    onClick={() => downloadTransactionReceipt(createTransactionReceipt("withdrawal", withdrawalConfirmation))}
+                  >
+                    <FileText className="mr-2 h-4 w-4" /> Download receipt file
+                  </Button>
+                ) : null}
                 <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3 pt-2 text-left max-w-lg mx-auto">
                   <div>
                     <div className="text-xs text-muted-foreground uppercase tracking-wide">Withdraw ID</div>

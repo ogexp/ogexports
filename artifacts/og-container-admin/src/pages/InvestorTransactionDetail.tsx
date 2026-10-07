@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { api } from "@/lib/api"
+import { createTransactionReceipt, downloadTransactionReceipt } from "@/lib/transaction-receipt"
 
 type TransactionKind = "deposit" | "withdrawal"
 type TransactionRecord = Record<string, unknown>
@@ -146,7 +147,17 @@ export default function InvestorTransactionDetail() {
           <Card className="glass-card">
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <CardTitle className="text-base font-heading">{title}</CardTitle>
-              <Badge variant="secondary">{status}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{status}</Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  data-testid="transaction-detail-receipt"
+                  onClick={() => downloadTransactionReceipt(createTransactionReceipt(kind ?? "transaction", record))}
+                >
+                  Download receipt
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="divide-y divide-border/60">
               {details.map(([label, value]) => (

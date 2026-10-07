@@ -29,6 +29,7 @@ import { shareInvestorFile } from '@/lib/file-download';
 import { getInvestorKycStatus, isInvestorKycVerified } from '@/lib/kyc';
 import { verifyAppPin } from '@/lib/app-pin';
 import { motionHaptic } from '@/lib/motion';
+import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
 
 function formatEstimatedDistributionDate(value: string): string {
   const raw = value.trim();
@@ -78,6 +79,8 @@ export default function OpportunityDetail() {
   const [documentError, setDocumentError] = useState('');
   const [documentBusy, setDocumentBusy] = useState('');
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
+  const [receiptError, setReceiptError] = useState('');
+  const [receiptBusy, setReceiptBusy] = useState(false);
   const [successFeedbackVisible, setSuccessFeedbackVisible] = useState(false);
   const project = unwrap(query.data);
   const tradeData = record(project.trade ?? project.project ?? project.trade_details);
@@ -295,6 +298,7 @@ export default function OpportunityDetail() {
         amountPkr: amount(investment, ['amount_pkr']) ?? amount(payload, ['amount_pkr']),
         exchangeRate: amount(investment, ['exchange_rate']) ?? amount(payload, ['exchange_rate']),
         date: responseDate,
+        serverRecord: response,
       });
       setStage('success');
       setSuccessFeedbackVisible(true);
@@ -343,6 +347,18 @@ export default function OpportunityDetail() {
       setDocumentError(messageOf(err));
     } finally {
       setDocumentBusy('');
+    }
+  }
+  async function downloadInvestmentReceipt() {
+    if (!confirmation) return;
+    setReceiptError('');
+    setReceiptBusy(true);
+    try {
+      await saveTransactionReceipt(createTransactionReceipt('investment', confirmation.serverRecord));
+    } catch (err) {
+      setReceiptError(messageOf(err));
+    } finally {
+      setReceiptBusy(false);
     }
   }
   const confirmedStatus = first(confirmation ?? {}, ['status', 'state'], '—');
@@ -601,6 +617,16 @@ export default function OpportunityDetail() {
           ].map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: colors.border }}>
             <Text style={{ color: colors.mutedForeground }}>{label}</Text><Text style={{ color: value === 'Unavailable' ? colors.mutedForeground : colors.foreground, fontWeight: '700', flex: 1, textAlign: 'right' }}>{value}</Text>
           </View>)}
+          {receiptError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginTop: 10 }}>{receiptError}</Text> : null}
+          <View style={{ marginTop: 14 }}>
+            <Action
+              title={receiptBusy ? 'Preparing receipt…' : 'Save / share receipt'}
+              icon="download"
+              loading={receiptBusy}
+              disabled={receiptBusy}
+              onPress={() => void downloadInvestmentReceipt()}
+            />
+          </View>
           <View style={{ marginTop: 15 }}>
             <Action title="View Investment" icon="briefcase" onPress={() => investmentId ? router.push({ pathname: '/position/[id]', params: { id: investmentId } }) : router.push('/account/portfolio')} />
           </View>

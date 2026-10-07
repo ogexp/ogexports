@@ -24,6 +24,7 @@ import { TransactionHistoryCard, type TransactionHistoryItem } from "@/component
 import { type BankAccount } from "@/lib/bank-accounts"
 import { CompanyBankAccountsPanel } from "@/components/shared/CompanyBankAccountsPanel"
 import { TransactionSuccessDialog } from "@/components/invest/TransactionSuccessDialog"
+import { createTransactionReceipt, downloadTransactionReceipt } from "@/lib/transaction-receipt"
 
 const DEPOSIT_CURRENCIES = ["USD", "GBP", "EUR", "CNY", "PKR", "SAR", "AED", "OMR", "QAR"] as const
 
@@ -129,6 +130,7 @@ export default function InvestDeposit() {
   const [liveStatus, setLiveStatus] = useState<string>("")
   const [successDialogOpen, setSuccessDialogOpen] = useState(false)
   const [successStatus, setSuccessStatus] = useState("")
+  const [submittedRecord, setSubmittedRecord] = useState<Record<string, unknown> | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [selectedBankAccount, setSelectedBankAccount] = useState<BankAccount | undefined>()
   const [historyPage, setHistoryPage] = useState(1)
@@ -292,14 +294,15 @@ export default function InvestDeposit() {
   const depositHistoryItems: TransactionHistoryItem[] = depositHistory.map((d: any) => ({
     id: String(d.id),
     primary: `${formatMethodLabel(d.method)} · ${formatDepositAmount(d)}`,
-    reference: d.reference || `OGDEP-INV-${String(d.id).padStart(3, "0")}`,
+    reference: d.reference || undefined,
     paymentReference: d.bank_reference || undefined,
     date: d.created_at
       ? new Date(d.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
       : undefined,
     status: d.review_status || d.status,
     statusLabel: d.review_status_label || paymentStatusLabel(d.status),
-    pdfPath: `/api/investor/deposits/${d.id}/pdf`,
+    receipt: createTransactionReceipt("deposit", d),
+    detailHref: /^\d+$/.test(String(d.id ?? "")) ? `/invest/transactions/deposit/${d.id}` : undefined,
   }))
 
   function handleFileDrop(e: React.DragEvent) {
@@ -338,6 +341,7 @@ export default function InvestDeposit() {
         }
         const res: any = await api.post(`/api/investor/projects/${selectedProjectId}/invest`, { amount: amountNum })
         const data = res?.data ?? res
+        setSubmittedRecord(data && typeof data === "object" ? data as Record<string, unknown> : null)
         const ref = data?.reference || (data?.id ? `INV-${data.id}` : "submitted")
         setDepositId(String(data?.id ?? ref))
         setRefNum(String(ref))
@@ -375,6 +379,7 @@ export default function InvestDeposit() {
       setDepositId(submitted.reference || submitted.id)
       setRefNum(submitted.bankReference || reference || "—")
       setSuccessStatus(submitted.status || "")
+      setSubmittedRecord(submitted.serverRecord)
       setLiveStatus(submitted.status || "submitted")
       setStep("status")
       setSuccessDialogOpen(true)
@@ -818,6 +823,19 @@ export default function InvestDeposit() {
                     ? <>Your deposit request for <span className="font-semibold text-foreground">{selectedProject.title}</span> was submitted. Check the status returned by the investor service for updates.</>
                     : "Your deposit request was submitted. Check the investor records for its current status."}
                 </p>
+                {submittedRecord ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-testid="deposit-submission-receipt"
+                    onClick={() => downloadTransactionReceipt(createTransactionReceipt(
+                      isWalletMethod ? "investment" : "deposit",
+                      submittedRecord,
+                    ))}
+                  >
+                    <FileText className="mr-2 h-4 w-4" /> Download receipt file
+                  </Button>
+                ) : null}
                 <div className="flex justify-center gap-6 pt-2 flex-wrap">
                   <div>
                     <div className="text-xs text-muted-foreground uppercase tracking-wide">Deposit ID</div>

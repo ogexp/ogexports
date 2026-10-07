@@ -3474,7 +3474,14 @@ export async function submitInvestorDeposit(deposit: {
   investor: string; email: string; amount: string; method: string; ref: string
   projectId?: string; projectTitle?: string; amountNum?: number; currency?: string
   proofPath?: string; bankAccountId?: string; bankAccountName?: string; note?: string
-}): Promise<{ id: string; reference: string; bankReference?: string; status?: string; message?: string }> {
+}): Promise<{
+  id: string
+  reference: string
+  bankReference?: string
+  status?: string
+  message?: string
+  serverRecord: Record<string, unknown>
+}> {
   const id = `DEP-${Date.now().toString().slice(-4)}`
   const currency = String(deposit.currency || "USD").toUpperCase()
   const supported = ["USD", "GBP", "EUR", "CNY", "PKR", "SAR", "AED", "OMR", "QAR"]
@@ -3520,6 +3527,7 @@ export async function submitInvestorDeposit(deposit: {
       bankReference: mapped.bankRef,
       status: status ? String(status).trim() : undefined,
       message: message ? String(message).trim() : undefined,
+      serverRecord: responseRecord as Record<string, unknown>,
     }
   } catch (error) {
     depositsCache = depositsCache.filter(d => d.id !== id)

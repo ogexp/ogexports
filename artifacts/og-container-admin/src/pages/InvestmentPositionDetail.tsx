@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { api, downloadAuthenticatedFile } from "@/lib/api"
 import { downloadInvestmentPdf } from "@/lib/investment-download"
+import { createTransactionReceipt, downloadTransactionReceipt } from "@/lib/transaction-receipt"
 import { notify } from "@/lib/notify"
 import { formatInvestorProjectAmount } from "@/lib/invest-format"
 import { containerProjectStatusLabel } from "@/lib/container-project-statuses"
@@ -86,17 +87,27 @@ export default function InvestmentPositionDetail() {
             </Link>
           </Button>
           {position && (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={pdfLoading}
-              onClick={() => void handleDownloadPdf()}
-            >
-              {pdfLoading
-                ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                : <Download className="w-3.5 h-3.5 mr-1.5" />}
-              {pdfLoading ? "Preparing…" : "Download PDF"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                data-testid="investment-detail-receipt"
+                onClick={() => downloadTransactionReceipt(createTransactionReceipt("investment", raw))}
+              >
+                <FileText className="w-3.5 h-3.5 mr-1.5" /> Download receipt
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pdfLoading}
+                onClick={() => void handleDownloadPdf()}
+              >
+                {pdfLoading
+                  ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                  : <Download className="w-3.5 h-3.5 mr-1.5" />}
+                {pdfLoading ? "Preparing…" : "Download PDF"}
+              </Button>
+            </div>
           )}
         </div>
 

@@ -22,6 +22,7 @@ import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { motionHaptic } from '@/lib/motion';
+import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
 
 const depositStages = ['Submitted', 'Under Review', 'Verified', 'Credited'] as const;
 const verificationStatuses = new Set(['approved', 'verified']);
@@ -149,6 +150,8 @@ export default function Deposit() {
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
   const [successFeedbackVisible, setSuccessFeedbackVisible] = useState(false);
   const [selectedDepositId, setSelectedDepositId] = useState('');
+  const [receiptBusy, setReceiptBusy] = useState(false);
+  const [receiptError, setReceiptError] = useState('');
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const defaultBank = banks.find(item => isEnabled(first(item, ['is_default'])));
   const selectedBank = banks.find(item => first(item, ['id']) === bankId) ?? defaultBank;
@@ -167,6 +170,18 @@ export default function Deposit() {
   const proofRequired = isEnabled(first(selectedBank ?? {}, ['proof_required', 'requires_proof']));
   const timelineDeposit = confirmation ?? deposits.find(item => first(item, ['id', 'reference', 'deposit_reference']) === selectedDepositId);
   const confirmationCurrency = first(confirmation ?? {}, ['currency', 'wallet_currency'], paymentCurrency);
+
+  async function downloadReceipt(source: Record<string, unknown>) {
+    setReceiptError('');
+    setReceiptBusy(true);
+    try {
+      await saveTransactionReceipt(createTransactionReceipt('deposit', source));
+    } catch (err) {
+      setReceiptError(messageOf(err));
+    } finally {
+      setReceiptBusy(false);
+    }
+  }
 
   useEffect(() => () => {
     if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
@@ -521,6 +536,16 @@ export default function Deposit() {
       <DetailRow label="Amount" value={moneyInSourceCurrency(readAmount(confirmation, ['amount']), confirmationCurrency || 'USD')} />
       <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8 }}>Your deposit request is under review. Your wallet balance will update when the deposit is credited.</Text>
       <DepositProgress deposit={confirmation} />
+      {receiptError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, marginTop: 10 }}>{receiptError}</Text> : null}
+      <View style={{ marginTop: 12 }}>
+        <Action
+          title={receiptBusy ? 'Preparing receipt…' : 'Save / share receipt'}
+          icon="download"
+          loading={receiptBusy}
+          disabled={receiptBusy}
+          onPress={() => void downloadReceipt(confirmation)}
+        />
+      </View>
       <View style={{ marginTop: 14 }}><Action title="Record another deposit" secondary onPress={() => {
         setConfirmation(null);
         setSelectedDepositId('');
@@ -559,6 +584,28 @@ export default function Deposit() {
         </Card>
       </Pressable>;
     })}
+    {timelineDeposit && stage !== 'submitted' ? <Card style={{ borderColor: colors.primary }}>
+      <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>Deposit record</Text>
+      <DetailRow label="Server reference" value={first(record(timelineDeposit), ['reference', 'deposit_reference'], 'Not provided')} />
+      <DetailRow label="Server status" value={first(record(timelineDeposit), ['review_status', 'status'], 'Not provided')} />
+      <DetailRow
+        label="Amount returned by OG Exports"
+        value={readAmount(record(timelineDeposit), ['amount']) == null
+          ? 'Not provided'
+          : moneyInSourceCurrency(readAmount(record(timelineDeposit), ['amount']), first(record(timelineDeposit), ['currency', 'wallet_currency']))}
+      />
+      <DetailRow label="Date returned by OG Exports" value={first(record(timelineDeposit), ['created_at', 'date'], 'Not provided')} />
+      {receiptError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, marginTop: 8 }}>{receiptError}</Text> : null}
+      <View style={{ marginTop: 10 }}>
+        <Action
+          title={receiptBusy ? 'Preparing receipt…' : 'Save / share receipt'}
+          icon="download"
+          loading={receiptBusy}
+          disabled={receiptBusy}
+          onPress={() => void downloadReceipt(record(timelineDeposit))}
+        />
+      </View>
+    </Card> : null}
     {timelineDeposit && stage !== 'submitted' ? <DepositProgress deposit={record(timelineDeposit)} /> : null}
     <SuccessFeedback
       visible={successFeedbackVisible}

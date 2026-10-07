@@ -4,8 +4,9 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Loader2, Download } from "lucide-react"
 import { paymentStatusBadgeClass, paymentStatusLabel } from "@/lib/deposit-statuses"
-import { downloadAuthenticatedFile } from "@/lib/api"
+import { downloadTransactionReceipt, type TransactionReceipt } from "@/lib/transaction-receipt"
 import { notify } from "@/lib/notify"
+import { Link } from "wouter"
 
 export type TransactionHistoryItem = {
   id: string
@@ -15,7 +16,8 @@ export type TransactionHistoryItem = {
   date?: string
   status: string
   statusLabel?: string
-  pdfPath?: string
+  receipt?: TransactionReceipt
+  detailHref?: string
   breakdown?: {
     payout: string
     fee: string
@@ -40,13 +42,12 @@ export function TransactionHistoryCard({ title, loading, emptyMessage, items }: 
   })
 
   async function handleDownload(item: TransactionHistoryItem) {
-    if (!item.pdfPath) return
+    if (!item.receipt) return
     setDownloadingId(item.id)
     try {
-      const fallback = item.reference || `transaction-${item.id}`
-      await downloadAuthenticatedFile(item.pdfPath, fallback)
+      downloadTransactionReceipt(item.receipt)
     } catch {
-      notify.error("Could not download PDF. Please try again.")
+      notify.error("Could not download the transaction receipt. Please try again.")
     } finally {
       setDownloadingId(null)
     }
@@ -92,19 +93,30 @@ export function TransactionHistoryCard({ title, loading, emptyMessage, items }: 
                   <dd className="text-right font-medium text-foreground">{item.breakdown.totalDebit}</dd>
                 </dl>
               )}
+              {item.detailHref && (
+                <Link
+                  href={item.detailHref}
+                  data-testid={`transaction-details-${item.id}`}
+                  className="mt-1 inline-flex text-xs font-semibold text-primary hover:underline"
+                >
+                  View transaction details
+                </Link>
+              )}
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <Badge className={`border-0 text-[10px] ${paymentStatusBadgeClass(item.status)}`}>
                 {item.statusLabel || paymentStatusLabel(item.status)}
               </Badge>
-              {item.pdfPath && (
+              {item.receipt && (
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
                   disabled={downloadingId === item.id}
                   onClick={() => handleDownload(item)}
-                  title="Download PDF"
+                  title="Download receipt file"
+                  aria-label={`Download receipt for ${item.reference || item.id}`}
+                  data-testid={`transaction-receipt-${item.id}`}
                 >
                   {downloadingId === item.id
                     ? <Loader2 className="w-3.5 h-3.5 animate-spin" />

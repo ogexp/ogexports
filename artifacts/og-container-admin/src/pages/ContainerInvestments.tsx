@@ -6,6 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Package, FileText, Loader2, Search } from "lucide-react"
 import { api, unwrapPage } from "@/lib/api"
 import { InvestmentPositionCard, mapRowToPosition, type InvestmentPositionData } from "@/components/invest/InvestmentPositionCard"
+import { createTransactionReceipt, downloadTransactionReceipt } from "@/lib/transaction-receipt"
+
+type InvestmentHistoryItem = {
+  position: InvestmentPositionData
+  serverRecord: Record<string, unknown>
+}
 
 const STATUS_TABS = [
   { id: "", label: "All" },
@@ -16,7 +22,7 @@ const STATUS_TABS = [
 
 export default function ContainerInvestments() {
   const [loading, setLoading] = useState(true)
-  const [items, setItems] = useState<InvestmentPositionData[]>([])
+  const [items, setItems] = useState<InvestmentHistoryItem[]>([])
   const [statusFilter, setStatusFilter] = useState("")
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
@@ -49,8 +55,11 @@ export default function ContainerInvestments() {
         const rows = unwrapPage<any>(res).data
         const mapped = (rows || [])
           .filter((row: any) => String(row?.project?.type || "").toLowerCase() === "container")
-          .map(mapRowToPosition)
-          .filter((x): x is InvestmentPositionData => x != null)
+          .map((row: any) => ({
+            position: mapRowToPosition(row),
+            serverRecord: row as Record<string, unknown>,
+          }))
+          .filter((item: InvestmentHistoryItem): item is InvestmentHistoryItem => item.position != null)
         if (!cancelled) setItems(mapped)
       } catch {
         if (!cancelled) setItems([])
@@ -64,8 +73,8 @@ export default function ContainerInvestments() {
   const summary = useMemo(() => {
     return {
       total: items.length,
-      inTransit: items.filter(i => i.projectStatus === "in_transit" || i.status === "in_transit").length,
-      completed: items.filter(i => i.investmentStatus === "completed" || i.status === "completed").length,
+      inTransit: items.filter(({ position }) => position.projectStatus === "in_transit" || position.status === "in_transit").length,
+      completed: items.filter(({ position }) => position.investmentStatus === "completed" || position.status === "completed").length,
     }
   }, [items])
 
@@ -160,8 +169,18 @@ export default function ContainerInvestments() {
           </Card>
         )}
 
-        {items.map(inv => (
-          <InvestmentPositionCard key={inv.id} inv={inv} />
+        {items.map(({ position, serverRecord }) => (
+          <div key={position.id} className="space-y-2">
+            <InvestmentPositionCard inv={position} />
+            <Button
+              size="sm"
+              variant="outline"
+              data-testid={`investment-history-receipt-${position.id}`}
+              onClick={() => downloadTransactionReceipt(createTransactionReceipt("investment", serverRecord))}
+            >
+              <FileText className="mr-1.5 h-3.5 w-3.5" /> Download transaction receipt
+            </Button>
+          </div>
         ))}
       </div>
     </InvestPortalLayout>

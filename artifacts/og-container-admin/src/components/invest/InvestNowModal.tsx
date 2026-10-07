@@ -15,6 +15,7 @@ import {
   TransactionSuccessContent,
   type TransactionSuccessTone,
 } from "@/components/invest/TransactionSuccessContent"
+import { createTransactionReceipt, downloadTransactionReceipt } from "@/lib/transaction-receipt"
 
 interface InvestNowModalProps {
   investment: ContainerInvestment | LongTermProject
@@ -54,6 +55,7 @@ export function InvestNowModal({
     reference: string | null
     status: string | null
     message: string
+    serverRecord: Record<string, unknown>
   } | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -153,7 +155,8 @@ export function InvestNowModal({
         : ["failed", "error", "rejected", "declined", "cancelled", "canceled"].includes(normalizedStatus)
           ? `OG Exports reported that this investment request was ${status}.`
           : "The investor service accepted the request."
-      setConfirmation({ reference, status, message })
+      const transactionRecord = record?.investment ?? record?.position ?? record
+      setConfirmation({ reference, status, message, serverRecord: transactionRecord })
       setStep(3)
       void queryClient.invalidateQueries({ queryKey: INVESTOR_DASHBOARD_QUERY_KEY })
       onSuccess?.(body)
@@ -339,6 +342,19 @@ export function InvestNowModal({
           )}
           {step === 3 && (
             <div className="flex w-full gap-2">
+              <Button
+                variant="outline"
+                data-testid="investment-submission-receipt"
+                onClick={() => {
+                  try {
+                    downloadTransactionReceipt(createTransactionReceipt("investment", confirmation?.serverRecord))
+                  } catch {
+                    toast({ title: "Receipt unavailable", description: "Could not download the transaction receipt." })
+                  }
+                }}
+              >
+                Download receipt
+              </Button>
               <Button variant="outline" onClick={onClose} className="flex-1">Done</Button>
               <Button onClick={() => { setLocation(redirectTo); onClose() }} className="flex-1">View dashboard</Button>
             </div>
