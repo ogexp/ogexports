@@ -134,6 +134,18 @@ export default function InvestorTransactionDetail() {
   const amount = text(record?.amount)
   const currency = text(record?.currency ?? record?.amount_currency, "")
   const meta = record?.meta && typeof record.meta === "object" ? record.meta as TransactionRecord : {}
+  const bankDetails = record?.bank_details && typeof record.bank_details === "object"
+    ? record.bank_details as TransactionRecord
+    : {}
+  const walletType = text(record?.type ?? record?.transaction_type, "").toLowerCase()
+  const isWithdrawalTransaction = kind === "withdrawal"
+    || (kind === "wallet" && /withdraw|payout/.test(walletType))
+  const paymentMethod = text(
+    record?.payment_method ?? record?.method
+      ?? bankDetails.payment_method ?? bankDetails.method
+      ?? meta.payment_method ?? meta.method,
+    isWithdrawalTransaction ? "Bank Transfer" : "Not recorded",
+  )
   const relatedInvestmentId = validRelatedId(record?.investment_id, meta.investment_id)
   const relatedTradeId = validRelatedId(record?.trade_id, meta.trade_id)
   const details = kind === "deposit"
@@ -142,7 +154,7 @@ export default function InvestorTransactionDetail() {
         ["Reference", reference],
         ["Status", status],
         ["Amount", `${amount}${currency ? ` ${currency}` : ""}`],
-        ["Payment method", text(record?.method ?? record?.payment_method)],
+        ["Payment method", paymentMethod],
         ["Submitted", formatDate(record?.created_at)],
         ["Reviewed", formatDate(record?.reviewed_at)],
         ["Review note", text(record?.note)],
@@ -152,6 +164,7 @@ export default function InvestorTransactionDetail() {
         ["Record ID", text(record?.id, id)],
         ["Reference", reference],
         ["Status", status],
+        ["Payment method", paymentMethod],
         ["Requested bank payout", `${amount}${currency ? ` ${currency}` : ""}`],
         ["Withdrawal fee", text(record?.fee ?? record?.withdrawal_fee)],
         ["Total wallet debit", text(record?.total_debit)],
@@ -167,7 +180,7 @@ export default function InvestorTransactionDetail() {
         ["Amount", `${amount}${currency ? ` ${currency}` : ""}`],
         ["Date / time", formatDate(record?.created_at ?? record?.occurred_at ?? record?.date)],
         ["Reference", reference],
-        ["Payment method", text(record?.payment_method ?? record?.method ?? meta.payment_method ?? meta.method)],
+        ["Payment method", paymentMethod],
         ["Investment ID", text(record?.investment_id ?? meta.investment_id)],
         ["Trade ID", text(record?.trade_id ?? meta.trade_id ?? meta.trade_reference)],
         ["Description", text(record?.description ?? record?.title)],

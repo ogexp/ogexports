@@ -73,6 +73,19 @@ export default function TransactionDetails() {
   const transaction = kind === 'wallet' ? walletTransaction ?? {} : record(unwrap(query.data));
   const hasRecord = Object.keys(transaction).length > 0;
   const meta = record(transaction.meta);
+  const bankDetails = record(transaction.bank_details);
+  const walletType = first(transaction, ['type', 'transaction_type']).toLowerCase();
+  const isWithdrawalTransaction = kind === 'withdrawal'
+    || (kind === 'wallet' && /withdraw|payout/.test(walletType));
+  const paymentMethod = first(
+    transaction,
+    ['payment_method', 'method'],
+    first(
+      bankDetails,
+      ['payment_method', 'method'],
+      first(meta, ['payment_method', 'method'], isWithdrawalTransaction ? 'Bank Transfer' : unavailable),
+    ),
+  );
   const relatedInvestmentId = validRelatedId(transaction.investment_id, meta.investment_id);
   const relatedTradeId = validRelatedId(transaction.trade_id, meta.trade_id);
   const withdrawalBreakdown = kind === 'withdrawal'
@@ -141,7 +154,7 @@ export default function TransactionDetails() {
         <DetailLine label="Amount" value={amountLabel} />
         <DetailLine label="Date / time" value={formatDateTime(first(transaction, ['created_at', 'occurred_at', 'date']))} />
         <DetailLine label="Reference" value={first(transaction, ['reference', 'transaction_reference', 'deposit_reference', 'withdraw_id'], unavailable)} />
-        <DetailLine label="Payment method" value={first(transaction, ['payment_method', 'method'], first(meta, ['payment_method', 'method'], unavailable))} />
+        <DetailLine label="Payment method" value={paymentMethod} />
         {first(meta, ['investment_id']) ? <DetailLine label="Investment ID" value={first(meta, ['investment_id'])} /> : null}
         {first(meta, ['trade_id', 'trade_reference']) ? <DetailLine label="Trade ID" value={first(meta, ['trade_id', 'trade_reference'])} /> : null}
       </Card>

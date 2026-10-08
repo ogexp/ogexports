@@ -343,7 +343,11 @@ export default function Transactions() {
     const totalDebitUsd = readAmount(withdrawal, ['total_debit_usd']);
     const key = `withdrawal:${id || reference || `${page}-${index}`}`;
     const title = first(withdrawal, ['description'], 'Withdrawal');
-    const paymentMethod = first(withdrawal, ['payment_method', 'method'], first(bankDetails, ['payment_method', 'method']));
+    const paymentMethod = first(
+      withdrawal,
+      ['payment_method', 'method'],
+      first(bankDetails, ['payment_method', 'method'], 'Bank Transfer'),
+    );
     rows.push({
       key,
       category: 'Withdrawals',
@@ -415,7 +419,11 @@ export default function Transactions() {
     const investmentId = first(meta, ['investment_id'], first(transaction, ['investment_id']));
     const investment = investmentById.get(investmentId) ?? {};
     const title = first(transaction, ['description', 'title'], first(meta, ['project_title', 'project_name'], formatLabel(first(transaction, ['type', 'transaction_type'], 'Transaction'))));
-    const paymentMethod = first(transaction, ['payment_method', 'method'], first(meta, ['payment_method', 'method']));
+    const paymentMethod = first(
+      transaction,
+      ['payment_method', 'method'],
+      first(meta, ['payment_method', 'method'], category === 'Withdrawals' ? 'Bank Transfer' : ''),
+    );
     const key = `wallet:${walletKey || `${page}-${index}`}`;
     rows.push({
       key,
