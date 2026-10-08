@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { useGetInvestorProfile, useSubmitInvestorKyc, useUpdateInvestorProfile, useUploadInvestorKycDocument } from '@workspace/api-client-react';
 import { Action, Card, ErrorState, Field, Screen, Status } from '@/components/InvestorUI';
 import { CountryPicker } from '@/components/CountryPicker';
+import { DateOfBirthPicker } from '@/components/DateOfBirthPicker';
 import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { countryForApi, kycProfileCountry } from '@/lib/countries';
 import { uploadInvestorFile } from '@/lib/file-upload';
@@ -461,7 +462,7 @@ export default function Kyc() {
         </View>
         <Field label="Full legal name (required)" value={name} onChangeText={setName} placeholder="As shown on your identity document" autoCapitalize="words" />
         <Field label="Phone number (optional)" value={phone} onChangeText={setPhone} placeholder="+1 555 000 0000" keyboardType="phone-pad" />
-        <Field label="Date of birth (required)" value={dob} onChangeText={setDob} placeholder="YYYY-MM-DD" autoCapitalize="none" />
+        <DateOfBirthPicker label="Date of birth (required)" value={dob} onChange={setDob} />
         <Field label="Nationality (required)" value={nationality} onChangeText={setNationality} placeholder="Nationality" autoCapitalize="words" />
         <CountryPicker label="Country of residence (required)" value={country} onChange={setCountry} placeholder="Select country" />
         <Field label="City (required)" value={city} onChangeText={setCity} placeholder="City" autoCapitalize="words" />
