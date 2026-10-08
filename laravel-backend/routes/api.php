@@ -286,7 +286,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/wallet/exchange-rates', [InvestorWalletController::class, 'exchangeRates']);
         Route::get('/wallet/transactions', [InvestorWalletController::class, 'transactions']);
         Route::get('/wallet/transactions/{id}', [InvestorWalletController::class, 'transaction'])->whereNumber('id');
-        Route::get('/wallet/transactions/{id}/pdf', [InvestorWalletController::class, 'transactionPdf']);
+        Route::get('/wallet/transactions/{id}/pdf', [InvestorWalletController::class, 'transactionPdf'])->whereNumber('id');
 
         Route::get('/projects', [InvestorProjectController::class, 'index']);
         Route::get('/facility-content/{type}', [InvestorFacilityContentController::class, 'show']);
@@ -295,22 +295,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/projects/{id}/updates/{updateId}/attachment', [InvestorProjectController::class, 'downloadTradeUpdateAttachment']);
         Route::post('/projects/{id}/invest', [InvestorProjectController::class, 'invest'])->middleware('throttle:5,1');
         Route::get('/investments', [InvestorProjectController::class, 'myInvestments']);
-        Route::get('/investments/{id}', [InvestorProjectController::class, 'showInvestment']);
-        Route::get('/investments/{id}/pdf', [InvestorProjectController::class, 'investmentPdf']);
-        Route::get('/investments/{id}/export', [InvestorProjectController::class, 'exportInvestment']);
+        Route::get('/investments/{id}', [InvestorProjectController::class, 'showInvestment'])->whereNumber('id');
+        Route::get('/investments/{id}/pdf', [InvestorProjectController::class, 'investmentPdf'])->whereNumber('id');
+        Route::get('/investments/{id}/export', [InvestorProjectController::class, 'exportInvestment'])->whereNumber('id');
 
         Route::get('/payment-bank-accounts', [InvestorDepositController::class, 'paymentBankAccounts']);
         Route::get('/deposit-options', [InvestorDepositOptionController::class, 'index']);
         Route::get('/deposits', [InvestorDepositController::class, 'index']);
         Route::post('/deposits', [InvestorDepositController::class, 'store'])->middleware('throttle:5,1');
-        Route::get('/deposits/{id}', [InvestorDepositController::class, 'show']);
-        Route::get('/deposits/{id}/pdf', [InvestorDepositController::class, 'pdf']);
+        Route::get('/deposits/{id}', [InvestorDepositController::class, 'show'])->whereNumber('id');
+        Route::get('/deposits/{id}/pdf', [InvestorDepositController::class, 'pdf'])->whereNumber('id');
 
         Route::get('/withdrawals', [InvestorWithdrawalController::class, 'index']);
         Route::post('/withdrawals/otp/send', [InvestorWithdrawalController::class, 'sendOtp'])->middleware('throttle:3,1');
         Route::post('/withdrawals', [InvestorWithdrawalController::class, 'store'])->middleware('throttle:5,1');
-        Route::get('/withdrawals/{id}', [InvestorWithdrawalController::class, 'show']);
-        Route::get('/withdrawals/{id}/pdf', [InvestorWithdrawalController::class, 'pdf']);
+        Route::get('/withdrawals/{id}', [InvestorWithdrawalController::class, 'show'])->whereNumber('id');
+        Route::get('/withdrawals/{id}/pdf', [InvestorWithdrawalController::class, 'pdf'])->whereNumber('id');
 
         Route::get('/security/transaction-password', [SecurityController::class, 'transactionPasswordStatus']);
         Route::post('/security/transaction-password/set', [SecurityController::class, 'transactionPasswordSet'])->middleware('throttle:5,1');
@@ -432,13 +432,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::middleware('investment_module')->group(function () {
             Route::get('/finance/deposits', [FinanceController::class, 'deposits']);
-            Route::get('/finance/deposits/{id}/proof', [FinanceController::class, 'depositProof']);
-            Route::post('/finance/deposits/{id}/approve', [FinanceController::class, 'approveDeposit']);
-            Route::post('/finance/deposits/{id}/reject', [FinanceController::class, 'rejectDeposit']);
-            Route::post('/finance/deposits/{id}/cancel', [FinanceController::class, 'cancelDeposit']);
+            Route::get('/finance/deposits/{id}/proof', [FinanceController::class, 'depositProof'])->whereNumber('id');
+            Route::post('/finance/deposits/{id}/approve', [FinanceController::class, 'approveDeposit'])->whereNumber('id');
+            Route::post('/finance/deposits/{id}/reject', [FinanceController::class, 'rejectDeposit'])->whereNumber('id');
+            Route::post('/finance/deposits/{id}/cancel', [FinanceController::class, 'cancelDeposit'])->whereNumber('id');
             Route::get('/finance/withdrawals', [FinanceController::class, 'withdrawals']);
-            Route::post('/finance/withdrawals/{id}/approve', [FinanceController::class, 'approveWithdrawal']);
-            Route::post('/finance/withdrawals/{id}/reject', [FinanceController::class, 'rejectWithdrawal']);
+            Route::post('/finance/withdrawals/{id}/approve', [FinanceController::class, 'approveWithdrawal'])->whereNumber('id');
+            Route::post('/finance/withdrawals/{id}/reject', [FinanceController::class, 'rejectWithdrawal'])->whereNumber('id');
             Route::get('/finance/platform-wallet', [FinanceController::class, 'platformWallet']);
             Route::get('/finance/platform-wallet/transactions', [FinanceController::class, 'platformWalletTransactions']);
         });
@@ -500,25 +500,25 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/investment-projects/{id}', [AdminInvestmentController::class, 'update']);
             Route::delete('/investment-projects/{id}', [AdminInvestmentController::class, 'destroy']);
             Route::post('/investment-projects/{id}/investments/approve-next', [AdminInvestmentController::class, 'approveNextInvestment']);
-            Route::post('/investment-projects/{id}/investments/{investmentId}/approve', [AdminInvestmentController::class, 'approveInvestment']);
-            Route::post('/investment-projects/{id}/investments/{investmentId}/reject', [AdminInvestmentController::class, 'rejectInvestment']);
+            Route::post('/investment-projects/{id}/investments/{investmentId}/approve', [AdminInvestmentController::class, 'approveInvestment'])->whereNumber('investmentId');
+            Route::post('/investment-projects/{id}/investments/{investmentId}/reject', [AdminInvestmentController::class, 'rejectInvestment'])->whereNumber('investmentId');
             Route::get('/investment-projects/{id}/documents', [AdminInvestmentProjectDocumentController::class, 'index']);
             Route::post('/investment-projects/{id}/documents', [AdminInvestmentProjectDocumentController::class, 'store']);
             Route::delete('/investment-projects/{id}/documents/{documentId}', [AdminInvestmentProjectDocumentController::class, 'destroy']);
             Route::get('/investment-projects/{id}/documents/{documentId}/download', [AdminInvestmentProjectDocumentController::class, 'download']);
 
             Route::get('/project-investments', [AdminProjectInvestmentController::class, 'index']);
-            Route::get('/project-investments/{id}', [AdminProjectInvestmentController::class, 'show']);
-            Route::post('/project-investments/{id}/approve', [AdminProjectInvestmentController::class, 'approve']);
-            Route::post('/project-investments/{id}/reject', [AdminProjectInvestmentController::class, 'reject']);
-            Route::patch('/project-investments/{id}/status', [AdminProjectInvestmentController::class, 'updateStatus']);
+            Route::get('/project-investments/{id}', [AdminProjectInvestmentController::class, 'show'])->whereNumber('id');
+            Route::post('/project-investments/{id}/approve', [AdminProjectInvestmentController::class, 'approve'])->whereNumber('id');
+            Route::post('/project-investments/{id}/reject', [AdminProjectInvestmentController::class, 'reject'])->whereNumber('id');
+            Route::patch('/project-investments/{id}/status', [AdminProjectInvestmentController::class, 'updateStatus'])->whereNumber('id');
 
             Route::get('/facility-content/{type}', [AdminFacilityContentController::class, 'show']);
             Route::put('/facility-content/{type}', [AdminFacilityContentController::class, 'update']);
 
             Route::get('/investment-profit-distributions', [InvestmentProfitDistributionController::class, 'index']);
             Route::get('/investment-payout-progress', [InvestmentProfitDistributionController::class, 'payoutProgressIndex']);
-            Route::patch('/investment-payout-progress/{investmentId}', [InvestmentProfitDistributionController::class, 'updatePayoutProgress']);
+            Route::patch('/investment-payout-progress/{investmentId}', [InvestmentProfitDistributionController::class, 'updatePayoutProgress'])->whereNumber('investmentId');
         });
 
         Route::get('/compliance/kyc', [ComplianceController::class, 'kycIndex']);

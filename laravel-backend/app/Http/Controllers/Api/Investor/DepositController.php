@@ -9,6 +9,7 @@ use App\Models\Deposit;
 use App\Support\DepositReferenceGenerator;
 use App\Support\DepositReviewStatuses;
 use App\Support\ExchangeRateService;
+use App\Support\FinancialTransactionIdResolver;
 use App\Support\MediaStorage;
 use App\Support\UserDisplayCurrency;
 use App\Support\AdminNotificationTypes;
@@ -246,20 +247,24 @@ class DepositController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $deposit = Deposit::query()
-            ->where('investor_id', $request->user()->id)
-            ->with('project')
-            ->findOrFail($id);
+        $deposit = FinancialTransactionIdResolver::findOrFail(
+            Deposit::query()
+                ->where('investor_id', $request->user()->id)
+                ->with('project'),
+            $id,
+        );
 
         return response()->json(['data' => $deposit]);
     }
 
     public function pdf(Request $request, int $id, InvestorTransactionPdfGenerator $pdf): \Symfony\Component\HttpFoundation\Response
     {
-        $deposit = Deposit::query()
-            ->where('investor_id', $request->user()->id)
-            ->with('project')
-            ->findOrFail($id);
+        $deposit = FinancialTransactionIdResolver::findOrFail(
+            Deposit::query()
+                ->where('investor_id', $request->user()->id)
+                ->with('project'),
+            $id,
+        );
 
         return $pdf->deposit($deposit, $request->user());
     }

@@ -13,6 +13,7 @@ use App\Models\InvestmentProjectTradeUpdate;
 use App\Services\InvestorTransactionPdfGenerator;
 use App\Support\AdminNotificationTypes;
 use App\Support\ContainerProjectStatus;
+use App\Support\FinancialTransactionIdResolver;
 use App\Support\InvestorMarket;
 use App\Support\InvestorNotificationTypes;
 use App\Support\KycGate;
@@ -25,6 +26,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProjectController extends Controller
 {
@@ -247,17 +249,19 @@ class ProjectController extends Controller
 
     public function showInvestment(Request $request, int $id): JsonResponse
     {
-        $investment = Investment::query()
-            ->where('investor_id', $request->user()->id)
-            ->with([
+        $investment = FinancialTransactionIdResolver::findOrFail(
+            Investment::query()
+                ->where('investor_id', $request->user()->id)
+                ->with([
                 'project.documents',
                 'project.containerTracking',
                 'project.tradeUpdates' => fn ($query) => $query->orderBy('occurred_at')->orderBy('id'),
                 'project.stageUpdates' => fn ($query) => $query->orderBy('created_at')->orderBy('id'),
                 'profitDistribution',
                 'payoutProgress',
-            ])
-            ->findOrFail($id);
+                ]),
+            $id,
+        );
 
         return response()->json([
             'data' => new InvestmentResource($investment),
@@ -266,20 +270,24 @@ class ProjectController extends Controller
 
     public function investmentPdf(Request $request, int $id, InvestorTransactionPdfGenerator $pdf): Response
     {
-        $investment = Investment::query()
-            ->where('investor_id', $request->user()->id)
-            ->with('project')
-            ->findOrFail($id);
+        $investment = FinancialTransactionIdResolver::findOrFail(
+            Investment::query()
+                ->where('investor_id', $request->user()->id)
+                ->with('project'),
+            $id,
+        );
 
         return $pdf->investment($investment, $request->user());
     }
 
     public function exportInvestment(Request $request, int $id): StreamedResponse
     {
-        $investment = Investment::query()
-            ->where('investor_id', $request->user()->id)
-            ->with('project')
-            ->findOrFail($id);
+        $investment = FinancialTransactionIdResolver::findOrFail(
+            Investment::query()
+                ->where('investor_id', $request->user()->id)
+                ->with('project'),
+            $id,
+        );
 
         $project = $investment->project;
         $meta = is_array($project?->meta) ? $project->meta : [];

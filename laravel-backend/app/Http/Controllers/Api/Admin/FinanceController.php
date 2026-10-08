@@ -22,6 +22,7 @@ use App\Support\NotifiesUsers;
 use App\Support\PlatformWalletService;
 use App\Support\UserDisplayCurrency;
 use App\Support\FinanceStatsService;
+use App\Support\FinancialTransactionIdResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -75,7 +76,7 @@ class FinanceController extends Controller
 
     public function depositProof(int $id): Response
     {
-        $deposit = Deposit::query()->findOrFail($id);
+        $deposit = FinancialTransactionIdResolver::findOrFail(Deposit::query(), $id);
 
         if (! $deposit->proof_path) {
             abort(404, 'No proof uploaded for this deposit.');
@@ -191,7 +192,7 @@ class FinanceController extends Controller
 
     public function approveDeposit(Request $request, int $id): JsonResponse
     {
-        $deposit = Deposit::query()->findOrFail($id);
+        $deposit = FinancialTransactionIdResolver::findOrFail(Deposit::query(), $id);
 
         if (! DepositReviewStatuses::isPending($deposit->status)) {
             throw ValidationException::withMessages(['status' => ['Deposit is not pending.']]);
@@ -268,7 +269,7 @@ class FinanceController extends Controller
             ]);
         });
 
-        AuditsActions::log('deposit.approved', 'finance', $request->user(), ['deposit_id' => $id]);
+        AuditsActions::log('deposit.approved', 'finance', $request->user(), ['deposit_id' => $deposit->id]);
 
         $deposit = $deposit->fresh()->load('investor');
         if ($deposit->investor) {
@@ -304,7 +305,7 @@ class FinanceController extends Controller
 
     public function rejectDeposit(Request $request, int $id): JsonResponse
     {
-        $deposit = Deposit::query()->findOrFail($id);
+        $deposit = FinancialTransactionIdResolver::findOrFail(Deposit::query(), $id);
 
         if (! DepositReviewStatuses::isPending($deposit->status)) {
             throw ValidationException::withMessages(['status' => ['Deposit is not pending.']]);
@@ -317,7 +318,7 @@ class FinanceController extends Controller
             'note' => $request->input('note'),
         ]);
 
-        AuditsActions::log('deposit.rejected', 'finance', $request->user(), ['deposit_id' => $id]);
+        AuditsActions::log('deposit.rejected', 'finance', $request->user(), ['deposit_id' => $deposit->id]);
 
         $deposit = $deposit->fresh()->load('investor');
         if ($deposit->investor) {
@@ -359,7 +360,7 @@ class FinanceController extends Controller
 
     public function cancelDeposit(Request $request, int $id): JsonResponse
     {
-        $deposit = Deposit::query()->findOrFail($id);
+        $deposit = FinancialTransactionIdResolver::findOrFail(Deposit::query(), $id);
 
         if (! DepositReviewStatuses::isPending($deposit->status)) {
             throw ValidationException::withMessages(['status' => ['Only pending deposits can be cancelled.']]);
@@ -372,7 +373,7 @@ class FinanceController extends Controller
             'note' => $request->input('note'),
         ]);
 
-        AuditsActions::log('deposit.cancelled', 'finance', $request->user(), ['deposit_id' => $id]);
+        AuditsActions::log('deposit.cancelled', 'finance', $request->user(), ['deposit_id' => $deposit->id]);
 
         $deposit = $deposit->fresh()->load('investor');
         if ($deposit->investor) {
@@ -482,7 +483,7 @@ class FinanceController extends Controller
 
     public function approveWithdrawal(Request $request, int $id): JsonResponse
     {
-        $withdrawal = Withdrawal::query()->findOrFail($id);
+        $withdrawal = FinancialTransactionIdResolver::findOrFail(Withdrawal::query(), $id);
 
         if (! in_array($withdrawal->status, ['pending', 'review'], true)) {
             throw ValidationException::withMessages(['status' => ['Withdrawal is not pending.']]);
@@ -542,7 +543,7 @@ class FinanceController extends Controller
             ]);
         });
 
-        AuditsActions::log('withdrawal.approved', 'finance', $request->user(), ['withdrawal_id' => $id]);
+        AuditsActions::log('withdrawal.approved', 'finance', $request->user(), ['withdrawal_id' => $withdrawal->id]);
 
         $withdrawal = $withdrawal->fresh()->load('investor');
         if ($withdrawal->investor) {
@@ -577,7 +578,7 @@ class FinanceController extends Controller
 
     public function rejectWithdrawal(Request $request, int $id): JsonResponse
     {
-        $withdrawal = Withdrawal::query()->findOrFail($id);
+        $withdrawal = FinancialTransactionIdResolver::findOrFail(Withdrawal::query(), $id);
 
         if (! in_array($withdrawal->status, ['pending', 'review'], true)) {
             throw ValidationException::withMessages(['status' => ['Withdrawal is not pending.']]);
@@ -614,7 +615,7 @@ class FinanceController extends Controller
             ]);
         });
 
-        AuditsActions::log('withdrawal.rejected', 'finance', $request->user(), ['withdrawal_id' => $id]);
+        AuditsActions::log('withdrawal.rejected', 'finance', $request->user(), ['withdrawal_id' => $withdrawal->id]);
 
         $withdrawal = $withdrawal->fresh()->load('investor');
         if ($withdrawal->investor) {

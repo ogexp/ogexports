@@ -8,6 +8,7 @@ use App\Models\Investment;
 use App\Models\InvestmentPayoutProgress;
 use App\Models\InvestmentProfitDistribution;
 use App\Support\AuditsActions;
+use App\Support\FinancialTransactionIdResolver;
 use App\Support\InvestorNotificationTypes;
 use App\Support\InvestorPushBridge;
 use App\Support\NotifiesUsers;
@@ -44,6 +45,13 @@ class InvestmentProfitDistributionController extends Controller
         }
 
         if ($investmentId = $request->input('investment_id')) {
+            if (is_scalar($investmentId) && ctype_digit((string) $investmentId)) {
+                $investmentId = FinancialTransactionIdResolver::resolveId(
+                    Investment::query(),
+                    (int) $investmentId,
+                );
+            }
+
             $query->where('investment_id', $investmentId);
         }
 
@@ -165,10 +173,10 @@ class InvestmentProfitDistributionController extends Controller
         }
 
         [$investment, $progressChanged] = DB::transaction(function () use ($data, $investmentId) {
-            $investment = Investment::query()
-                ->with('profitDistribution')
-                ->lockForUpdate()
-                ->findOrFail($investmentId);
+            $investment = FinancialTransactionIdResolver::findOrFail(
+                Investment::query()->with('profitDistribution')->lockForUpdate(),
+                $investmentId,
+            );
 
             if ($investment->profitDistribution?->isConfirmed()) {
                 throw ValidationException::withMessages([

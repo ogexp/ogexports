@@ -14,6 +14,7 @@ use App\Models\Withdrawal;
 use App\Support\AuditsActions;
 use App\Support\ProjectReferenceGenerator;
 use App\Support\InvestmentCapacity;
+use App\Support\FinancialTransactionIdResolver;
 use App\Support\InvestmentReviewService;
 use App\Support\InvestorNotificationTypes;
 use App\Support\MediaStorage;
@@ -191,16 +192,16 @@ class InvestmentController extends Controller
 
     public function approveInvestment(Request $request, int $id, int $investmentId): JsonResponse
     {
-        $investment = Investment::query()
-            ->where('project_id', $id)
-            ->whereKey($investmentId)
-            ->firstOrFail();
+        $investment = FinancialTransactionIdResolver::findOrFail(
+            Investment::query()->where('project_id', $id),
+            $investmentId,
+        );
 
         $result = $this->reviewService->approve($investment)->load('investor:id,name,email');
 
         AuditsActions::log('investment.approved', 'investments', $request->user(), [
             'project_id' => $id,
-            'investment_id' => $investmentId,
+            'investment_id' => $investment->id,
         ]);
 
         $project = InvestmentProject::query()->find($id);
@@ -233,16 +234,16 @@ class InvestmentController extends Controller
 
     public function rejectInvestment(Request $request, int $id, int $investmentId): JsonResponse
     {
-        $investment = Investment::query()
-            ->where('project_id', $id)
-            ->whereKey($investmentId)
-            ->firstOrFail();
+        $investment = FinancialTransactionIdResolver::findOrFail(
+            Investment::query()->where('project_id', $id),
+            $investmentId,
+        );
 
         $result = $this->reviewService->reject($investment)->load('investor:id,name,email');
 
         AuditsActions::log('investment.rejected', 'investments', $request->user(), [
             'project_id' => $id,
-            'investment_id' => $investmentId,
+            'investment_id' => $investment->id,
         ]);
 
         $project = InvestmentProject::query()->find($id);

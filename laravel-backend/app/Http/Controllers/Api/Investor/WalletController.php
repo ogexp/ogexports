@@ -10,6 +10,7 @@ use App\Models\WalletTransaction;
 use App\Models\Withdrawal;
 use App\Support\ExchangeRateService;
 use App\Support\InvestorMarket;
+use App\Support\FinancialTransactionIdResolver;
 use App\Support\InvestorWithdrawalBreakdown;
 use App\Support\WithdrawalTerms;
 use App\Services\InvestorTransactionPdfGenerator;
@@ -100,7 +101,10 @@ class WalletController extends Controller
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
-        $transaction = $wallet->transactions()->findOrFail($id);
+        $transaction = FinancialTransactionIdResolver::findOrFail(
+            WalletTransaction::query()->where('wallet_id', $wallet->id),
+            $id,
+        );
         $meta = is_array($transaction->meta) ? $transaction->meta : [];
         $withdrawal = $transaction->type === 'withdrawal' && is_numeric($meta['withdrawal_id'] ?? null)
             ? Withdrawal::query()
@@ -119,9 +123,10 @@ class WalletController extends Controller
     {
         $wallet = Wallet::query()->where('user_id', $request->user()->id)->firstOrFail();
 
-        $transaction = WalletTransaction::query()
-            ->where('wallet_id', $wallet->id)
-            ->findOrFail($id);
+        $transaction = FinancialTransactionIdResolver::findOrFail(
+            WalletTransaction::query()->where('wallet_id', $wallet->id),
+            $id,
+        );
 
         return $pdf->walletTransaction($transaction, $request->user());
     }

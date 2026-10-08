@@ -8,6 +8,7 @@ use App\Http\Resources\AdminProjectInvestmentResource;
 use App\Models\Investment;
 use App\Models\InvestmentProject;
 use App\Support\AuditsActions;
+use App\Support\FinancialTransactionIdResolver;
 use App\Support\InvestmentCapacity;
 use App\Support\InvestmentReviewService;
 use App\Support\InvestorNotificationTypes;
@@ -67,14 +68,13 @@ class ProjectInvestmentController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $investment = Investment::query()
+        $investment = FinancialTransactionIdResolver::findOrFail(Investment::query()
             ->with([
                 'project',
                 'investor:id,name,email',
                 'investor.profile:id,user_id,country,avatar_url',
                 'investor.wallet:id,user_id,currency',
-            ])
-            ->findOrFail($id);
+            ]), $id);
 
         return response()->json([
             'data' => new AdminProjectInvestmentResource($investment),
@@ -83,12 +83,12 @@ class ProjectInvestmentController extends Controller
 
     public function approve(Request $request, int $id): JsonResponse
     {
-        $investment = Investment::query()->findOrFail($id);
+        $investment = FinancialTransactionIdResolver::findOrFail(Investment::query(), $id);
         $result = $this->reviewService->approve($investment);
 
         AuditsActions::log('investment.approved', 'investments', $request->user(), [
             'project_id' => $investment->project_id,
-            'investment_id' => $id,
+            'investment_id' => $investment->id,
         ]);
 
         $this->notifyApproved($result);
@@ -98,12 +98,12 @@ class ProjectInvestmentController extends Controller
 
     public function reject(Request $request, int $id): JsonResponse
     {
-        $investment = Investment::query()->findOrFail($id);
+        $investment = FinancialTransactionIdResolver::findOrFail(Investment::query(), $id);
         $result = $this->reviewService->reject($investment);
 
         AuditsActions::log('investment.rejected', 'investments', $request->user(), [
             'project_id' => $investment->project_id,
-            'investment_id' => $id,
+            'investment_id' => $investment->id,
         ]);
 
         $this->notifyRejected($result, $request->input('note'));
@@ -117,7 +117,7 @@ class ProjectInvestmentController extends Controller
             'status' => ['required', Rule::in(['pending', 'active', 'completed', 'cancelled'])],
         ]);
 
-        $investment = Investment::query()->findOrFail($id);
+        $investment = FinancialTransactionIdResolver::findOrFail(Investment::query(), $id);
         $targetStatus = $data['status'];
 
         if ($investment->status === $targetStatus) {
@@ -135,7 +135,7 @@ class ProjectInvestmentController extends Controller
 
         AuditsActions::log($action, 'investments', $request->user(), [
             'project_id' => $investment->project_id,
-            'investment_id' => $id,
+            'investment_id' => $investment->id,
             'status' => $targetStatus,
         ]);
 

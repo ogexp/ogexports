@@ -11,6 +11,7 @@ use App\Services\InvestorTransactionPdfGenerator;
 use App\Services\NotificationMailer;
 use App\Support\AdminNotificationTypes;
 use App\Support\ExchangeRateService;
+use App\Support\FinancialTransactionIdResolver;
 use App\Support\InvestorBankAccountPresenter;
 use App\Support\InvestorBankAccounts;
 use App\Support\InvestorNotificationTypes;
@@ -270,18 +271,20 @@ class WithdrawalController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $withdrawal = Withdrawal::query()
-            ->where('investor_id', $request->user()->id)
-            ->findOrFail($id);
+        $withdrawal = FinancialTransactionIdResolver::findOrFail(
+            Withdrawal::query()->where('investor_id', $request->user()->id),
+            $id,
+        );
 
         return response()->json(['data' => $this->transformWithdrawal($withdrawal)]);
     }
 
     public function pdf(Request $request, int $id, InvestorTransactionPdfGenerator $pdf): Response
     {
-        $withdrawal = Withdrawal::query()
-            ->where('investor_id', $request->user()->id)
-            ->findOrFail($id);
+        $withdrawal = FinancialTransactionIdResolver::findOrFail(
+            Withdrawal::query()->where('investor_id', $request->user()->id),
+            $id,
+        );
 
         return $pdf->withdrawal($withdrawal, $request->user());
     }
