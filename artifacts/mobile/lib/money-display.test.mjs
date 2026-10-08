@@ -60,6 +60,25 @@ test('balance display uses the server wallet currency before applying the select
   assert.equal(walletCurrencyFromDashboard({}, 'USD'), 'USD');
 });
 
+test('wallet currency never falls back to the dashboard display-currency preference', () => {
+  assert.equal(walletCurrencyFromDashboard({
+    data: {
+      wallet: { currency: 'USD' },
+      wallet_currency: 'PKR',
+      summary: { display_currency: 'PKR' },
+    },
+  }), 'USD');
+  assert.equal(walletCurrencyFromDashboard({
+    data: { summary: { display_currency: 'PKR' } },
+  }, 'USD'), 'USD');
+  assert.equal(walletCurrencyFromDashboard({
+    data: { wallet_currency: 'USD', summary: { display_currency: 'PKR' } },
+  }), 'USD');
+  assert.equal(walletCurrencyFromDashboard({
+    data: { summary: { display_currency: 'PKR' } },
+  }, ''), '');
+});
+
 test('missing monetary values use a display-only zero in the selected currency', () => {
   configureMoneyDisplay({ language: 'en', currency: 'USD', rates: { USD: 1, PKR: 278.52 } });
 

@@ -92,13 +92,14 @@ export function availableBalanceFromDashboard(value: unknown): number | null {
 export function walletCurrencyFromDashboard(value: unknown, fallback = 'USD'): string {
   const dashboard = unwrap(value);
   const wallet = record(dashboard.wallet);
-  const summary = record(dashboard.summary);
+  const fallbackCurrency = fallback.trim().toUpperCase();
   const currency = first(
     wallet,
     ['currency', 'default_currency'],
-    first(summary, ['display_currency'], fallback),
+    first(dashboard, ['wallet_currency'], fallbackCurrency),
   ).toUpperCase();
-  return /^[A-Z]{3}$/.test(currency) ? currency : 'USD';
+  if (/^[A-Z]{3}$/.test(currency)) return currency;
+  return /^[A-Z]{3}$/.test(fallbackCurrency) ? fallbackCurrency : '';
 }
 
 export function money(value: unknown, currency?: string, options: { preserveSource?: boolean } = {}): string {

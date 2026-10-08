@@ -8,7 +8,6 @@ import {
   useCreateInvestorWithdrawal,
   useGetInvestorDashboard,
   useGetInvestorProfile,
-  useGetInvestorWallet,
   useGetInvestorWithdrawals,
   useSendInvestorWithdrawalOtp,
 } from '@workspace/api-client-react';
@@ -148,25 +147,20 @@ export default function Withdraw() {
   const { token } = useAuth();
   const colors = useColors();
   const queryClient = useQueryClient();
-  const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const dashboardQuery = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
   const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const historyQuery = useGetInvestorWithdrawals({}, { query: { queryKey: ['investor-withdrawals'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const create = useCreateInvestorWithdrawal();
   const sendOtp = useSendInvestorWithdrawalOtp();
-  const wallet = unwrap(walletQuery.data);
   const dashboard = unwrap(dashboardQuery.data);
+  const wallet = record(dashboard.wallet);
   const profile = unwrap(profileQuery.data);
-  const walletCurrency = first(
-    dashboard,
-    ['currency', 'wallet_currency'],
-    walletCurrencyFromDashboard(
-      dashboardQuery.data,
-      first(wallet, ['currency', 'default_currency'], 'USD'),
-    ),
+  const walletCurrency = walletCurrencyFromDashboard(
+    dashboardQuery.data,
+    first(wallet, ['currency', 'default_currency'], ''),
   ).toUpperCase();
-  const availableBalance = availableBalanceFromDashboard(dashboardQuery.data);
-  const pendingBalance = readAmount(wallet, ['pending_balance']);
+  const availableBalance = walletCurrency ? availableBalanceFromDashboard(dashboardQuery.data) : null;
+  const pendingBalance = walletCurrency ? readAmount(wallet, ['pending_balance']) : null;
   const savedBankDetails = useMemo(() => savedWithdrawalBank(profile), [profile]);
   const withdrawals = list(historyQuery.data);
   const withdrawalTerms = resolveWithdrawalDisplayTerms({
@@ -393,7 +387,7 @@ export default function Withdraw() {
 
   return <Screen title="Withdraw" subtitle="Request a payout from your OG Exports wallet">
     {dashboardQuery.isError && availableBalance == null
-      ? <ErrorState message="Withdrawable balance could not be loaded." error={dashboardQuery.error} onRetry={() => { void walletQuery.refetch(); void dashboardQuery.refetch(); }} />
+      ? <ErrorState message="Withdrawable balance could not be loaded." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} />
       : null}
     {!dashboardQuery.isLoading && !dashboardQuery.isError && availableBalance == null
       ? <ErrorState message="Available balance was not returned by OG Exports." onRetry={() => void dashboardQuery.refetch()} />
@@ -478,7 +472,7 @@ export default function Withdraw() {
           }
         }}
       />
-      <Field label="Withdrawal amount" value={amount} onChangeText={value => { setAmount(value); setError(''); }} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
+      <Field label={`Withdrawal amount (${withdrawalCurrency || 'currency unavailable'})`} value={amount} onChangeText={value => { setAmount(value); setError(''); }} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
       <DetailRow label="Wallet currency" value={withdrawalCurrency || 'Not provided'} />
       <DetailRow label="Minimum withdrawal" value={moneyWithDisplayCurrencyAndSource(minimumWithdrawalUsd, 'USD')} />
       {minimumWithdrawalAmount != null && minimumWithdrawalCurrency !== 'USD'
@@ -661,7 +655,6 @@ export default function Withdraw() {
 
     <Section title="Recent withdrawals" right={<Pressable accessibilityRole="button" accessibilityLabel="Refresh withdrawal history" onPress={() => {
       void historyQuery.refetch();
-      void walletQuery.refetch();
       void dashboardQuery.refetch();
     }} style={{ width: 38, height: 36, alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ color: colors.primary, fontSize: 18 }}>↻</Text>

@@ -84,3 +84,9 @@ When reading wallets, use an existing stored `wallet.currency`; infer the countr
 **Why:** Reassigning currency on a read can make an unchanged numeric balance appear to change value and alter withdrawal terms.
 
 **How to apply:** Keep wallet reads non-mutating for established accounts, and verify dashboard, wallet, and withdrawal responses agree on the stored source currency. Treat any repair of previously relabeled records as a separate, ledger-verified data correction.
+
+Deposit and withdrawal amount labels, fees, limits, and request currencies must derive from the authoritative wallet currency (`dashboard.wallet.currency` or `wallet_currency`), not the user's display-currency preference or `summary.display_currency`. If the source currency is missing, do not submit a financial request using a guessed currency.
+
+**Why:** The user selected USD end-to-end for this wallet, while relabeling an existing PKR balance as USD without ledger evidence would misstate its value.
+
+**How to apply:** Use the dashboard wallet source for funding and payout forms; use the selected display currency only for presentation conversions. Keep receiving-bank settlement currency distinct from wallet currency.

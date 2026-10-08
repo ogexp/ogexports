@@ -12,11 +12,11 @@ import {
   useGetInvestorDepositOptions,
   useGetInvestorDeposits,
   useGetInvestorPaymentBankAccounts,
-  useGetInvestorWallet,
+  useGetInvestorDashboard,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
 import { formatUiStatus } from '@/lib/strings';
-import { amount as readAmount, first, list, messageOf, money, moneyInSourceCurrency, moneyWithDisplayCurrencyAndSource, record, unwrap } from '@/lib/data';
+import { amount as readAmount, first, list, messageOf, money, moneyInSourceCurrency, moneyWithDisplayCurrencyAndSource, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
 import { DEPOSIT_PAYMENT_METHODS, type DepositPaymentMethodId } from '@/lib/deposit-methods';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
@@ -125,16 +125,20 @@ export default function Deposit() {
   const { token, apiOrigin, beginExternalFilePicker, endExternalFilePicker } = useAuth();
   const colors = useColors();
   const queryClient = useQueryClient();
-  const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token) } });
+  const dashboardQuery = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
   const optionsQuery = useGetInvestorDepositOptions({ query: { queryKey: ['investor-deposit-options'], enabled: Boolean(token) } });
   const banksQuery = useGetInvestorPaymentBankAccounts({ query: { queryKey: ['investor-payment-bank-accounts'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const depositsQuery = useGetInvestorDeposits({ per_page: 5 }, { query: { queryKey: ['investor-deposits'], enabled: Boolean(token) } });
   const create = useCreateInvestorDeposit();
-  const wallet = unwrap(walletQuery.data);
   const banks = list(banksQuery.data);
   const projects = list(optionsQuery.data);
   const deposits = list(depositsQuery.data);
-  const walletCurrency = first(wallet, ['currency', 'default_currency']).toUpperCase();
+  const dashboard = unwrap(dashboardQuery.data);
+  const wallet = record(dashboard.wallet);
+  const walletCurrency = walletCurrencyFromDashboard(
+    dashboardQuery.data,
+    first(wallet, ['currency', 'default_currency'], ''),
+  );
   const [amount, setAmount] = useState('');
   const [bankId, setBankId] = useState('');
   const [projectId, setProjectId] = useState('');
@@ -244,6 +248,12 @@ export default function Deposit() {
 
   function validateDeposit() {
     const numericAmount = Number(amount);
+    if (dashboardQuery.isLoading || dashboardQuery.isFetching || dashboardQuery.isError || !walletCurrency) {
+      setError(dashboardQuery.isError
+        ? 'Wallet currency could not be loaded. Retry before continuing.'
+        : 'Wait for the wallet currency to load before continuing.');
+      return false;
+    }
     if (!selectedPaymentMethod) {
       setError('Choose a payment method before continuing.');
       return false;
@@ -340,7 +350,7 @@ export default function Deposit() {
       : 'Your deposit request is under review. Your wallet balance will update when the deposit is credited.';
 
   return <Screen key={stage} title="Add funds" subtitle={selectedPaymentMethod
-    ? `Deposit via ${selectedPaymentMethod.label} · ${paymentCurrency || 'USD'}`
+    ? `Deposit via ${selectedPaymentMethod.label} · ${paymentCurrency || 'wallet currency unavailable'}`
     : 'Choose a payment method to get started'} refreshable>
     {stage === 'method' ? <>
       <Section title="1 · Payment Method" />
@@ -382,8 +392,8 @@ export default function Deposit() {
             </View>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 9 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.mutedForeground, fontSize: 9, letterSpacing: 0.6 }}>CURRENCY</Text>
-                <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700', marginTop: 2 }}>{method.currency}</Text>
+                <Text style={{ color: colors.mutedForeground, fontSize: 9, letterSpacing: 0.6 }}>WALLET CURRENCY</Text>
+                <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700', marginTop: 2 }}>{paymentCurrency || '—'}</Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.mutedForeground, fontSize: 9, letterSpacing: 0.6 }}>FEES</Text>
@@ -400,9 +410,11 @@ export default function Deposit() {
 
     {stage === 'form' ? <>
       <Section title="2 · Deposit Details" />
+      {dashboardQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading wallet currency…</Text></Card> : null}
+      {dashboardQuery.isError ? <ErrorState message="Wallet currency could not be loaded." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} /> : null}
       <Section title="Amount" />
       <Card>
-        <Field label={`Deposit amount (${paymentCurrency || 'USD'})`} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
+        <Field label={`Deposit amount (${paymentCurrency || 'currency unavailable'})`} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
       </Card>
 
       <Section title="Payment Method" right={<Pressable accessibilityRole="button" accessibilityLabel="Change payment method"
@@ -566,7 +578,7 @@ export default function Deposit() {
 
     <Section title="Recent deposits" right={<Pressable accessibilityRole="button" accessibilityLabel="Refresh deposit history" onPress={() => {
       void depositsQuery.refetch();
-      void walletQuery.refetch();
+      void dashboardQuery.refetch();
     }} style={{ width: 38, height: 36, alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ color: colors.primary, fontSize: 18 }}>↻</Text>
     </Pressable>} />

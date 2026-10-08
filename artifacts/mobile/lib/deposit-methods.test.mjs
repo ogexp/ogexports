@@ -20,7 +20,7 @@ test('each deposit method includes its description and visible transfer details'
     assert.ok(method.minimumUsd > 0);
     assert.ok(method.maximumUsd > method.minimumUsd);
     assert.ok(method.processing);
-    assert.ok(method.currency);
+    assert.equal('currency' in method, false, 'wallet currency comes from the investor wallet, not a hard-coded method label');
     assert.equal(method.feePercent, 0);
     assert.ok(method.fees);
   }
