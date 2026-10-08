@@ -144,6 +144,33 @@ it('converts the wallet balance and preserves historical transaction currency wh
         ->assertJsonPath('data.0.currency', 'USD');
 });
 
+it('reconciles a stale wallet when the submitted Profile currency is already selected', function () {
+    $profile = $this->investor->profile;
+    $meta = is_array($profile->meta) ? $profile->meta : [];
+    $meta['preferences'] = ['currency' => 'USD'];
+    $profile->update(['meta' => $meta]);
+
+    $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
+    $wallet->update([
+        'currency' => 'PKR',
+        'available_balance' => 0,
+        'pending_balance' => 0,
+    ]);
+
+    $token = $this->investor->createToken('wallet_currency_reconcile_test')->plainTextToken;
+    $this->withHeader('Authorization', 'Bearer '.$token)
+        ->putJson('/api/investor/profile', [
+            'preferences' => ['currency' => 'USD'],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.preferences.currency', 'USD')
+        ->assertJsonPath('wallet_currency_change.from_currency', 'PKR')
+        ->assertJsonPath('wallet_currency_change.to_currency', 'USD');
+
+    expect($wallet->fresh()->currency)->toBe('USD')
+        ->and((float) $wallet->fresh()->available_balance)->toBe(0.0);
+});
+
 it('blocks Profile currency changes while a deposit is pending', function () {
     Deposit::query()->create([
         'investor_id' => $this->investor->id,
