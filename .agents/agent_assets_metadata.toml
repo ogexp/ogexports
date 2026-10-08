@@ -42,3 +42,17 @@ mtime_ms = 1791443275555
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/b9c44c36-143d-4a2a-82f3-699351ef0faf/1d5d9565-5ba5-40e9-8134-ff578cbf2824"
 storage_version_token = "1791443302470491"
 content_type = "image/png"
+
+[[outputs]]
+id = "wsiFMcljeboGpkCrLcInF"
+uri = "file://exports/OG-Exports-Mobile-App-Source.zip"
+type = "unspecified"
+title = "OG Exports Mobile App — Source ZIP"
+description = "Complete Expo mobile app source with its shared API client and install lockfile. Excludes .env files, credentials, node_modules, and generated preview/build bundles."
+logical_id = "2c067f85-9a8d-4aaf-b7c5-429bbb387bfd"
+content_hash = "sha256:a6da3687c18fc39201e810fd1e2f35b4ef61bb3fd8fa0fc6f7de3830dd29f1c6"
+size = 1428484
+mtime_ms = 1791490564190
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/2c067f85-9a8d-4aaf-b7c5-429bbb387bfd/5c879cf1-62e4-4d3b-824b-55872ed71174"
+storage_version_token = "1791490598916086"
+content_type = "application/octet-stream"
