@@ -15,6 +15,15 @@ import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transact
 
 const unavailable = '—';
 
+function validRelatedId(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value !== 'string' && typeof value !== 'number') continue;
+    const id = String(value).trim();
+    if (/^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id))) return id;
+  }
+  return '';
+}
+
 function formatDateTime(value: string) {
   if (!value) return unavailable;
   const timestamp = Date.parse(value);
@@ -64,6 +73,8 @@ export default function TransactionDetails() {
   const transaction = kind === 'wallet' ? walletTransaction ?? {} : record(unwrap(query.data));
   const hasRecord = Object.keys(transaction).length > 0;
   const meta = record(transaction.meta);
+  const relatedInvestmentId = validRelatedId(transaction.investment_id, meta.investment_id);
+  const relatedTradeId = validRelatedId(transaction.trade_id, meta.trade_id);
   const withdrawalBreakdown = kind === 'withdrawal'
     ? transaction
     : record(transaction.withdrawal_breakdown);
@@ -134,6 +145,29 @@ export default function TransactionDetails() {
         {first(meta, ['investment_id']) ? <DetailLine label="Investment ID" value={first(meta, ['investment_id'])} /> : null}
         {first(meta, ['trade_id', 'trade_reference']) ? <DetailLine label="Trade ID" value={first(meta, ['trade_id', 'trade_reference'])} /> : null}
       </Card>
+      {relatedInvestmentId || relatedTradeId ? <>
+        <Section title="Related records" />
+        <Card style={{ gap: 8 }}>
+          {relatedInvestmentId ? <Pressable
+            testID="transaction-related-investment"
+            accessibilityRole="link"
+            accessibilityLabel={`View investment ${relatedInvestmentId}`}
+            onPress={() => router.push({ pathname: '/position/[id]', params: { id: relatedInvestmentId } })}
+            style={({ pressed }) => ({ alignSelf: 'flex-start', paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}
+          >
+            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>View investment {relatedInvestmentId}</Text>
+          </Pressable> : null}
+          {relatedTradeId ? <Pressable
+            testID="transaction-related-trade"
+            accessibilityRole="link"
+            accessibilityLabel={`View trade ${relatedTradeId}`}
+            onPress={() => router.push({ pathname: '/project/[id]', params: { id: relatedTradeId } })}
+            style={({ pressed }) => ({ alignSelf: 'flex-start', paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}
+          >
+            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>View trade {relatedTradeId}</Text>
+          </Pressable> : null}
+        </Card>
+      </> : null}
       {hasWithdrawalBreakdown ? <>
         <Section title="Withdrawal breakdown" />
         <Card>

@@ -39,6 +39,15 @@ function text(value: unknown, fallback = "Not recorded") {
   return String(value)
 }
 
+function validRelatedId(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value !== "string" && typeof value !== "number") continue
+    const id = String(value).trim()
+    if (/^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id))) return id
+  }
+  return ""
+}
+
 function formatDate(value: unknown) {
   const raw = text(value, "")
   if (!raw) return "Not recorded"
@@ -125,6 +134,8 @@ export default function InvestorTransactionDetail() {
   const amount = text(record?.amount)
   const currency = text(record?.currency ?? record?.amount_currency, "")
   const meta = record?.meta && typeof record.meta === "object" ? record.meta as TransactionRecord : {}
+  const relatedInvestmentId = validRelatedId(record?.investment_id, meta.investment_id)
+  const relatedTradeId = validRelatedId(record?.trade_id, meta.trade_id)
   const details = kind === "deposit"
     ? [
         ["Record ID", text(record?.id, id)],
@@ -218,6 +229,25 @@ export default function InvestorTransactionDetail() {
               ))}
             </CardContent>
           </Card>
+        )}
+
+        {!loading && record && (relatedInvestmentId || relatedTradeId) && (
+          <div className="flex flex-wrap gap-2" aria-label="Related records">
+            {relatedInvestmentId && (
+              <Button asChild size="sm" variant="outline" data-testid="transaction-related-investment">
+                <Link href={`/invest/positions/${encodeURIComponent(relatedInvestmentId)}`}>
+                  View investment {relatedInvestmentId}
+                </Link>
+              </Button>
+            )}
+            {relatedTradeId && (
+              <Button asChild size="sm" variant="outline" data-testid="transaction-related-trade">
+                <Link href={`/invest/${encodeURIComponent(relatedTradeId)}`}>
+                  View trade {relatedTradeId}
+                </Link>
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </InvestPortalLayout>
