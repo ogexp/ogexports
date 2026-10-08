@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { AdminLayout } from "@/components/admin/AdminLayout"
 import { WithdrawalDetailDialog } from "@/components/admin/WithdrawalDetailDialog"
 import { usePlatformSettings } from "@/hooks/usePlatformSettings"
-import { DollarSign, ArrowDownCircle, ArrowUpCircle, CreditCard, CheckCircle2, XCircle, Landmark, Plus, Edit3, Trash2, Star, X, Copy, AlertCircle, Search, ChevronDown, Check, FileText, Eye } from "lucide-react"
+import { DollarSign, ArrowDownCircle, ArrowUpCircle, CreditCard, CheckCircle2, XCircle, Landmark, Plus, Edit3, Trash2, Star, X, Copy, AlertCircle, Search, ChevronDown, Check, FileText, Eye, ChevronLeft, ChevronRight } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import {
   getDeposits, getBuyerDeposits, getWithdrawals, getTransactions,
@@ -16,6 +16,8 @@ import {
   getFinanceStats,
   formatAdminMoney,
   formatAdminPct,
+  type AdminFinancePageMeta,
+  type AdminFinancePageRequest,
   type AdminDeposit, type AdminBuyerDeposit, type AdminWithdrawal, type AdminTransaction,
   type PlatformWalletStats,
   type FinanceOverviewStats,
@@ -27,6 +29,12 @@ import { runAdminAction } from "@/lib/admin-actions"
 const GOLD = "#D4A012"
 const EMERALD = "#0F3D2E"
 const GREEN = "#4CAF50"
+const EMPTY_FINANCE_PAGE: AdminFinancePageMeta = {
+  current_page: 1,
+  last_page: 1,
+  per_page: 100,
+  total: 0,
+}
 
 const TABS = [
   { id: "overview", label: "Overview", icon: DollarSign },
@@ -122,6 +130,47 @@ function FinanceReferenceSearch({ value, onChange, onSubmit, onClear, loading, a
         </button>
       )}
     </form>
+  )
+}
+
+function FinancePagination({ kind, page, loading, onPageChange }: {
+  kind: "deposits" | "withdrawals" | "transactions"
+  page: AdminFinancePageMeta
+  loading: boolean
+  onPageChange: (page: number) => void
+}) {
+  const firstRecord = page.total === 0 ? 0 : (page.current_page - 1) * page.per_page + 1
+  const lastRecord = Math.min(page.current_page * page.per_page, page.total)
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border px-1 pt-3" data-testid={`pagination-${kind}`}>
+      <p className="text-xs text-muted-foreground" data-testid={`text-pagination-${kind}`}>
+        Showing {firstRecord.toLocaleString()}–{lastRecord.toLocaleString()} of {page.total.toLocaleString()} records
+        <span className="ml-2">Page {page.current_page} of {page.last_page}</span>
+      </p>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onPageChange(page.current_page - 1)}
+          disabled={loading || page.current_page <= 1}
+          aria-label={`Previous ${kind} page`}
+          data-testid={`button-previous-${kind}`}
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border disabled:opacity-40"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onPageChange(page.current_page + 1)}
+          disabled={loading || page.current_page >= page.last_page}
+          aria-label={`Next ${kind} page`}
+          data-testid={`button-next-${kind}`}
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border disabled:opacity-40"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -368,6 +417,10 @@ export default function AdminFinance() {
   const [transactionSearchTerm, setTransactionSearchTerm] = useState<string | null>(null)
   const [searchedTransactions, setSearchedTransactions] = useState<AdminTransaction[] | null>(null)
   const [financeSearchLoading, setFinanceSearchLoading] = useState<"buyer-deposits" | "deposits" | "withdrawals" | "transactions" | null>(null)
+  const [financePageLoading, setFinancePageLoading] = useState(false)
+  const [depositPageMeta, setDepositPageMeta] = useState<AdminFinancePageMeta>(EMPTY_FINANCE_PAGE)
+  const [withdrawalPageMeta, setWithdrawalPageMeta] = useState<AdminFinancePageMeta>(EMPTY_FINANCE_PAGE)
+  const [transactionPageMeta, setTransactionPageMeta] = useState<AdminFinancePageMeta>(EMPTY_FINANCE_PAGE)
   const [platformWallet, setPlatformWallet] = useState<PlatformWalletStats>(() => getPlatformWalletStats())
   const [financeStats, setFinanceStats] = useState<FinanceOverviewStats>(() => getFinanceStats())
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null)
@@ -382,29 +435,44 @@ export default function AdminFinance() {
   const [bankNameSearch, setBankNameSearch] = useState("")
   const [bankDropOpen, setBankDropOpen] = useState(false)
 
-  const refresh = async () => {
-    await fetchFinance()
-    setBuyerDeposits(getBuyerDeposits())
-    setDeposits(getDeposits())
-    setWithdrawals(getWithdrawals())
-    setTransactions(getTransactions())
-    setPlatformWallet(getPlatformWalletStats())
-    setFinanceStats(getFinanceStats())
+  const refresh = async (requestedPages: Partial<AdminFinancePageRequest> = {}) => {
+    setFinancePageLoading(true)
+    try {
+      const pages = await fetchFinance({
+        depositsPage: requestedPages.depositsPage ?? depositPageMeta.current_page,
+        withdrawalsPage: requestedPages.withdrawalsPage ?? withdrawalPageMeta.current_page,
+        transactionsPage: requestedPages.transactionsPage ?? transactionPageMeta.current_page,
+        strict: true,
+      })
+      setBuyerDeposits(getBuyerDeposits())
+      setDeposits(getDeposits())
+      setWithdrawals(getWithdrawals())
+      setTransactions(getTransactions())
+      setDepositPageMeta(pages.deposits)
+      setWithdrawalPageMeta(pages.withdrawals)
+      setTransactionPageMeta(pages.transactions)
+      setPlatformWallet(getPlatformWalletStats())
+      setFinanceStats(getFinanceStats())
 
-    const searchRefreshes: Promise<void>[] = []
-    if (buyerDepositSearchTerm !== null) {
-      searchRefreshes.push(fetchAdminBuyerDepositsBySearchTerm(buyerDepositSearchTerm).then(setSearchedBuyerDeposits))
+      const searchRefreshes: Promise<void>[] = []
+      if (buyerDepositSearchTerm !== null) {
+        searchRefreshes.push(fetchAdminBuyerDepositsBySearchTerm(buyerDepositSearchTerm).then(setSearchedBuyerDeposits))
+      }
+      if (depositSearchTerm !== null) {
+        searchRefreshes.push(fetchAdminDepositsBySearchTerm(depositSearchTerm).then(setSearchedDeposits))
+      }
+      if (withdrawalSearchTerm !== null) {
+        searchRefreshes.push(fetchAdminWithdrawalsBySearchTerm(withdrawalSearchTerm).then(setSearchedWithdrawals))
+      }
+      if (transactionSearchTerm !== null) {
+        searchRefreshes.push(fetchAdminTransactionsBySearchTerm(transactionSearchTerm).then(setSearchedTransactions))
+      }
+      await Promise.allSettled(searchRefreshes)
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Unable to load finance records.", "error")
+    } finally {
+      setFinancePageLoading(false)
     }
-    if (depositSearchTerm !== null) {
-      searchRefreshes.push(fetchAdminDepositsBySearchTerm(depositSearchTerm).then(setSearchedDeposits))
-    }
-    if (withdrawalSearchTerm !== null) {
-      searchRefreshes.push(fetchAdminWithdrawalsBySearchTerm(withdrawalSearchTerm).then(setSearchedWithdrawals))
-    }
-    if (transactionSearchTerm !== null) {
-      searchRefreshes.push(fetchAdminTransactionsBySearchTerm(transactionSearchTerm).then(setSearchedTransactions))
-    }
-    await Promise.allSettled(searchRefreshes)
   }
 
   async function searchFinance(kind: "buyer-deposits" | "deposits" | "withdrawals" | "transactions", value: string) {
@@ -487,12 +555,12 @@ export default function AdminFinance() {
   }, [investmentModuleEnabled])
 
   useEffect(() => {
-    void fetchFinance().then(refresh)
+    void refresh()
   }, [])
 
   useEffect(() => {
     if (!FINANCE_DATA_TABS.includes(activeTab)) return
-    void fetchFinance().then(refresh)
+    void refresh()
   }, [activeTab])
 
   useEffect(() => {
@@ -854,6 +922,14 @@ export default function AdminFinance() {
                     </tbody>
                   </table>
                 </div>
+                {searchedDeposits === null && (
+                  <FinancePagination
+                    kind="deposits"
+                    page={depositPageMeta}
+                    loading={financePageLoading || financeSearchLoading === "deposits"}
+                    onPageChange={page => { void refresh({ depositsPage: page }) }}
+                  />
+                )}
               </div>
             )}
 
@@ -953,6 +1029,14 @@ export default function AdminFinance() {
                     </tbody>
                   </table>
                 </div>
+                {searchedWithdrawals === null && (
+                  <FinancePagination
+                    kind="withdrawals"
+                    page={withdrawalPageMeta}
+                    loading={financePageLoading || financeSearchLoading === "withdrawals"}
+                    onPageChange={page => { void refresh({ withdrawalsPage: page }) }}
+                  />
+                )}
               </div>
             )}
 
@@ -993,6 +1077,14 @@ export default function AdminFinance() {
                   </tbody>
                 </table>
               </div>
+              {searchedTransactions === null && (
+                <FinancePagination
+                  kind="transactions"
+                  page={transactionPageMeta}
+                  loading={financePageLoading || financeSearchLoading === "transactions"}
+                  onPageChange={page => { void refresh({ transactionsPage: page }) }}
+                />
+              )}
               </div>
             )}
 

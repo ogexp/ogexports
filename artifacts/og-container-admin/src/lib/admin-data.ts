@@ -167,6 +167,26 @@ export interface FinanceOverviewStats {
   cashflow: FinanceCashflowPoint[]
 }
 
+export interface AdminFinancePageMeta {
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+}
+
+export interface AdminFinancePages {
+  deposits: AdminFinancePageMeta
+  withdrawals: AdminFinancePageMeta
+  transactions: AdminFinancePageMeta
+}
+
+export interface AdminFinancePageRequest {
+  depositsPage?: number
+  withdrawalsPage?: number
+  transactionsPage?: number
+  strict?: boolean
+}
+
 export interface AdminReportsInvestmentType {
   type: string
   typeKey: string
@@ -1868,13 +1888,46 @@ async function fetchFobPrices() {
   if (res) fobPricesCache = unwrapPage(res).data.map(mapFob)
 }
 
-export async function fetchFinance() {
+async function fetchFinancePageResponse(path: string, requestedPage: number): Promise<unknown> {
+  const page = Math.max(1, Math.trunc(requestedPage))
+  const requestPage = (pageNumber: number) => api.get(path, { page: pageNumber, per_page: 100 })
+  let response = await requestPage(page)
+  const lastPage = Math.max(1, unwrapPage(response).meta.last_page)
+
+  if (page > lastPage) {
+    response = await requestPage(lastPage)
+  }
+
+  return response
+}
+
+function financePageMeta(
+  response: unknown,
+  requestedPage: number,
+  cachedCount: number,
+): AdminFinancePageMeta {
+  if (response) return unwrapPage(response).meta
+  return {
+    current_page: requestedPage,
+    last_page: 1,
+    per_page: 100,
+    total: cachedCount,
+  }
+}
+
+export async function fetchFinance(options: AdminFinancePageRequest = {}): Promise<AdminFinancePages> {
   await fetchAdminExchangeRates()
+  const depositsPage = options.depositsPage ?? 1
+  const withdrawalsPage = options.withdrawalsPage ?? 1
+  const transactionsPage = options.transactionsPage ?? 1
+  const fetchList = (path: string, page: number) => options.strict
+    ? fetchFinancePageResponse(path, page)
+    : silent(() => api.get(path, { page, per_page: 100 }))
   const [buyerDeps, deps, wds, txns, platformWallet, financeStats] = await Promise.all([
-    silent(() => api.get("/api/admin/finance/buyer-deposits", { per_page: 100 })),
-    silent(() => api.get("/api/admin/finance/deposits", { per_page: 100 })),
-    silent(() => api.get("/api/admin/finance/withdrawals", { per_page: 100 })),
-    silent(() => api.get("/api/admin/finance/transactions", { per_page: 100 })),
+    silent(() => api.get("/api/admin/finance/buyer-deposits", { page: 1, per_page: 100 })),
+    fetchList("/api/admin/finance/deposits", depositsPage),
+    fetchList("/api/admin/finance/withdrawals", withdrawalsPage),
+    fetchList("/api/admin/finance/transactions", transactionsPage),
     silent(() => api.get("/api/admin/finance/platform-wallet")),
     silent(() => api.get("/api/admin/finance/stats")),
   ])
@@ -1893,6 +1946,12 @@ export async function fetchFinance() {
   }
   if (financeStats) {
     applyFinanceStats(financeStats)
+  }
+
+  return {
+    deposits: financePageMeta(deps, depositsPage, depositsCache.length),
+    withdrawals: financePageMeta(wds, withdrawalsPage, withdrawalsCache.length),
+    transactions: financePageMeta(txns, transactionsPage, transactionsCache.length),
   }
 }
 
@@ -2567,7 +2626,7 @@ export function cancelDeposit(id: string) {
   depositsCache = [...depositsCache]
   void api.post(`/api/admin/finance/deposits/${id}/cancel`)
     .then(() => fetchFinance())
-    .catch(onFail(fetchFinance))
+    .catch(onFail(async () => { await fetchFinance() }))
   addAuditLog(`Cancelled deposit ${id}`, "Finance")
 }
 
