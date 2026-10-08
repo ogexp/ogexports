@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "wouter"
-import { ArrowLeft, Loader2, ReceiptText } from "lucide-react"
+import { ArrowLeft, Check, Copy, Loader2, ReceiptText } from "lucide-react"
 import { InvestPortalLayout } from "@/components/invest/InvestPortalLayout"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { api } from "@/lib/api"
 import { createTransactionReceipt, downloadTransactionReceipt } from "@/lib/transaction-receipt"
 import { resolveInvestorTransactionPaymentMethod } from "@/lib/investor-transaction-method"
+import { copyFinancialReference, resolveCanonicalFinancialId, resolveFinancialCopyTarget } from "@/lib/financial-reference"
+import { notify } from "@/lib/notify"
 
 type TransactionKind = "deposit" | "withdrawal" | "wallet"
 type TransactionRecord = Record<string, unknown>
@@ -87,6 +89,7 @@ export default function InvestorTransactionDetail() {
   const [record, setRecord] = useState<TransactionRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [copiedRecordId, setCopiedRecordId] = useState("")
   const title = kind === "deposit" ? "Deposit details" : kind === "withdrawal" ? "Withdrawal details" : "Transaction details"
   const backHref = kind === "deposit" ? "/invest/deposit" : kind === "withdrawal" ? "/invest/withdraw" : "/invest/wallet"
   const backLabel = kind === "deposit" ? "deposits" : kind === "withdrawal" ? "withdrawals" : "wallet"
@@ -140,8 +143,17 @@ export default function InvestorTransactionDetail() {
     }
   }, [kind, id])
 
+  const canonicalRecordId = resolveCanonicalFinancialId(record, ["id", "transaction_id"])
+  const copyTarget = resolveFinancialCopyTarget(
+    record,
+    ["id", "transaction_id"],
+    ["transaction_id", "reference", "transaction_reference", "deposit_reference", "withdraw_id"],
+  )
+  const recordIdLabel = kind === "wallet" ? "Transaction ID" : "Record ID"
   const status = text(record?.review_status ?? record?.status)
-  const reference = text(record?.reference ?? record?.transaction_reference ?? record?.withdraw_id)
+  const reference = copyTarget?.kind === "reference"
+    ? copyTarget.value
+    : text(record?.reference ?? record?.transaction_reference ?? record?.deposit_reference ?? record?.withdraw_id)
   const amount = text(record?.amount)
   const meta = record?.meta && typeof record.meta === "object" ? record.meta as TransactionRecord : {}
   const metaWithdrawalBreakdown = meta.withdrawal_breakdown && typeof meta.withdrawal_breakdown === "object"
@@ -208,9 +220,32 @@ export default function InvestorTransactionDetail() {
   }
   const relatedInvestmentId = validRelatedId(record?.investment_id, meta.investment_id)
   const relatedTradeId = validRelatedId(record?.trade_id, meta.trade_id)
+
+  async function copyFinancialReferenceFromRecord() {
+    try {
+      const copiedTarget = await copyFinancialReference(
+        record,
+        async value => {
+          if (!navigator.clipboard?.writeText) throw new Error("Clipboard is unavailable.")
+          await navigator.clipboard.writeText(value)
+        },
+        ["id", "transaction_id"],
+        ["transaction_id", "reference", "transaction_reference", "deposit_reference", "withdraw_id"],
+      )
+      setCopiedRecordId(copiedTarget.value)
+      notify.success(
+        copiedTarget.kind === "id" ? `${recordIdLabel} copied` : "Reference copied",
+        "Ready to paste into your support request.",
+      )
+    } catch {
+      setCopiedRecordId("")
+      notify.error("Could not copy the financial reference", "Select and copy the value instead.")
+    }
+  }
+
   const details = kind === "deposit"
     ? [
-        ["Record ID", text(record?.id, id)],
+        ["Record ID", canonicalRecordId || "Not recorded"],
         ["Reference", reference],
         ["Status", status],
         ["Amount", `${amount}${currency ? ` ${currency}` : ""}`],
@@ -221,7 +256,7 @@ export default function InvestorTransactionDetail() {
       ]
     : isWithdrawalTransaction
       ? [
-        ["Record ID", text(record?.id, id)],
+        ["Record ID", canonicalRecordId || "Not recorded"],
         ["Reference", reference],
         ["Status", status],
         ["Payment method", paymentMethod],
@@ -236,7 +271,7 @@ export default function InvestorTransactionDetail() {
         ["Review note", text(record?.note)],
       ]
       : [
-        ["Transaction ID", text(record?.id ?? record?.transaction_id, id)],
+        ["Transaction ID", canonicalRecordId || "Not recorded"],
         ["Type", text(record?.type ?? record?.transaction_type)],
         ["Status", status],
         ["Amount", `${amount}${currency ? ` ${currency}` : ""}`],
@@ -300,9 +335,36 @@ export default function InvestorTransactionDetail() {
             </CardHeader>
             <CardContent className="divide-y divide-border/60">
               {details.map(([label, value]) => (
-                <div key={label} className="flex justify-between gap-5 py-3 text-sm">
+                <div key={label} className="flex items-center justify-between gap-5 py-3 text-sm">
                   <span className="text-muted-foreground">{label}</span>
-                  <span className="max-w-[65%] text-right font-medium break-words">{value}</span>
+                  <span className="inline-flex max-w-[75%] flex-wrap items-center justify-end gap-2 text-right font-medium break-words">
+                    <span>{value}</span>
+                    {copyTarget && (
+                      (copyTarget.kind === "id" && label === recordIdLabel)
+                      || (copyTarget.kind === "reference" && label === "Reference")
+                    ) && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 gap-1.5 px-2"
+                        data-testid="transaction-copy-reference"
+                        aria-label={copiedRecordId === copyTarget.value
+                          ? copyTarget.kind === "id" ? `${recordIdLabel} copied` : "Financial reference copied"
+                          : copyTarget.kind === "id" ? `Copy ${recordIdLabel.toLowerCase()}` : "Copy financial reference"}
+                        title={copiedRecordId === copyTarget.value
+                          ? copyTarget.kind === "id" ? `${recordIdLabel} copied` : "Financial reference copied"
+                          : copyTarget.kind === "id" ? `Copy ${recordIdLabel.toLowerCase()}` : "Copy financial reference"}
+                        aria-live="polite"
+                        onClick={() => void copyFinancialReferenceFromRecord()}
+                      >
+                        {copiedRecordId === copyTarget.value
+                          ? <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                          : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
+                        <span>{copiedRecordId === copyTarget.value ? "Copied" : copyTarget.kind === "id" ? "Copy ID" : "Copy reference"}</span>
+                      </Button>
+                    )}
+                  </span>
                 </div>
               ))}
             </CardContent>

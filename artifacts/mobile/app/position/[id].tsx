@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import * as Clipboard from 'expo-clipboard';
 import { ActivityIndicator, AppState, Pressable, View } from 'react-native';
-import { LocalizedText as Text } from '@/components/LocalizedText';
+import { LocalizedPressable, LocalizedText as Text } from '@/components/LocalizedText';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,6 +14,11 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { shareInvestorFile } from '@/lib/file-download';
 import { investmentDownloadSpec, type InvestmentDownloadKind } from '@/lib/investment-download';
+import {
+  copyFinancialReference,
+  resolveCanonicalFinancialId,
+  resolveFinancialCopyTarget,
+} from '@/lib/financial-reference';
 import {
   calculateExpectedProfitFromRoi,
   formatDistributionStatus,
@@ -48,6 +54,8 @@ export default function PositionDetail() {
   const [documentErrors, setDocumentErrors] = useState<Record<string, string>>({});
   const [busyInvestmentDownload, setBusyInvestmentDownload] = useState<InvestmentDownloadKind | ''>('');
   const [investmentDownloadError, setInvestmentDownloadError] = useState('');
+  const [copiedInvestmentId, setCopiedInvestmentId] = useState('');
+  const [investmentIdCopyError, setInvestmentIdCopyError] = useState('');
   const queryClient = useQueryClient();
   const query = useGetInvestorInvestment(id, { query: { queryKey: ['investor-position', id], enabled: Boolean(id && token) } });
   const refreshPosition = useCallback(() => {
@@ -82,7 +90,13 @@ export default function PositionDetail() {
     ?? trade.profit_distribution ?? trade.distribution);
   const currency = first(row, ['currency', 'amount_currency'], first(project, ['currency'], first(trade, ['currency'])));
   const tradeId = first(row, ['trade_id', 'trade_code'], first(trade, ['trade_id', 'trade_code', 'project_code', 'code', 'reference'], first(project, ['trade_id', 'trade_code', 'project_code', 'code', 'reference'], notProvided)));
-  const investmentId = first(row, ['investment_id', 'reference', 'id'], notProvided);
+  const canonicalInvestmentId = resolveCanonicalFinancialId(row, ['id', 'investment_id']);
+  const investmentCopyTarget = resolveFinancialCopyTarget(
+    row,
+    ['id', 'investment_id'],
+    ['investment_reference', 'reference'],
+  );
+  const investmentId = canonicalInvestmentId || notProvided;
   const status = first(row, ['status', 'state'], notProvided);
   const containerNumber = first(row, ['container_number', 'container_name'], first(container, ['container_number', 'number', 'name'], first(projectMeta, ['container_number', 'container_no', 'containerNumber'], notProvided)));
   const vesselName = first(row, ['vessel_name', 'vessel'], first(container, ['vessel_name', 'vessel'], first(project, ['vessel'], first(trade, ['vessel'], notProvided))));
@@ -167,6 +181,9 @@ export default function PositionDetail() {
   const investmentDate = first(row, ['investment_date', 'invested_at', 'created_at', 'date'], notProvided);
   const investmentDetails: [string, string][] = [
     ['Investment ID', investmentId],
+    ...(investmentCopyTarget?.kind === 'reference'
+      ? [['Investment reference', investmentCopyTarget.value] as [string, string]]
+      : []),
     ['Trade ID', tradeId],
     ['Investment Date', formatReportedPayoutDate(investmentDate) ?? investmentDate],
     ['Amount Invested', investedAmountText],
@@ -259,6 +276,22 @@ export default function PositionDetail() {
     }
   }
 
+  async function copyInvestmentReference() {
+    setInvestmentIdCopyError('');
+    try {
+      const copiedTarget = await copyFinancialReference(
+        row,
+        value => Clipboard.setStringAsync(value),
+        ['id', 'investment_id'],
+        ['investment_reference', 'reference'],
+      );
+      setCopiedInvestmentId(copiedTarget.value);
+    } catch {
+      setCopiedInvestmentId('');
+      setInvestmentIdCopyError('Could not copy the financial reference. Select and copy the value instead.');
+    }
+  }
+
   return <Screen title="Investment Details" subtitle={first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(project, ['commodity_name', 'commodity', 'title', 'name'], 'Investment record'))} refreshable>
     {query.isLoading ? <LoadingCard label="Loading investment records…" /> : null}
     {query.isError ? <ErrorState message="This investment position could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
@@ -293,6 +326,22 @@ export default function PositionDetail() {
             ? <Status value={value} />
             : <Text style={{ color: label === 'Expected profit' ? colors.primary : colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>}
         </View>)}
+        {investmentCopyTarget ? <LocalizedPressable
+          accessibilityRole="button"
+          accessibilityLabel={copiedInvestmentId === investmentCopyTarget.value
+            ? investmentCopyTarget.kind === 'id' ? 'Investment ID copied' : 'Financial reference copied'
+            : investmentCopyTarget.kind === 'id' ? 'Copy investment ID' : 'Copy financial reference'}
+          accessibilityHint="Copies value to clipboard"
+          testID="investment-copy-reference"
+          onPress={() => void copyInvestmentReference()}
+          style={{ minHeight: 44, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 12 }}
+        >
+          <Feather name={copiedInvestmentId === investmentCopyTarget.value ? 'check' : 'copy'} size={16} color={colors.primary} />
+          <Text accessibilityLiveRegion="polite" style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>
+            {copiedInvestmentId === investmentCopyTarget.value ? 'Copied' : 'Copy'}
+          </Text>
+        </LocalizedPressable> : null}
+        {investmentIdCopyError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginTop: 8 }}>{investmentIdCopyError}</Text> : null}
       </Card>
 
       <TradeProgressCard

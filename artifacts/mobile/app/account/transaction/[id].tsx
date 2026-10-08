@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import * as Clipboard from 'expo-clipboard';
+import { Feather } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -8,13 +10,18 @@ import {
   useGetInvestorWithdrawal,
 } from '@workspace/api-client-react';
 import { Card, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
-import { LocalizedText as Text } from '@/components/LocalizedText';
+import { LocalizedPressable, LocalizedText as Text } from '@/components/LocalizedText';
 import { amount, first, list, messageOf, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
 import { resolveTransactionPaymentMethod } from '@/lib/transaction-payment-method';
 import { savedUsdEquivalentForRecordedAmount } from '@/lib/withdrawal-history';
+import {
+  copyFinancialReference,
+  resolveCanonicalFinancialId,
+  resolveFinancialCopyTarget,
+} from '@/lib/financial-reference';
 
 const unavailable = '—';
 
@@ -172,7 +179,12 @@ export default function TransactionDetails() {
     }
     : primaryWithdrawalBreakdown;
   const hasWithdrawalBreakdown = Object.keys(withdrawalBreakdown).length > 0;
-  const transactionId = first(transaction, ['id', 'transaction_id'], id);
+  const transactionCopyTarget = resolveFinancialCopyTarget(
+    transaction,
+    ['id', 'transaction_id'],
+    ['transaction_id', 'reference', 'transaction_reference', 'deposit_reference', 'withdraw_id'],
+  );
+  const transactionId = resolveCanonicalFinancialId(transaction, ['id', 'transaction_id']) || unavailable;
   const title = kind === 'deposit'
     ? 'Deposit'
     : kind === 'withdrawal'
@@ -225,6 +237,11 @@ export default function TransactionDetails() {
     : `1 USD = ${exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${breakdownCurrency || 'PKR'}`;
   const [receiptBusy, setReceiptBusy] = useState(false);
   const [receiptError, setReceiptError] = useState('');
+  const [copiedRecordId, setCopiedRecordId] = useState('');
+  const [copyError, setCopyError] = useState('');
+  const recordIdCopied = transactionCopyTarget !== null && copiedRecordId === transactionCopyTarget.value;
+  const copyActionLabel = transactionCopyTarget?.kind === 'id' ? 'Copy transaction ID' : 'Copy financial reference';
+  const copiedActionLabel = transactionCopyTarget?.kind === 'id' ? 'Transaction ID copied' : 'Financial reference copied';
 
   async function saveReceipt() {
     setReceiptBusy(true);
@@ -240,6 +257,22 @@ export default function TransactionDetails() {
       setReceiptError(messageOf(error));
     } finally {
       setReceiptBusy(false);
+    }
+  }
+
+  async function copyFinancialReferenceFromRecord() {
+    setCopyError('');
+    try {
+      const copiedTarget = await copyFinancialReference(
+        transaction,
+        value => Clipboard.setStringAsync(value),
+        ['id', 'transaction_id'],
+        ['transaction_id', 'reference', 'transaction_reference', 'deposit_reference', 'withdraw_id'],
+      );
+      setCopiedRecordId(copiedTarget.value);
+    } catch {
+      setCopiedRecordId('');
+      setCopyError('Could not copy the financial reference. Select and copy the value instead.');
     }
   }
 
@@ -262,10 +295,29 @@ export default function TransactionDetails() {
         <DetailLine label="Status" value={status} />
         <DetailLine label="Amount" value={amountLabel} />
         <DetailLine label="Date / time" value={formatDateTime(first(transaction, ['created_at', 'occurred_at', 'date']))} />
-        <DetailLine label="Reference" value={first(transaction, ['reference', 'transaction_reference', 'deposit_reference', 'withdraw_id'], unavailable)} />
+        <DetailLine
+          label="Reference"
+          value={transactionCopyTarget?.kind === 'reference'
+            ? transactionCopyTarget.value
+            : first(transaction, ['reference', 'transaction_reference', 'deposit_reference', 'withdraw_id'], unavailable)}
+        />
         <DetailLine label="Payment method" value={paymentMethod} />
         {first(meta, ['investment_id']) ? <DetailLine label="Investment ID" value={first(meta, ['investment_id'])} /> : null}
         {first(meta, ['trade_id', 'trade_reference']) ? <DetailLine label="Trade ID" value={first(meta, ['trade_id', 'trade_reference'])} /> : null}
+        {transactionCopyTarget ? <LocalizedPressable
+          accessibilityRole="button"
+          accessibilityLabel={recordIdCopied ? copiedActionLabel : copyActionLabel}
+          accessibilityHint="Copies value to clipboard"
+          testID="transaction-copy-reference"
+          onPress={() => void copyFinancialReferenceFromRecord()}
+          style={{ minHeight: 44, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 12 }}
+        >
+          <Feather name={recordIdCopied ? 'check' : 'copy'} size={16} color={colors.primary} />
+          <Text accessibilityLiveRegion="polite" style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>
+            {recordIdCopied ? 'Copied' : 'Copy'}
+          </Text>
+        </LocalizedPressable> : null}
+        {copyError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginTop: 8 }}>{copyError}</Text> : null}
       </Card>
       {relatedInvestmentId || relatedTradeId ? <>
         <Section title="Related records" />

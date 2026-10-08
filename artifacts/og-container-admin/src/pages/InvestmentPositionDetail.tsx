@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "wouter"
-import { ArrowLeft, ArrowUpRight, Download, FileSpreadsheet, FileText, Loader2, Package } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, Check, Copy, Download, FileSpreadsheet, FileText, Loader2, Package } from "lucide-react"
 import { InvestPortalLayout } from "@/components/invest/InvestPortalLayout"
 import { InvestmentPositionCard, mapRowToPosition, type InvestmentPositionData } from "@/components/invest/InvestmentPositionCard"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { notify } from "@/lib/notify"
 import { formatInvestorProjectAmount } from "@/lib/invest-format"
 import { containerProjectStatusLabel } from "@/lib/container-project-statuses"
 import { investmentStatusLabel } from "@/lib/investment-statuses"
+import { copyFinancialReference, resolveCanonicalFinancialId, resolveFinancialCopyTarget } from "@/lib/financial-reference"
 
 function validRelatedId(...values: unknown[]): string {
   for (const value of values) {
@@ -31,6 +32,7 @@ export default function InvestmentPositionDetail() {
   const [exportLoading, setExportLoading] = useState(false)
   const [position, setPosition] = useState<InvestmentPositionData | null>(null)
   const [raw, setRaw] = useState<any>(null)
+  const [copiedInvestmentId, setCopiedInvestmentId] = useState("")
   const [refreshVersion, setRefreshVersion] = useState(0)
 
   useEffect(() => {
@@ -73,6 +75,12 @@ export default function InvestmentPositionDetail() {
     trade?.project_id,
     trade?.id,
   )
+  const canonicalInvestmentId = resolveCanonicalFinancialId(raw, ["id", "investment_id"])
+  const copyTarget = resolveFinancialCopyTarget(
+    raw,
+    ["id", "investment_id"],
+    ["investment_reference", "reference"],
+  )
   const docs = Array.isArray(project.documents) ? project.documents : []
 
   async function handleDownloadPdf() {
@@ -108,6 +116,28 @@ export default function InvestmentPositionDetail() {
       )
     } finally {
       setExportLoading(false)
+    }
+  }
+
+  async function copyInvestmentReference() {
+    try {
+      const copiedTarget = await copyFinancialReference(
+        raw,
+        async value => {
+          if (!navigator.clipboard?.writeText) throw new Error("Clipboard is unavailable.")
+          await navigator.clipboard.writeText(value)
+        },
+        ["id", "investment_id"],
+        ["investment_reference", "reference"],
+      )
+      setCopiedInvestmentId(copiedTarget.value)
+      notify.success(
+        copiedTarget.kind === "id" ? "Investment ID copied" : "Financial reference copied",
+        "Ready to paste into your support request.",
+      )
+    } catch {
+      setCopiedInvestmentId("")
+      notify.error("Could not copy the financial reference", "Select and copy the value instead.")
     }
   }
 
@@ -188,12 +218,54 @@ export default function InvestmentPositionDetail() {
                   <CardTitle className="font-heading text-lg">Position Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  {position.investmentReference && (
+                  <div className="flex justify-between items-center gap-4">
+                    <span className="text-muted-foreground">Investment ID</span>
+                    <span className="inline-flex flex-wrap items-center justify-end gap-2 font-mono font-bold">
+                      <span>{canonicalInvestmentId || "Not recorded"}</span>
+                      {copyTarget?.kind === "id" && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 gap-1.5 px-2 font-sans font-normal"
+                          data-testid="investment-copy-reference"
+                          aria-label={copiedInvestmentId === canonicalInvestmentId ? "Investment ID copied" : "Copy investment ID"}
+                          title={copiedInvestmentId === canonicalInvestmentId ? "Investment ID copied" : "Copy investment ID"}
+                          aria-live="polite"
+                          onClick={() => void copyInvestmentReference()}
+                        >
+                          {copiedInvestmentId === canonicalInvestmentId
+                            ? <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                            : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
+                          <span>{copiedInvestmentId === canonicalInvestmentId ? "Copied" : "Copy ID"}</span>
+                        </Button>
+                      )}
+                    </span>
+                  </div>
+                  {(position.investmentReference || copyTarget?.kind === "reference") && (
                     <div className="flex justify-between items-center gap-4">
                       <span className="text-muted-foreground">Investment Reference</span>
-                      <span className="inline-flex items-center gap-1.5 font-mono text-sm font-bold text-foreground border border-primary/25 bg-primary/5 px-3 py-1.5 rounded-lg">
+                      <span className="inline-flex flex-wrap items-center justify-end gap-2 font-mono text-sm font-bold text-foreground border border-primary/25 bg-primary/5 px-3 py-1.5 rounded-lg">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Ref</span>
-                        {position.investmentReference}
+                        {copyTarget?.kind === "reference" ? copyTarget.value : position.investmentReference}
+                        {copyTarget?.kind === "reference" && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 gap-1.5 px-2 font-sans font-normal"
+                            data-testid="investment-copy-reference"
+                            aria-label={copiedInvestmentId === copyTarget.value ? "Financial reference copied" : "Copy financial reference"}
+                            title={copiedInvestmentId === copyTarget.value ? "Financial reference copied" : "Copy financial reference"}
+                            aria-live="polite"
+                            onClick={() => void copyInvestmentReference()}
+                          >
+                            {copiedInvestmentId === copyTarget.value
+                              ? <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                              : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
+                            <span>{copiedInvestmentId === copyTarget.value ? "Copied" : "Copy reference"}</span>
+                          </Button>
+                        )}
                       </span>
                     </div>
                   )}
