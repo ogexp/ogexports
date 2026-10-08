@@ -305,7 +305,10 @@ export default function InvestorTransactionDetail() {
                   size="sm"
                   variant="outline"
                   data-testid="transaction-detail-receipt"
-                  onClick={() => downloadTransactionReceipt(createTransactionReceipt(kind === "wallet" ? "transaction" : kind ?? "transaction", record))}
+                  onClick={() => downloadTransactionReceipt(createTransactionReceipt(
+                    isWithdrawalTransaction ? "withdrawal" : kind === "wallet" ? "transaction" : kind ?? "transaction",
+                    record,
+                  ))}
                 >
                   Download receipt
                 </Button>

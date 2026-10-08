@@ -218,7 +218,11 @@ export default function TransactionDetails() {
     setReceiptBusy(true);
     setReceiptError('');
     try {
-      const receiptKind = kind === 'wallet' ? 'transaction' : kind;
+      const receiptKind = isWithdrawalTransaction
+        ? 'withdrawal'
+        : kind === 'wallet'
+          ? 'transaction'
+          : kind;
       await saveTransactionReceipt(createTransactionReceipt(receiptKind, transaction));
     } catch (error) {
       setReceiptError(messageOf(error));

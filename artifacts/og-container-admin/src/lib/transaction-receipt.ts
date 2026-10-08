@@ -1,3 +1,5 @@
+import { resolveInvestorTransactionPaymentMethod } from "./investor-transaction-method.ts"
+
 export type TransactionReceiptKind = "deposit" | "withdrawal" | "investment" | "transaction"
 
 export type TransactionReceipt = {
@@ -10,6 +12,7 @@ export type TransactionReceipt = {
   status: string
   submittedAt: string
   settlementAt: string
+  paymentMethod: string
   paymentReference: string
   projectReference: string
   fee: string
@@ -52,6 +55,15 @@ function firstServerValue(records: ReceiptRecord[], keys: string[]): string {
     }
   }
   return ""
+}
+
+function paymentMethodSources(records: ReceiptRecord[]): ReceiptRecord[] {
+  return records.flatMap(item => [
+    item,
+    asRecord(item.withdrawal_breakdown),
+    asRecord(item.bank_details),
+    asRecord(item.meta),
+  ])
 }
 
 function statusExplanation(kind: TransactionReceiptKind, status: string): string {
@@ -117,6 +129,9 @@ export function createTransactionReceipt(kind: TransactionReceiptKind, value: un
     status,
     submittedAt: firstServerValue(records, ["created_at", "submitted_at", "invested_at", "date"]),
     settlementAt: firstServerValue(records, ["settled_at", "completed_at", "credited_at", "paid_at", "transferred_at"]),
+    paymentMethod: kind === "withdrawal"
+      ? resolveInvestorTransactionPaymentMethod(paymentMethodSources(records), true, "")
+      : "",
     paymentReference: firstServerValue(records, ["bank_reference", "transfer_reference", "payment_reference"]),
     projectReference: firstServerValue(records, ["trade_reference", "trade_id", "project_reference"])
       || firstServerValue([project, projectMeta], ["reference", "trade_reference", "trade_id"]),
@@ -151,6 +166,9 @@ function receiptRows(receipt: TransactionReceipt): Array<[string, string]> {
     ["Server status", receipt.status || "Not provided"],
     ["Date returned by OG Exports", receipt.submittedAt || "Not provided"],
     ["Settlement date returned by OG Exports", receipt.settlementAt || "Not provided"],
+    ...(receipt.kind === "withdrawal" ? [
+      ["Payout method", receipt.paymentMethod || "Not provided"] as [string, string],
+    ] : []),
     ["Bank / payment reference", receipt.paymentReference || "Not provided"],
     ["Project / trade reference", receipt.projectReference || "Not provided"],
     ...(receipt.kind === "withdrawal" ? [

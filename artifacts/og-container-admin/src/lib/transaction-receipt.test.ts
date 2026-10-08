@@ -67,5 +67,38 @@ test("withdrawal receipt includes only returned fee and wallet-debit values", ()
   assert.match(html, /120 USD/)
   assert.match(html, /2 USD/)
   assert.match(html, /122 USD/)
+  assert.equal(receipt.paymentMethod, "Bank Transfer")
+  assert.match(html, /Payout method<\/th><td>Bank Transfer/)
   assert.match(receipt.statusNote, /does not confirm that funds were transferred/)
+})
+
+test("withdrawal receipt prefers the explicit server method and excludes bank-account details", () => {
+  const receipt = createTransactionReceipt("withdrawal", {
+    data: {
+      withdrawal: {
+        payment_method: "Wire Transfer",
+        method: "Other method",
+        bank_details: {
+          account_number: "123456789012",
+          method: "Bank Transfer",
+        },
+      },
+    },
+  })
+  const html = transactionReceiptHtml(receipt)
+
+  assert.equal(receipt.paymentMethod, "Wire Transfer")
+  assert.match(html, /Payout method<\/th><td>Wire Transfer/)
+  assert.doesNotMatch(html, /123456789012/)
+  assert.doesNotMatch(html, /Other method/)
+})
+
+test("non-withdrawal receipts do not add a payout-method field", () => {
+  const receipt = createTransactionReceipt("deposit", {
+    payment_method: "Card",
+  })
+  const html = transactionReceiptHtml(receipt)
+
+  assert.equal(receipt.paymentMethod, "")
+  assert.doesNotMatch(html, /Payout method/)
 })
