@@ -1,0 +1,549 @@
+diff --git a/app/Http/Controllers/Api/Investor/ProfileController.php b/app/Http/Controllers/Api/Investor/ProfileController.php
+index ca382b1..86e2d41 100644
+--- a/app/Http/Controllers/Api/Investor/ProfileController.php
++++ b/app/Http/Controllers/Api/Investor/ProfileController.php
+@@ -15,6 +15,8 @@ use App\Support\MediaStorage;
+ use App\Support\AdminNotificationTypes;
+ use App\Support\InvestorBankAccounts;
+ use App\Support\NotifiesAdmins;
++use App\Support\WalletCurrencyService;
++use Illuminate\Support\Facades\DB;
+ use Illuminate\Validation\Rule;
+ 
+ class ProfileController extends Controller
+@@ -129,79 +131,91 @@ class ProfileController extends Controller
+             'risk_profile' => ['nullable', 'string', 'max:50'],
+             'notification_prefs' => ['nullable', 'array'],
+             'preferences' => ['nullable', 'array'],
++            'preferences.currency' => ['sometimes', 'string', Rule::in(['USD', 'PKR', 'EUR', 'GBP'])],
+             'account_status' => ['sometimes', 'string', Rule::in(['active', 'suspended'])],
+             'meta' => ['nullable', 'array'],
+         ]);
+ 
+-        $userFill = collect($data)->only(['name', 'phone'])->all();
+-        if (array_key_exists('account_status', $data)) {
+-            $userFill['account_status'] = $data['account_status'];
+-        }
+-        if ($userFill !== []) {
+-            $user->fill($userFill)->save();
+-        }
++        $walletCurrencyChange = null;
++        DB::transaction(function () use ($user, $data, &$walletCurrencyChange): void {
++            $userFill = collect($data)->only(['name', 'phone'])->all();
++            if (array_key_exists('account_status', $data)) {
++                $userFill['account_status'] = $data['account_status'];
++            }
++            if ($userFill !== []) {
++                $user->fill($userFill)->save();
++            }
+ 
+-        $profile = $user->profile()->firstOrCreate(['user_id' => $user->id]);
+-        $meta = is_array($profile->meta) ? $profile->meta : [];
++            $profile = $user->profile()->firstOrCreate(['user_id' => $user->id]);
++            $meta = is_array($profile->meta) ? $profile->meta : [];
+ 
+-        foreach ([
+-            'dob', 'nationality', 'cnic', 'company_type', 'registration_no', 'industry',
+-            'founded', 'revenue', 'employees', 'website', 'province', 'postal_code',
+-            'address_line2', 'risk_profile',
+-        ] as $key) {
+-            if (array_key_exists($key, $data)) {
+-                $meta[$key] = $data[$key];
++            foreach ([
++                'dob', 'nationality', 'cnic', 'company_type', 'registration_no', 'industry',
++                'founded', 'revenue', 'employees', 'website', 'province', 'postal_code',
++                'address_line2', 'risk_profile',
++            ] as $key) {
++                if (array_key_exists($key, $data)) {
++                    $meta[$key] = $data[$key];
++                }
+             }
+-        }
+-        if (array_key_exists('tax', $data)) {
+-            $meta['tax'] = $data['tax'];
+-        }
+-        if (array_key_exists('bank', $data)) {
+-            $meta['bank'] = $data['bank'];
+-        }
+-        if (array_key_exists('withdraw_bank', $data)) {
+-            $meta['withdraw_bank'] = $data['withdraw_bank'];
+-            $meta['bank_accounts'] = InvestorBankAccounts::upsertAccount(
+-                InvestorBankAccounts::normalizeFromMeta($meta),
+-                is_array($data['withdraw_bank']) ? $data['withdraw_bank'] : []
+-            );
+-        }
+-        if (array_key_exists('bank_accounts', $data)) {
+-            $meta['bank_accounts'] = InvestorBankAccounts::sanitizeForStorage(
+-                is_array($data['bank_accounts']) ? $data['bank_accounts'] : []
+-            );
+-            $default = InvestorBankAccounts::defaultAccount($meta['bank_accounts']);
+-            if ($default !== null) {
+-                $meta['withdraw_bank'] = [
+-                    'bank_name' => $default['bank_name'] ?? '',
+-                    'account_holder' => $default['account_holder'] ?? '',
+-                    'account_number' => $default['account_number'] ?? '',
+-                    'iban' => $default['iban'] ?? '',
+-                    'swift' => $default['swift'] ?? '',
+-                    'branch' => $default['branch'] ?? '',
+-                    'currency' => $default['currency'] ?? 'USD',
+-                ];
++            if (array_key_exists('tax', $data)) {
++                $meta['tax'] = $data['tax'];
++            }
++            if (array_key_exists('bank', $data)) {
++                $meta['bank'] = $data['bank'];
++            }
++            if (array_key_exists('withdraw_bank', $data)) {
++                $meta['withdraw_bank'] = $data['withdraw_bank'];
++                $meta['bank_accounts'] = InvestorBankAccounts::upsertAccount(
++                    InvestorBankAccounts::normalizeFromMeta($meta),
++                    is_array($data['withdraw_bank']) ? $data['withdraw_bank'] : []
++                );
++            }
++            if (array_key_exists('bank_accounts', $data)) {
++                $meta['bank_accounts'] = InvestorBankAccounts::sanitizeForStorage(
++                    is_array($data['bank_accounts']) ? $data['bank_accounts'] : []
++                );
++                $default = InvestorBankAccounts::defaultAccount($meta['bank_accounts']);
++                if ($default !== null) {
++                    $meta['withdraw_bank'] = [
++                        'bank_name' => $default['bank_name'] ?? '',
++                        'account_holder' => $default['account_holder'] ?? '',
++                        'account_number' => $default['account_number'] ?? '',
++                        'iban' => $default['iban'] ?? '',
++                        'swift' => $default['swift'] ?? '',
++                        'branch' => $default['branch'] ?? '',
++                        'currency' => $default['currency'] ?? 'USD',
++                    ];
++                }
++            }
++            if (array_key_exists('notification_prefs', $data)) {
++                $meta['notification_prefs'] = array_merge($meta['notification_prefs'] ?? [], $data['notification_prefs'] ?? []);
++            }
++            if (array_key_exists('preferences', $data)) {
++                $meta['preferences'] = array_merge($meta['preferences'] ?? [], $data['preferences'] ?? []);
++            }
++            if (! empty($data['meta']) && is_array($data['meta'])) {
++                $meta = array_replace_recursive($meta, $data['meta']);
++            }
++
++            if (isset($data['preferences']['currency']) && $user->hasRole('investor')) {
++                $walletCurrencyChange = app(WalletCurrencyService::class)->change(
++                    $user,
++                    $data['preferences']['currency'],
++                );
+             }
+-        }
+-        if (array_key_exists('notification_prefs', $data)) {
+-            $meta['notification_prefs'] = array_merge($meta['notification_prefs'] ?? [], $data['notification_prefs'] ?? []);
+-        }
+-        if (array_key_exists('preferences', $data)) {
+-            $meta['preferences'] = array_merge($meta['preferences'] ?? [], $data['preferences'] ?? []);
+-        }
+-        if (! empty($data['meta']) && is_array($data['meta'])) {
+-            $meta = array_replace_recursive($meta, $data['meta']);
+-        }
+ 
+-        $profile->fill(collect($data)->only([
+-            'company_name', 'country', 'city', 'address', 'avatar_url',
+-        ])->all());
+-        $profile->meta = $meta;
+-        $profile->save();
++            $profile->fill(collect($data)->only([
++                'company_name', 'country', 'city', 'address', 'avatar_url',
++            ])->all());
++            $profile->meta = $meta;
++            $profile->save();
++        });
+ 
+         return response()->json([
+             'message' => 'Profile updated.',
+             'data' => $this->show($request)->getData(true)['data'],
++            'wallet_currency_change' => $walletCurrencyChange,
+         ]);
+     }
+ 
+diff --git a/app/Http/Controllers/Api/Investor/WalletController.php b/app/Http/Controllers/Api/Investor/WalletController.php
+index c94d6ad..7249036 100644
+--- a/app/Http/Controllers/Api/Investor/WalletController.php
++++ b/app/Http/Controllers/Api/Investor/WalletController.php
+@@ -77,6 +77,7 @@ class WalletController extends Controller
+         );
+ 
+         $transactions = $wallet->transactions()
++            ->with('wallet:id,currency')
+             ->latest()
+             ->paginate($this->perPage($request));
+ 
+diff --git a/app/Models/WalletCurrencyConversion.php b/app/Models/WalletCurrencyConversion.php
+new file mode 100644
+index 0000000..c9035b4
+--- /dev/null
++++ b/app/Models/WalletCurrencyConversion.php
+@@ -0,0 +1,40 @@
++<?php
++
++namespace App\Models;
++
++use Illuminate\Database\Eloquent\Model;
++use Illuminate\Database\Eloquent\Relations\BelongsTo;
++
++class WalletCurrencyConversion extends Model
++{
++    protected $fillable = [
++        'wallet_id',
++        'initiated_by',
++        'from_currency',
++        'to_currency',
++        'from_amount',
++        'to_amount',
++        'exchange_rate',
++        'rates_as_of',
++    ];
++
++    protected function casts(): array
++    {
++        return [
++            'from_amount' => 'decimal:2',
++            'to_amount' => 'decimal:2',
++            'exchange_rate' => 'decimal:8',
++            'rates_as_of' => 'immutable_datetime',
++        ];
++    }
++
++    public function wallet(): BelongsTo
++    {
++        return $this->belongsTo(Wallet::class);
++    }
++
++    public function initiatedBy(): BelongsTo
++    {
++        return $this->belongsTo(User::class, 'initiated_by');
++    }
++}
+diff --git a/app/Models/WalletTransaction.php b/app/Models/WalletTransaction.php
+index 0545a27..cac417e 100644
+--- a/app/Models/WalletTransaction.php
++++ b/app/Models/WalletTransaction.php
+@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
+ 
+ class WalletTransaction extends Model
+ {
++    protected $appends = ['currency'];
++
+     protected $fillable = [
+         'wallet_id',
+         'type',
+@@ -25,8 +27,35 @@ class WalletTransaction extends Model
+         ];
+     }
+ 
++    protected static function booted(): void
++    {
++        static::creating(function (self $transaction): void {
++            $meta = is_array($transaction->meta) ? $transaction->meta : [];
++            if (! isset($meta['currency']) && $transaction->wallet_id) {
++                $meta['currency'] = strtoupper((string) (
++                    $meta['wallet_currency']
++                    ?? Wallet::query()->whereKey($transaction->wallet_id)->value('currency')
++                    ?? 'USD'
++                ));
++                $transaction->meta = $meta;
++            }
++        });
++    }
++
+     public function wallet(): BelongsTo
+     {
+         return $this->belongsTo(Wallet::class);
+     }
++
++    public function getCurrencyAttribute(): string
++    {
++        $meta = is_array($this->meta) ? $this->meta : [];
++
++        return strtoupper((string) (
++            $meta['currency']
++            ?? $meta['wallet_currency']
++            ?? $this->wallet?->currency
++            ?? 'USD'
++        ));
++    }
+ }
+diff --git a/app/Support/WalletCurrencyService.php b/app/Support/WalletCurrencyService.php
+new file mode 100644
+index 0000000..f49de76
+--- /dev/null
++++ b/app/Support/WalletCurrencyService.php
+@@ -0,0 +1,132 @@
++<?php
++
++namespace App\Support;
++
++use App\Models\Deposit;
++use App\Models\User;
++use App\Models\Wallet;
++use App\Models\WalletCurrencyConversion;
++use App\Models\WalletTransaction;
++use App\Models\Withdrawal;
++use Illuminate\Validation\ValidationException;
++use Throwable;
++
++class WalletCurrencyService
++{
++    private const PROFILE_CURRENCIES = ['USD', 'PKR', 'EUR', 'GBP'];
++
++    /**
++     * Change an investor's actual wallet denomination. The caller must run this
++     * inside the same database transaction that saves the Profile preference.
++     *
++     * @return array<string, mixed>|null
++     */
++    public function change(User $user, string $targetCurrency): ?array
++    {
++        $targetCurrency = strtoupper(trim($targetCurrency));
++        if (! in_array($targetCurrency, self::PROFILE_CURRENCIES, true)
++            || ! ExchangeRateService::isSupported($targetCurrency)) {
++            throw ValidationException::withMessages([
++                'preferences.currency' => ['Select a supported Profile currency.'],
++            ]);
++        }
++
++        $wallet = Wallet::query()
++            ->where('user_id', $user->id)
++            ->lockForUpdate()
++            ->first();
++
++        if (! $wallet) {
++            Wallet::query()->create([
++                'user_id' => $user->id,
++                'currency' => $targetCurrency,
++                'available_balance' => 0,
++                'pending_balance' => 0,
++            ]);
++
++            return null;
++        }
++
++        $sourceCurrency = strtoupper(trim((string) $wallet->currency));
++        if ($sourceCurrency === $targetCurrency) {
++            return null;
++        }
++
++        $hasPendingDeposit = Deposit::query()
++            ->where('investor_id', $user->id)
++            ->whereNotIn('status', ['approved', 'rejected', 'cancelled', 'failed'])
++            ->exists();
++        $hasPendingWithdrawal = Withdrawal::query()
++            ->where('investor_id', $user->id)
++            ->whereIn('status', ['pending', 'processing', 'review', 'under_review'])
++            ->exists();
++        $hasPendingWalletTransaction = WalletTransaction::query()
++            ->where('wallet_id', $wallet->id)
++            ->where('status', 'pending')
++            ->exists();
++
++        if ((float) $wallet->pending_balance > 0.0001
++            || $hasPendingDeposit
++            || $hasPendingWithdrawal
++            || $hasPendingWalletTransaction) {
++            throw ValidationException::withMessages([
++                'preferences.currency' => [
++                    'Wallet currency cannot be changed while a deposit or withdrawal is pending.',
++                ],
++            ]);
++        }
++
++        $fromAmount = round((float) $wallet->available_balance, 2);
++        $toAmount = $fromAmount;
++        $rate = null;
++        $ratesAsOf = null;
++
++        if (abs($fromAmount) > 0.0001) {
++            try {
++                $conversion = ExchangeRateService::convert($fromAmount, $sourceCurrency, $targetCurrency);
++            } catch (Throwable) {
++                throw ValidationException::withMessages([
++                    'preferences.currency' => [
++                        'The current exchange rate is unavailable. The wallet and Profile currency were not changed.',
++                    ],
++                ]);
++            }
++
++            $toAmount = $conversion['amount'];
++            $rate = $conversion['rate'];
++            $ratesAsOf = $conversion['as_of'];
++        }
++
++        // Existing ledger amounts belong to the wallet's previous currency.
++        // Preserve that fact before changing the wallet denomination.
++        foreach ($wallet->transactions()->lockForUpdate()->get() as $transaction) {
++            $meta = is_array($transaction->meta) ? $transaction->meta : [];
++            if (! isset($meta['currency'])) {
++                $meta['currency'] = strtoupper((string) (
++                    $meta['wallet_currency']
++                    ?? $sourceCurrency
++                ));
++                $transaction->meta = $meta;
++                $transaction->save();
++            }
++        }
++
++        $wallet->forceFill([
++            'currency' => $targetCurrency,
++            'available_balance' => $toAmount,
++        ])->save();
++
++        $record = WalletCurrencyConversion::query()->create([
++            'wallet_id' => $wallet->id,
++            'initiated_by' => $user->id,
++            'from_currency' => $sourceCurrency,
++            'to_currency' => $targetCurrency,
++            'from_amount' => $fromAmount,
++            'to_amount' => $toAmount,
++            'exchange_rate' => $rate,
++            'rates_as_of' => $ratesAsOf,
++        ]);
++
++        return $record->toArray();
++    }
++}
+diff --git a/database/migrations/2026_10_08_180000_create_wallet_currency_conversions_table.php b/database/migrations/2026_10_08_180000_create_wallet_currency_conversions_table.php
+new file mode 100644
+index 0000000..c176459
+--- /dev/null
++++ b/database/migrations/2026_10_08_180000_create_wallet_currency_conversions_table.php
+@@ -0,0 +1,31 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::create('wallet_currency_conversions', function (Blueprint $table) {
++            $table->id();
++            $table->foreignId('wallet_id')->constrained()->cascadeOnDelete();
++            $table->foreignId('initiated_by')->nullable()->constrained('users')->nullOnDelete();
++            $table->string('from_currency', 10);
++            $table->string('to_currency', 10);
++            $table->decimal('from_amount', 14, 2);
++            $table->decimal('to_amount', 14, 2);
++            $table->decimal('exchange_rate', 16, 8)->nullable();
++            $table->timestamp('rates_as_of')->nullable();
++            $table->timestamps();
++
++            $table->index(['wallet_id', 'created_at']);
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::dropIfExists('wallet_currency_conversions');
++    }
++};
+diff --git a/tests/Feature/MobileInvestorWalletTest.php b/tests/Feature/MobileInvestorWalletTest.php
+index c9a003e..d9f2f62 100644
+--- a/tests/Feature/MobileInvestorWalletTest.php
++++ b/tests/Feature/MobileInvestorWalletTest.php
+@@ -4,10 +4,14 @@ use App\Models\Deposit;
+ use App\Models\User;
+ use App\Models\UserProfile;
+ use App\Models\Wallet;
++use App\Models\WalletCurrencyConversion;
++use App\Models\WalletTransaction;
+ use App\Models\Withdrawal;
+ use Database\Seeders\RoleSeeder;
+ use Illuminate\Foundation\Testing\RefreshDatabase;
+ use Illuminate\Support\Facades\Hash;
++use Illuminate\Support\Facades\Http;
++use App\Support\ExchangeRateService;
+ 
+ uses(RefreshDatabase::class);
+ 
+@@ -119,3 +123,82 @@ it('rejects a mobile withdrawal without bank_details when no profile bank is set
+         ->assertStatus(422)
+         ->assertJsonValidationErrors(['bank_details']);
+ });
++
++it('converts the wallet balance and preserves historical transaction currency when Profile currency changes', function () {
++    config(['currency.fallback_rates' => [
++        'USD' => 1,
++        'PKR' => 278.5,
++        'EUR' => 0.92,
++        'GBP' => 0.79,
++    ]]);
++    ExchangeRateService::clearCache();
++    Http::fake(['*' => Http::response(null, 500)]);
++
++    $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
++    $transaction = WalletTransaction::query()->create([
++        'wallet_id' => $wallet->id,
++        'type' => 'deposit',
++        'amount' => 250,
++        'direction' => 'credit',
++        'reference' => 'OLD-USD-LEDGER',
++        'status' => 'completed',
++        'meta' => ['note' => 'recorded before currency change'],
++    ]);
++    $transaction->forceFill(['meta' => ['note' => 'recorded before currency change']])->save();
++
++    $token = $this->investor->createToken('wallet_currency_conversion_test')->plainTextToken;
++    $this->withHeader('Authorization', 'Bearer '.$token)
++        ->putJson('/api/investor/profile', [
++            'preferences' => ['currency' => 'EUR'],
++        ])
++        ->assertOk()
++        ->assertJsonPath('wallet_currency_change.from_currency', 'USD')
++        ->assertJsonPath('wallet_currency_change.to_currency', 'EUR');
++
++    $wallet->refresh();
++    $transaction->refresh();
++    $conversion = WalletCurrencyConversion::query()->where('wallet_id', $wallet->id)->firstOrFail();
++
++    expect($wallet->currency)->toBe('EUR')
++        ->and((float) $wallet->available_balance)->toBe(9200.0)
++        ->and($transaction->meta['currency'] ?? null)->toBe('USD')
++        ->and($transaction->meta['note'] ?? null)->toBe('recorded before currency change')
++        ->and($conversion->from_currency)->toBe('USD')
++        ->and($conversion->to_currency)->toBe('EUR')
++        ->and((float) $conversion->from_amount)->toBe(10000.0)
++        ->and((float) $conversion->to_amount)->toBe(9200.0)
++        ->and((float) $conversion->exchange_rate)->toBe(0.92)
++        ->and($conversion->rates_as_of)->not->toBeNull();
++
++    $this->withHeader('Authorization', 'Bearer '.$token)
++        ->getJson('/api/investor/wallet/transactions')
++        ->assertOk()
++        ->assertJsonPath('data.0.currency', 'USD');
++});
++
++it('reconciles a stale wallet when the submitted Profile currency is already selected', function () {
++    $profile = $this->investor->profile;
++    $meta = is_array($profile->meta) ? $profile->meta : [];
++    $meta['preferences'] = ['currency' => 'USD'];
++    $profile->update(['meta' => $meta]);
++
++    $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
++    $wallet->update([
++        'currency' => 'PKR',
++        'available_balance' => 0,
++        'pending_balance' => 0,
++    ]);
++
++    $token = $this->investor->createToken('wallet_currency_reconcile_test')->plainTextToken;
++    $this->withHeader('Authorization', 'Bearer '.$token)
++        ->putJson('/api/investor/profile', [
++            'preferences' => ['currency' => 'USD'],
++        ])
++        ->assertOk()
++        ->assertJsonPath('data.preferences.currency', 'USD')
++        ->assertJsonPath('wallet_currency_change.from_currency', 'PKR')
++        ->assertJsonPath('wallet_currency_change.to_currency', 'USD');
++
++    expect($wallet->fresh()->currency)->toBe('USD')
++        ->and((float) $wallet->fresh()->available_balance)->toBe(0.0);
++});
