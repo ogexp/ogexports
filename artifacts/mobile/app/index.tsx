@@ -117,19 +117,92 @@ export default function Entry() {
     };
   }, [ready, token, onboardingComplete, appUnlocked, reduceMotion, screenOpacity, useNativeDriver]);
 
+  const logoScale = logoReveal.interpolate({ inputRange: [0, 1], outputRange: [0.76, 1] });
+  const logoLift = logoReveal.interpolate({ inputRange: [0, 1], outputRange: [14, 0] });
+  const logoTilt = logoReveal.interpolate({ inputRange: [0, 1], outputRange: ['-13deg', '0deg'] });
+  const orbitOpacity = orbitReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 0.48] });
+  const orbitScale = orbitReveal.interpolate({ inputRange: [0, 1], outputRange: [0.78, 1] });
+  const orbitRotation = orbitReveal.interpolate({ inputRange: [0, 1], outputRange: ['-48deg', '18deg'] });
+  const haloOpacity = haloReveal.interpolate({ inputRange: [0, 0.55, 1], outputRange: [0, 0.13, 0.035] });
+  const haloScale = haloReveal.interpolate({ inputRange: [0, 1], outputRange: [0.78, 1.2] });
+  const wordmarkOpacity = wordmarkReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+  const wordmarkLift = wordmarkReveal.interpolate({ inputRange: [0, 1], outputRange: [10, 0] });
+  const subtitleLift = subtitleOpacity.interpolate({ inputRange: [0, 1], outputRange: [5, 0] });
+
   return (
     <Animated.View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 28, opacity: screenOpacity }}>
-      <Animated.View style={{ alignItems: 'center', opacity: brandOpacity, transform: [{ translateY: brandLift }, { scale: brandScale }] }}>
-        <Image source={require('../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 148, height: 112 }} />
-        <Text style={{ color: colors.primary, fontSize: 27, fontWeight: '700', marginTop: 24 }}>OG Exports</Text>
-        <Animated.Text style={{ color: colors.mutedForeground, fontSize: 14, marginTop: 8, letterSpacing: 0.3, opacity: subtitleOpacity }}>Global Trade. Digital Investment.</Animated.Text>
-        {!ready ? <>
-          <View accessibilityRole="progressbar" accessibilityLabel="Preparing your investor experience" style={{ width: 72, height: 3, borderRadius: 2, overflow: 'hidden', backgroundColor: colors.secondary, marginTop: 24 }}>
-            <Animated.View style={{ width: 28, height: 3, borderRadius: 2, backgroundColor: colors.primary, transform: [{ translateX: progressOffset }] }} />
-          </View>
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 8 }}>Preparing your investor experience</Text>
-        </> : null}
-      </Animated.View>
+      <View style={{ alignItems: 'center' }}>
+        <View style={{ width: 220, height: 144, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <Animated.View
+            style={{
+              pointerEvents: 'none',
+              position: 'absolute',
+              width: 154,
+              height: 154,
+              borderRadius: 77,
+              backgroundColor: colors.lightGreen,
+              opacity: reduceMotion ? 0.035 : haloOpacity,
+              transform: [{ scale: reduceMotion ? 1 : haloScale }],
+            }}
+          />
+          <Animated.View
+            style={{
+              pointerEvents: 'none',
+              position: 'absolute',
+              width: 176,
+              height: 176,
+              borderRadius: 88,
+              borderWidth: 1,
+              borderColor: colors.border,
+              opacity: reduceMotion ? 0.48 : orbitOpacity,
+              transform: [
+                { scale: reduceMotion ? 1 : orbitScale },
+                { rotate: reduceMotion ? '0deg' : orbitRotation },
+              ],
+            }}
+          >
+            <View style={{ position: 'absolute', top: -3, left: 85, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent }} />
+            <View style={{ position: 'absolute', right: 24, bottom: 17, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.65 }} />
+          </Animated.View>
+          <Animated.Image
+            accessible={false}
+            source={require('../assets/images/og-logo.png')}
+            resizeMode="contain"
+            style={{
+              width: 148,
+              height: 112,
+              opacity: reduceMotion ? 1 : logoReveal,
+              transform: [
+                { perspective: 900 },
+                { rotateY: reduceMotion ? '0deg' : logoTilt },
+                { translateY: reduceMotion ? 0 : logoLift },
+                { scale: reduceMotion ? 1 : logoScale },
+              ],
+            }}
+          />
+        </View>
+        <Animated.View style={{
+          alignItems: 'center',
+          opacity: reduceMotion ? 1 : wordmarkOpacity,
+          transform: [{ translateY: reduceMotion ? 0 : wordmarkLift }],
+        }}>
+          <Text style={{ color: colors.primary, fontSize: 27, fontWeight: '700' }}>OG Exports</Text>
+          <Animated.Text style={{
+            color: colors.mutedForeground,
+            fontSize: 14,
+            marginTop: 8,
+            letterSpacing: 0.3,
+            opacity: reduceMotion ? 1 : subtitleOpacity,
+            transform: [{ translateY: reduceMotion ? 0 : subtitleLift }],
+          }}>Global Trade. Digital Investment.</Animated.Text>
+          {!ready ? <>
+            <View accessibilityRole="progressbar" accessibilityLabel="Preparing your investor experience" style={{ width: 72, height: 3, borderRadius: 2, overflow: 'hidden', backgroundColor: colors.secondary, marginTop: 24 }}>
+              <Animated.View style={{ width: 28, height: 3, borderRadius: 2, backgroundColor: colors.primary, transform: [{ translateX: progressOffset }] }} />
+            </View>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 8 }}>Preparing your investor experience</Text>
+          </> : null}
+        </Animated.View>
+      </View>
     </Animated.View>
   );
 }
