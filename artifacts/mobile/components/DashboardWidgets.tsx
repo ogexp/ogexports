@@ -13,20 +13,33 @@ export type DashboardMetricItem = {
   value: string;
   icon: keyof typeof Feather.glyphMap;
   detail?: string;
+  onPress?: () => void;
 };
 
 export function DashboardMetric({ item }: { item: DashboardMetricItem }) {
   const colors = useColors();
-  return <Card style={{ flex: 1, minWidth: 145, minHeight: 105, padding: 13, marginBottom: 0, borderRadius: 18 }}>
+  const card = <Card style={{ flex: 1, minWidth: 145, minHeight: 105, padding: 13, marginBottom: 0, borderRadius: 18 }}>
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 7 }}>
       <Text numberOfLines={2} style={{ flex: 1, color: colors.mutedForeground, fontSize: 10, lineHeight: 14, fontWeight: '600' }}>{item.label}</Text>
-      <View style={{ width: 29, height: 29, borderRadius: 11, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: item.onPress ? 42 : 29, height: 29, borderRadius: 11, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 2 }}>
         <Feather name={item.icon} size={14} color={colors.primary} />
+        {item.onPress ? <Feather name="chevron-right" size={12} color={colors.primary} /> : null}
       </View>
     </View>
     <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginTop: 10 }}>{item.value}</Text>
     {item.detail ? <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 9, marginTop: 3 }}>{item.detail}</Text> : null}
   </Card>;
+
+  return item.onPress
+    ? <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={item.label}
+      onPress={item.onPress}
+      style={({ pressed }) => ({ flex: 1, minWidth: 145, opacity: pressed ? 0.82 : 1 })}
+    >
+      {card}
+    </Pressable>
+    : card;
 }
 
 function SectionHeading({ title, route }: { title: string; route: '/wallet/deposit' | '/wallet/withdraw' | '/account/notifications' }) {
