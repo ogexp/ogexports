@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
@@ -6,10 +6,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, useMotion } from '@/lib/motion';
 
+const INTRO_MIN_DURATION = 2000;
+
 export default function Entry() {
   const { ready, token, onboardingComplete, appUnlocked } = useAuth();
   const colors = useColors();
-  const { reduceMotion } = useMotion();
+  const { reduceMotion, motionSettingsReady } = useMotion();
   const useNativeDriver = Platform.OS !== 'web';
   const logoReveal = useRef(new Animated.Value(0)).current;
   const orbitReveal = useRef(new Animated.Value(0)).current;
@@ -18,9 +20,10 @@ export default function Entry() {
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
   const progressOffset = useRef(new Animated.Value(0)).current;
+  const [introDurationElapsed, setIntroDurationElapsed] = useState(false);
 
   useEffect(() => {
-    if (reduceMotion) return;
+    if (!motionSettingsReady || reduceMotion) return;
 
     logoReveal.setValue(0);
     orbitReveal.setValue(0);
@@ -38,7 +41,7 @@ export default function Entry() {
         Animated.delay(55),
         Animated.timing(orbitReveal, {
           toValue: 1,
-          duration: MOTION.modal * 2 + MOTION.micro,
+          duration: MOTION.modal * 4 + MOTION.micro * 2,
           easing: Easing.out(Easing.cubic),
           useNativeDriver,
         }),
@@ -53,25 +56,25 @@ export default function Entry() {
         }),
         Animated.timing(haloReveal, {
           toValue: 0.12,
-          duration: MOTION.modal + MOTION.component,
+          duration: MOTION.modal * 3 + MOTION.micro * 2,
           easing: Easing.out(Easing.cubic),
           useNativeDriver,
         }),
       ]),
       Animated.sequence([
-        Animated.delay(MOTION.micro),
+        Animated.delay(MOTION.modal + MOTION.micro),
         Animated.timing(wordmarkReveal, {
           toValue: 1,
-          duration: MOTION.component + MOTION.micro,
+          duration: MOTION.modal + MOTION.micro,
           easing: Easing.out(Easing.cubic),
           useNativeDriver,
         }),
       ]),
       Animated.sequence([
-        Animated.delay(MOTION.modal),
+        Animated.delay(MOTION.modal * 2 + MOTION.micro),
         Animated.timing(subtitleOpacity, {
           toValue: 1,
-          duration: MOTION.component,
+          duration: MOTION.component + MOTION.micro,
           easing: Easing.out(Easing.quad),
           useNativeDriver,
         }),
@@ -79,10 +82,10 @@ export default function Entry() {
     ]);
     reveal.start();
     return () => reveal.stop();
-  }, [haloReveal, logoReveal, orbitReveal, reduceMotion, subtitleOpacity, useNativeDriver, wordmarkReveal]);
+  }, [haloReveal, logoReveal, motionSettingsReady, orbitReveal, reduceMotion, subtitleOpacity, useNativeDriver, wordmarkReveal]);
 
   useEffect(() => {
-    if (ready || reduceMotion) {
+    if (ready || reduceMotion || !motionSettingsReady) {
       progressOffset.setValue(0);
       return;
     }
@@ -92,10 +95,22 @@ export default function Entry() {
     ]));
     progress.start();
     return () => progress.stop();
-  }, [progressOffset, ready, reduceMotion, useNativeDriver]);
+  }, [motionSettingsReady, progressOffset, ready, reduceMotion, useNativeDriver]);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!motionSettingsReady) return;
+    if (reduceMotion) {
+      setIntroDurationElapsed(true);
+      return;
+    }
+    setIntroDurationElapsed(false);
+    const timer = setTimeout(() => setIntroDurationElapsed(true), INTRO_MIN_DURATION);
+    return () => clearTimeout(timer);
+  }, [motionSettingsReady, reduceMotion]);
+
+  useEffect(() => {
+    if (!ready || !motionSettingsReady) return;
+    if (!reduceMotion && !introDurationElapsed) return;
     const destination = token
       ? appUnlocked ? '/(tabs)' : '/lock'
       : onboardingComplete ? '/(auth)/login' : '/onboarding';
@@ -115,8 +130,10 @@ export default function Entry() {
     return () => {
       fadeOut.stop();
     };
-  }, [ready, token, onboardingComplete, appUnlocked, reduceMotion, screenOpacity, useNativeDriver]);
+  }, [ready, motionSettingsReady, introDurationElapsed, token, onboardingComplete, appUnlocked, reduceMotion, screenOpacity, useNativeDriver]);
 
+  const playIntroMotion = motionSettingsReady && !reduceMotion;
+  const showStaticIntro = motionSettingsReady && reduceMotion;
   const logoScale = logoReveal.interpolate({ inputRange: [0, 1], outputRange: [0.76, 1] });
   const logoLift = logoReveal.interpolate({ inputRange: [0, 1], outputRange: [14, 0] });
   const logoTilt = logoReveal.interpolate({ inputRange: [0, 1], outputRange: ['-13deg', '0deg'] });
@@ -141,8 +158,8 @@ export default function Entry() {
               height: 154,
               borderRadius: 77,
               backgroundColor: colors.lightGreen,
-              opacity: reduceMotion ? 0.035 : haloOpacity,
-              transform: [{ scale: reduceMotion ? 1 : haloScale }],
+              opacity: playIntroMotion ? haloOpacity : showStaticIntro ? 0.035 : 0,
+              transform: [{ scale: playIntroMotion ? haloScale : 1 }],
             }}
           />
           <Animated.View
@@ -154,10 +171,10 @@ export default function Entry() {
               borderRadius: 88,
               borderWidth: 1,
               borderColor: colors.border,
-              opacity: reduceMotion ? 0.48 : orbitOpacity,
+              opacity: playIntroMotion ? orbitOpacity : showStaticIntro ? 0.48 : 0,
               transform: [
-                { scale: reduceMotion ? 1 : orbitScale },
-                { rotate: reduceMotion ? '0deg' : orbitRotation },
+                { scale: playIntroMotion ? orbitScale : 1 },
+                { rotate: playIntroMotion ? orbitRotation : '0deg' },
               ],
             }}
           >
@@ -171,20 +188,20 @@ export default function Entry() {
             style={{
               width: 148,
               height: 112,
-              opacity: reduceMotion ? 1 : logoReveal,
+              opacity: playIntroMotion ? logoReveal : showStaticIntro ? 1 : 0,
               transform: [
                 { perspective: 900 },
-                { rotateY: reduceMotion ? '0deg' : logoTilt },
-                { translateY: reduceMotion ? 0 : logoLift },
-                { scale: reduceMotion ? 1 : logoScale },
+                { rotateY: playIntroMotion ? logoTilt : '0deg' },
+                { translateY: playIntroMotion ? logoLift : 0 },
+                { scale: playIntroMotion ? logoScale : 1 },
               ],
             }}
           />
         </View>
         <Animated.View style={{
           alignItems: 'center',
-          opacity: reduceMotion ? 1 : wordmarkOpacity,
-          transform: [{ translateY: reduceMotion ? 0 : wordmarkLift }],
+          opacity: playIntroMotion ? wordmarkOpacity : showStaticIntro ? 1 : 0,
+          transform: [{ translateY: playIntroMotion ? wordmarkLift : 0 }],
         }}>
           <Text style={{ color: colors.primary, fontSize: 27, fontWeight: '700' }}>OG Exports</Text>
           <Animated.Text style={{
@@ -192,10 +209,10 @@ export default function Entry() {
             fontSize: 14,
             marginTop: 8,
             letterSpacing: 0.3,
-            opacity: reduceMotion ? 1 : subtitleOpacity,
-            transform: [{ translateY: reduceMotion ? 0 : subtitleLift }],
+            opacity: playIntroMotion ? subtitleOpacity : showStaticIntro ? 1 : 0,
+            transform: [{ translateY: playIntroMotion ? subtitleLift : 0 }],
           }}>Global Trade. Digital Investment.</Animated.Text>
-          {!ready ? <>
+          {!ready && motionSettingsReady ? <>
             <View accessibilityRole="progressbar" accessibilityLabel="Preparing your investor experience" style={{ width: 72, height: 3, borderRadius: 2, overflow: 'hidden', backgroundColor: colors.secondary, marginTop: 24 }}>
               <Animated.View style={{ width: 28, height: 3, borderRadius: 2, backgroundColor: colors.primary, transform: [{ translateX: progressOffset }] }} />
             </View>

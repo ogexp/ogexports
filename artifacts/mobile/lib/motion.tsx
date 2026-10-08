@@ -32,6 +32,7 @@ export function motionHaptic(kind: 'micro' | 'action' | 'success' | 'error') {
 
 type MotionContextValue = {
   reduceMotion: boolean;
+  motionSettingsReady: boolean;
   setReduceMotionPreference: (value: boolean) => Promise<void>;
   reduceMotionPreference: boolean;
 };
@@ -71,6 +72,7 @@ export function MotionProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<MotionContextValue>(() => ({
     reduceMotion: Boolean(!systemSettingKnown || !preferenceKnown || systemSetting || reduceMotionPreference),
+    motionSettingsReady: systemSettingKnown && preferenceKnown,
     reduceMotionPreference,
     setReduceMotionPreference: async (enabled: boolean) => {
       setPreference(enabled);
