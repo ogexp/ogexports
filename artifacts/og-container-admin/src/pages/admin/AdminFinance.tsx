@@ -654,7 +654,7 @@ export default function AdminFinance() {
                       )}
                       {deposits.map(d => (
                         <tr key={d.id} className="border-b border-border/50 hover:bg-muted/20">
-                          <td className="px-3 py-3 text-[11px] font-mono font-bold" style={{ color: EMERALD }}>{d.ref || d.id}</td>
+                          <td className="px-3 py-3 text-[11px] font-mono font-bold" style={{ color: EMERALD }}>{d.id}</td>
                           <td className="px-3 py-3 text-[12px] font-medium">{d.investor}</td>
                           <td className="px-3 py-3 text-[11px] text-muted-foreground">{d.email}</td>
                           <td className="px-3 py-3 text-[12px] font-bold text-green-600">{d.amount}</td>
@@ -716,7 +716,7 @@ export default function AdminFinance() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border">
-                        {["Investor", "Amount", "Bank Details", "Withdraw ID", "Requested", "Status", "Actions"].map(h => (
+                        {["Investor", "Amount", "Bank Details", "Withdrawal ID", "Reference", "Requested", "Status", "Actions"].map(h => (
                           <th key={h} className="text-left px-3 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase">{h}</th>
                         ))}
                       </tr>
@@ -724,7 +724,7 @@ export default function AdminFinance() {
                     <tbody>
                       {withdrawals.length === 0 && (
                         <tr>
-                          <td colSpan={7} className="px-3 py-8 text-center text-sm text-muted-foreground">
+                          <td colSpan={8} className="px-3 py-8 text-center text-sm text-muted-foreground">
                             No withdrawal requests yet.
                           </td>
                         </tr>
@@ -750,7 +750,8 @@ export default function AdminFinance() {
                               <div className="text-[10px]">{bd.iban || bd.swift}</div>
                             )}
                           </td>
-                          <td className="px-3 py-3 text-[10px] font-mono font-semibold" style={{ color: EMERALD }}>{w.ref}</td>
+                          <td className="px-3 py-3 text-[10px] font-mono font-semibold" style={{ color: EMERALD }}>{w.id}</td>
+                          <td className="px-3 py-3 text-[10px] font-mono text-muted-foreground">{w.ref || "—"}</td>
                           <td className="px-3 py-3 text-[11px] text-muted-foreground">{w.requested}</td>
                           <td className="px-3 py-3"><StatusBadge status={w.status} /></td>
                           <td className="px-3 py-3">
