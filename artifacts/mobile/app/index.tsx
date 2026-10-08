@@ -6,7 +6,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, useMotion } from '@/lib/motion';
 
-const INTRO_MIN_DURATION = 5000;
+const INTRO_MIN_DURATION = 6000;
+const ORBIT_SPIN_DURATION = 2400;
 
 export default function Entry() {
   const { ready, token, onboardingComplete, appUnlocked } = useAuth();
@@ -15,6 +16,7 @@ export default function Entry() {
   const useNativeDriver = Platform.OS !== 'web';
   const logoReveal = useRef(new Animated.Value(0)).current;
   const orbitReveal = useRef(new Animated.Value(0)).current;
+  const orbitSpin = useRef(new Animated.Value(0)).current;
   const haloReveal = useRef(new Animated.Value(0)).current;
   const wordmarkReveal = useRef(new Animated.Value(0)).current;
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
@@ -27,6 +29,7 @@ export default function Entry() {
 
     logoReveal.setValue(0);
     orbitReveal.setValue(0);
+    orbitSpin.setValue(0);
     haloReveal.setValue(0);
     wordmarkReveal.setValue(0);
     subtitleOpacity.setValue(0);
@@ -80,9 +83,19 @@ export default function Entry() {
         }),
       ]),
     ]);
+    const orbitLoop = Animated.loop(Animated.timing(orbitSpin, {
+      toValue: 1,
+      duration: ORBIT_SPIN_DURATION,
+      easing: Easing.linear,
+      useNativeDriver,
+    }));
     reveal.start();
-    return () => reveal.stop();
-  }, [haloReveal, logoReveal, motionSettingsReady, orbitReveal, reduceMotion, subtitleOpacity, useNativeDriver, wordmarkReveal]);
+    orbitLoop.start();
+    return () => {
+      reveal.stop();
+      orbitLoop.stop();
+    };
+  }, [haloReveal, logoReveal, motionSettingsReady, orbitReveal, orbitSpin, reduceMotion, subtitleOpacity, useNativeDriver, wordmarkReveal]);
 
   useEffect(() => {
     if (ready || reduceMotion || !motionSettingsReady) {
@@ -139,7 +152,7 @@ export default function Entry() {
   const logoTilt = logoReveal.interpolate({ inputRange: [0, 1], outputRange: ['-13deg', '0deg'] });
   const orbitOpacity = orbitReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 0.48] });
   const orbitScale = orbitReveal.interpolate({ inputRange: [0, 1], outputRange: [0.78, 1] });
-  const orbitRotation = orbitReveal.interpolate({ inputRange: [0, 1], outputRange: ['-48deg', '18deg'] });
+  const orbitRotation = orbitSpin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const haloOpacity = haloReveal.interpolate({ inputRange: [0, 0.55, 1], outputRange: [0, 0.13, 0.035] });
   const haloScale = haloReveal.interpolate({ inputRange: [0, 1], outputRange: [0.78, 1.2] });
   const wordmarkOpacity = wordmarkReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
