@@ -16,6 +16,7 @@ use App\Support\UserDisplayCurrency;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -55,7 +56,7 @@ class ComplianceController extends Controller
                 ->orWhere('email', 'like', "%{$search}%"));
         }
 
-        $paginator = $query->latest()->paginate($this->perPage($request));
+        $paginator = $query->latest('created_at')->orderByDesc('id')->paginate($this->perPage($request));
         $paginator->getCollection()->transform(fn (KycApplication $kyc) => $this->transformKyc($kyc));
 
         return response()->json($paginator);
@@ -93,6 +94,20 @@ class ComplianceController extends Controller
     public function kycApprove(Request $request, int $id): JsonResponse
     {
         $kyc = KycApplication::query()->with('user.profile')->findOrFail($id);
+        if ($kyc->type === 'investor') {
+            $submittedTypes = $kyc->documents->pluck('doc_type')->unique()->all();
+            $missingTypes = array_values(array_diff(
+                \App\Http\Controllers\Api\Investor\ProfileController::KYC_STEPS,
+                $submittedTypes,
+            ));
+
+            if ($missingTypes !== []) {
+                throw ValidationException::withMessages([
+                    'documents' => 'Cannot approve investor KYC while required documents are missing: '.implode(', ', $missingTypes),
+                ]);
+            }
+        }
+
         $kyc->update([
             'status' => 'approved',
             'reviewed_by' => $request->user()->id,

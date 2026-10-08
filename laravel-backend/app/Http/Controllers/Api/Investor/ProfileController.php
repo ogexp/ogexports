@@ -223,7 +223,8 @@ class ProfileController extends Controller
         $kyc = KycApplication::query()
             ->where('user_id', $user->id)
             ->whereIn('type', ['investor', 'individual', 'company'])
-            ->latest()
+            ->latest('created_at')
+            ->orderByDesc('id')
             ->first();
 
         if ($kyc && $kyc->status === 'approved') {
@@ -310,7 +311,8 @@ class ProfileController extends Controller
             ->where('user_id', $user->id)
             ->whereIn('type', ['investor', 'individual', 'company'])
             ->with('documents')
-            ->latest()
+            ->latest('created_at')
+            ->orderByDesc('id')
             ->first();
 
         $docsByType = collect($kyc?->documents ?? [])->keyBy('doc_type');

@@ -8,6 +8,7 @@ use App\Models\KycApplication;
 use App\Models\KycDocument;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class KycController extends Controller
 {
@@ -18,7 +19,8 @@ class KycController extends Controller
         $items = KycApplication::query()
             ->where('user_id', $request->user()->id)
             ->with('documents')
-            ->latest()
+            ->latest('created_at')
+            ->orderByDesc('id')
             ->paginate($this->perPage($request));
 
         return response()->json($items);
@@ -36,6 +38,17 @@ class KycController extends Controller
             'documents.*.original_name' => ['nullable', 'string', 'max:255'],
         ]);
 
+        if ($data['type'] === 'investor') {
+            $submittedTypes = array_column($data['documents'] ?? [], 'doc_type');
+            $missingTypes = array_values(array_diff(ProfileController::KYC_STEPS, $submittedTypes));
+
+            if ($missingTypes !== []) {
+                throw ValidationException::withMessages([
+                    'documents' => 'Upload all required KYC documents before submitting: '.implode(', ', $missingTypes),
+                ]);
+            }
+        }
+
         $userId = $request->user()->id;
         $investorTypes = ['investor', 'individual', 'company'];
 
@@ -43,7 +56,8 @@ class KycController extends Controller
             ->where('user_id', $userId)
             ->whereIn('type', $investorTypes)
             ->whereIn('status', ['pending', 'review'])
-            ->latest()
+            ->latest('created_at')
+            ->orderByDesc('id')
             ->first();
 
         if ($existingPending) {
@@ -66,7 +80,8 @@ class KycController extends Controller
                     ->where('user_id', $userId)
                     ->whereIn('type', $investorTypes)
                     ->where('status', 'approved')
-                    ->latest()
+                    ->latest('created_at')
+                    ->orderByDesc('id')
                     ->first();
 
                 return response()->json([

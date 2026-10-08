@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { AdminLayout } from "@/components/admin/AdminLayout"
 import { FileCheck, AlertTriangle, ScrollText, Shield, CheckCircle2, XCircle, Search, Landmark } from "lucide-react"
-import { getKYC, getAML, getAuditLogs, approveKYC, rejectKYC, updateAMLStatus, type AdminKYC, type AdminAMLAlert, type AdminAuditLog } from "@/lib/admin-data"
+import { getKYC, getAML, getAuditLogs, approveKYCAsync, rejectKYCAsync, updateAMLStatus, type AdminKYC, type AdminAMLAlert, type AdminAuditLog } from "@/lib/admin-data"
 import { AdminKycReviewPanel } from "@/components/admin/AdminKycReviewPanel"
 import { BankAccountReviews } from "@/pages/admin/BankAccountReviews"
 
@@ -62,6 +62,7 @@ export default function AdminCompliance() {
   }
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null)
   const [selectedKYC, setSelectedKYC] = useState<AdminKYC | null>(null)
+  const [kycAction, setKycAction] = useState<{ id: string; action: "approve" | "reject" } | null>(null)
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type })
@@ -74,18 +75,32 @@ export default function AdminCompliance() {
     setLogs(getAuditLogs())
   }
 
-  const handleApproveKYC = (id: string, name: string) => {
-    approveKYC(id)
-    refresh()
-    setSelectedKYC(null)
-    showToast(`✓ KYC approved — ${name}`, "success")
+  const handleApproveKYC = async (id: string, name: string) => {
+    setKycAction({ id, action: "approve" })
+    try {
+      await approveKYCAsync(id)
+      refresh()
+      setSelectedKYC(null)
+      showToast(`KYC approved — ${name}`, "success")
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "KYC approval failed", "error")
+    } finally {
+      setKycAction(null)
+    }
   }
 
-  const handleRejectKYC = (id: string, name: string) => {
-    rejectKYC(id)
-    refresh()
-    setSelectedKYC(null)
-    showToast(`✗ KYC rejected — ${name}`, "error")
+  const handleRejectKYC = async (id: string, name: string) => {
+    setKycAction({ id, action: "reject" })
+    try {
+      await rejectKYCAsync(id)
+      refresh()
+      setSelectedKYC(null)
+      showToast(`KYC rejected — ${name}`, "success")
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "KYC rejection failed", "error")
+    } finally {
+      setKycAction(null)
+    }
   }
 
   const handleAML = (id: string, status: AdminAMLAlert["status"]) => {
@@ -227,14 +242,14 @@ export default function AdminCompliance() {
                           </button>
                           {(k.status === "pending" || k.status === "review") && (
                             <>
-                              <button onClick={() => handleApproveKYC(k.id, k.name)}
+                              <button disabled={kycAction?.id === k.id} onClick={() => void handleApproveKYC(k.id, k.name)}
                                 className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-white"
                                 style={{ background: GREEN }}>
-                                <CheckCircle2 className="w-3 h-3 inline mr-1" />Approve
+                                <CheckCircle2 className="w-3 h-3 inline mr-1" />{kycAction?.id === k.id && kycAction.action === "approve" ? "Approving…" : "Approve"}
                               </button>
-                              <button onClick={() => handleRejectKYC(k.id, k.name)}
+                              <button disabled={kycAction?.id === k.id} onClick={() => void handleRejectKYC(k.id, k.name)}
                                 className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-red-500 text-white">
-                                <XCircle className="w-3 h-3 inline mr-1" />Reject
+                                <XCircle className="w-3 h-3 inline mr-1" />{kycAction?.id === k.id && kycAction.action === "reject" ? "Rejecting…" : "Reject"}
                               </button>
                             </>
                           )}
