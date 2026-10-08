@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { I18nManager, Platform, useColorScheme } from 'react-native';
 import { reloadAppAsync } from 'expo';
@@ -84,6 +84,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const currencySyncAttempt = useRef('');
 
   const profileQuery = useGetInvestorProfile({
     query: {
@@ -104,6 +105,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   const profile = unwrap(profileQuery.data);
   const rateResponse = unwrap(ratesQuery.data);
   const walletCurrency = first(record(profile.user), ['walletCurrency', 'wallet_currency']).toUpperCase();
+  const profileCurrencyPreference = parsePreferences(profile.preferences).currency;
   const rates = normalizeRates(rateResponse.rates, first(rateResponse, ['base']).toUpperCase());
   const ratesAsOf = first(rateResponse, ['as_of', 'updated_at']);
   const isRTL = preferences.language === 'ur' || preferences.language === 'ar';
@@ -160,6 +162,51 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
       }
     }
   }, [preferencesLoaded, profileQuery.data, userId, walletCurrency]);
+
+  useEffect(() => {
+    if (!preferencesLoaded || !profileQuery.data || !userId || !token) {
+      currencySyncAttempt.current = '';
+      return;
+    }
+    if (!profileCurrencyPreference || !walletCurrency || profileCurrencyPreference === walletCurrency) {
+      currencySyncAttempt.current = '';
+      return;
+    }
+    if (isSaving) return;
+
+    const attemptKey = `${userId}:${profileCurrencyPreference}:${walletCurrency}`;
+    if (currencySyncAttempt.current === attemptKey) return;
+    currencySyncAttempt.current = attemptKey;
+    setError('');
+    setIsSaving(true);
+
+    void (async () => {
+      try {
+        const currentPreferences = record(profile.preferences);
+        await updateProfile.mutateAsync({
+          data: { preferences: { ...currentPreferences, currency: profileCurrencyPreference } },
+        });
+        await queryClient.invalidateQueries();
+      } catch (syncError) {
+        setError(syncError instanceof Error
+          ? syncError.message
+          : 'Wallet currency could not be synchronized with Profile.');
+      } finally {
+        setIsSaving(false);
+      }
+    })();
+  }, [
+    preferencesLoaded,
+    profileQuery.data,
+    profile.preferences,
+    profileCurrencyPreference,
+    walletCurrency,
+    userId,
+    token,
+    isSaving,
+    updateProfile,
+    queryClient,
+  ]);
 
   useEffect(() => {
     if (!preferencesLoaded) return;
