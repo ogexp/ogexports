@@ -1197,32 +1197,6 @@ export const GetInvestorWalletTransactionsResponse = zod.record(zod.string(), zo
 
 
 /**
- * @summary Get one wallet transaction owned by the authenticated investor
- */
-
-
-
-export const GetInvestorWalletTransactionParams = zod.object({
-  "id": zod.coerce.number().int().min(1)
-})
-
-export const GetInvestorWalletTransactionResponse = zod.object({
-  "data": zod.object({
-  "withdrawal_breakdown": zod.union([zod.object({
-  "payout_amount": zod.number().describe('Requested bank payout in the wallet currency.'),
-  "payout_amount_usd": zod.number().nullable().describe('Saved USD equivalent of the payout, when one was recorded.'),
-  "fee": zod.number().nullable().describe('Recorded withdrawal fee in the wallet currency; null when no fee was saved.'),
-  "fee_usd": zod.number().nullable().describe('Saved USD equivalent of the fee; null when none was recorded.'),
-  "total_debit": zod.number().nullable().describe('Recorded total debit, or actual ledger debit for older withdrawals.'),
-  "total_debit_usd": zod.number().nullable().describe('Saved USD equivalent of the total debit, when one was recorded.'),
-  "currency": zod.string().nullable().describe('Currency recorded for the wallet withdrawal.'),
-  "exchange_rate": zod.number().nullable().describe('Saved PKR-per-USD exchange-rate snapshot, when one was recorded.')
-}),zod.null()])
-})
-})
-
-
-/**
  * @summary Get supported currency exchange rates
  */
 export const GetInvestorExchangeRatesResponse = zod.record(zod.string(), zod.unknown())

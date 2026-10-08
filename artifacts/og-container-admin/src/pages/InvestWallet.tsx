@@ -604,7 +604,7 @@ export default function InvestWallet() {
                         return (
                           <div key={t.id} className="flex items-center gap-4 px-5 py-4 hover:bg-muted/20 transition-colors">
                             <Link
-                              href={`/invest/transactions/wallet/${encodeURIComponent(String(t.id))}`}
+                              href={`/invest/transactions/wallet/${encodeURIComponent(String(t.id))}?page=${effectiveSelected === walletCurrency && viewAll ? txnPage : 1}&per_page=${effectiveSelected === walletCurrency ? TXN_PER_PAGE : 100}`}
                               aria-label={`Open transaction details for ${t.ref || t.id}`}
                               className="flex flex-1 min-w-0 items-center gap-4 text-inherit"
                             >

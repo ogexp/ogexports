@@ -75,8 +75,6 @@ export * from './investorPushTokenRegistrationPlatform';
 export * from './investorPushTokenRevocation';
 export * from './investorWalletResponse';
 export * from './investorWalletResponseData';
-export * from './investorWalletTransactionDetail';
-export * from './investorWalletTransactionResponse';
 export * from './investorWalletWithdrawalBreakdown';
 export * from './investorWithdrawalInput';
 export * from './investorWithdrawalInputBankDetails';

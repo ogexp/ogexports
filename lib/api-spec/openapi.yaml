@@ -420,22 +420,6 @@ paths:
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
       responses:
         "200": { description: Wallet ledger, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
-  /investor/wallet/transactions/{id}:
-    get:
-      operationId: getInvestorWalletTransaction
-      tags: [investor]
-      summary: Get one wallet transaction owned by the authenticated investor
-      security: [{ BearerAuth: [] }]
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
-      responses:
-        "200":
-          description: Wallet transaction
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/InvestorWalletTransactionResponse" }
-        "404":
-          description: Transaction not found for this investor
   /investor/wallet/exchange-rates:
     get:
       operationId: getInvestorExchangeRates
@@ -1694,22 +1678,6 @@ components:
         exchange_rate:
           type: ["number", "null"]
           description: Saved PKR-per-USD exchange-rate snapshot, when one was recorded.
-    InvestorWalletTransactionDetail:
-      type: object
-      additionalProperties: true
-      required: [withdrawal_breakdown]
-      properties:
-        withdrawal_breakdown:
-          anyOf:
-            - $ref: "#/components/schemas/InvestorWalletWithdrawalBreakdown"
-            - type: "null"
-    InvestorWalletTransactionResponse:
-      type: object
-      additionalProperties: true
-      required: [data]
-      properties:
-        data:
-          $ref: "#/components/schemas/InvestorWalletTransactionDetail"
     InvestorMonthlyStatementResponse:
       type: object
       additionalProperties: true

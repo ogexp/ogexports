@@ -702,16 +702,6 @@ export interface InvestorWalletWithdrawalBreakdown {
   exchange_rate: number | null;
 }
 
-export interface InvestorWalletTransactionDetail {
-  withdrawal_breakdown: InvestorWalletWithdrawalBreakdown | null;
-  [key: string]: unknown;
- }
-
-export interface InvestorWalletTransactionResponse {
-  data: InvestorWalletTransactionDetail;
-  [key: string]: unknown;
- }
-
 export type InvestorMonthlyStatementResponseDataTransactionsItemWithdrawalBreakdown = {
   /** @nullable */
   payout_amount: number | null;

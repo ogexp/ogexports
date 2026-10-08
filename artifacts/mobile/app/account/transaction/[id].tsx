@@ -3,12 +3,12 @@ import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   useGetInvestorDeposit,
-  useGetInvestorWalletTransaction,
+  useGetInvestorWalletTransactions,
   useGetInvestorWithdrawal,
 } from '@workspace/api-client-react';
 import { Card, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
 import { LocalizedText as Text } from '@/components/LocalizedText';
-import { amount, first, messageOf, money, record, unwrap } from '@/lib/data';
+import { amount, first, list, messageOf, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
@@ -34,23 +34,35 @@ export default function TransactionDetails() {
   const { token } = useAuth();
   const colors = useColors();
   const router = useRouter();
-  const params = useLocalSearchParams<{ id?: string; kind?: string }>();
+  const params = useLocalSearchParams<{ id?: string; kind?: string; page?: string }>();
   const id = typeof params.id === 'string' && /^\d+$/.test(params.id) ? params.id : '';
+  const sourcePage = typeof params.page === 'string' && /^\d+$/.test(params.page)
+    ? Math.max(1, Number(params.page))
+    : 1;
   const requestedKind = typeof params.kind === 'string' ? params.kind : 'wallet';
   const kind = requestedKind === 'deposit' || requestedKind === 'withdrawal' ? requestedKind : 'wallet';
-  const queryOptions = (sourceKind: 'wallet' | 'deposit' | 'withdrawal', enabled: boolean) => ({
+  const queryOptions = (sourceKind: 'deposit' | 'withdrawal', enabled: boolean) => ({
     query: {
       queryKey: ['investor-transaction-detail', sourceKind, id],
       enabled: Boolean(token && id && enabled),
       staleTime: 20_000,
     },
   });
-  const walletQuery = useGetInvestorWalletTransaction(Number(id), queryOptions('wallet', kind === 'wallet'));
+  const walletQuery = useGetInvestorWalletTransactions({ page: sourcePage, per_page: 100 }, {
+    query: {
+      queryKey: ['investor-wallet-transactions', sourcePage, 100],
+      enabled: Boolean(token && id && kind === 'wallet'),
+      staleTime: 20_000,
+    },
+  });
   const depositQuery = useGetInvestorDeposit(Number(id), queryOptions('deposit', kind === 'deposit'));
   const withdrawalQuery = useGetInvestorWithdrawal(Number(id), queryOptions('withdrawal', kind === 'withdrawal'));
   const query = kind === 'deposit' ? depositQuery : kind === 'withdrawal' ? withdrawalQuery : walletQuery;
-  const transaction = record(unwrap(query.data));
-  const hasRecord = query.data != null && Object.keys(transaction).length > 0;
+  const walletTransaction = kind === 'wallet'
+    ? list(walletQuery.data).find(item => first(item, ['id', 'transaction_id']) === id)
+    : undefined;
+  const transaction = kind === 'wallet' ? walletTransaction ?? {} : record(unwrap(query.data));
+  const hasRecord = Object.keys(transaction).length > 0;
   const meta = record(transaction.meta);
   const withdrawalBreakdown = kind === 'withdrawal'
     ? transaction

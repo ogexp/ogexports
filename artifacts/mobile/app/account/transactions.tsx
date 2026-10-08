@@ -704,7 +704,7 @@ export default function Transactions() {
         motionHaptic('micro');
         setReceiptError('');
         if (row.detailKind === 'investment' && /^\d+$/.test(row.transactionId)) {
-          router.push({ pathname: '/account/transaction/[id]', params: { id: row.transactionId, kind: 'wallet' } });
+          router.push({ pathname: '/account/transaction/[id]', params: { id: row.transactionId, kind: 'wallet', page: String(page) } });
           return;
         }
         if (row.detailKind === 'investment' && row.detailId) {
@@ -716,7 +716,7 @@ export default function Transactions() {
           return;
         }
         if (/^\d+$/.test(row.transactionId)) {
-          router.push({ pathname: '/account/transaction/[id]', params: { id: row.transactionId, kind: 'wallet' } });
+          router.push({ pathname: '/account/transaction/[id]', params: { id: row.transactionId, kind: 'wallet', page: String(page) } });
           return;
         }
         setSelectedId(active ? '' : row.key);
