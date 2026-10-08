@@ -1,9 +1,10 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
 
@@ -83,9 +84,10 @@ it('renumbers financial primary IDs and preserves their references', function ()
         'status' => 'completed',
         'meta' => json_encode([
             'investment_id' => $investmentId,
-            'deposit_id' => $depositId,
+            'deposit_id' => (string) $depositId,
             'withdrawal_id' => $withdrawalId,
             'platform_wallet_transaction_id' => $platformTransactionId,
+            'related' => ['withdrawal_id' => (string) $withdrawalId],
         ]),
         'created_at' => $now,
         'updated_at' => $now,
@@ -150,6 +152,7 @@ it('renumbers financial primary IDs and preserves their references', function ()
     foreach ($ids as $id) {
         expect((string) $id)->toMatch('/^[1-9][0-9]{7}$/');
     }
+    expect(Schema::hasTable('financial_transaction_id_migrations'))->toBeTrue();
 
     $distribution = DB::table('investment_profit_distributions')->where('id', $distributionId + $offset)->first();
     expect((int) $distribution->investment_id)->toBe($investmentId + $offset);
@@ -161,9 +164,10 @@ it('renumbers financial primary IDs and preserves their references', function ()
         true
     );
     expect($walletMeta['investment_id'])->toBe($investmentId + $offset);
-    expect($walletMeta['deposit_id'])->toBe($depositId + $offset);
+    expect($walletMeta['deposit_id'])->toBe((string) ($depositId + $offset));
     expect($walletMeta['withdrawal_id'])->toBe($withdrawalId + $offset);
     expect($walletMeta['platform_wallet_transaction_id'])->toBe($platformTransactionId + $offset);
+    expect($walletMeta['related']['withdrawal_id'])->toBe((string) ($withdrawalId + $offset));
 
     $platformMeta = json_decode(
         (string) DB::table('platform_wallet_transactions')->where('id', $platformTransactionId + $offset)->value('meta'),
@@ -180,6 +184,35 @@ it('renumbers financial primary IDs and preserves their references', function ()
         expect(DB::select('PRAGMA foreign_key_check'))->toBe([]);
     }
 
+    $insertDeposit = function (int $id) use ($user, $now): void {
+        DB::table('deposits')->insert([
+            'id' => $id,
+            'investor_id' => $user->id,
+            'amount' => 1,
+            'method' => 'bank_transfer',
+            'status' => 'pending',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+    };
+
+    $migratedDepositId = $depositId + $offset;
+    foreach ([10_000_000, 99_999_999] as $boundaryId) {
+        DB::table('deposits')->where('id', $migratedDepositId)->update(['id' => $boundaryId]);
+        expect(DB::table('deposits')->where('id', $boundaryId)->exists())->toBeTrue();
+        DB::table('deposits')->where('id', $boundaryId)->update(['id' => $migratedDepositId]);
+    }
+
+    foreach ([9_999_999, 100_000_000] as $invalidId) {
+        expect(fn () => DB::transaction(fn () => DB::table('deposits')
+            ->where('id', $migratedDepositId)
+            ->update(['id' => $invalidId])))
+            ->toThrow(QueryException::class);
+
+        expect(fn () => DB::transaction(fn () => $insertDeposit($invalidId)))
+            ->toThrow(QueryException::class);
+    }
+
     $nextWalletTransactionId = DB::table('wallet_transactions')->insertGetId([
         'wallet_id' => $walletId,
         'type' => 'fixture_followup',
@@ -191,8 +224,108 @@ it('renumbers financial primary IDs and preserves their references', function ()
     ]);
     expect((string) $nextWalletTransactionId)->toMatch('/^[1-9][0-9]{7}$/');
 
-    expect(fn () => DB::table('deposits')
-        ->where('id', $depositId + $offset)
-        ->update(['id' => 100_000_000]))
-        ->toThrow(QueryException::class);
+    $transactionTables = [
+        'investments',
+        'wallet_transactions',
+        'deposits',
+        'withdrawals',
+        'investment_profit_distributions',
+        'platform_wallet_transactions',
+    ];
+
+    if (DB::connection()->getDriverName() === 'pgsql') {
+        $assertForeignKeysAreRestored = function (): void {
+            $constraints = DB::select(
+                "SELECT conname, convalidated, condeferrable
+                 FROM pg_constraint
+                 WHERE conname IN (
+                    'investment_profit_distributions_investment_id_foreign',
+                    'investment_profit_distributions_wallet_transaction_id_foreign',
+                    'investment_payout_progress_investment_id_foreign'
+                 )"
+            );
+
+            expect(count($constraints))->toBe(3);
+            foreach ($constraints as $constraint) {
+                expect((bool) $constraint->convalidated)->toBeTrue();
+                expect((bool) $constraint->condeferrable)->toBeFalse();
+            }
+        };
+
+        $assertSequencesMatchTableMaxima = function (int $minimum) use ($offset, $transactionTables): void {
+            foreach ($transactionTables as $table) {
+                $sequence = DB::selectOne(
+                    "SELECT pg_get_serial_sequence(?, 'id') AS sequence_name",
+                    [$table]
+                )?->sequence_name;
+                expect($sequence)->not->toBeNull();
+
+                $nextId = (int) DB::selectOne(
+                    'SELECT nextval(CAST(? AS regclass)) AS next_id',
+                    [$sequence]
+                )->next_id;
+                $maximum = (int) DB::table($table)->max('id');
+
+                expect($nextId)->toBe($maximum + 1);
+                expect($nextId)->toBeGreaterThanOrEqual($minimum);
+                if ($minimum === $offset) {
+                    expect($nextId)->toBeLessThanOrEqual(99_999_999);
+                }
+            }
+        };
+
+        $assertForeignKeysAreRestored();
+        $assertSequencesMatchTableMaxima($offset);
+    }
+
+    $migration->down();
+
+    expect(Schema::hasTable('financial_transaction_id_migrations'))->toBeFalse();
+    expect(DB::table('investments')->where('id', $investmentId)->exists())->toBeTrue();
+    expect(DB::table('wallet_transactions')->where('id', $walletTransactionId)->exists())->toBeTrue();
+    expect(DB::table('wallet_transactions')->where('id', $nextWalletTransactionId - $offset)->exists())->toBeTrue();
+    expect(DB::table('deposits')->where('id', $depositId)->exists())->toBeTrue();
+    expect(DB::table('withdrawals')->where('id', $withdrawalId)->exists())->toBeTrue();
+    expect(DB::table('investment_profit_distributions')->where('id', $distributionId)->exists())->toBeTrue();
+    expect(DB::table('platform_wallet_transactions')->where('id', $platformTransactionId)->exists())->toBeTrue();
+
+    $distribution = DB::table('investment_profit_distributions')->where('id', $distributionId)->first();
+    expect((int) $distribution->investment_id)->toBe($investmentId);
+    expect((int) $distribution->wallet_transaction_id)->toBe($walletTransactionId);
+    expect((int) DB::table('investment_payout_progress')->value('investment_id'))->toBe($investmentId);
+
+    $walletMeta = json_decode(
+        (string) DB::table('wallet_transactions')->where('id', $walletTransactionId)->value('meta'),
+        true
+    );
+    expect($walletMeta['investment_id'])->toBe($investmentId);
+    expect($walletMeta['deposit_id'])->toBe((string) $depositId);
+    expect($walletMeta['withdrawal_id'])->toBe($withdrawalId);
+    expect($walletMeta['platform_wallet_transaction_id'])->toBe($platformTransactionId);
+    expect($walletMeta['related']['withdrawal_id'])->toBe((string) $withdrawalId);
+
+    $platformMeta = json_decode(
+        (string) DB::table('platform_wallet_transactions')->where('id', $platformTransactionId)->value('meta'),
+        true
+    );
+    expect($platformMeta['investment_id'])->toBe($investmentId);
+    expect($platformMeta['wallet_transaction_id'])->toBe($walletTransactionId);
+
+    $notificationData = json_decode((string) DB::table('notifications')->value('data'), true);
+    expect($notificationData['investment_id'])->toBe($investmentId);
+    $auditMeta = json_decode((string) DB::table('audit_logs')->value('meta'), true);
+    expect($auditMeta['deposit_id'])->toBe($depositId);
+
+    if (DB::connection()->getDriverName() === 'sqlite') {
+        expect(DB::select('PRAGMA foreign_key_check'))->toBe([]);
+    }
+
+    if (DB::connection()->getDriverName() === 'pgsql') {
+        $assertForeignKeysAreRestored();
+        $assertSequencesMatchTableMaxima(1);
+    }
+
+    $insertDeposit(100_000_000);
+    expect(DB::table('deposits')->where('id', 100_000_000)->exists())->toBeTrue();
+    DB::table('deposits')->where('id', 100_000_000)->delete();
 });
