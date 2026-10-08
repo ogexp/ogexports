@@ -29,6 +29,15 @@ function firstAvailable(sources: Record<string, unknown>[], keys: string[], fall
   return fallback;
 }
 
+function validRelatedId(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value !== 'string' && typeof value !== 'number') continue;
+    const id = String(value).trim();
+    if (/^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id))) return id;
+  }
+  return '';
+}
+
 export default function PositionDetail() {
   const { id: raw } = useLocalSearchParams<{ id: string }>();
   const id = String(raw ?? '');
@@ -53,6 +62,14 @@ export default function PositionDetail() {
   const row = unwrap(query.data);
   const project = record(row.project ?? row.trade ?? row.trade_details);
   const trade = record(row.trade ?? row.project ?? row.trade_details);
+  const relatedTradeId = validRelatedId(
+    row.project_id,
+    row.trade_id,
+    project.project_id,
+    project.id,
+    trade.project_id,
+    trade.id,
+  );
   const container = record(row.container ?? row.container_details ?? project.container ?? project.container_details ?? trade.container ?? trade.container_details);
   const projectMeta = record(project.meta ?? trade.meta ?? row.meta);
   const rowMeta = record(row.meta);
@@ -251,6 +268,16 @@ export default function PositionDetail() {
           <Text style={{ color: colors.foreground, fontWeight: '600', textAlign: 'right', flex: 1 }}>{value}</Text>
         </View>)}
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 11 }}>Trade details reflect information reported by OG Exports.</Text>
+        {relatedTradeId ? <Pressable
+          testID="position-open-related-trade"
+          accessibilityRole="link"
+          accessibilityLabel="View related trade"
+          onPress={() => router.push({ pathname: '/project/[id]', params: { id: relatedTradeId } })}
+          style={({ pressed }) => ({ minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 12, borderRadius: 12, backgroundColor: colors.secondary, opacity: pressed ? 0.75 : 1 })}
+        >
+          <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>View related trade</Text>
+          <Feather name="arrow-up-right" size={15} color={colors.primary} />
+        </Pressable> : null}
       </Card>
 
       <Section title="Container tracking" />

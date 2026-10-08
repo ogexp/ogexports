@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "wouter"
-import { ArrowLeft, Download, FileText, Loader2, Package } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, Download, FileText, Loader2, Package } from "lucide-react"
 import { InvestPortalLayout } from "@/components/invest/InvestPortalLayout"
 import { InvestmentPositionCard, mapRowToPosition, type InvestmentPositionData } from "@/components/invest/InvestmentPositionCard"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,15 @@ import { notify } from "@/lib/notify"
 import { formatInvestorProjectAmount } from "@/lib/invest-format"
 import { containerProjectStatusLabel } from "@/lib/container-project-statuses"
 import { investmentStatusLabel } from "@/lib/investment-statuses"
+
+function validRelatedId(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value !== "string" && typeof value !== "number") continue
+    const id = String(value).trim()
+    if (/^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id))) return id
+  }
+  return ""
+}
 
 export default function InvestmentPositionDetail() {
   const params = useParams<{ id: string }>()
@@ -53,7 +62,16 @@ export default function InvestmentPositionDetail() {
     return () => { cancelled = true }
   }, [investmentId, refreshVersion])
 
-  const project = raw?.project || {}
+  const project = raw?.project ?? raw?.trade ?? raw?.trade_details ?? {}
+  const trade = raw?.trade ?? raw?.trade_details ?? project
+  const relatedTradeId = validRelatedId(
+    raw?.project_id,
+    raw?.trade_id,
+    project?.project_id,
+    project?.id,
+    trade?.project_id,
+    trade?.id,
+  )
   const docs = Array.isArray(project.documents) ? project.documents : []
 
   async function handleDownloadPdf() {
@@ -183,6 +201,14 @@ export default function InvestmentPositionDetail() {
                     <span className="text-muted-foreground">Total return</span>
                     <span className="font-bold">Not provided</span>
                   </div>
+                  {relatedTradeId && (
+                    <Button asChild size="sm" variant="outline" className="w-full justify-between" data-testid="investment-related-trade">
+                      <Link href={`/invest/${encodeURIComponent(relatedTradeId)}`}>
+                        View related trade
+                        <ArrowUpRight className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                  )}
                   {project.description && (
                     <div className="pt-2 border-t border-border">
                       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Description</p>
