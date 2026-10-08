@@ -8,6 +8,7 @@ import { MOTION, useMotion } from '@/lib/motion';
 
 const INTRO_MIN_DURATION = 6000;
 const ORBIT_SPIN_DURATION = 2400;
+const OUTER_ORBIT_SPIN_DURATION = 3600;
 
 export default function Entry() {
   const { ready, token, onboardingComplete, appUnlocked } = useAuth();
@@ -17,6 +18,8 @@ export default function Entry() {
   const logoReveal = useRef(new Animated.Value(0)).current;
   const orbitReveal = useRef(new Animated.Value(0)).current;
   const orbitSpin = useRef(new Animated.Value(0)).current;
+  const outerOrbitReveal = useRef(new Animated.Value(0)).current;
+  const outerOrbitSpin = useRef(new Animated.Value(0)).current;
   const haloReveal = useRef(new Animated.Value(0)).current;
   const wordmarkReveal = useRef(new Animated.Value(0)).current;
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
@@ -30,6 +33,8 @@ export default function Entry() {
     logoReveal.setValue(0);
     orbitReveal.setValue(0);
     orbitSpin.setValue(0);
+    outerOrbitReveal.setValue(0);
+    outerOrbitSpin.setValue(0);
     haloReveal.setValue(0);
     wordmarkReveal.setValue(0);
     subtitleOpacity.setValue(0);
@@ -43,6 +48,15 @@ export default function Entry() {
       Animated.sequence([
         Animated.delay(55),
         Animated.timing(orbitReveal, {
+          toValue: 1,
+          duration: MOTION.modal * 4 + MOTION.micro * 2,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver,
+        }),
+      ]),
+      Animated.sequence([
+        Animated.delay(MOTION.micro),
+        Animated.timing(outerOrbitReveal, {
           toValue: 1,
           duration: MOTION.modal * 4 + MOTION.micro * 2,
           easing: Easing.out(Easing.cubic),
@@ -89,13 +103,21 @@ export default function Entry() {
       easing: Easing.linear,
       useNativeDriver,
     }));
+    const outerOrbitLoop = Animated.loop(Animated.timing(outerOrbitSpin, {
+      toValue: 1,
+      duration: OUTER_ORBIT_SPIN_DURATION,
+      easing: Easing.linear,
+      useNativeDriver,
+    }));
     reveal.start();
     orbitLoop.start();
+    outerOrbitLoop.start();
     return () => {
       reveal.stop();
       orbitLoop.stop();
+      outerOrbitLoop.stop();
     };
-  }, [haloReveal, logoReveal, motionSettingsReady, orbitReveal, orbitSpin, reduceMotion, subtitleOpacity, useNativeDriver, wordmarkReveal]);
+  }, [haloReveal, logoReveal, motionSettingsReady, orbitReveal, orbitSpin, outerOrbitReveal, outerOrbitSpin, reduceMotion, subtitleOpacity, useNativeDriver, wordmarkReveal]);
 
   useEffect(() => {
     if (ready || reduceMotion || !motionSettingsReady) {
@@ -153,6 +175,9 @@ export default function Entry() {
   const orbitOpacity = orbitReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 0.48] });
   const orbitScale = orbitReveal.interpolate({ inputRange: [0, 1], outputRange: [0.78, 1] });
   const orbitRotation = orbitSpin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const outerOrbitOpacity = outerOrbitReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 0.28] });
+  const outerOrbitScale = outerOrbitReveal.interpolate({ inputRange: [0, 1], outputRange: [0.88, 1] });
+  const outerOrbitRotation = outerOrbitSpin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-360deg'] });
   const haloOpacity = haloReveal.interpolate({ inputRange: [0, 0.55, 1], outputRange: [0, 0.13, 0.035] });
   const haloScale = haloReveal.interpolate({ inputRange: [0, 1], outputRange: [0.78, 1.2] });
   const wordmarkOpacity = wordmarkReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
@@ -162,7 +187,7 @@ export default function Entry() {
   return (
     <Animated.View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 28, opacity: screenOpacity }}>
       <View style={{ alignItems: 'center' }}>
-        <View style={{ width: 220, height: 144, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <View style={{ width: 220, height: 186, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
           <Animated.View
             style={{
               pointerEvents: 'none',
@@ -175,6 +200,25 @@ export default function Entry() {
               transform: [{ scale: playIntroMotion ? haloScale : 1 }],
             }}
           />
+          <Animated.View
+            style={{
+              pointerEvents: 'none',
+              position: 'absolute',
+              width: 208,
+              height: 208,
+              borderRadius: 104,
+              borderWidth: 1,
+              borderColor: colors.accent,
+              opacity: playIntroMotion ? outerOrbitOpacity : showStaticIntro ? 0.28 : 0,
+              transform: [
+                { scale: playIntroMotion ? outerOrbitScale : 1 },
+                { rotate: playIntroMotion ? outerOrbitRotation : '0deg' },
+              ],
+            }}
+          >
+            <View style={{ position: 'absolute', left: -3, top: 101, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent }} />
+            <View style={{ position: 'absolute', left: 13, top: 165, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.65 }} />
+          </Animated.View>
           <Animated.View
             style={{
               pointerEvents: 'none',
