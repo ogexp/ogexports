@@ -18,3 +18,4 @@
 - [Laravel test storage isolation](laravel-testing-storage-isolation.md) — avoid `Storage::fake('local')` when its shared framework test-disk directory contains tracked fixtures.
 - [OG Exports mobile motion performance](og-mobile-motion-performance.md) — keep animations short, native-driven, reduced-motion aware, and never imply unreported financial outcomes.
 - [OpenAPI date query serialization](openapi-date-query-serialization.md) — date-only query params must remain strings with a YYYY-MM-DD pattern under the current Orval client generator.
+- [ZIP delivery preference](zip-delivery-preference.md) — create or refresh an app ZIP only when the user explicitly asks for one.
