@@ -365,7 +365,7 @@ export default function Settings() {
       {appPreferences.walletCurrency
         && appPreferences.walletCurrency !== appPreferences.preferences.currency
         ? <Text style={{ color: colors.primary, fontSize: 11, lineHeight: 17, marginBottom: 14 }}>
-          {translateUi('Your wallet and Profile currencies differ. Tap the selected currency to convert the available balance.', appLanguage)}
+          {translateUi('Deposit and withdrawal requests are paused until the wallet matches your Profile currency.', appLanguage)}
           {' '}{appPreferences.walletCurrency} → {appPreferences.preferences.currency}
         </Text>
         : null}

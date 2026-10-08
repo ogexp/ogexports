@@ -270,7 +270,7 @@ export default function Deposit() {
       return false;
     }
     if (currencyMismatch) {
-      setError('Your wallet and Profile currencies differ. Tap the selected currency to convert the available balance.');
+      setError('Your wallet and Profile currencies must match before continuing. No request was sent.');
       return false;
     }
     if (dashboardQuery.isError || dashboardQuery.isLoading || dashboardQuery.isFetching || !walletCurrency) {
@@ -387,7 +387,6 @@ export default function Deposit() {
         mismatchedCurrencies={currencyMismatchCurrencies}
         profileCurrency={profileCurrency}
         language={appPreferences.preferences.language}
-        onOpenSettings={() => router.push('/account/settings' as never)}
       /> : null}
       {DEPOSIT_PAYMENT_METHODS.map(method => {
         const selected = method.id === paymentMethodId;
@@ -450,7 +449,6 @@ export default function Deposit() {
         mismatchedCurrencies={currencyMismatchCurrencies}
         profileCurrency={profileCurrency}
         language={appPreferences.preferences.language}
-        onOpenSettings={() => router.push('/account/settings' as never)}
       /> : null}
       {dashboardQuery.isError ? <ErrorState message="Wallet currency could not be loaded." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} /> : null}
       {!currencyCheckLoading && !currencyMismatch && !dashboardQuery.isError ? <>
@@ -561,7 +559,6 @@ export default function Deposit() {
         mismatchedCurrencies={currencyMismatchCurrencies}
         profileCurrency={profileCurrency}
         language={appPreferences.preferences.language}
-        onOpenSettings={() => router.push('/account/settings' as never)}
       /> : null}
       <DetailRow label="Amount" value={money(Number(amount), paymentCurrency || 'USD')} />
       <DetailRow label="OG Exports fee (0%)" value={money(paymentFeeAmount, paymentCurrency || 'USD')} />

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Feather } from '@expo/vector-icons';
 import { View } from 'react-native';
-import { Action } from '@/components/InvestorUI';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useColors } from '@/hooks/useColors';
 import { translateUi, type AppLanguage } from '@/lib/strings';
@@ -10,7 +9,6 @@ type Props = {
   mismatchedCurrencies: string[];
   profileCurrency: string;
   language: AppLanguage;
-  onOpenSettings: () => void;
   testID?: string;
 };
 
@@ -18,7 +16,6 @@ export function WalletCurrencyMismatchNotice({
   mismatchedCurrencies,
   profileCurrency,
   language,
-  onOpenSettings,
   testID = 'wallet-currency-mismatch',
 }: Props) {
   const colors = useColors();
@@ -36,7 +33,7 @@ export function WalletCurrencyMismatchNotice({
       <Feather name="alert-triangle" size={17} color={colors.destructive} style={{ marginTop: 2 }} />
       <View style={{ flex: 1 }}>
         <Text accessibilityRole="alert" style={{ color: colors.foreground, fontSize: 12, lineHeight: 18, fontWeight: '600' }}>
-          {translateUi('Your wallet and Profile currencies differ. Tap the selected currency to convert the available balance.', language)}
+          {translateUi('Wallet currency follows your Profile currency.', language)}
         </Text>
         <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: '700', marginTop: 5 }}>
           {mismatchedCurrencies.join(' / ')} → {profileCurrency}
@@ -44,9 +41,7 @@ export function WalletCurrencyMismatchNotice({
       </View>
     </View>
     <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 9, marginBottom: 11 }}>
-      {translateUi('Deposit and withdrawal requests are paused until the server confirms your Profile currency.', language)}
+      {translateUi('Deposit and withdrawal requests are paused until the wallet matches your Profile currency.', language)}
     </Text>
-    <Action title={translateUi('Settings', language)} icon="settings" secondary
-      testID="currency-sync-settings" onPress={onOpenSettings} />
   </View>;
 }

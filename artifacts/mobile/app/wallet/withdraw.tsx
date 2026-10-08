@@ -286,7 +286,7 @@ export default function Withdraw() {
       return;
     }
     if (currencyMismatch) {
-      setError('Your wallet and Profile currencies differ. Tap the selected currency to convert the available balance.');
+      setError('Your wallet and Profile currencies must match before continuing. No request was sent.');
       setStage('form');
       return;
     }
@@ -311,7 +311,7 @@ export default function Withdraw() {
       return;
     }
     if (currencyMismatch) {
-      setError('Your wallet and Profile currencies differ. Tap the selected currency to convert the available balance.');
+      setError('Your wallet and Profile currencies must match before continuing. No request was sent.');
       return;
     }
     if (dashboardQuery.isError || dashboardQuery.isFetching) {
@@ -349,7 +349,7 @@ export default function Withdraw() {
       return;
     }
     if (currencyMismatch) {
-      setError('Your wallet and Profile currencies differ. Tap the selected currency to convert the available balance.');
+      setError('Your wallet and Profile currencies must match before continuing. No request was sent.');
       setStage('form');
       return;
     }
@@ -438,7 +438,6 @@ export default function Withdraw() {
         mismatchedCurrencies={currencyMismatchCurrencies}
         profileCurrency={profileCurrency}
         language={appPreferences.preferences.language}
-        onOpenSettings={() => router.push('/account/settings' as never)}
       /> : null}
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Card style={{ flex: 1, borderTopWidth: 3, borderTopColor: colors.border }}>
@@ -497,7 +496,6 @@ export default function Withdraw() {
         mismatchedCurrencies={currencyMismatchCurrencies}
         profileCurrency={profileCurrency}
         language={appPreferences.preferences.language}
-        onOpenSettings={() => router.push('/account/settings' as never)}
       /> : null}
       {profileQuery.isError ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginBottom: 8 }}>
         Saved bank details could not be loaded. You can still enter them below.
@@ -596,7 +594,6 @@ export default function Withdraw() {
         mismatchedCurrencies={currencyMismatchCurrencies}
         profileCurrency={profileCurrency}
         language={appPreferences.preferences.language}
-        onOpenSettings={() => router.push('/account/settings' as never)}
       /> : null}
       <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginBottom: 14 }}>
         {otpEmail ? <><Text>Code sent to</Text><Text> {otpEmail}</Text></> : 'Enter the six-digit code sent to your registered email.'}
