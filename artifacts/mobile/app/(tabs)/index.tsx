@@ -16,7 +16,7 @@ import {
 } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Status } from '@/components/InvestorUI';
 import { AllocationDonut, type AllocationSlice } from '@/components/AllocationDonut';
-import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap } from '@/lib/data';
+import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
 import { mergeDepositRequests, resolveActivityTransactionTarget } from '@/lib/deposit-activity';
 import { latestRecords } from '@/lib/latest-records';
 import { isInvestorNotificationUnread } from '@/lib/notification-utils';
@@ -160,7 +160,7 @@ export default function InvestorHome() {
   const summary = record(data.summary);
   const wallet = record(data.wallet);
   const series = record(data.portfolio_series);
-  const currency = first(wallet, ['currency', 'default_currency'], first(summary, ['display_currency'], 'USD'));
+  const currency = walletCurrencyFromDashboard(dashboard.data);
   const liveBalance = availableBalanceFromDashboard(dashboard.data);
   const investedCapitalLocal = amount(summary, ['total_investment']);
   const investedCapitalUsd = amount(summary, ['total_investment_usd']);
@@ -370,7 +370,7 @@ export default function InvestorHome() {
            <Feather name={balanceHidden ? 'eye-off' : 'eye'} size={15} color={colors.balanceCardText} />
          </Pressable>
          <Text testID="home-available-balance" numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, fontSize: 40, fontWeight: '700', letterSpacing: -0.9, lineHeight: 45, marginTop: 5, textAlign: 'center' }}>
-            {dashboard.isLoading ? '…' : displayMoney(availableBalance, 'USD')}
+             {dashboard.isLoading ? '…' : displayMoney(availableBalance, currency)}
          </Text>
          {dashboard.isError ? <Text style={{ color: colors.balanceCardText, opacity: 0.7, fontSize: 10, marginTop: 4 }}>
            Balance details unavailable right now

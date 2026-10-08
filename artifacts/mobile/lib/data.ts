@@ -89,6 +89,18 @@ export function availableBalanceFromDashboard(value: unknown): number | null {
   return amount(summary, ['available_balance']) ?? amount(wallet, ['available_balance']);
 }
 
+export function walletCurrencyFromDashboard(value: unknown, fallback = 'USD'): string {
+  const dashboard = unwrap(value);
+  const wallet = record(dashboard.wallet);
+  const summary = record(dashboard.summary);
+  const currency = first(
+    wallet,
+    ['currency', 'default_currency'],
+    first(summary, ['display_currency'], fallback),
+  ).toUpperCase();
+  return /^[A-Z]{3}$/.test(currency) ? currency : 'USD';
+}
+
 export function money(value: unknown, currency?: string, options: { preserveSource?: boolean } = {}): string {
   const missingValue = value === null || value === undefined || value === '';
   const parsed = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN;

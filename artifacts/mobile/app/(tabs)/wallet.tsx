@@ -6,7 +6,7 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGetInvestorDashboard, useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap, type Json } from '@/lib/data';
+import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap, walletCurrencyFromDashboard, type Json } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MotionReveal } from '@/lib/motion';
@@ -58,14 +58,10 @@ export default function Wallet() {
   });
 
   const walletData = record(record(wallet.data).data ?? wallet.data);
-  const dashboardData = unwrap(dashboard.data);
-  const dashboardWallet = record(dashboardData.wallet);
-  const summary = record(dashboardData.summary);
-  const currency = first(
-    dashboardWallet,
-    ['currency', 'default_currency'],
-    first(summary, ['display_currency'], first(walletData, ['currency', 'default_currency'])),
-  ).toUpperCase();
+  const currency = walletCurrencyFromDashboard(
+    dashboard.data,
+    first(walletData, ['currency', 'default_currency'], 'USD'),
+  );
   const available = availableBalanceFromDashboard(dashboard.data);
   const allocated = amount(walletData, ['allocated_to_trades', 'allocated_balance']);
   const pending = amount(walletData, ['pending_balance']);

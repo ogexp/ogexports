@@ -78,3 +78,9 @@ For available-balance consistency requests, inspect both the investor mobile app
 **Why:** A mobile-only balance correction did not resolve the user's web preview, which still showed a different wallet-endpoint amount.
 
 **How to apply:** Search both `artifacts/mobile` and `artifacts/og-container-admin` for available-balance consumers, preserve pending/breakdown data from their existing endpoints, and verify each surface against the dashboard response.
+
+When reading wallets, use an existing stored `wallet.currency`; infer the country-based currency only for a newly created or currency-missing wallet. A GET must not change an existing wallet's currency because the balance is not converted. Reconcile historical currency changes against financial records before correcting them.
+
+**Why:** Reassigning currency on a read can make an unchanged numeric balance appear to change value and alter withdrawal terms.
+
+**How to apply:** Keep wallet reads non-mutating for established accounts, and verify dashboard, wallet, and withdrawal responses agree on the stored source currency. Treat any repair of previously relabeled records as a separate, ledger-verified data correction.

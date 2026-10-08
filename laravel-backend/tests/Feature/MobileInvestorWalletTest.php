@@ -9,6 +9,7 @@ use App\Models\Withdrawal;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use App\Support\InvestorBankAccountPresenter;
 
 uses(RefreshDatabase::class);
@@ -60,6 +61,32 @@ beforeEach(function () {
         'available_balance' => 10_000,
         'pending_balance' => 0,
     ]);
+});
+
+it('preserves an existing USD wallet when reading it for a Pakistan-based investor', function () {
+    Http::fake([
+        '*' => Http::response(['rates' => ['USD' => 1, 'PKR' => 277.2]], 200),
+    ]);
+
+    $this->investor->profile->update(['country' => 'Pakistan']);
+    $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
+    $wallet->update(['available_balance' => 1150.33]);
+    $token = $this->investor->createToken('wallet_currency_test')->plainTextToken;
+
+    $this->withHeader('Authorization', 'Bearer '.$token)
+        ->getJson('/api/investor/wallet')
+        ->assertOk()
+        ->assertJsonPath('data.currency', 'USD')
+        ->assertJsonPath('data.available_balance', 1150.33);
+
+    expect($wallet->fresh()->currency)->toBe('USD')
+        ->and((float) $wallet->fresh()->available_balance)->toBe(1150.33);
+
+    $this->withHeader('Authorization', 'Bearer '.$token)
+        ->getJson('/api/investor/dashboard')
+        ->assertOk()
+        ->assertJsonPath('data.wallet.currency', 'USD')
+        ->assertJsonPath('data.summary.available_balance', 1150.33);
 });
 
 it('accepts a mobile deposit without currency and defaults to wallet currency', function () {

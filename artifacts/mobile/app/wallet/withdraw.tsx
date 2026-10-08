@@ -15,7 +15,7 @@ import {
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
 import { formatUiStatus } from '@/lib/strings';
 import { TransactionPasswordResetModal } from '@/components/TransactionPasswordResetModal';
-import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, money, moneyInSourceCurrency, moneyWithDisplayCurrencyAndSource, record, unwrap } from '@/lib/data';
+import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, money, moneyInSourceCurrency, moneyWithDisplayCurrencyAndSource, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { buildWithdrawalRequest, maximumWithdrawalPayout, parseWithdrawalAmount, resolveWithdrawalDisplayTerms } from '@/lib/withdrawal-flow';
@@ -157,11 +157,13 @@ export default function Withdraw() {
   const wallet = unwrap(walletQuery.data);
   const dashboard = unwrap(dashboardQuery.data);
   const profile = unwrap(profileQuery.data);
-  const dashboardWallet = record(dashboard.wallet);
   const walletCurrency = first(
     dashboard,
     ['currency', 'wallet_currency'],
-    first(dashboardWallet, ['currency', 'default_currency'], first(wallet, ['currency', 'default_currency'])),
+    walletCurrencyFromDashboard(
+      dashboardQuery.data,
+      first(wallet, ['currency', 'default_currency'], 'USD'),
+    ),
   ).toUpperCase();
   const availableBalance = availableBalanceFromDashboard(dashboardQuery.data);
   const pendingBalance = readAmount(wallet, ['pending_balance']);

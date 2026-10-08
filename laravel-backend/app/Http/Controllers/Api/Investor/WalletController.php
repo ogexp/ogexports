@@ -24,20 +24,18 @@ class WalletController extends Controller
     public function show(Request $request): JsonResponse
     {
         $user = $request->user()->loadMissing('profile');
-        $walletCurrency = InvestorMarket::currencyForUser($user);
+        $defaultWalletCurrency = InvestorMarket::currencyForUser($user);
 
         $wallet = Wallet::query()->firstOrCreate(
             ['user_id' => $user->id],
             [
-                'currency' => $walletCurrency,
+                'currency' => $defaultWalletCurrency,
                 'available_balance' => 0,
                 'pending_balance' => 0,
             ]
         );
 
-        if ($wallet->currency !== $walletCurrency) {
-            $wallet->update(['currency' => $walletCurrency]);
-        }
+        $walletCurrency = strtoupper(trim((string) ($wallet->currency ?: $defaultWalletCurrency)));
 
         $ratesPayload = ExchangeRateService::getRates();
         $breakdown = $this->buildDepositBreakdown($user->id);
@@ -47,7 +45,7 @@ class WalletController extends Controller
             'data' => [
                 'id' => $wallet->id,
                 'user_id' => $wallet->user_id,
-                'currency' => $wallet->currency,
+                'currency' => $walletCurrency,
                 'available_balance' => (float) $wallet->available_balance,
                 'pending_balance' => (float) $wallet->pending_balance,
                 'investable_balance' => (float) $wallet->available_balance,

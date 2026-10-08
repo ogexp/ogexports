@@ -7,6 +7,7 @@ import {
   money,
   moneyInSourceCurrency,
   moneyWithDisplayCurrencyAndSource,
+  walletCurrencyFromDashboard,
 } from './data.ts';
 
 test('prefers dashboard summary available balance with wallet summary as fallback', () => {
@@ -40,6 +41,23 @@ test('USD is the default display currency while source formatting remains availa
   assert.match(money(147615.6, 'PKR'), /530\.00/);
   assert.equal(displayCurrencyCode('PKR'), 'USD');
   assert.match(moneyInSourceCurrency(147615.6, 'PKR'), /147,615\.60/);
+});
+
+test('balance display uses the server wallet currency before applying the selected display currency', () => {
+  configureMoneyDisplay({ language: 'en', currency: 'USD', rates: { USD: 1, PKR: 277.2 } });
+
+  const dashboard = {
+    data: {
+      wallet: { currency: 'PKR' },
+      summary: { display_currency: 'USD', available_balance: 1150.33 },
+    },
+  };
+  const sourceCurrency = walletCurrencyFromDashboard(dashboard);
+
+  assert.equal(sourceCurrency, 'PKR');
+  assert.equal(money(1150.33, sourceCurrency), '$4.15');
+  assert.equal(money(1150.33, 'USD'), '$1,150.33');
+  assert.equal(walletCurrencyFromDashboard({}, 'USD'), 'USD');
 });
 
 test('missing monetary values use a display-only zero in the selected currency', () => {
