@@ -28,3 +28,17 @@ mtime_ms = 1791442101356
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/2f1a67b0-a771-4423-9f3c-9a9604bf31cf/0048ac4b-6e1d-470c-ae20-776f458d2086"
 storage_version_token = "1791442169514825"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "F-CUKxi4jm7PvIGUSZEdu"
+uri = "file://artifacts/mobile/assets/images/og-splash.png"
+type = "image"
+title = "OG Exports splash screen"
+description = "Native splash artwork with the OG mark, outlined side circles, and restrained trade-container details."
+logical_id = "b9c44c36-143d-4a2a-82f3-699351ef0faf"
+content_hash = "sha256:560ed919796937df3d269ce76ecb5eb19c5704314cbd4d0f48023e249bfb6ea5"
+size = 156217
+mtime_ms = 1791442418956
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/b9c44c36-143d-4a2a-82f3-699351ef0faf/4d938ec7-974f-48cd-b208-183deab7df39"
+storage_version_token = "1791442448755150"
+content_type = "image/png"

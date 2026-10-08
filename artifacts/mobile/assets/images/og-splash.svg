@@ -10,12 +10,23 @@
   <rect x="38" y="38" width="824" height="1274" rx="42" fill="none" stroke="#E4ECE6" stroke-width="2"/>
 
   <path d="M106 148h92M702 148h92M106 1202h92M702 1202h92" fill="none" stroke="#D5E3D9" stroke-width="3" stroke-linecap="round"/>
-  <circle cx="450" cy="385" r="247" fill="none" stroke="#EAF0EB" stroke-width="2"/>
-  <circle cx="450" cy="385" r="218" fill="none" stroke="#DDE9E0" stroke-width="2" stroke-dasharray="2 13" stroke-linecap="round"/>
-  <circle cx="450" cy="138" r="5" fill="#B69A61"/>
-  <circle cx="667" cy="385" r="5" fill="#356A52"/>
-  <circle cx="450" cy="632" r="5" fill="#B69A61"/>
-  <circle cx="233" cy="385" r="5" fill="#356A52"/>
+  <g>
+    <circle cx="150" cy="385" r="63" fill="#FFFFFF" stroke="#E1EAE3" stroke-width="2"/>
+    <circle cx="150" cy="385" r="51" fill="none" stroke="#D7E4DA" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/>
+    <circle cx="750" cy="385" r="63" fill="#FFFFFF" stroke="#E1EAE3" stroke-width="2"/>
+    <circle cx="750" cy="385" r="51" fill="none" stroke="#D7E4DA" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/>
+  </g>
+
+  <g fill="none" stroke="#356A52" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="150" cy="385" r="27"/>
+    <ellipse cx="150" cy="385" rx="11" ry="27"/>
+    <path d="M124 376c15 7 37 7 52 0M124 394c15-7 37-7 52 0"/>
+    <path d="M724 369h52v34h-52z" fill="#F1F6F2"/>
+    <path d="M734 371v30m11-30v30m11-30v30m11-30v30M720 365h60"/>
+  </g>
+
+  <circle cx="150" cy="314" r="5" fill="#B69A61"/>
+  <circle cx="750" cy="456" r="5" fill="#B69A61"/>
 
   <image href="./og-logo.png" x="170" y="170" width="560" height="560" preserveAspectRatio="xMidYMid meet"/>
 
