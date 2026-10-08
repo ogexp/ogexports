@@ -216,8 +216,9 @@ export default function Entry() {
               ],
             }}
           >
+            <View style={{ position: 'absolute', left: 50, top: 12, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.65 }} />
             <View style={{ position: 'absolute', left: -3, top: 101, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent }} />
-            <View style={{ position: 'absolute', left: 13, top: 165, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.65 }} />
+            <View style={{ position: 'absolute', left: 50, bottom: 12, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.65 }} />
           </Animated.View>
           <Animated.View
             style={{
@@ -236,7 +237,8 @@ export default function Entry() {
             }}
           >
             <View style={{ position: 'absolute', top: -3, left: 85, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent }} />
-            <View style={{ position: 'absolute', right: 24, bottom: 17, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.65 }} />
+            <View style={{ position: 'absolute', right: 8, bottom: 40, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.65 }} />
+            <View style={{ position: 'absolute', left: 10, bottom: 40, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.65 }} />
           </Animated.View>
           <Animated.Image
             accessible={false}

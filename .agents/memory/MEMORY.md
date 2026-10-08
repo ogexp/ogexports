@@ -16,6 +16,6 @@
 - [Admin dashboard source](admin-dashboard-source.md) — use the dashboard from the user's original frontend ZIP; do not create a replacement.
 - [Android file picker uploads](android-file-picker-uploads.md) — keep the Expo FileSystem `File` object for native uploads; Android cache-copy URIs can fail readability checks.
 - [Laravel test storage isolation](laravel-testing-storage-isolation.md) — avoid `Storage::fake('local')` when its shared framework test-disk directory contains tracked fixtures.
-- [OG Exports mobile motion performance](og-mobile-motion-performance.md) — keep other motion short; two startup orbits loop for six seconds, with outer dots on the left.
+- [OG Exports mobile motion performance](og-mobile-motion-performance.md) — keep other motion short; two startup orbits loop for six seconds with three evenly spaced dots each.
 - [OpenAPI date query serialization](openapi-date-query-serialization.md) — date-only query params must remain strings with a YYYY-MM-DD pattern under the current Orval client generator.
 - [ZIP delivery preference](zip-delivery-preference.md) — create or refresh an app ZIP only when the user explicitly asks for one.
