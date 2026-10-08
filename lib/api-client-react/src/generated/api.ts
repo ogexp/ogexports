@@ -3229,6 +3229,83 @@ export function useGetInvestorPaymentBankAccounts<TData = Awaited<ReturnType<typ
 
 
 
+export const getGetInvestorDepositUrl = (id: number,) => {
+
+
+
+
+  return `/api/investor/deposits/${id}`
+}
+
+/**
+ * @summary Get one deposit owned by the authenticated investor
+ */
+export const getInvestorDeposit = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getGetInvestorDepositUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInvestorDepositQueryKey = (id: number,) => {
+    return [
+    `/api/investor/deposits/${id}`
+    ] as const;
+    }
+
+
+export const getGetInvestorDepositQueryOptions = <TData = Awaited<ReturnType<typeof getInvestorDeposit>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorDeposit>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInvestorDepositQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInvestorDeposit>>> = ({ signal }) => getInvestorDeposit(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInvestorDeposit>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInvestorDepositQueryResult = NonNullable<Awaited<ReturnType<typeof getInvestorDeposit>>>
+export type GetInvestorDepositQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get one deposit owned by the authenticated investor
+ */
+
+export function useGetInvestorDeposit<TData = Awaited<ReturnType<typeof getInvestorDeposit>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorDeposit>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInvestorDepositQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetInvestorDepositsUrl = (params?: GetInvestorDepositsParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -3400,6 +3477,83 @@ export const useCreateInvestorDeposit = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getCreateInvestorDepositMutationOptions(options));
     }
+
+export const getGetInvestorWithdrawalUrl = (id: number,) => {
+
+
+
+
+  return `/api/investor/withdrawals/${id}`
+}
+
+/**
+ * @summary Get one withdrawal owned by the authenticated investor
+ */
+export const getInvestorWithdrawal = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getGetInvestorWithdrawalUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInvestorWithdrawalQueryKey = (id: number,) => {
+    return [
+    `/api/investor/withdrawals/${id}`
+    ] as const;
+    }
+
+
+export const getGetInvestorWithdrawalQueryOptions = <TData = Awaited<ReturnType<typeof getInvestorWithdrawal>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorWithdrawal>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInvestorWithdrawalQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInvestorWithdrawal>>> = ({ signal }) => getInvestorWithdrawal(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInvestorWithdrawal>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInvestorWithdrawalQueryResult = NonNullable<Awaited<ReturnType<typeof getInvestorWithdrawal>>>
+export type GetInvestorWithdrawalQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get one withdrawal owned by the authenticated investor
+ */
+
+export function useGetInvestorWithdrawal<TData = Awaited<ReturnType<typeof getInvestorWithdrawal>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorWithdrawal>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInvestorWithdrawalQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetInvestorWithdrawalsUrl = (params?: GetInvestorWithdrawalsParams,) => {
   const normalizedParams = new URLSearchParams();

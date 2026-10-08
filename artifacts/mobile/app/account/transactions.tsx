@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   useGetInvestorDeposits,
   useGetInvestorInvestments,
@@ -24,6 +24,8 @@ type TransactionRow = {
   category: Category;
   title: string;
   transactionId: string;
+  detailKind: 'wallet' | 'deposit' | 'withdrawal' | 'investment';
+  detailId: string;
   investmentId: string;
   tradeId: string;
   amount: number | null;
@@ -309,6 +311,8 @@ export default function Transactions() {
       category: 'Deposits',
       title,
       transactionId: matched ? first(matched, ['id', 'transaction_id']) : first(deposit, ['transaction_id']),
+      detailKind: 'deposit',
+      detailId: id || first(deposit, ['deposit_id', 'depositId']),
       investmentId: '',
       tradeId: '',
       amount: readAmount(deposit, ['amount']),
@@ -345,6 +349,8 @@ export default function Transactions() {
       category: 'Withdrawals',
       title,
       transactionId: matched ? first(matched, ['id', 'transaction_id']) : first(withdrawal, ['transaction_id']),
+      detailKind: 'withdrawal',
+      detailId: id || first(withdrawal, ['withdrawal_id', 'withdraw_id']),
       investmentId: '',
       tradeId: '',
       amount: payout,
@@ -382,6 +388,8 @@ export default function Transactions() {
       category: 'Investments',
       title,
       transactionId: matched ? first(matched, ['id', 'transaction_id']) : first(investment, ['transaction_id']),
+      detailKind: 'investment',
+      detailId: id,
       investmentId: id,
       tradeId: tradeIdFor(investment, matched),
       amount: readAmount(investment, ['amount', 'investment_amount', 'principal']),
@@ -414,6 +422,8 @@ export default function Transactions() {
       category,
       title,
       transactionId: id,
+      detailKind: 'wallet',
+      detailId: id,
       investmentId,
       tradeId: tradeIdFor(investment, transaction),
       amount: readAmount(transaction, ['amount']),
@@ -690,9 +700,26 @@ export default function Transactions() {
         ? formatWithdrawalAmount(row.amount, row.currency, null, null)
         : money(row.amount, row.currency || 'USD');
       return <MotionReveal key={`${row.key}-${active}`} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}>
-      <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => {
-        setSelectedId(active ? '' : row.key);
+      <Pressable accessibilityRole="button" accessibilityLabel={`Open details for ${row.title}`} accessibilityState={{ selected: active }} onPress={() => {
+        motionHaptic('micro');
         setReceiptError('');
+        if (row.detailKind === 'investment' && /^\d+$/.test(row.transactionId)) {
+          router.push({ pathname: '/account/transaction/[id]', params: { id: row.transactionId, kind: 'wallet' } });
+          return;
+        }
+        if (row.detailKind === 'investment' && row.detailId) {
+          router.push({ pathname: '/position/[id]', params: { id: row.detailId } });
+          return;
+        }
+        if ((row.detailKind === 'deposit' || row.detailKind === 'withdrawal') && /^\d+$/.test(row.detailId)) {
+          router.push({ pathname: '/account/transaction/[id]', params: { id: row.detailId, kind: row.detailKind } });
+          return;
+        }
+        if (/^\d+$/.test(row.transactionId)) {
+          router.push({ pathname: '/account/transaction/[id]', params: { id: row.transactionId, kind: 'wallet' } });
+          return;
+        }
+        setSelectedId(active ? '' : row.key);
       }}>
         <Card style={{ marginBottom: 10, borderColor: active ? colors.primary : colors.border }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
@@ -731,7 +758,10 @@ export default function Transactions() {
               ? <DetailLine label="Payment reference" value={row.paymentReference} />
               : null}
             {receiptError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginTop: 9 }}>{receiptError}</Text> : null}
-            <Pressable accessibilityRole="button" testID={`transaction-receipt-${row.key}`} disabled={busyReceiptKey === row.key} onPress={() => void accessReceipt(row)} style={{ marginTop: 12, borderRadius: 12, padding: 12, alignItems: 'center', backgroundColor: colors.secondary, opacity: busyReceiptKey === row.key ? 0.5 : 1 }}>
+            <Pressable accessibilityRole="button" testID={`transaction-receipt-${row.key}`} disabled={busyReceiptKey === row.key} onPress={event => {
+              event.stopPropagation();
+              void accessReceipt(row);
+            }} style={{ marginTop: 12, borderRadius: 12, padding: 12, alignItems: 'center', backgroundColor: colors.secondary, opacity: busyReceiptKey === row.key ? 0.5 : 1 }}>
               <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{busyReceiptKey === row.key ? 'Preparing receipt…' : 'Save / share transaction receipt'}</Text>
             </Pressable>
           </View> : null}

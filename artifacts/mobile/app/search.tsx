@@ -226,6 +226,10 @@ export default function InvestorSearch() {
       return;
     }
     if (result.kind === 'transaction') {
+      if (/^\d+$/.test(result.id)) {
+        router.push({ pathname: '/account/transaction/[id]', params: { id: result.id, kind: 'wallet' } });
+        return;
+      }
       router.push({
         pathname: '/account/transactions',
         params: { tab: 'Wallet', search: result.id || query, selected: result.id },

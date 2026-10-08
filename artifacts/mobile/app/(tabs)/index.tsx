@@ -521,17 +521,35 @@ export default function InvestorHome() {
         const transactionId = first(item, ['id', 'transaction_id', 'reference']);
          const isDepositRequest = item.activity_source === 'deposit_request';
          const depositId = first(item, ['id', 'deposit_id', 'depositId', 'reference', 'deposit_reference']);
+        const explicitDepositId = first(item, ['deposit_id', 'depositId'], isDepositRequest ? first(item, ['id']) : '');
+        const withdrawalId = first(item, ['withdrawal_id', 'withdraw_id']);
+        const investmentId = first(item, ['investment_id', 'investmentId']);
+        const walletTransactionId = first(item, ['transaction_id', 'id']);
          const searchValue = isDepositRequest
            ? first(item, ['reference', 'deposit_reference', 'bank_reference', 'transfer_reference', 'id'], kind)
            : transactionId || kind;
-        return <MotionReveal key={transactionId || `${group.label}-${index}`} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}><Pressable accessibilityRole="button" accessibilityLabel={`View ${kind}`} onPress={() => router.push({
-          pathname: '/account/transactions',
-           params: {
-             tab: isDepositRequest ? 'Deposits' : 'Wallet',
-             search: searchValue,
-             selected: isDepositRequest && depositId ? `deposit:${depositId}` : transactionId,
-           },
-        })}
+        return <MotionReveal key={transactionId || `${group.label}-${index}`} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}><Pressable accessibilityRole="button" accessibilityLabel={`Open ${kind} details`} onPress={() => {
+          if ((isDepositRequest || kind.toLowerCase().includes('deposit')) && /^\d+$/.test(explicitDepositId || depositId)) {
+            router.push({ pathname: '/account/transaction/[id]', params: { id: explicitDepositId || depositId, kind: 'deposit' } });
+            return;
+          }
+          if (kind.toLowerCase().includes('withdraw') && /^\d+$/.test(withdrawalId)) {
+            router.push({ pathname: '/account/transaction/[id]', params: { id: withdrawalId, kind: 'withdrawal' } });
+            return;
+          }
+          if (kind.toLowerCase().includes('investment') && investmentId) {
+            router.push({ pathname: '/position/[id]', params: { id: investmentId } });
+            return;
+          }
+          if (/^\d+$/.test(walletTransactionId)) {
+            router.push({ pathname: '/account/transaction/[id]', params: { id: walletTransactionId, kind: 'wallet' } });
+            return;
+          }
+          router.push({
+            pathname: '/account/transactions',
+            params: { tab: isDepositRequest ? 'Deposits' : 'Wallet', search: searchValue, selected: isDepositRequest && depositId ? `deposit:${depositId}` : transactionId },
+          });
+        }}
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, opacity: pressed ? 0.78 : 1 })}>
           <View style={{ width: 40, height: 40, borderRadius: 22, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
             <Feather name={activityIcon(item)} size={17} color={colors.primary} />

@@ -669,8 +669,13 @@ export default function Withdraw() {
     {!historyQuery.isLoading && !historyQuery.isError && withdrawals.length === 0 ? <EmptyState title="No withdrawals yet" body="Your payout requests will appear here with their review status." /> : null}
     {withdrawals.map((item, index) => {
       const id = first(item, ['id', 'reference', 'withdraw_id'], String(index));
+      const detailId = first(item, ['id', 'withdrawal_id', 'withdraw_id']);
       const selected = id === selectedWithdrawalId;
-      return <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => {
+      return <Pressable key={id} accessibilityRole="button" accessibilityLabel="Open withdrawal details" accessibilityState={{ selected }} onPress={() => {
+        if (/^\d+$/.test(detailId)) {
+          router.push({ pathname: '/account/transaction/[id]', params: { id: detailId, kind: 'withdrawal' } });
+          return;
+        }
         setSelectedWithdrawalId(selected ? '' : id);
         if (!selected) {
           setConfirmation(null);

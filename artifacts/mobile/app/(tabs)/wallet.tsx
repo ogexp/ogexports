@@ -172,6 +172,7 @@ export default function Wallet() {
       : null}
     {visibleTransactions.map((item, index) => {
       const id = first(item, ['transaction_id', 'reference', 'id'], '—');
+      const detailId = first(item, ['id', 'transaction_id']);
       const rawType = first(item, ['type', 'transaction_type', 'category']);
       const date = displayDate(first(item, ['created_at', 'date']));
       const status = first(item, ['status', 'state'], '—');
@@ -181,7 +182,15 @@ export default function Wallet() {
       const icon = itemCategory === 'Withdrawals' ? 'arrow-up-right'
         : itemCategory === 'Investments' ? 'briefcase'
           : itemCategory === 'Distributions' ? 'trending-up' : 'arrow-down-left';
-      return <Card key={`${id}-${index}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 11, padding: 14 }}>
+      return <Pressable
+        key={`${id}-${index}`}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${humanizeType(rawType)} transaction details`}
+        testID={`wallet-transaction-${detailId || index}`}
+        disabled={!/^\d+$/.test(detailId)}
+        onPress={() => router.push({ pathname: '/account/transaction/[id]', params: { id: detailId, kind: 'wallet' } })}
+      >
+      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 11, padding: 14 }}>
         <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' }}>
           <Feather name={icon} size={17} color={colors.primary} />
         </View>
@@ -196,7 +205,8 @@ export default function Wallet() {
           </Text>
           <Status value={status} />
         </View>
-      </Card>;
+      </Card>
+      </Pressable>;
     })}
     {hasMoreTransactions ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 2 }}>
       Categories above use the latest {ledger.length}{totalTransactions != null ? ` of ${totalTransactions}` : ''} transactions. Choose View All to browse older records.

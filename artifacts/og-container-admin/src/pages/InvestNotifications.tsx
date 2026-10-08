@@ -165,7 +165,7 @@ export default function InvestNotifications() {
               <p className="text-sm text-muted-foreground">No notifications in this category.</p>
             </CardContent>
           ) : (
-            <div className="divide-y divide-border">
+            <div className="space-y-3 p-3">
               {filtered.map(n => (
                 <NotificationRow
                   key={n.id}
@@ -211,7 +211,7 @@ function NotificationRow({
   return (
     <div
       onClick={onMarkRead}
-      className={`flex gap-4 px-5 py-5 hover:bg-muted/20 transition-colors cursor-pointer relative ${
+      className={`flex gap-4 rounded-xl border border-border/60 bg-card px-5 py-4 hover:bg-muted/20 transition-colors cursor-pointer relative ${
         !n.read ? "bg-primary/3" : ""
       }`}
     >

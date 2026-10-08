@@ -81,7 +81,17 @@ export function TransactionHistoryCard({ title, loading, emptyMessage, items }: 
             className="flex items-center justify-between gap-3 py-2 border-b border-border/50 last:border-0"
           >
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium truncate">{item.primary}</p>
+              {item.detailHref ? (
+                <Link
+                  href={item.detailHref}
+                  aria-label={`Open transaction details for ${item.reference || item.id}`}
+                  className="block text-sm font-medium truncate hover:underline"
+                >
+                  {item.primary}
+                </Link>
+              ) : (
+                <p className="text-sm font-medium truncate">{item.primary}</p>
+              )}
               <p className="text-[11px] text-muted-foreground truncate">{detailLine(item)}</p>
               {item.breakdown && (
                 <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px] leading-4 text-muted-foreground">

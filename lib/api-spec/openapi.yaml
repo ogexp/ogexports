@@ -460,6 +460,17 @@ paths:
       security: [{ BearerAuth: [] }]
       responses:
         "200": { description: Platform accounts, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/deposits/{id}:
+    get:
+      operationId: getInvestorDeposit
+      tags: [investor]
+      summary: Get one deposit owned by the authenticated investor
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200": { description: Deposit details, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "404": { description: Deposit not found for this investor }
   /investor/deposits:
     get:
       operationId: getInvestorDeposits
@@ -487,6 +498,17 @@ paths:
             schema: { $ref: "#/components/schemas/JsonObject" }
       responses:
         "201": { description: Deposit created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /investor/withdrawals/{id}:
+    get:
+      operationId: getInvestorWithdrawal
+      tags: [investor]
+      summary: Get one withdrawal owned by the authenticated investor
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200": { description: Withdrawal details, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "404": { description: Withdrawal not found for this investor }
   /investor/withdrawals:
     get:
       operationId: getInvestorWithdrawals

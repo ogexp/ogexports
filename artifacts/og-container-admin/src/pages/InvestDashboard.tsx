@@ -1026,7 +1026,20 @@ export default function InvestDashboard() {
                   </thead>
                   <tbody>
                     {deposits.map((d: any) => (
-                      <tr key={d.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                      <tr
+                        key={d.id}
+                        role="link"
+                        tabIndex={/^\d+$/.test(String(d.id ?? "")) ? 0 : -1}
+                        aria-label={`Open deposit details ${d.reference || d.id || ""}`}
+                        onClick={() => /^\d+$/.test(String(d.id ?? "")) && setLocation(`/invest/transactions/deposit/${d.id}`)}
+                        onKeyDown={event => {
+                          if ((event.key === "Enter" || event.key === " ") && /^\d+$/.test(String(d.id ?? ""))) {
+                            event.preventDefault()
+                            setLocation(`/invest/transactions/deposit/${d.id}`)
+                          }
+                        }}
+                        className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                      >
                         <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">{d.date_label || d.date || "—"}</td>
                         <td className="py-3 px-4 font-mono text-xs font-semibold text-foreground">{d.reference || "—"}</td>
                         <td className="py-3 px-4 font-bold text-emerald-500">
@@ -1085,7 +1098,20 @@ export default function InvestDashboard() {
                   </thead>
                   <tbody>
                     {withdrawals.map((w: any) => (
-                      <tr key={w.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                      <tr
+                        key={w.id}
+                        role="link"
+                        tabIndex={/^\d+$/.test(String(w.id ?? "")) ? 0 : -1}
+                        aria-label={`Open withdrawal details ${w.reference || w.id || ""}`}
+                        onClick={() => /^\d+$/.test(String(w.id ?? "")) && setLocation(`/invest/transactions/withdrawal/${w.id}`)}
+                        onKeyDown={event => {
+                          if ((event.key === "Enter" || event.key === " ") && /^\d+$/.test(String(w.id ?? ""))) {
+                            event.preventDefault()
+                            setLocation(`/invest/transactions/withdrawal/${w.id}`)
+                          }
+                        }}
+                        className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                      >
                         <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">{w.date_label || w.date || "—"}</td>
                         <td className="py-3 px-4 font-bold text-red-400">
                           {fmtW(
@@ -1145,7 +1171,20 @@ export default function InvestDashboard() {
                         const ref = String(tx.reference || "")
                         const displayRef = /^INV-\d+$/i.test(ref) ? ref.replace(/^INV-/i, "") : ref
                         return (
-                          <tr key={tx.id || tx.reference} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                          <tr
+                            key={tx.id || tx.reference}
+                            role="link"
+                            tabIndex={/^\d+$/.test(String(tx.id ?? "")) ? 0 : -1}
+                            aria-label={`Open transaction details ${displayRef}`}
+                            onClick={() => /^\d+$/.test(String(tx.id ?? "")) && setLocation(`/invest/transactions/wallet/${tx.id}`)}
+                            onKeyDown={event => {
+                              if ((event.key === "Enter" || event.key === " ") && /^\d+$/.test(String(tx.id ?? ""))) {
+                                event.preventDefault()
+                                setLocation(`/invest/transactions/wallet/${tx.id}`)
+                              }
+                            }}
+                            className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                          >
                             <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">{tx.date_label || tx.date || "—"}</td>
                             <td className="py-3 px-3 font-mono text-xs font-bold text-foreground">{displayRef || "—"}</td>
                             <td className={`py-3 px-3 font-semibold ${TXN_COLORS[tx.type] || ""}`}>{tx.type || "—"}</td>

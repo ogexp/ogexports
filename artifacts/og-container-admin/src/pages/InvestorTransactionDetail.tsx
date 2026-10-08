@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { api } from "@/lib/api"
 import { createTransactionReceipt, downloadTransactionReceipt } from "@/lib/transaction-receipt"
 
-type TransactionKind = "deposit" | "withdrawal"
+type TransactionKind = "deposit" | "withdrawal" | "wallet"
 type TransactionRecord = Record<string, unknown>
 
 function text(value: unknown, fallback = "Not recorded") {
@@ -26,15 +26,21 @@ function formatDate(value: unknown) {
 
 export default function InvestorTransactionDetail() {
   const params = useParams<{ type: string; id: string }>()
-  const kind = params.type === "deposit" || params.type === "withdrawal"
+  const kind = params.type === "deposit" || params.type === "withdrawal" || params.type === "wallet"
     ? params.type as TransactionKind
     : null
   const id = /^\d+$/.test(params.id || "") ? params.id : ""
   const [record, setRecord] = useState<TransactionRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const title = kind === "deposit" ? "Deposit details" : "Withdrawal details"
-  const backHref = kind === "deposit" ? "/invest/deposit" : "/invest/withdraw"
+  const title = kind === "deposit" ? "Deposit details" : kind === "withdrawal" ? "Withdrawal details" : "Transaction details"
+  const backHref = kind === "deposit" ? "/invest/deposit" : kind === "withdrawal" ? "/invest/withdraw" : "/invest/wallet"
+  const backLabel = kind === "deposit" ? "deposits" : kind === "withdrawal" ? "withdrawals" : "wallet"
+  const endpoint = kind === "wallet"
+    ? `/api/investor/wallet/transactions/${id}`
+    : kind
+      ? `/api/investor/${kind}s/${id}`
+      : ""
 
   useEffect(() => {
     if (!kind || !id) {
@@ -49,8 +55,8 @@ export default function InvestorTransactionDetail() {
       setLoading(true)
       setError(false)
       try {
-        const response = await api.get<{ data: TransactionRecord }>(`/api/investor/${kind}s/${id}`)
-        if (!cancelled) setRecord(response?.data ?? null)
+        const response = await api.get<{ data?: TransactionRecord } & TransactionRecord>(endpoint)
+        if (!cancelled) setRecord(response?.data ?? response ?? null)
       } catch {
         if (!cancelled) {
           setRecord(null)
@@ -62,14 +68,14 @@ export default function InvestorTransactionDetail() {
     }
     void load()
     return () => { cancelled = true }
-  }, [kind, id])
+  }, [kind, id, endpoint])
 
   useEffect(() => {
     let cancelled = false
     const refresh = () => {
-      if (!kind || !id) return
+      if (!kind || !id || !endpoint) return
       setError(false)
-      void api.get<{ data: TransactionRecord }>(`/api/investor/${kind}s/${id}`)
+      void api.get<{ data?: TransactionRecord } & TransactionRecord>(endpoint)
         .then(response => {
           if (!cancelled) setRecord(response?.data ?? null)
         })
@@ -82,12 +88,13 @@ export default function InvestorTransactionDetail() {
       cancelled = true
       window.removeEventListener("og-investor-records-updated", refresh)
     }
-  }, [kind, id])
+  }, [kind, id, endpoint])
 
   const status = text(record?.review_status ?? record?.status)
-  const reference = text(record?.reference ?? record?.withdraw_id)
+  const reference = text(record?.reference ?? record?.transaction_reference ?? record?.withdraw_id)
   const amount = text(record?.amount)
-  const currency = text(record?.currency, "")
+  const currency = text(record?.currency ?? record?.amount_currency, "")
+  const meta = record?.meta && typeof record.meta === "object" ? record.meta as TransactionRecord : {}
   const details = kind === "deposit"
     ? [
         ["Record ID", text(record?.id, id)],
@@ -99,7 +106,8 @@ export default function InvestorTransactionDetail() {
         ["Reviewed", formatDate(record?.reviewed_at)],
         ["Review note", text(record?.note)],
       ]
-    : [
+    : kind === "withdrawal"
+      ? [
         ["Record ID", text(record?.id, id)],
         ["Reference", reference],
         ["Status", status],
@@ -111,6 +119,18 @@ export default function InvestorTransactionDetail() {
         ["Reviewed", formatDate(record?.reviewed_at)],
         ["Review note", text(record?.note)],
       ]
+      : [
+        ["Transaction ID", text(record?.id ?? record?.transaction_id, id)],
+        ["Type", text(record?.type ?? record?.transaction_type)],
+        ["Status", status],
+        ["Amount", `${amount}${currency ? ` ${currency}` : ""}`],
+        ["Date / time", formatDate(record?.created_at ?? record?.occurred_at ?? record?.date)],
+        ["Reference", reference],
+        ["Payment method", text(record?.payment_method ?? record?.method ?? meta.payment_method ?? meta.method)],
+        ["Investment ID", text(record?.investment_id ?? meta.investment_id)],
+        ["Trade ID", text(record?.trade_id ?? meta.trade_id ?? meta.trade_reference)],
+        ["Description", text(record?.description ?? record?.title)],
+      ]
 
   return (
     <InvestPortalLayout title={title} subtitle="Status and amounts reported by OG Exports">
@@ -118,7 +138,7 @@ export default function InvestorTransactionDetail() {
         <Button variant="outline" size="sm" asChild>
           <Link href={backHref}>
             <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
-            Back to {kind === "deposit" ? "deposits" : "withdrawals"}
+            Back to {backLabel}
           </Link>
         </Button>
 
@@ -153,7 +173,7 @@ export default function InvestorTransactionDetail() {
                   size="sm"
                   variant="outline"
                   data-testid="transaction-detail-receipt"
-                  onClick={() => downloadTransactionReceipt(createTransactionReceipt(kind ?? "transaction", record))}
+                  onClick={() => downloadTransactionReceipt(createTransactionReceipt(kind === "wallet" ? "transaction" : kind ?? "transaction", record))}
                 >
                   Download receipt
                 </Button>

@@ -1241,6 +1241,19 @@ export const GetInvestorPaymentBankAccountsResponse = zod.record(zod.string(), z
 
 
 /**
+ * @summary Get one deposit owned by the authenticated investor
+ */
+
+
+
+export const GetInvestorDepositParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const GetInvestorDepositResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary List investor deposits
  */
 export const getInvestorDepositsQueryReferenceMax = 100;
@@ -1272,6 +1285,19 @@ export const GetInvestorDepositsResponse = zod.record(zod.string(), zod.unknown(
 export const CreateInvestorDepositBody = zod.record(zod.string(), zod.unknown())
 
 export const CreateInvestorDepositResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Get one withdrawal owned by the authenticated investor
+ */
+
+
+
+export const GetInvestorWithdrawalParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const GetInvestorWithdrawalResponse = zod.record(zod.string(), zod.unknown())
 
 
 /**

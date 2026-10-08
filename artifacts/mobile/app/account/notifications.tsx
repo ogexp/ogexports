@@ -98,7 +98,7 @@ export default function Notifications() {
       const categoryInfo = NOTIFICATION_CATEGORIES.find(value => value.key === category);
       const body = first(item, ['body', 'message', 'description']);
       const createdAt = formatNotificationTimestamp(first(item, ['created_at', 'date']));
-      const notificationCard = <Card style={{ borderColor: unread ? colors.primary : colors.border, padding: 14, marginBottom: 0 }}>
+      const notificationCard = <Card style={{ borderColor: unread ? colors.primary : colors.border, padding: 14, marginBottom: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
           <Pressable
             testID={`notification-${id || index}`}

@@ -603,6 +603,11 @@ export default function InvestWallet() {
                               : "Not provided"
                         return (
                           <div key={t.id} className="flex items-center gap-4 px-5 py-4 hover:bg-muted/20 transition-colors">
+                            <Link
+                              href={`/invest/transactions/wallet/${encodeURIComponent(String(t.id))}`}
+                              aria-label={`Open transaction details for ${t.ref || t.id}`}
+                              className="flex flex-1 min-w-0 items-center gap-4 text-inherit"
+                            >
                             <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
                               t.amount == null ? "bg-muted" : isCredit ? "bg-emerald-500/15" : "bg-red-500/15"
                             }`}>
@@ -620,6 +625,7 @@ export default function InvestWallet() {
                                 )}
                               </p>
                             </div>
+                            </Link>
                             <div className="text-right shrink-0 flex flex-col items-end gap-1">
                               <p className={`text-sm font-bold font-mono ${t.amount == null ? "text-muted-foreground" : isCredit ? "text-emerald-500" : "text-red-400"}`}>
                                 {amountLabel}

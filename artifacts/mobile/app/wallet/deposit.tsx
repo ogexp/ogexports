@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { Pressable, ScrollView, View, Platform } from 'react-native';
@@ -574,8 +575,13 @@ export default function Deposit() {
     {!depositsQuery.isLoading && !depositsQuery.isError && deposits.length === 0 ? <EmptyState title="No deposits yet" body="Submitted transfers will appear here with their review status." /> : null}
     {deposits.map((item, index) => {
       const id = first(item, ['id', 'reference', 'deposit_reference'], String(index));
+      const detailId = first(item, ['id', 'deposit_id', 'depositId']);
       const selected = selectedDepositId === id;
-      return <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => {
+      return <Pressable key={id} accessibilityRole="button" accessibilityLabel="Open deposit details" accessibilityState={{ selected }} onPress={() => {
+        if (/^\d+$/.test(detailId)) {
+          router.push({ pathname: '/account/transaction/[id]', params: { id: detailId, kind: 'deposit' } });
+          return;
+        }
         setSelectedDepositId(selected ? '' : id);
         if (!selected) {
           setConfirmation(null);
