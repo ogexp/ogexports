@@ -1,63 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1350" viewBox="0 0 900 1350">
-  <defs>
-    <linearGradient id="route" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#D4E4D9"/>
-      <stop offset="1" stop-color="#AAC8B6"/>
-    </linearGradient>
-  </defs>
-
-  <rect width="900" height="1350" fill="#F8FAF8"/>
-  <rect x="38" y="38" width="824" height="1274" rx="42" fill="none" stroke="#E4ECE6" stroke-width="2"/>
-
-  <path d="M106 148h92M702 148h92M106 1202h92M702 1202h92" fill="none" stroke="#D5E3D9" stroke-width="3" stroke-linecap="round"/>
-  <g>
-    <circle cx="150" cy="385" r="63" fill="#FFFFFF" stroke="#E1EAE3" stroke-width="2"/>
-    <circle cx="150" cy="385" r="51" fill="none" stroke="#D7E4DA" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/>
-    <circle cx="750" cy="385" r="63" fill="#FFFFFF" stroke="#E1EAE3" stroke-width="2"/>
-    <circle cx="750" cy="385" r="51" fill="none" stroke="#D7E4DA" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/>
-  </g>
-
-  <g fill="none" stroke="#356A52" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="150" cy="385" r="27"/>
-    <ellipse cx="150" cy="385" rx="11" ry="27"/>
-    <path d="M124 376c15 7 37 7 52 0M124 394c15-7 37-7 52 0"/>
-    <path d="M724 369h52v34h-52z" fill="#F1F6F2"/>
-    <path d="M734 371v30m11-30v30m11-30v30m11-30v30M720 365h60"/>
-  </g>
-
-  <circle cx="150" cy="314" r="5" fill="#B69A61"/>
-  <circle cx="750" cy="456" r="5" fill="#B69A61"/>
-
-  <image href="./og-logo.png" x="170" y="170" width="560" height="560" preserveAspectRatio="xMidYMid meet"/>
-
-  <text x="450" y="780" text-anchor="middle" fill="#204D3B" font-family="Inter, Arial, sans-serif" font-size="47" font-weight="700" letter-spacing="8">
-    OG EXPORTS
-  </text>
-  <text x="450" y="827" text-anchor="middle" fill="#718378" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="500" letter-spacing="3.2">
-    GLOBAL TRADE  ·  DIGITAL INVESTMENT
-  </text>
-  <path d="M378 870h144" fill="none" stroke="#B69A61" stroke-width="3" stroke-linecap="round"/>
-  <circle cx="450" cy="870" r="5" fill="#B69A61"/>
-
-  <g fill="none" stroke="#3A7458" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M214 1014c70-78 136-89 236-42 94 45 154 33 237-35"/>
-    <path d="M255 937l11 2-3 11M666 931l-2 12-12-3"/>
-  </g>
-  <circle cx="215" cy="1014" r="8" fill="#B69A61"/>
-  <circle cx="687" cy="937" r="8" fill="#356A52"/>
-
-  <g transform="translate(247 1015)" fill="none" stroke="#315F49" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M0 36h406l-30 32H30z" fill="#EDF4EF"/>
-    <path d="M30 68v112h346V68"/>
-    <path d="M51 78v92M79 78v92M107 78v92M135 78v92M163 78v92M191 78v92M219 78v92M247 78v92M275 78v92M303 78v92M331 78v92M359 78v92"/>
-    <path d="M30 180h346M0 36v33h30M376 68l30-32v34l-30 30"/>
-    <path d="M54 198h298"/>
-  </g>
-
-  <g transform="translate(450 1220)" fill="none" stroke="url(#route)" stroke-width="2">
-    <path d="M-286 0h194M92 0h194"/>
-  </g>
-  <text x="450" y="1226" text-anchor="middle" fill="#89988E" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600" letter-spacing="3">
-    OG EXPORTS  ·  INVESTOR APP
-  </text>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900">
+  <rect width="900" height="900" fill="#F8FAF8"/>
+  <image href="./og-logo.png" x="160" y="260" width="580" height="277" preserveAspectRatio="xMidYMid meet"/>
+  <text
+    x="450"
+    y="625"
+    text-anchor="middle"
+    fill="#204D3B"
+    font-family="Inter, Arial, sans-serif"
+    font-size="58"
+    font-weight="600"
+    letter-spacing="0.2"
+  >OG Exports</text>
 </svg>
