@@ -23,7 +23,6 @@ import {
   withdrawalPaymentMethod,
 } from '@/lib/withdrawal-history';
 import { createTransactionReceipt, saveTransactionReceipt, type TransactionReceipt } from '@/lib/transaction-receipt';
-import { savedUsdEquivalentForRecordedAmount } from '@/lib/withdrawal-history';
 import { resolveTransactionPaymentMethod } from '@/lib/transaction-payment-method';
 
 type Filter = 'All' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
@@ -50,6 +49,7 @@ type TransactionRow = {
     payout: string;
     fee: string;
     totalDebit: string;
+    currency: string;
     exchangeRate: string;
   };
 };
@@ -114,9 +114,17 @@ function formatWithdrawalAmount(
   usdAmount: number | null,
   exchangeRate: number | null,
 ) {
-  if (value === null) return 'Not recorded';
+  if (value === null) {
+    return usdAmount === null
+      ? 'Not recorded'
+      : money(usdAmount, 'USD', { preserveSource: true });
+  }
   const currencyCode = currency.trim().toUpperCase();
-  if (!currencyCode) return `${value.toFixed(2)} (currency not recorded)`;
+  if (!currencyCode) {
+    return usdAmount === null
+      ? `${value.toFixed(2)} (currency not recorded)`
+      : money(usdAmount, 'USD', { preserveSource: true });
+  }
 
   const sourceAmount = money(value, currencyCode, { preserveSource: true });
   if (currencyCode === 'USD') return sourceAmount;
@@ -396,26 +404,75 @@ export default function Transactions() {
     const matched = findWalletTransaction('withdrawal', id, reference);
     markWalletTransactionUsed(matched);
     const matchedMeta = record(matched?.meta);
+    const withdrawalBreakdown = record(withdrawal.withdrawal_breakdown);
+    const withdrawalMeta = record(withdrawal.meta);
+    const matchedBreakdown = record(matched?.withdrawal_breakdown);
+    const matchedMetaBreakdown = record(matchedMeta.withdrawal_breakdown);
     const bankDetails = record(withdrawal.bank_details);
     const currency = first(
       withdrawal,
-      ['currency', 'amount_currency'],
-      first(bankDetails, ['currency'], first(matchedMeta, ['currency', 'wallet_currency'], first(matched ?? {}, ['currency']))),
+      ['wallet_currency', 'currency', 'amount_currency'],
+      first(
+        withdrawalBreakdown,
+        ['wallet_currency', 'currency', 'fee_currency', 'total_debit_currency'],
+        first(
+          bankDetails,
+          ['currency'],
+          first(
+            withdrawalMeta,
+            ['wallet_currency', 'currency'],
+            first(
+              matchedBreakdown,
+              ['wallet_currency', 'currency'],
+              first(matchedMetaBreakdown, ['wallet_currency', 'currency'],
+                first(matchedMeta, ['wallet_currency', 'currency'], first(matched ?? {}, ['wallet_currency', 'currency']))),
+            ),
+          ),
+        ),
+      ),
     );
     const exchangeRate = readAmount(withdrawal, ['exchange_rate'])
+      ?? readAmount(withdrawalBreakdown, ['exchange_rate'])
+      ?? readAmount(withdrawalMeta, ['exchange_rate'])
+      ?? readAmount(matchedBreakdown, ['exchange_rate'])
+      ?? readAmount(matchedMetaBreakdown, ['exchange_rate'])
       ?? readAmount(matchedMeta, ['exchange_rate']);
     const payout = readAmount(withdrawal, ['amount'])
-      ?? readAmount(matchedMeta, ['payout_amount', 'amount']);
+      ?? readAmount(withdrawalBreakdown, ['payout_amount', 'amount'])
+      ?? readAmount(withdrawalMeta, ['payout_amount'])
+      ?? readAmount(matchedBreakdown, ['payout_amount'])
+      ?? readAmount(matchedMetaBreakdown, ['payout_amount'])
+      ?? readAmount(matchedMeta, ['payout_amount']);
     const payoutUsd = readAmount(withdrawal, ['amount_usd'])
+      ?? readAmount(withdrawalBreakdown, ['payout_amount_usd', 'amount_usd'])
+      ?? readAmount(withdrawalMeta, ['payout_amount_usd', 'amount_usd'])
+      ?? readAmount(matchedBreakdown, ['payout_amount_usd', 'amount_usd'])
+      ?? readAmount(matchedMetaBreakdown, ['payout_amount_usd', 'amount_usd'])
       ?? readAmount(matchedMeta, ['payout_amount_usd', 'amount_usd']);
     const fee = readAmount(withdrawal, ['fee', 'withdrawal_fee'])
+      ?? readAmount(withdrawalBreakdown, ['fee', 'withdrawal_fee'])
+      ?? readAmount(withdrawalMeta, ['fee', 'withdrawal_fee'])
+      ?? readAmount(matchedBreakdown, ['fee', 'withdrawal_fee'])
+      ?? readAmount(matchedMetaBreakdown, ['fee', 'withdrawal_fee'])
       ?? readAmount(matchedMeta, ['fee', 'withdrawal_fee']);
     const feeUsd = readAmount(withdrawal, ['fee_usd', 'withdrawal_fee_usd'])
+      ?? readAmount(withdrawalBreakdown, ['fee_usd', 'withdrawal_fee_usd'])
+      ?? readAmount(withdrawalMeta, ['fee_usd', 'withdrawal_fee_usd'])
+      ?? readAmount(matchedBreakdown, ['fee_usd', 'withdrawal_fee_usd'])
+      ?? readAmount(matchedMetaBreakdown, ['fee_usd', 'withdrawal_fee_usd'])
       ?? readAmount(matchedMeta, ['fee_usd', 'withdrawal_fee_usd']);
     const totalDebit = readAmount(withdrawal, ['total_debit'])
+      ?? readAmount(withdrawalBreakdown, ['total_debit'])
+      ?? readAmount(withdrawalMeta, ['total_debit'])
+      ?? readAmount(matchedBreakdown, ['total_debit'])
+      ?? readAmount(matchedMetaBreakdown, ['total_debit'])
       ?? readAmount(matchedMeta, ['total_debit'])
       ?? readAmount(matched ?? {}, ['amount']);
     const totalDebitUsd = readAmount(withdrawal, ['total_debit_usd'])
+      ?? readAmount(withdrawalBreakdown, ['total_debit_usd'])
+      ?? readAmount(withdrawalMeta, ['total_debit_usd'])
+      ?? readAmount(matchedBreakdown, ['total_debit_usd'])
+      ?? readAmount(matchedMetaBreakdown, ['total_debit_usd'])
       ?? readAmount(matchedMeta, ['total_debit_usd']);
     const key = `withdrawal:${id || reference || `${page}-${index}`}`;
     const title = first(withdrawal, ['description'], 'Withdrawal');
@@ -438,6 +495,7 @@ export default function Transactions() {
         payout: formatWithdrawalAmount(payout, currency, payoutUsd, exchangeRate),
         fee: formatWithdrawalAmount(fee, currency, feeUsd, exchangeRate),
         totalDebit: formatWithdrawalAmount(totalDebit, currency, totalDebitUsd, exchangeRate),
+        currency: currency || 'Not recorded',
         exchangeRate: exchangeRate === null
           ? currency.trim().toUpperCase() === 'USD' ? 'Not applicable (USD)' : 'Not recorded'
           : `1 USD = ${exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${currency || 'PKR'}`,
@@ -905,6 +963,7 @@ export default function Transactions() {
             <DetailLine label="Payout" value={row.withdrawalBreakdown.payout} />
             <DetailLine label="Withdrawal fee" value={row.withdrawalBreakdown.fee} />
             <DetailLine label="Total wallet debit" value={row.withdrawalBreakdown.totalDebit} />
+            <DetailLine label="Currency" value={row.withdrawalBreakdown.currency} />
           </View> : null}
           {active ? <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: 12, paddingTop: 4 }}>
             <DetailLine label="Transaction ID" value={row.transactionId} />

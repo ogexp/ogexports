@@ -13,6 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
 import { resolveTransactionPaymentMethod } from '@/lib/transaction-payment-method';
+import { savedUsdEquivalentForRecordedAmount } from '@/lib/withdrawal-history';
 
 const unavailable = '—';
 
@@ -89,6 +90,8 @@ export default function TransactionDetails() {
       })
       : undefined;
   const withdrawalLedgerMeta = record(withdrawalWalletTransaction?.meta);
+  const withdrawalLedgerBreakdown = record(withdrawalWalletTransaction?.withdrawal_breakdown);
+  const withdrawalLedgerMetaBreakdown = record(withdrawalLedgerMeta.withdrawal_breakdown);
   const paymentMethod = isWithdrawalTransaction
     ? resolveTransactionPaymentMethod(
       [transaction, bankDetails, meta, withdrawalLedgerMeta],
@@ -101,36 +104,58 @@ export default function TransactionDetails() {
     );
   const relatedInvestmentId = validRelatedId(transaction.investment_id, meta.investment_id);
   const relatedTradeId = validRelatedId(transaction.trade_id, meta.trade_id);
-  const primaryWithdrawalBreakdown = kind === 'withdrawal'
-    ? transaction
-    : record(transaction.withdrawal_breakdown);
+  const primaryWithdrawalBreakdown = isWithdrawalTransaction
+    ? {
+      ...withdrawalLedgerMeta,
+      ...withdrawalLedgerMetaBreakdown,
+      ...withdrawalLedgerBreakdown,
+      ...meta,
+      ...record(meta.withdrawal_breakdown),
+      ...record(transaction.withdrawal_breakdown),
+      ...(kind === 'withdrawal' ? transaction : {}),
+    }
+    : {};
   const withdrawalBreakdown = isWithdrawalTransaction
     ? {
       ...primaryWithdrawalBreakdown,
-      payout_amount: amount(primaryWithdrawalBreakdown, ['payout_amount', 'amount'])
+      payout_amount: amount(primaryWithdrawalBreakdown, ['payout_amount'])
+        ?? (kind === 'withdrawal' ? amount(transaction, ['amount']) : null)
+        ?? amount(withdrawalLedgerMetaBreakdown, ['payout_amount', 'amount'])
         ?? amount(withdrawalLedgerMeta, ['payout_amount']),
       payout_amount_usd: amount(primaryWithdrawalBreakdown, ['payout_amount_usd', 'amount_usd'])
+        ?? amount(withdrawalLedgerMetaBreakdown, ['payout_amount_usd', 'amount_usd'])
         ?? amount(withdrawalLedgerMeta, ['payout_amount_usd', 'amount_usd']),
       fee: amount(primaryWithdrawalBreakdown, ['fee', 'withdrawal_fee'])
+        ?? amount(withdrawalLedgerMetaBreakdown, ['fee', 'withdrawal_fee'])
         ?? amount(withdrawalLedgerMeta, ['fee', 'withdrawal_fee']),
       fee_usd: amount(primaryWithdrawalBreakdown, ['fee_usd', 'withdrawal_fee_usd'])
+        ?? amount(withdrawalLedgerMetaBreakdown, ['fee_usd', 'withdrawal_fee_usd'])
         ?? amount(withdrawalLedgerMeta, ['fee_usd', 'withdrawal_fee_usd']),
       total_debit: amount(primaryWithdrawalBreakdown, ['total_debit'])
+        ?? amount(withdrawalLedgerMetaBreakdown, ['total_debit'])
         ?? amount(withdrawalLedgerMeta, ['total_debit'])
         ?? amount(withdrawalWalletTransaction ?? {}, ['amount']),
       total_debit_usd: amount(primaryWithdrawalBreakdown, ['total_debit_usd'])
+        ?? amount(withdrawalLedgerMetaBreakdown, ['total_debit_usd'])
         ?? amount(withdrawalLedgerMeta, ['total_debit_usd']),
       exchange_rate: amount(primaryWithdrawalBreakdown, ['exchange_rate'])
+        ?? amount(withdrawalLedgerMetaBreakdown, ['exchange_rate'])
         ?? amount(withdrawalLedgerMeta, ['exchange_rate']),
       currency: first(
         primaryWithdrawalBreakdown,
-        ['currency'],
-        first(withdrawalLedgerMeta, ['currency', 'wallet_currency'], first(withdrawalWalletTransaction ?? {}, ['currency'])),
+        ['wallet_currency', 'currency', 'fee_currency', 'total_debit_currency'],
+        first(
+          withdrawalLedgerMetaBreakdown,
+          ['wallet_currency', 'currency'],
+          first(withdrawalLedgerMeta, ['wallet_currency', 'currency'],
+            first(withdrawalWalletTransaction ?? {}, ['wallet_currency', 'currency'])),
+        ),
       ),
       payment_method: first(
         primaryWithdrawalBreakdown,
         ['payment_method', 'method'],
-        first(withdrawalLedgerMeta, ['payment_method', 'method']),
+        first(withdrawalLedgerMetaBreakdown, ['payment_method', 'method'],
+          first(withdrawalLedgerMeta, ['payment_method', 'method'])),
       ),
     }
     : primaryWithdrawalBreakdown;
@@ -146,7 +171,11 @@ export default function TransactionDetails() {
     ['currency', 'amount_currency'],
     first(meta, ['currency', 'wallet_currency'], first(withdrawalLedgerMeta, ['currency', 'wallet_currency'])),
   );
-  const breakdownCurrency = first(withdrawalBreakdown, ['currency', 'fee_currency', 'total_debit_currency'], currency);
+  const breakdownCurrency = first(
+    withdrawalBreakdown,
+    ['currency', 'wallet_currency', 'fee_currency', 'total_debit_currency'],
+    currency,
+  );
   const reportedAmount = amount(transaction, ['amount'])
     ?? (kind === 'withdrawal' ? amount(withdrawalBreakdown, ['payout_amount']) : null);
   const amountLabel = reportedAmount === null
@@ -157,12 +186,26 @@ export default function TransactionDetails() {
       { preserveSource: kind === 'withdrawal' || hasWithdrawalBreakdown },
     );
   const status = first(transaction, ['review_status', 'status', 'state'], unavailable);
-  const formatRecordedAmount = (keys: string[]) => {
+  const formatRecordedAmount = (keys: string[], usdKeys: string[] = []) => {
     const value = amount(withdrawalBreakdown, keys);
-    if (value === null) return 'Not recorded';
-    return breakdownCurrency
+    const storedUsdAmount = amount(withdrawalBreakdown, usdKeys);
+    if (value === null) {
+      return storedUsdAmount === null
+        ? 'Not recorded'
+        : money(storedUsdAmount, 'USD', { preserveSource: true });
+    }
+    const usdAmount = savedUsdEquivalentForRecordedAmount(
+      value,
+      breakdownCurrency,
+      storedUsdAmount,
+      exchangeRate,
+    );
+    const sourceAmount = breakdownCurrency
       ? money(value, breakdownCurrency, { preserveSource: true })
       : value.toFixed(2);
+    return breakdownCurrency.trim().toUpperCase() !== 'USD' && usdAmount !== null
+      ? `${sourceAmount} (${money(usdAmount, 'USD', { preserveSource: true })} USD equivalent)`
+      : sourceAmount;
   };
   const exchangeRate = amount(withdrawalBreakdown, ['exchange_rate']);
   const exchangeRateLabel = exchangeRate === null
@@ -234,9 +277,9 @@ export default function TransactionDetails() {
       {hasWithdrawalBreakdown ? <>
         <Section title="Withdrawal breakdown" />
         <Card>
-          <DetailLine label="Requested bank payout" value={formatRecordedAmount(['payout_amount', 'amount'])} />
-          <DetailLine label="Withdrawal fee" value={formatRecordedAmount(['fee', 'withdrawal_fee'])} />
-          <DetailLine label="Total wallet debit" value={formatRecordedAmount(['total_debit'])} />
+          <DetailLine label="Requested bank payout" value={formatRecordedAmount(['payout_amount', 'amount'], ['payout_amount_usd', 'amount_usd'])} />
+          <DetailLine label="Withdrawal fee" value={formatRecordedAmount(['fee', 'withdrawal_fee'], ['fee_usd', 'withdrawal_fee_usd'])} />
+          <DetailLine label="Total wallet debit" value={formatRecordedAmount(['total_debit'], ['total_debit_usd'])} />
           <DetailLine label="Currency" value={breakdownCurrency || 'Not recorded'} />
           <DetailLine label="Saved exchange rate" value={exchangeRateLabel} />
         </Card>

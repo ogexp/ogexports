@@ -160,15 +160,20 @@ export default function InvestorTransactionDetail() {
   const reference = text(record?.reference ?? record?.transaction_reference ?? record?.withdraw_id)
   const amount = text(record?.amount)
   const meta = record?.meta && typeof record.meta === "object" ? record.meta as TransactionRecord : {}
-  const withdrawalBreakdown = record?.withdrawal_breakdown && typeof record.withdrawal_breakdown === "object"
+  const metaWithdrawalBreakdown = meta.withdrawal_breakdown && typeof meta.withdrawal_breakdown === "object"
+    ? meta.withdrawal_breakdown as TransactionRecord
+    : {}
+  const recordWithdrawalBreakdown = record?.withdrawal_breakdown && typeof record.withdrawal_breakdown === "object"
     ? record.withdrawal_breakdown as TransactionRecord
     : {}
+  const withdrawalBreakdown = { ...metaWithdrawalBreakdown, ...recordWithdrawalBreakdown }
   const bankDetails = record?.bank_details && typeof record.bank_details === "object"
     ? record.bank_details as TransactionRecord
     : {}
   const currency = text(
-    record?.currency ?? record?.amount_currency
-      ?? withdrawalBreakdown.currency ?? bankDetails.currency ?? meta.currency ?? meta.wallet_currency,
+    record?.wallet_currency ?? record?.currency ?? record?.amount_currency
+      ?? withdrawalBreakdown.wallet_currency ?? withdrawalBreakdown.currency
+      ?? bankDetails.currency ?? meta.wallet_currency ?? meta.currency,
     "",
   )
   const walletType = text(record?.type ?? record?.transaction_type, "").toLowerCase()
@@ -179,13 +184,44 @@ export default function InvestorTransactionDetail() {
     isWithdrawalTransaction,
   )
   const exchangeRate = numericValue(
-    record?.exchange_rate ?? withdrawalBreakdown.exchange_rate ?? meta.exchange_rate,
+    record?.exchange_rate ?? withdrawalBreakdown.exchange_rate
+      ?? meta.exchange_rate ?? metaWithdrawalBreakdown.exchange_rate,
   )
   const exchangeRateLabel = currency.trim().toUpperCase() === "USD"
     ? "Not applicable (USD)"
     : exchangeRate === null
       ? "Not recorded"
       : `1 USD = ${exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${currency || "PKR"}`
+  const payoutValue = numericValue(
+    kind === "withdrawal"
+      ? record?.amount ?? withdrawalBreakdown.payout_amount ?? withdrawalBreakdown.amount
+      : withdrawalBreakdown.payout_amount ?? withdrawalBreakdown.amount
+        ?? meta.payout_amount ?? meta.amount,
+  )
+  const payoutUsd = numericValue(
+    record?.amount_usd ?? withdrawalBreakdown.payout_amount_usd ?? withdrawalBreakdown.amount_usd
+      ?? meta.payout_amount_usd ?? meta.amount_usd
+      ?? metaWithdrawalBreakdown.payout_amount_usd ?? metaWithdrawalBreakdown.amount_usd,
+  )
+  const feeValue = numericValue(
+    record?.fee ?? record?.withdrawal_fee ?? withdrawalBreakdown.fee
+      ?? withdrawalBreakdown.withdrawal_fee ?? meta.fee ?? meta.withdrawal_fee,
+  )
+  const feeUsd = numericValue(
+    record?.fee_usd ?? record?.withdrawal_fee_usd ?? withdrawalBreakdown.fee_usd
+      ?? withdrawalBreakdown.withdrawal_fee_usd ?? meta.fee_usd ?? meta.withdrawal_fee_usd,
+  )
+  const totalDebitValue = numericValue(
+    record?.total_debit ?? withdrawalBreakdown.total_debit ?? meta.total_debit
+      ?? (kind === "wallet" ? record?.amount : null),
+  )
+  const totalDebitUsd = numericValue(
+    record?.total_debit_usd ?? withdrawalBreakdown.total_debit_usd ?? meta.total_debit_usd,
+  )
+  const formatWithdrawalAmount = (value: number | null, usdEquivalent: number | null) => {
+    if (value === null) return usdEquivalent === null ? "Not recorded" : recordedMoney(usdEquivalent, "USD")
+    return recordedMoney(value, currency, usdEquivalent)
+  }
   const relatedInvestmentId = validRelatedId(record?.investment_id, meta.investment_id)
   const relatedTradeId = validRelatedId(record?.trade_id, meta.trade_id)
   const details = kind === "deposit"
@@ -205,24 +241,11 @@ export default function InvestorTransactionDetail() {
         ["Reference", reference],
         ["Status", status],
         ["Payment method", paymentMethod],
-        ["Requested bank payout", recordedMoney(
-          kind === "withdrawal"
-            ? record?.amount ?? withdrawalBreakdown.payout_amount ?? withdrawalBreakdown.amount
-            : withdrawalBreakdown.payout_amount ?? withdrawalBreakdown.amount,
-          currency,
-          record?.amount_usd ?? withdrawalBreakdown.payout_amount_usd,
-        )],
-        ["Withdrawal fee", recordedMoney(
-          record?.fee ?? record?.withdrawal_fee ?? withdrawalBreakdown.fee,
-          currency,
-          record?.fee_usd ?? record?.withdrawal_fee_usd ?? withdrawalBreakdown.fee_usd,
-        )],
-        ["Total wallet debit", recordedMoney(
-          record?.total_debit ?? withdrawalBreakdown.total_debit,
-          currency,
-          record?.total_debit_usd ?? withdrawalBreakdown.total_debit_usd,
-        )],
-        ["Exchange rate at submission", exchangeRateLabel],
+        ["Currency", currency || "Not recorded"],
+        ["Requested bank payout", formatWithdrawalAmount(payoutValue, payoutUsd)],
+        ["Withdrawal fee", formatWithdrawalAmount(feeValue, feeUsd)],
+        ["Total wallet debit", formatWithdrawalAmount(totalDebitValue, totalDebitUsd)],
+        ["Saved exchange rate", exchangeRateLabel],
         ["Estimated processing time", text(record?.estimated_processing_time)],
         ["Submitted", formatDate(record?.created_at)],
         ["Reviewed", formatDate(record?.reviewed_at)],
