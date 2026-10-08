@@ -216,9 +216,9 @@ export default function Entry() {
               ],
             }}
           >
-            <View style={{ position: 'absolute', left: 50, top: 12, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.65 }} />
-            <View style={{ position: 'absolute', left: -3, top: 101, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent }} />
-            <View style={{ position: 'absolute', left: 50, bottom: 12, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.65 }} />
+            <View style={{ position: 'absolute', left: 101, top: -3, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent }} />
+            <View style={{ position: 'absolute', right: 12, bottom: 50, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.65 }} />
+            <View style={{ position: 'absolute', left: 12, bottom: 50, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.65 }} />
           </Animated.View>
           <Animated.View
             style={{
