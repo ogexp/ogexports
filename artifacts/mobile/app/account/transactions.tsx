@@ -15,6 +15,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
 import {
+  matchesHistoryDateRange,
+  matchesHistoryStatus,
+} from '@/lib/dashboard-history';
+import {
   savedUsdEquivalentForRecordedAmount,
   withdrawalPaymentMethod,
 } from '@/lib/withdrawal-history';
@@ -69,6 +73,23 @@ const depositStatuses = [
   { label: 'Rejected', value: 'rejected' },
   { label: 'Cancelled', value: 'cancelled' },
 ];
+const genericStatusOptions: Partial<Record<Filter, { label: string; value: string }[]>> = {
+  All: [
+    { label: 'Any status', value: '' },
+    { label: 'Completed', value: 'completed' },
+  ],
+  Investments: [
+    { label: 'Any status', value: '' },
+    { label: 'Active', value: 'active' },
+    { label: 'Pending', value: 'pending' },
+    { label: 'Completed', value: 'completed' },
+  ],
+  Distributions: [
+    { label: 'Any status', value: '' },
+    { label: 'Pending', value: 'pending' },
+    { label: 'Completed', value: 'completed' },
+  ],
+};
 
 function formatDateTime(value: string) {
   if (!value) return unavailable;
@@ -160,28 +181,49 @@ function DetailLine({ label, value }: { label: string; value: string }) {
 export default function Transactions() {
   const { token } = useAuth();
   const colors = useColors();
-  const params = useLocalSearchParams<{ search?: string; tab?: string; selected?: string }>();
-  const [filter, setFilter] = useState<Filter>(filterFromRoute(params.tab) ?? 'All');
+  const params = useLocalSearchParams<{
+    search?: string;
+    tab?: string;
+    selected?: string;
+    status?: string;
+    date_from?: string;
+    date_to?: string;
+  }>();
+  const initialFilter = filterFromRoute(params.tab) ?? 'All';
+  const initialStatus = typeof params.status === 'string' ? params.status : '';
+  const [filter, setFilter] = useState<Filter>(initialFilter);
   const [search, setSearch] = useState(typeof params.search === 'string' ? params.search : '');
   const [selectedId, setSelectedId] = useState(typeof params.selected === 'string' ? params.selected : '');
   const [page, setPage] = useState(1);
   const [serverReference, setServerReference] = useState('');
-  const [withdrawalStatus, setWithdrawalStatus] = useState('');
+  const [transactionStatus, setTransactionStatus] = useState(
+    initialFilter === 'Deposits' || initialFilter === 'Withdrawals' ? '' : initialStatus,
+  );
+  const [withdrawalStatus, setWithdrawalStatus] = useState(initialFilter === 'Withdrawals' ? initialStatus : '');
   const [withdrawalDateFrom, setWithdrawalDateFrom] = useState('');
   const [withdrawalDateTo, setWithdrawalDateTo] = useState('');
-  const [depositStatus, setDepositStatus] = useState('');
+  const [depositStatus, setDepositStatus] = useState(initialFilter === 'Deposits' ? initialStatus : '');
   const [depositDateFrom, setDepositDateFrom] = useState('');
   const [depositDateTo, setDepositDateTo] = useState('');
+  const [historyDateFrom, setHistoryDateFrom] = useState(typeof params.date_from === 'string' ? params.date_from : '');
+  const [historyDateTo, setHistoryDateTo] = useState(typeof params.date_to === 'string' ? params.date_to : '');
   const [busyReceiptKey, setBusyReceiptKey] = useState('');
   const [receiptError, setReceiptError] = useState('');
 
   useEffect(() => {
-    setFilter(filterFromRoute(typeof params.tab === 'string' ? params.tab : undefined) ?? 'All');
+    const nextFilter = filterFromRoute(typeof params.tab === 'string' ? params.tab : undefined) ?? 'All';
+    const nextStatus = typeof params.status === 'string' ? params.status : '';
+    setFilter(nextFilter);
     setSearch(typeof params.search === 'string' ? params.search : '');
     setSelectedId(typeof params.selected === 'string' ? params.selected : '');
+    setTransactionStatus(nextFilter === 'Deposits' || nextFilter === 'Withdrawals' ? '' : nextStatus);
+    setDepositStatus(nextFilter === 'Deposits' ? nextStatus : '');
+    setWithdrawalStatus(nextFilter === 'Withdrawals' ? nextStatus : '');
+    setHistoryDateFrom(typeof params.date_from === 'string' ? params.date_from : '');
+    setHistoryDateTo(typeof params.date_to === 'string' ? params.date_to : '');
     setPage(1);
     setReceiptError('');
-  }, [params.tab, params.search, params.selected]);
+  }, [params.tab, params.search, params.selected, params.status, params.date_from, params.date_to]);
   const invalidWithdrawalDate = filter === 'Withdrawals'
     && (!isValidDateFilter(withdrawalDateFrom) || !isValidDateFilter(withdrawalDateTo));
   const invalidWithdrawalDateRange = filter === 'Withdrawals'
@@ -202,6 +244,14 @@ export default function Transactions() {
     : invalidDepositDateRange
       ? 'End date must be on or after the start date.'
       : '';
+  const invalidHistoryDate = filter === 'Distributions'
+    && (!isValidDateFilter(historyDateFrom) || !isValidDateFilter(historyDateTo)
+      || Boolean(historyDateFrom && historyDateTo && historyDateTo < historyDateFrom));
+  const historyDateError = invalidHistoryDate
+    ? !isValidDateFilter(historyDateFrom) || !isValidDateFilter(historyDateTo)
+      ? 'Use dates in YYYY-MM-DD format.'
+      : 'End date must be on or after the start date.'
+    : '';
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -268,8 +318,16 @@ export default function Transactions() {
       staleTime: 20_000,
     },
   });
-  const investmentsQuery = useGetInvestorInvestments({ page, per_page: pageSize }, {
-    query: { queryKey: ['investor-positions', page, pageSize], enabled: Boolean(token), staleTime: 30_000 },
+  const investmentsQuery = useGetInvestorInvestments({
+    page,
+    per_page: pageSize,
+    ...(filter === 'Investments' && transactionStatus ? { status: transactionStatus } : {}),
+  }, {
+    query: {
+      queryKey: ['investor-positions', page, pageSize, filter, transactionStatus],
+      enabled: Boolean(token),
+      staleTime: 30_000,
+    },
   });
 
   const wallet = unwrap(walletQuery.data);
@@ -482,10 +540,18 @@ export default function Transactions() {
   });
 
   const query = search.trim().toLowerCase();
+  const activeStatusFilter = filter === 'Deposits'
+    ? depositStatus
+    : filter === 'Withdrawals'
+      ? withdrawalStatus
+      : transactionStatus;
   const filteredRows = rows.filter(row => {
     const matchesFilter = filter === 'All' || row.category === filter;
     const matchesSearch = !query || `${row.searchText} ${row.transactionId} ${row.investmentId} ${row.tradeId} ${row.reference} ${row.paymentReference} ${row.status} ${formatDateTime(row.occurredAt)} ${row.category}`.toLowerCase().includes(query);
-    return matchesFilter && matchesSearch;
+    const matchesStatus = matchesHistoryStatus(row.status, activeStatusFilter);
+    const matchesDate = filter !== 'Distributions'
+      || matchesHistoryDateRange(row.occurredAt, historyDateFrom, historyDateTo);
+    return matchesFilter && matchesSearch && matchesStatus && matchesDate;
   });
   const selectedRow = filteredRows.find(row => row.key === selectedId || row.transactionId === selectedId || row.reference === selectedId);
 
@@ -535,6 +601,11 @@ export default function Transactions() {
         const active = filter === item;
         return <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => {
           motionHaptic('micro');
+          if (filter !== item) {
+            setTransactionStatus('');
+            setHistoryDateFrom('');
+            setHistoryDateTo('');
+          }
           setFilter(item);
           setSelectedId('');
           setPage(1);
@@ -562,6 +633,78 @@ export default function Transactions() {
       autoCapitalize="none"
       maxLength={100}
     />
+    {genericStatusOptions[filter] ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 12 }}>
+      {genericStatusOptions[filter]!.map(option => {
+        const active = transactionStatus === option.value;
+        return <Pressable
+          key={option.value || 'any-status'}
+          accessibilityRole="button"
+          accessibilityState={{ selected: active }}
+          onPress={() => {
+            setPage(1);
+            setSelectedId('');
+            setTransactionStatus(option.value);
+          }}
+          style={{
+            borderRadius: 18,
+            paddingVertical: 8,
+            paddingHorizontal: 13,
+            backgroundColor: active ? colors.primary : colors.secondary,
+            borderWidth: 1,
+            borderColor: active ? colors.primary : colors.border,
+          }}
+        >
+          <Text style={{ color: active ? colors.primaryForeground : colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>
+            {option.label}
+          </Text>
+        </Pressable>;
+      })}
+    </ScrollView> : null}
+    {filter === 'Distributions' ? <>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <Field
+            label="From date (YYYY-MM-DD)"
+            value={historyDateFrom}
+            onChangeText={value => {
+              setPage(1);
+              setSelectedId('');
+              setHistoryDateFrom(value);
+            }}
+            placeholder="2026-01-01"
+            maxLength={10}
+            autoCapitalize="none"
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Field
+            label="To date (YYYY-MM-DD)"
+            value={historyDateTo}
+            onChangeText={value => {
+              setPage(1);
+              setSelectedId('');
+              setHistoryDateTo(value);
+            }}
+            placeholder="2026-01-31"
+            maxLength={10}
+            autoCapitalize="none"
+          />
+        </View>
+      </View>
+      {historyDateError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, marginBottom: 10 }}>{historyDateError}</Text> : null}
+      {(historyDateFrom || historyDateTo) ? <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          setPage(1);
+          setSelectedId('');
+          setHistoryDateFrom('');
+          setHistoryDateTo('');
+        }}
+        style={{ alignSelf: 'flex-start', paddingVertical: 4, marginBottom: 8 }}
+      >
+        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Clear distribution date range</Text>
+      </Pressable> : null}
+    </> : null}
     {filter === 'Deposits' ? <>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 12 }}>
         {depositStatuses.map(option => {

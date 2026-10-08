@@ -31,6 +31,7 @@ import {
   type DashboardMetricItem,
 } from '@/components/DashboardWidgets';
 import { MOTION, MotionProgress, MotionReveal, motionHaptic } from '@/lib/motion';
+import { dashboardHistoryParams, type DashboardHistoryScope } from '@/lib/dashboard-history';
 
 const accountMenuSections = [
   {
@@ -218,21 +219,27 @@ export default function InvestorHome() {
     return displayMoney(usdKey ? amount(summary, [usdKey]) : null, 'USD');
   };
   const metricCount = (value: number | null) => dashboard.isLoading ? '…' : dashboard.isError ? 'Unavailable' : value == null ? '—' : String(value);
+  const openDashboardHistory = (scope: DashboardHistoryScope) => {
+    router.push({
+      pathname: '/account/transactions',
+      params: dashboardHistoryParams(scope),
+    });
+  };
   const alertsLoading = notificationsQuery.isLoading && dashboardAlerts.length === 0;
   const alertsError = notificationsQuery.isError && dashboardAlerts.length === 0;
   const metricItems: DashboardMetricItem[] = [
-    { label: 'Total Deposits', value: metricMoneyFromSummary('total_deposits', 'total_deposits_usd'), icon: 'arrow-down-left', detail: metricCount(amount(summary, ['total_deposits_count'])) },
-    { label: 'Pending Deposits', value: metricMoney(amount(summary, ['pending_deposits_amount', 'pending_deposits'])), icon: 'clock', detail: metricCount(amount(summary, ['pending_deposits_count'])) },
-    { label: 'Total Withdrawals', value: metricMoneyFromSummary('total_withdrawals', 'total_withdrawals_usd'), icon: 'arrow-up-right', detail: metricCount(amount(summary, ['total_withdrawals_count'])) },
-    { label: 'Pending Withdrawals', value: metricMoneyFromSummary('pending_withdrawals_amount', 'pending_withdrawals_amount_usd'), icon: 'clock', detail: metricCount(amount(summary, ['pending_withdrawals_count'])) },
-    { label: 'Total Investment', value: metricMoney(investedCapital, investedCapitalCurrency), icon: 'briefcase', detail: metricCount(amount(summary, ['investments_count'])) },
-    { label: 'Active Investment', value: metricMoney(activeInvestment, activeInvestmentCurrency), icon: 'activity', detail: metricCount(amount(summary, ['active_investments_count'])) },
-    { label: 'Total Profit Earned', value: metricMoney(netReturns, netReturnsCurrency), icon: 'trending-up' },
-    { label: 'Monthly Profit', value: metricMoney(monthlyProfit, monthlyProfitCurrency), icon: 'bar-chart-2' },
-    { label: 'Lifetime ROI', value: dashboard.isLoading ? '…' : balanceHidden ? '••••' : dashboard.isError ? 'Unavailable' : roi == null ? '—' : `${roi.toFixed(2)}%`, icon: 'activity' },
-    { label: 'Completed Transactions', value: metricCount(amount(summary, ['completed_transactions'])), icon: 'check-circle' },
-    { label: 'Available Balance', value: metricMoney(availableBalance, currency || 'USD'), icon: 'credit-card' },
-    { label: 'Pending Distribution', value: metricMoney(pendingDistribution), icon: 'calendar' },
+    { label: 'Total Deposits', value: metricMoneyFromSummary('total_deposits', 'total_deposits_usd'), icon: 'arrow-down-left', detail: metricCount(amount(summary, ['total_deposits_count'])), onPress: () => openDashboardHistory('total-deposits') },
+    { label: 'Pending Deposits', value: metricMoney(amount(summary, ['pending_deposits_amount', 'pending_deposits'])), icon: 'clock', detail: metricCount(amount(summary, ['pending_deposits_count'])), onPress: () => openDashboardHistory('pending-deposits') },
+    { label: 'Total Withdrawals', value: metricMoneyFromSummary('total_withdrawals', 'total_withdrawals_usd'), icon: 'arrow-up-right', detail: metricCount(amount(summary, ['total_withdrawals_count'])), onPress: () => openDashboardHistory('total-withdrawals') },
+    { label: 'Pending Withdrawals', value: metricMoneyFromSummary('pending_withdrawals_amount', 'pending_withdrawals_amount_usd'), icon: 'clock', detail: metricCount(amount(summary, ['pending_withdrawals_count'])), onPress: () => openDashboardHistory('pending-withdrawals') },
+    { label: 'Total Investments', value: metricMoney(investedCapital, investedCapitalCurrency), icon: 'briefcase', detail: metricCount(amount(summary, ['investments_count'])), onPress: () => openDashboardHistory('total-investments') },
+    { label: 'Active Investments', value: metricMoney(activeInvestment, activeInvestmentCurrency), icon: 'activity', detail: metricCount(amount(summary, ['active_investments_count'])), onPress: () => openDashboardHistory('active-investments') },
+    { label: 'Total Profit Earned', value: metricMoney(netReturns, netReturnsCurrency), icon: 'trending-up', onPress: () => openDashboardHistory('total-profit-earned') },
+    { label: 'Monthly Profit', value: metricMoney(monthlyProfit, monthlyProfitCurrency), icon: 'bar-chart-2', onPress: () => openDashboardHistory('monthly-profit') },
+    { label: 'Lifetime ROI', value: dashboard.isLoading ? '…' : balanceHidden ? '••••' : dashboard.isError ? 'Unavailable' : roi == null ? '—' : `${roi.toFixed(2)}%`, icon: 'activity', onPress: () => openDashboardHistory('lifetime-roi') },
+    { label: 'Completed Transactions', value: metricCount(amount(summary, ['completed_transactions'])), icon: 'check-circle', onPress: () => openDashboardHistory('completed-transactions') },
+    { label: 'Available Balance', value: metricMoney(availableBalance, currency || 'USD'), icon: 'credit-card', onPress: () => openDashboardHistory('available-balance') },
+    { label: 'Pending Distributions', value: metricMoney(pendingDistribution), icon: 'calendar', onPress: () => openDashboardHistory('pending-distributions') },
   ];
   const verificationItems = [
     { label: 'KYC', value: first(data, ['kyc_status'], '—') },

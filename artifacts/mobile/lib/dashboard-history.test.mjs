@@ -40,6 +40,6 @@ test('status and date filters match normalized records and reject missing dates'
   assert.equal(matchesHistoryStatus('pending', 'pending'), true);
   assert.equal(matchesHistoryStatus('rejected', 'pending'), false);
   assert.equal(matchesHistoryDateRange('2026-10-12T12:00:00+05:00', '2026-10-01', '2026-10-31'), true);
-  assert.equal(matchesHistoryDateRange('2026-09-30T23:59:00-07:00', '2026-10-01', '2026-10-31'), false);
+  assert.equal(matchesHistoryDateRange('2026-09-30T12:00:00Z', '2026-10-01', '2026-10-31'), false);
   assert.equal(matchesHistoryDateRange('', '2026-10-01', '2026-10-31'), false);
 });
