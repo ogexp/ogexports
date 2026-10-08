@@ -10,7 +10,7 @@ test('pending review does not lock an incomplete application', () => {
   });
 });
 
-test('the flow resumes at supporting documents after identity documents are present', () => {
+test('the flow resumes at verification review after every required document is present', () => {
   assert.deepEqual(getInvestorKycFlowState('Under Review', true, true), {
     isReadOnly: false,
     progressStep: 3,

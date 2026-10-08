@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, Platform, Pressable, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile } from 'expo-file-system';
@@ -62,7 +63,19 @@ const documentLabels: Record<string, string> = {
 export default function Kyc() {
   const { token, apiOrigin, user } = useAuth();
   const colors = useColors();
-  const query = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: !!token } });
+  const query = useGetInvestorProfile({
+    query: {
+      queryKey: ['investor-profile'],
+      enabled: !!token,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+      refetchInterval: currentQuery => {
+        const currentProfile = unwrap(currentQuery.state.data);
+        return getInvestorKycStatus(currentProfile) === 'Under Review' ? 15_000 : false;
+      },
+      refetchIntervalInBackground: false,
+    },
+  });
   const upload = useUploadInvestorKycDocument();
   const updateProfile = useUpdateInvestorProfile();
   const submitKyc = useSubmitInvestorKyc();
@@ -77,9 +90,8 @@ export default function Kyc() {
   const hasInitializedStep = useRef(false);
   const [selectedType, setSelectedType] = useState('passport_id');
   const isSupportingDocument = (item: Record<string, unknown>) => /address|utility|bank.?statement|government.?document|tax|certificate|ntn/i.test(first(item, ['doc_type', 'key', 'label']));
-  const identitySteps = steps.filter(item => !isSupportingDocument(item));
   const supportingSteps = steps.filter(isSupportingDocument);
-  const currentDocumentSteps = step === 3 ? supportingSteps : identitySteps;
+  const currentDocumentSteps = steps;
   const selectedDocumentType = currentDocumentSteps.some(item => first(item, ['doc_type', 'key']) === selectedType)
     ? selectedType
     : first(record(currentDocumentSteps[0]), ['doc_type', 'key'], 'passport_id');
@@ -95,14 +107,12 @@ export default function Kyc() {
       && (first(address, ['city']) || first(profile, ['city']))
       && (first(address, ['country']) || first(profile, ['country'])),
   );
-  const identityDocumentsComplete = steps.length > 0
-    && identitySteps.every(item => Boolean(first(record(item.document), ['path'])));
   const allRequiredDocumentsUploaded = steps.length > 0
     && steps.every(item => Boolean(first(record(item.document), ['path'])));
   const { isReadOnly, progressStep, resumeStep } = getInvestorKycFlowState(
     status,
     savedPersonalDetails,
-    identityDocumentsComplete,
+    allRequiredDocumentsUploaded,
   );
   const loginEmail = first(record(user), ['email'], first(personal, ['email']));
   const statusNote = first(kyc, ['action_required_reason', 'rejection_reason', 'review_note', 'message']);
@@ -153,6 +163,10 @@ export default function Kyc() {
       setStep(resumeStep);
     }
   }, [query.data]);
+
+  useFocusEffect(useCallback(() => {
+    if (token) void query.refetch();
+  }, [query.refetch, token]));
 
   async function savePersonalDetails() {
     setError('');
@@ -299,7 +313,7 @@ export default function Kyc() {
   function renderDocumentGroup(requirements: Record<string, unknown>[], title: string, nextTitle: string, nextStep: 2 | 3 | null, includeIdNumber = false) {
     return <>
       <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginVertical: 8 }}>{title}</Text>
-      {includeIdNumber ? <Field label="Document number" value={idNumber} onChangeText={setIdNumber} placeholder="Passport, national ID or license number" autoCapitalize="characters" /> : null}
+      {includeIdNumber && selectedDocumentType === 'passport_id' ? <Field label="Document number" value={idNumber} onChangeText={setIdNumber} placeholder="Passport, national ID or license number" autoCapitalize="characters" /> : null}
       {requirements.map((item, index) => {
         const type = first(item, ['doc_type', 'key'], `document-${index}`);
         const document = record(item.document);
@@ -322,8 +336,8 @@ export default function Kyc() {
       </Card>
       {nextStep ? <View style={{ marginBottom: 12 }}><Action title={nextTitle} icon="arrow-right" secondary onPress={() => {
         setError('');
-        if (nextStep === 3 && (!steps.length || identitySteps.some(item => !first(record(item.document), ['path'])))) {
-          setError('Upload every required identity document before continuing.');
+        if (nextStep === 3 && (!steps.length || steps.some(item => !first(record(item.document), ['path'])))) {
+          setError('Upload every required KYC document before continuing.');
           return;
         }
         setStep(nextStep);
@@ -394,7 +408,7 @@ export default function Kyc() {
     </Card>;
   }
 
-  const stageLabels = ['Personal', 'Identity', 'Verification', 'Completed'] as const;
+  const stageLabels = ['Personal', 'Documents', 'Review', 'Completed'] as const;
 
   return <Screen title="Investor verification" subtitle="Submit identity and address details for OG Exports review">
     {query.isError ? <ErrorState message="Verification status could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
@@ -406,6 +420,13 @@ export default function Kyc() {
       </View>
       <Status value={status} />
     </Card>
+    {isUnderReview ? <Action
+      title="Refresh verification status"
+      secondary
+      icon="refresh-cw"
+      loading={query.isFetching}
+      onPress={() => void query.refetch()}
+    /> : null}
 
     <Card>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -473,17 +494,16 @@ export default function Kyc() {
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 12 }}>Required fields are saved to your investor profile before document submission. OG Exports remains the source of verification decisions.</Text>
       </Card> : null}
 
-      {step === 2 ? renderDocumentGroup(identitySteps, 'Step 2 · Identity documents', 'Continue to verification', 3, true) : null}
+      {step === 2 ? renderDocumentGroup(steps, 'Step 2 · Required documents', 'Continue to verification', 3, true) : null}
 
       {step === 3 ? <>
-        <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginVertical: 8 }}>Step 3 · Address and verification review</Text>
-        {renderDocumentGroup(supportingSteps, 'Address and supporting documents', '', null)}
+        <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginVertical: 8 }}>Step 3 · Verification review</Text>
         {renderVerificationChecks()}
         {renderApplicationSummary('Review your information')}
         <Card>
           <Text style={{ color: colors.mutedForeground, lineHeight: 20, marginBottom: 14 }}>Submitting sends these details and documents to OG Exports. Approval is not automatic; this app will show Verified only after the investor server confirms it.</Text>
           <Action title="Submit for review" icon="send" loading={submitKyc.isPending || updateProfile.isPending} disabled={!savedPersonalDetails || !steps.length || steps.some(item => !first(record(item.document), ['path']))} onPress={() => void submitApplication()} />
-          <View style={{ marginTop: 10 }}><Action title="Back to identity documents" secondary onPress={() => setStep(2)} /></View>
+          <View style={{ marginTop: 10 }}><Action title="Back to documents" secondary onPress={() => setStep(2)} /></View>
         </Card>
       </> : null}
     </> : null}

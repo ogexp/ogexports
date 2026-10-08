@@ -4,7 +4,7 @@ export type InvestorKycFormStep = 1 | 2 | 3;
 export function getInvestorKycFlowState(
   status: string,
   hasSavedPersonalDetails: boolean,
-  identityDocumentsComplete: boolean,
+  requiredDocumentsComplete: boolean,
 ): {
   isReadOnly: boolean;
   progressStep: InvestorKycFlowStep;
@@ -14,7 +14,7 @@ export function getInvestorKycFlowState(
   const isReadOnly = normalizedStatus === 'verified' || normalizedStatus === 'approved';
   const progressStep: InvestorKycFlowStep = isReadOnly
     ? 4
-    : identityDocumentsComplete
+    : requiredDocumentsComplete
       ? 3
       : hasSavedPersonalDetails
         ? 2

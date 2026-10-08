@@ -66,6 +66,7 @@ function RootLayoutNav() {
 
     const refreshInvestorRecords = () => {
       const prefixes = [
+        'investor-profile',
         'investor-wallet',
         'investor-deposits',
         'investor-withdrawals',
