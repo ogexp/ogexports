@@ -9,7 +9,7 @@ import {
   useGetInvestorInvestments,
 } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap } from '@/lib/data';
+import { amount, availableBalanceFromDashboard, first, list, moneyToCurrency, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, MotionProgress, MotionReveal } from '@/lib/motion';
@@ -30,7 +30,7 @@ function supplied(value: string, fallback = '—') {
 }
 
 function reportedMoney(value: number | null, currency: string) {
-  return money(value, currency);
+  return moneyToCurrency(value, currency, 'USD');
 }
 
 function reportedDate(value: string) {
@@ -77,10 +77,23 @@ export default function Portfolio() {
   const wallet = record(dashboard.wallet);
   const series = record(dashboard.portfolio_series);
   const currency = first(summary, ['display_currency'], first(wallet, ['currency', 'default_currency']));
-  const totalValue = amount(summary, ['total_portfolio_value']);
-  const invested = amount(summary, ['total_investment', 'total_investment_usd', 'invested_capital']);
-  const distributed = amount(summary, ['distributed_returns']);
-  const pendingDistribution = amount(summary, ['pending_distribution']);
+  const walletCurrency = first(wallet, ['currency', 'default_currency'], currency || 'USD');
+  const totalPortfolioValue = amount(summary, ['total_portfolio_value']);
+  const totalPortfolioValueUsd = amount(summary, ['total_portfolio_value_usd']);
+  const totalValue = totalPortfolioValue ?? totalPortfolioValueUsd;
+  const totalValueCurrency = totalPortfolioValue == null && totalPortfolioValueUsd != null ? 'USD' : currency || 'USD';
+  const totalInvestment = amount(summary, ['total_investment']);
+  const totalInvestmentUsd = amount(summary, ['total_investment_usd']);
+  const invested = totalInvestment ?? totalInvestmentUsd ?? amount(summary, ['invested_capital']);
+  const investedCurrency = totalInvestment == null && totalInvestmentUsd != null ? 'USD' : currency || 'USD';
+  const distributedReturns = amount(summary, ['distributed_returns']);
+  const distributedReturnsUsd = amount(summary, ['distributed_returns_usd']);
+  const distributed = distributedReturns ?? distributedReturnsUsd;
+  const distributedCurrency = distributedReturns == null && distributedReturnsUsd != null ? 'USD' : currency || 'USD';
+  const reportedPendingDistribution = amount(summary, ['pending_distribution']);
+  const pendingDistributionUsd = amount(summary, ['pending_distribution_usd']);
+  const pendingDistribution = reportedPendingDistribution ?? pendingDistributionUsd;
+  const pendingDistributionCurrency = reportedPendingDistribution == null && pendingDistributionUsd != null ? 'USD' : currency || 'USD';
   const availableBalance = availableBalanceFromDashboard(dashboardQuery.data);
   const dashboardInvestments = list(dashboard.my_investments);
   const assignedRows = rows.map((item, index) => {
@@ -110,7 +123,11 @@ export default function Portfolio() {
     const commodity = first(item, ['commodity_name', 'commodity'], first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(item, ['project_name', 'title'])));
     const origin = first(item, ['origin', 'origin_country', 'from_country'], first(trade, ['origin', 'origin_country', 'from_country', 'country_of_origin']));
     const destination = first(item, ['destination', 'destination_country', 'to_country'], first(trade, ['destination', 'destination_country', 'to_country', 'destination_market']));
-    const investmentCurrency = first(trade, ['currency'], first(item, ['amount_currency', 'currency']));
+    const investmentCurrency = first(
+      item,
+      ['amount_currency', 'currency'],
+      first(trade, ['currency', 'investment_currency'], 'USD'),
+    );
     const investedAmount = amount(item, ['amount', 'investment_amount', 'principal']);
     const investedPkr = amount(item, ['amount_pkr']);
     const meta = record(trade.meta ?? item.meta);
@@ -140,10 +157,11 @@ export default function Portfolio() {
       ?? amount(item, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage'])
       ?? amount(trade, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage']);
     const boundedProgress = progress == null ? null : Math.max(0, Math.min(100, progress));
-    const amountLabel = [
-      investedAmount != null ? money(investedAmount, investmentCurrency || 'USD') : null,
-      investedPkr != null ? money(investedPkr, 'PKR') : null,
-    ].filter(Boolean).join(' · ') || money(null, investmentCurrency || 'USD');
+    const amountLabel = investedAmount != null
+      ? moneyToCurrency(investedAmount, investmentCurrency || 'USD', 'USD')
+      : investedPkr != null
+        ? moneyToCurrency(investedPkr, 'PKR', 'USD')
+        : moneyToCurrency(null, investmentCurrency || 'USD', 'USD');
     const expectedProfit = amount(item, ['expected_profit']) ?? amount(dashboardInvestment, ['expected_profit']);
     const roi = amount(dashboardInvestment, ['roi'])
       ?? amount(item, ['roi', 'expected_return_pct'])
@@ -154,7 +172,7 @@ export default function Portfolio() {
     const distribution = record(item.profit_distribution ?? item.distribution);
     const totalReturn = amount(item, ['total_return', 'total_return_amount'])
       ?? amount(distribution, ['total_return']);
-    const payoutCurrency = first(trade, ['currency'], investmentCurrency || 'USD');
+  const payoutCurrency = first(trade, ['currency', 'investment_currency'], investmentCurrency || 'USD');
     const investmentDate = first(item, ['invested_at', 'invest_date', 'investment_date', 'created_at'], first(dashboardInvestment, ['invest_date']));
     const etd = first(container, ['etd'], first(trade, ['etd', 'departure_date'], first(item, ['etd', 'departure_date'])));
     const eta = first(container, ['eta'], first(trade, ['eta', 'arrival_date'], first(item, ['eta', 'arrival_date'])));
@@ -270,10 +288,10 @@ export default function Portfolio() {
     </MotionReveal>;
   };
 
-  const summaryValue = (value: number | null) => {
+  const summaryValue = (value: number | null, sourceCurrency = currency || 'USD') => {
     if (dashboardQuery.isLoading) return 'Loading…';
     if (dashboardQuery.isError) return 'Unavailable';
-    return reportedMoney(value, currency || 'USD');
+    return reportedMoney(value, sourceCurrency);
   };
 
   return <Screen title="My Portfolio" subtitle="Capital placed in real trade and shipment activity" refreshable>
@@ -282,21 +300,21 @@ export default function Portfolio() {
       <View style={{ paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Total Portfolio Value</Text>
         <Text style={{ color: colors.primary, fontSize: 30, fontWeight: '700', letterSpacing: -0.7, marginTop: 5 }}>
-          {summaryValue(totalValue)}
+          {summaryValue(totalValue, totalValueCurrency)}
         </Text>
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 2 }}>
-        {[
-          ['Total Invested', invested],
-          ['Distributed Returns', distributed],
-          ['Pending Distribution', pendingDistribution],
-          ['Available Balance', availableBalance],
-        ].map(([label, value], index) => <View key={String(label)} style={{
+        {([
+          ['Total Invested', invested, investedCurrency],
+          ['Distributed Returns', distributed, distributedCurrency],
+          ['Pending Distribution', pendingDistribution, pendingDistributionCurrency],
+          ['Available Balance', availableBalance, walletCurrency || 'USD'],
+        ] as [string, number | null, string][]).map(([label, value, sourceCurrency], index) => <View key={label} style={{
           width: '50%', paddingTop: 14, paddingRight: index % 2 === 0 ? 10 : 0, paddingLeft: index % 2 === 1 ? 10 : 0,
         }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16 }}>{label}</Text>
           <Text style={{ color: colors.foreground, fontSize: 14, lineHeight: 20, fontWeight: '700', marginTop: 4 }}>
-            {summaryValue(value as number | null)}
+            {summaryValue(value, sourceCurrency)}
           </Text>
         </View>)}
       </View>
@@ -337,7 +355,13 @@ export default function Portfolio() {
         {uncategorizedRows.map(renderInvestment)}
       </> : null}
     </> : null}
-    <PortfolioHistoryCard points={series.points} currency={currency} loading={dashboardQuery.isLoading} defaultRange="3M" />
+    <PortfolioHistoryCard
+      points={series.points}
+      currency={first(series, ['currency'], currency || 'USD')}
+      targetCurrency="USD"
+      loading={dashboardQuery.isLoading}
+      defaultRange="3M"
+    />
     <Pressable testID="portfolio-view-analytics" accessibilityRole="button" onPress={() => router.push('/account/analytics')}
       style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10, borderWidth: 1, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.card }}>
       <Feather name="bar-chart-2" size={16} color={colors.primary} />

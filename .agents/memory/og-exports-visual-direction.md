@@ -27,9 +27,9 @@ Keep the full mobile country directory rather than narrowing it to the sibling w
 
 Use USD as the default display currency across the investor app. Let users choose USD, PKR, EUR, or GBP in account settings; do not show a second local-currency equivalent beneath Home's balance.
 
-**Why:** The user clarified that balances should default to USD but follow the currency selected in Profile.
+**Why:** The user chose Profile currency for ordinary monetary displays, USD for investment displays, and wallet-currency units for deposit and withdrawal inputs and requests.
 
-**How to apply:** Convert display-only monetary values with authenticated OG Exports rates and mark conversions unavailable rather than relabeling an unconverted amount. Keep transaction inputs and confirmations in their source currency, and preserve Home's privacy toggle.
+**How to apply:** Format ordinary wallet, account, and transaction amounts in Profile's selected currency using authenticated OG Exports rates. Pin investment options and investment-related displays—including Home investment cards, portfolio, positions, analytics, and details—to USD. Convert only for presentation; if a rate is unavailable, show the source amount with an explicit unavailable indication. Keep deposit and withdrawal input units and API request values in the stored wallet currency; never change wallet or ledger values. Preserve Home's privacy toggle and do not add a second currency below its balance.
 
 **Why:** the user asked to match a specific Home-screen reference, including its green hero and five-item bottom navigation. The OG artwork remains the official logo; the new bank glyph is a screen-specific account icon. On 2026-10-06, the user said iOS pages still had too much top gap and twice reported that the Android tab bar remained too high. A later phone screenshot showed a large negative Android offset gets clipped by the system-navigation region; the user chose to stay on Expo Go rather than install a rebuilt app.
 

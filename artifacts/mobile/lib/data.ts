@@ -27,6 +27,18 @@ function convertForDisplay(value: number, sourceCode: string, targetCode: string
   return Number.isFinite(converted) ? converted : null;
 }
 
+export function convertAmountToCurrency(value: unknown, sourceCurrency?: string, targetCurrency?: string): number | null {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN;
+  const sourceCode = sourceCurrency?.trim().toUpperCase() ?? '';
+  const targetCode = targetCurrency?.trim().toUpperCase() ?? '';
+  if (!Number.isFinite(parsed) || !/^[A-Z]{3}$/.test(sourceCode) || !/^[A-Z]{3}$/.test(targetCode)) return null;
+  return convertForDisplay(parsed, sourceCode, targetCode);
+}
+
+export function moneyToCurrency(value: unknown, sourceCurrency: string | undefined, targetCurrency: string): string {
+  return money(value, sourceCurrency, { targetCurrency });
+}
+
 export function displayCurrencyCode(currency?: string): string {
   const sourceCode = currency?.trim().toUpperCase() ?? '';
   if (!/^[A-Z]{3}$/.test(sourceCode)) return '';
@@ -102,14 +114,19 @@ export function walletCurrencyFromDashboard(value: unknown, fallback = 'USD'): s
   return /^[A-Z]{3}$/.test(fallbackCurrency) ? fallbackCurrency : '';
 }
 
-export function money(value: unknown, currency?: string, options: { preserveSource?: boolean } = {}): string {
+export function money(value: unknown, currency?: string, options: { preserveSource?: boolean; targetCurrency?: string } = {}): string {
   const missingValue = value === null || value === undefined || value === '';
   const parsed = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN;
   const numeric = Number.isFinite(parsed) ? parsed : 0;
   const sourceCandidate = currency?.trim().toUpperCase();
   const providedSourceCode = sourceCandidate && /^[A-Z]{3}$/.test(sourceCandidate) ? sourceCandidate : undefined;
   const sourceCode = missingValue || !Number.isFinite(parsed) ? 'USD' : providedSourceCode || 'USD';
-  const targetCode = options.preserveSource ? sourceCode : moneyDisplayConfig.currency;
+  const requestedTarget = options.targetCurrency?.trim().toUpperCase();
+  const targetCode = options.preserveSource
+    ? sourceCode
+    : requestedTarget && /^[A-Z]{3}$/.test(requestedTarget)
+      ? requestedTarget
+      : moneyDisplayConfig.currency;
   const converted = convertForDisplay(numeric, sourceCode, targetCode);
   const conversionUnavailable = converted == null && sourceCode !== targetCode;
   const displayCode = converted == null ? sourceCode : targetCode;
@@ -133,14 +150,6 @@ export function money(value: unknown, currency?: string, options: { preserveSour
 
 export function moneyInSourceCurrency(value: unknown, currency?: string): string {
   return money(value, currency, { preserveSource: true });
-}
-
-export function moneyWithDisplayCurrencyAndSource(value: unknown, currency?: string): string {
-  const candidate = currency?.trim().toUpperCase();
-  const sourceCode = candidate && /^[A-Z]{3}$/.test(candidate) ? candidate : 'USD';
-  const displayed = money(value, sourceCode);
-  if (displayCurrencyCode(sourceCode) === sourceCode) return displayed;
-  return `${displayed} (${moneyInSourceCurrency(value, sourceCode)})`;
 }
 
 export function messageOf(error: unknown): string {

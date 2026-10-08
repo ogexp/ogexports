@@ -16,6 +16,7 @@ type Props = {
   subtitle: string;
   data: AllocationSlice[];
   currency: string;
+  targetCurrency?: string;
   valueMode?: 'amount' | 'percentage';
   missingAmounts?: number;
   note?: string;
@@ -50,7 +51,7 @@ function arcPath(startAngle: number, endAngle: number) {
   ].join(' ');
 }
 
-export function AllocationDonut({ title, subtitle, data, currency, valueMode = 'amount', note }: Props) {
+export function AllocationDonut({ title, subtitle, data, currency, targetCurrency, valueMode = 'amount', note }: Props) {
   const colors = useColors();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const palette = [colors.primary, colors.accent, colors.statusPending, colors.secondaryForeground, colors.mutedForeground];
@@ -100,14 +101,15 @@ export function AllocationDonut({ title, subtitle, data, currency, valueMode = '
         <View style={{ flex: 1, gap: 5 }}>
           {slices.map((slice, index) => {
             const share = slice.value / total * 100;
-            const rawValueLabel = valueMode === 'percentage' ? `${slice.value.toFixed(1)}%` : money(slice.value, currency);
+            const formattedValue = money(slice.value, currency, targetCurrency ? { targetCurrency } : {});
+            const rawValueLabel = valueMode === 'percentage' ? `${slice.value.toFixed(1)}%` : formattedValue;
             const selectedSlice = selectedIndex === index;
             return <Pressable
               key={slice.name}
               accessibilityRole="button"
               accessibilityLabel={valueMode === 'percentage'
                 ? `${slice.name}, ${slice.value.toFixed(1)} percent`
-                : `${slice.name}, ${share.toFixed(1)} percent, ${money(slice.value, currency)}`}
+                : `${slice.name}, ${share.toFixed(1)} percent, ${formattedValue}`}
               accessibilityState={{ selected: selectedSlice }}
               testID={`allocation-slice-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`}
               onPress={() => setSelectedIndex(index)}

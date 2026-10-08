@@ -11,7 +11,7 @@ import {
 } from '@workspace/api-client-react';
 import { Card, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
 import { LocalizedPressable, LocalizedText as Text } from '@/components/LocalizedText';
-import { amount, first, list, messageOf, money, record, unwrap } from '@/lib/data';
+import { amount, displayCurrencyCode, first, list, messageOf, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
@@ -204,11 +204,7 @@ export default function TransactionDetails() {
     ?? (kind === 'withdrawal' ? amount(withdrawalBreakdown, ['payout_amount']) : null);
   const amountLabel = reportedAmount === null
     ? 'Not recorded'
-    : money(
-      reportedAmount,
-      (hasWithdrawalBreakdown ? breakdownCurrency : currency) || 'USD',
-      { preserveSource: kind === 'withdrawal' || hasWithdrawalBreakdown },
-    );
+    : money(reportedAmount, (hasWithdrawalBreakdown ? breakdownCurrency : currency) || 'USD');
   const status = first(transaction, ['review_status', 'status', 'state'], unavailable);
   const formatRecordedAmount = (keys: string[], usdKeys: string[] = []) => {
     const value = amount(withdrawalBreakdown, keys);
@@ -216,7 +212,7 @@ export default function TransactionDetails() {
     if (value === null) {
       return storedUsdAmount === null
         ? 'Not recorded'
-        : money(storedUsdAmount, 'USD', { preserveSource: true });
+        : money(storedUsdAmount, 'USD');
     }
     const usdAmount = savedUsdEquivalentForRecordedAmount(
       value,
@@ -224,12 +220,12 @@ export default function TransactionDetails() {
       storedUsdAmount,
       exchangeRate,
     );
-    const sourceAmount = breakdownCurrency
-      ? money(value, breakdownCurrency, { preserveSource: true })
-      : value.toFixed(2);
-    return breakdownCurrency.trim().toUpperCase() !== 'USD' && usdAmount !== null
-      ? `${sourceAmount} (${money(usdAmount, 'USD', { preserveSource: true })} USD equivalent)`
-      : sourceAmount;
+    const currencyCode = breakdownCurrency.trim().toUpperCase();
+    return usdAmount !== null && /^[A-Z]{3}$/.test(currencyCode) && displayCurrencyCode(currencyCode) !== currencyCode
+      ? money(usdAmount, 'USD')
+      : currencyCode
+        ? money(value, currencyCode)
+        : `${value.toFixed(2)} (currency not recorded)`;
   };
   const exchangeRate = amount(withdrawalBreakdown, ['exchange_rate']);
   const exchangeRateLabel = exchangeRate === null

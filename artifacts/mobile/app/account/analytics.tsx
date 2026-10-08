@@ -9,7 +9,7 @@ import {
 } from '@workspace/api-client-react';
 import { AllocationDonut, type AllocationSlice } from '@/components/AllocationDonut';
 import { Card, ErrorState, Screen, Section } from '@/components/InvestorUI';
-import { amount, first, list, money, record, unwrap, type Json } from '@/lib/data';
+import { amount, convertAmountToCurrency, first, list, moneyToCurrency, record, unwrap, type Json } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -33,11 +33,20 @@ function normalizeStatus(value: string) {
   return value.toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-function capitalInCurrency(position: Json, currency: string): number | null {
-  if (currency === 'USD') return amount(position, ['amount']);
-  if (currency === 'PKR') return amount(position, ['amount_pkr']);
-  const positionCurrency = first(position, ['amount_currency']).toUpperCase();
-  return currency && positionCurrency === currency ? amount(position, ['amount']) : null;
+function capitalInUsd(position: Json, project: Json): number | null {
+  const reportedUsd = amount(position, ['amount_usd', 'investment_amount_usd']);
+  if (reportedUsd != null) return reportedUsd;
+  const reportedAmount = amount(position, ['amount', 'investment_amount', 'principal']);
+  if (reportedAmount != null) {
+    const sourceCurrency = first(
+      position,
+      ['amount_currency', 'currency'],
+      first(project, ['currency', 'investment_currency'], 'USD'),
+    ).toUpperCase();
+    return convertAmountToCurrency(reportedAmount, sourceCurrency, 'USD');
+  }
+  const reportedPkr = amount(position, ['amount_pkr']);
+  return reportedPkr == null ? null : convertAmountToCurrency(reportedPkr, 'PKR', 'USD');
 }
 
 function classifyTrade(trade: TradeAggregate): 'active' | 'completed' | null {
@@ -72,8 +81,7 @@ function createAllocation(trades: TradeAggregate[], field: 'commodity' | 'destin
 function moneyLabel(value: number | null, currency: string, loading: boolean, error: boolean) {
   if (loading) return 'Loading…';
   if (error) return 'Unavailable';
-  if (value == null) return money(null, currency || 'USD');
-  return money(value, currency || 'USD');
+  return moneyToCurrency(value, currency || 'USD', 'USD');
 }
 
 export default function TradeAnalytics() {
@@ -97,7 +105,7 @@ export default function TradeAnalytics() {
   const dashboard = unwrap(dashboardQuery.data);
   const summary = record(dashboard.summary);
   const wallet = record(dashboard.wallet);
-  const currency = first(wallet, ['currency', 'default_currency']).toUpperCase();
+  const currency = first(summary, ['display_currency'], first(wallet, ['currency', 'default_currency'], 'USD')).toUpperCase();
   const positions = list(positionsQuery.data);
   const positionsEnvelope = record(positionsQuery.data);
   const nestedPositionsEnvelope = record(positionsEnvelope.data);
@@ -139,7 +147,7 @@ export default function TradeAnalytics() {
     const reportedCycle = amount(project, ['investment_period_days']) ?? amount(position, ['investment_period_days', 'trade_cycle_days']);
     if (trade.cycleDays == null && reportedCycle != null && reportedCycle > 0) trade.cycleDays = reportedCycle;
 
-    const capital = capitalInCurrency(position, currency);
+    const capital = capitalInUsd(position, project);
     if (capital == null) {
       missingCapitalCount += 1;
     } else {
@@ -161,16 +169,26 @@ export default function TradeAnalytics() {
   const commodityAllocation = createAllocation(trades, 'commodity');
   const destinationAllocation = createAllocation(trades, 'destination');
 
-  const capitalDeployed = amount(summary, ['total_investment', 'invested_capital']);
-  const explicitDistributions = amount(summary, ['distributed_returns', 'total_distributed_returns', 'total_distributions'])
+  const capitalDeployedUsd = amount(summary, ['total_investment_usd']);
+  const capitalDeployed = capitalDeployedUsd ?? amount(summary, ['total_investment', 'invested_capital']);
+  const explicitDistributionsUsd = amount(summary, ['distributed_returns_usd', 'total_distributed_returns_usd', 'total_distributions_usd'])
+    ?? amount(dashboard, ['distributed_returns_usd', 'total_distributed_returns_usd', 'total_distributions_usd']);
+  const explicitDistributions = explicitDistributionsUsd
+    ?? amount(summary, ['distributed_returns', 'total_distributed_returns', 'total_distributions'])
     ?? amount(dashboard, ['distributed_returns', 'total_distributed_returns', 'total_distributions']);
-  const reportedProfitTotal = amount(summary, ['total_profit_earned']) ?? amount(dashboard, ['total_profit_earned']);
+  const reportedProfitTotalUsd = amount(summary, ['total_profit_earned_usd']) ?? amount(dashboard, ['total_profit_earned_usd']);
+  const reportedProfitTotal = reportedProfitTotalUsd
+    ?? amount(summary, ['total_profit_earned'])
+    ?? amount(dashboard, ['total_profit_earned']);
   const distributions = explicitDistributions ?? reportedProfitTotal;
+  const distributionsCurrency = explicitDistributionsUsd != null || (explicitDistributions == null && reportedProfitTotalUsd != null)
+    ? 'USD'
+    : currency;
 
   const positionStatus = positionsQuery.isLoading ? 'Loading…' : positionsQuery.isError ? 'Unavailable' : null;
   const averageStatus = positionsQuery.isLoading ? 'Loading…' : positionsQuery.isError ? 'Unavailable' : formattedAverageCycle;
-  const capitalStatus = moneyLabel(capitalDeployed, currency, dashboardQuery.isLoading, dashboardQuery.isError);
-  const distributionsStatus = moneyLabel(distributions, currency, dashboardQuery.isLoading, dashboardQuery.isError);
+  const capitalStatus = moneyLabel(capitalDeployed, capitalDeployedUsd == null ? currency : 'USD', dashboardQuery.isLoading, dashboardQuery.isError);
+  const distributionsStatus = moneyLabel(distributions, distributionsCurrency, dashboardQuery.isLoading, dashboardQuery.isError);
 
   const metrics = [
     { label: 'Total Trades', value: positionStatus ?? String(trades.length) },
@@ -219,9 +237,10 @@ export default function TradeAnalytics() {
     <Section title="Commodity Allocation" />
     <AllocationDonut
       title="Capital by commodity"
-      subtitle={`Share of comparable ${currency || 'USD'} capital`}
+      subtitle="Share of comparable USD capital"
       data={commodityAllocation}
-      currency={currency}
+      currency="USD"
+      targetCurrency="USD"
       missingAmounts={missingCapitalCount}
       note={allocationNote}
     />
@@ -229,9 +248,10 @@ export default function TradeAnalytics() {
     <Section title="Destination Allocation" />
     <AllocationDonut
       title="Capital by destination"
-      subtitle={`Share of comparable ${currency || 'USD'} capital`}
+      subtitle="Share of comparable USD capital"
       data={destinationAllocation}
-      currency={currency}
+      currency="USD"
+      targetCurrency="USD"
       missingAmounts={missingCapitalCount}
       note={allocationNote}
     />

@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useGetInvestorProjects } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, Field, Screen, Status } from '@/components/InvestorUI';
-import { amount, first, list, money } from '@/lib/data';
+import { amount, first, list, moneyToCurrency } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -74,7 +74,7 @@ export default function Trade() {
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingTop: 11, borderTopWidth: 1, borderColor: colors.border }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{first(item, ['trade_direction', 'type'], 'Opportunity')}</Text>
-            <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 12 }}>{money(target, first(item, ['currency'], 'USD'))}</Text>
+            <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 12 }}>{moneyToCurrency(target, first(item, ['currency'], 'USD'), 'USD')}</Text>
           </View>
         </Card>
       </Pressable>;

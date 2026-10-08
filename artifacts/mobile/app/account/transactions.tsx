@@ -10,7 +10,7 @@ import {
   useGetInvestorWithdrawals,
 } from '@workspace/api-client-react';
 import { Card, EmptyState, Field, LoadingCard, Screen, Status } from '@/components/InvestorUI';
-import { amount as readAmount, first, Json, list, messageOf, money, record, unwrap } from '@/lib/data';
+import { amount as readAmount, displayCurrencyCode, first, Json, list, messageOf, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
@@ -119,22 +119,19 @@ function formatWithdrawalAmount(
   if (value === null) {
     return usdAmount === null
       ? 'Not recorded'
-      : money(usdAmount, 'USD', { preserveSource: true });
+      : money(usdAmount, 'USD');
   }
   const currencyCode = currency.trim().toUpperCase();
-  if (!currencyCode) {
+  if (!/^[A-Z]{3}$/.test(currencyCode)) {
     return usdAmount === null
       ? `${value.toFixed(2)} (currency not recorded)`
-      : money(usdAmount, 'USD', { preserveSource: true });
+      : money(usdAmount, 'USD');
   }
 
-  const sourceAmount = money(value, currencyCode, { preserveSource: true });
-  if (currencyCode === 'USD') return sourceAmount;
-
   const usdEquivalent = savedUsdEquivalentForRecordedAmount(value, currencyCode, usdAmount, exchangeRate);
-  return usdEquivalent === null
-    ? sourceAmount
-    : `${sourceAmount} (${money(usdEquivalent, 'USD', { preserveSource: true })} USD equivalent)`;
+  return usdEquivalent !== null && displayCurrencyCode(currencyCode) !== currencyCode
+    ? money(usdEquivalent, 'USD')
+    : money(value, currencyCode);
 }
 
 function categoryForWalletTransaction(item: Json): Category {

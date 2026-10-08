@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import {
   availableBalanceFromDashboard,
   configureMoneyDisplay,
+  convertAmountToCurrency,
   displayCurrencyCode,
   money,
   moneyInSourceCurrency,
-  moneyWithDisplayCurrencyAndSource,
+  moneyToCurrency,
   walletCurrencyFromDashboard,
 } from './data.ts';
 
@@ -87,15 +88,6 @@ test('missing monetary values use a display-only zero in the selected currency',
   assert.equal(moneyInSourceCurrency(null, 'PKR'), '$0.00');
 });
 
-test('display summaries convert amounts while keeping the source-currency amount visible', () => {
-  configureMoneyDisplay({ language: 'en', currency: 'PKR', rates: { USD: 1, PKR: 278.52 } });
-
-  const display = moneyWithDisplayCurrencyAndSource(2, 'USD');
-  assert.match(display, /PKR/);
-  assert.match(display, /557\.04/);
-  assert.match(display, /\$2\.00/);
-});
-
 test('a selected profile currency converts displayed amounts using authenticated rates', () => {
   configureMoneyDisplay({ language: 'en', currency: 'PKR', rates: { USD: 1, PKR: 278.52 } });
 
@@ -105,6 +97,15 @@ test('a selected profile currency converts displayed amounts using authenticated
 
   configureMoneyDisplay({ language: 'en', currency: 'EUR', rates: { USD: 1, PKR: 278.52, EUR: 0.92 } });
   assert.match(money(536, 'USD'), /493\.12/);
+});
+
+test('fixed-currency displays ignore the Profile selection and convert with authenticated rates', () => {
+  configureMoneyDisplay({ language: 'en', currency: 'PKR', rates: { USD: 1, PKR: 278.52, EUR: 0.92 } });
+
+  assert.match(moneyToCurrency(278.52, 'PKR', 'USD'), /\$1\.00/);
+  assert.match(moneyToCurrency(536, 'USD', 'EUR'), /€493\.12/);
+  assert.equal(convertAmountToCurrency(278.52, 'PKR', 'USD'), 1);
+  assert.equal(convertAmountToCurrency(1, 'USD', 'EUR'), 0.92);
 });
 
 test('unavailable rates keep the source amount and mark conversion unavailable', () => {
@@ -118,4 +119,6 @@ test('unavailable rates keep the source amount and mark conversion unavailable',
   assert.match(money(536, 'USD'), /536\.00/);
   assert.match(money(536, 'USD'), /Currency conversion unavailable/);
   assert.equal(displayCurrencyCode('USD'), 'USD');
+  assert.match(moneyToCurrency(536, 'USD', 'EUR'), /Currency conversion unavailable/);
+  assert.equal(convertAmountToCurrency(536, 'USD', 'EUR'), null);
 });

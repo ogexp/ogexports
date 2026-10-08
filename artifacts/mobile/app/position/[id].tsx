@@ -7,7 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGetInvestorInvestment } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount, displayCurrencyCode, first, list, messageOf, money, record, unwrap, type Json } from '@/lib/data';
+import { amount, first, list, messageOf, moneyToCurrency, record, unwrap, type Json } from '@/lib/data';
 import { TradeTimeline } from '@/components/TradeTimeline';
 import { TradeProgressCard } from '@/components/TradeProgressCard';
 import { useAuth } from '@/context/AuthContext';
@@ -109,11 +109,12 @@ export default function PositionDetail() {
   const documents = list(project.documents ?? row.documents ?? trade.documents);
   const investedAmount = amount(row, ['amount', 'investment_amount', 'principal']);
   const investedPkr = amount(row, ['amount_pkr']);
-  const investedAmountText = [
-    investedAmount != null ? money(investedAmount, currency || 'USD') : null,
-    investedPkr != null ? money(investedPkr, 'PKR') : null,
-  ].filter(Boolean).join(' · ') || money(null, currency || 'USD');
-  const amountText = (value: number | null) => money(value, currency || 'USD');
+  const investedAmountText = investedAmount != null
+    ? moneyToCurrency(investedAmount, currency || 'USD', 'USD')
+    : investedPkr != null
+      ? moneyToCurrency(investedPkr, 'PKR', 'USD')
+      : moneyToCurrency(null, currency || 'USD', 'USD');
+  const amountText = (value: number | null) => moneyToCurrency(value, currency || 'USD', 'USD');
   const tradeCycle = first(row, ['trade_cycle', 'estimated_trade_cycle', 'duration'], first(project, ['trade_cycle', 'estimated_trade_cycle', 'duration'], first(trade, ['trade_cycle', 'estimated_trade_cycle', 'duration'], '')));
   const tradeCycleDays = first(row, ['investment_period_days', 'trade_cycle_days', 'duration_days'], first(project, ['investment_period_days', 'trade_cycle_days', 'duration_days'], first(trade, ['investment_period_days', 'trade_cycle_days', 'duration_days'], '')));
   const projectedAmount = amount(row, ['projected_return_amount', 'estimated_return_amount', 'target_return_amount', 'projected_distribution', 'estimated_distribution'])
@@ -130,9 +131,9 @@ export default function PositionDetail() {
   const totalReturn = amount(row, ['total_return', 'total_return_amount'])
     ?? amount(record(row.profit_distribution ?? row.distribution), ['total_return']);
   const actualPerformance: [string, string][] = [];
-  if (actualProfitUsd != null) actualPerformance.push([`Profit recorded (${displayCurrencyCode('USD')})`, money(actualProfitUsd, 'USD')]);
-  if (actualProfitPkr != null) actualPerformance.push([`Profit recorded (${displayCurrencyCode('PKR')})`, money(actualProfitPkr, 'PKR')]);
-  if (!actualPerformance.length) actualPerformance.push([`Profit recorded (${displayCurrencyCode('USD')})`, money(null, 'USD')]);
+  if (actualProfitUsd != null) actualPerformance.push(['Profit recorded (USD)', moneyToCurrency(actualProfitUsd, 'USD', 'USD')]);
+  else if (actualProfitPkr != null) actualPerformance.push(['Profit recorded (USD)', moneyToCurrency(actualProfitPkr, 'PKR', 'USD')]);
+  else actualPerformance.push(['Profit recorded (USD)', moneyToCurrency(null, 'USD', 'USD')]);
   if (actualReturn != null) actualPerformance.push(['Returned or distributed amount', amountText(actualReturn)]);
   if (totalReturn != null) actualPerformance.push(['Total return recorded', amountText(totalReturn)]);
 
@@ -168,10 +169,11 @@ export default function PositionDetail() {
   const primaryInvestmentAmount = investedAmount ?? (currency.toUpperCase() === 'PKR' ? investedPkr : null);
   const expectedProfit = calculateExpectedProfitFromRoi(primaryInvestmentAmount, roiForCalculation) ?? reportedExpectedProfit;
   const expectedProfitPkr = calculateExpectedProfitFromRoi(investedPkr, roiForCalculation) ?? reportedExpectedProfitPkr;
-  const expectedProfitText = [
-    expectedProfit != null ? amountText(expectedProfit) : null,
-    currency.toUpperCase() !== 'PKR' && expectedProfitPkr != null ? money(expectedProfitPkr, 'PKR') : null,
-  ].filter(Boolean).join(' · ') || amountText(null);
+  const expectedProfitText = expectedProfit != null
+    ? moneyToCurrency(expectedProfit, currency || 'USD', 'USD')
+    : expectedProfitPkr != null
+      ? moneyToCurrency(expectedProfitPkr, 'PKR', 'USD')
+      : amountText(null);
   const distributionStatusRaw = firstAvailable([row], ['distribution_status', 'payout_status', 'profit_distribution_status'])
     || firstAvailable([distributionRecord], ['distribution_status', 'payout_status', 'status'])
     || firstAvailable([project], ['distribution_status', 'payout_status', 'profit_distribution_status'])

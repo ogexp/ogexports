@@ -8,7 +8,7 @@ import { useGetInvestorProjects } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, Field, LoadingCard, Screen } from '@/components/InvestorUI';
 import { OpportunityCard } from '@/components/OpportunityCard';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
-import { amount, first, list } from '@/lib/data';
+import { amount, convertAmountToCurrency, first, list } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { createOpportunityPressHandler, matchesOpportunityStatus, tradeStatus, type OpportunityStatusFilter } from '@/lib/opportunities';
@@ -136,7 +136,10 @@ export default function Opportunities() {
 
     const minimum = amount(item, ['minimum_investment', 'min_investment', 'minimum_amount']);
     const maxMinimum = numericLimit(appliedFilters.maxMinimum);
-    if (maxMinimum != null && (!Number.isFinite(maxMinimum) || maxMinimum < 0 || minimum == null || minimum > maxMinimum)) return false;
+    const minimumUsd = minimum == null
+      ? null
+      : convertAmountToCurrency(minimum, first(item, ['currency', 'investment_currency'], 'USD'), 'USD');
+    if (maxMinimum != null && (!Number.isFinite(maxMinimum) || maxMinimum < 0 || minimumUsd == null || minimumUsd > maxMinimum)) return false;
     const tradeDurationDays = durationInDays(item);
     const maxDuration = numericLimit(appliedFilters.maxDurationDays);
     if (maxDuration != null && (!Number.isFinite(maxDuration) || maxDuration < 0 || tradeDurationDays == null || tradeDurationDays > maxDuration)) return false;
@@ -219,8 +222,8 @@ export default function Opportunities() {
             <Pressable accessibilityRole="button" accessibilityLabel="Close filters" onPress={() => setFiltersOpen(false)}><Feather name="x" size={22} color={colors.mutedForeground} /></Pressable>
           </View>
           <KeyboardAwareScrollViewCompat style={{ flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 8 }} bottomOffset={26} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Field label="Minimum investment cap" value={draftFilters.maxMinimum} onChangeText={value => setDraftFilters(current => ({ ...current, maxMinimum: value.replace(/[^\d.,]/g, '') }))} placeholder="e.g. 5000" keyboardType="decimal-pad" />
-            <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: -8, marginBottom: 13 }}>Shows trades at or below this entry amount. Values use each trade’s listed currency; no conversion is applied.</Text>
+            <Field label="Minimum investment cap (USD)" value={draftFilters.maxMinimum} onChangeText={value => setDraftFilters(current => ({ ...current, maxMinimum: value.replace(/[^\d.,]/g, '') }))} placeholder="e.g. 5000" keyboardType="decimal-pad" />
+            <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: -8, marginBottom: 13 }}>Compares each trade’s minimum in USD using authenticated OG Exports rates. Trades without a comparable rate are excluded while this filter is active.</Text>
             <Field label="Maximum trade duration (days)" value={draftFilters.maxDurationDays} onChangeText={value => setDraftFilters(current => ({ ...current, maxDurationDays: value.replace(/[^\d.,]/g, '') }))} placeholder="e.g. 120" keyboardType="numeric" />
             <Field label="Destination" value={draftFilters.destination} onChangeText={value => setDraftFilters(current => ({ ...current, destination: value }))} placeholder="Country or market" />
             <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700', marginTop: 4, marginBottom: 8 }}>Risk level</Text>

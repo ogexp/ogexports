@@ -16,7 +16,7 @@ import {
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
 import { formatUiStatus } from '@/lib/strings';
-import { amount as readAmount, first, list, messageOf, money, moneyInSourceCurrency, moneyWithDisplayCurrencyAndSource, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
+import { amount as readAmount, first, list, messageOf, money, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
 import { DEPOSIT_PAYMENT_METHODS, type DepositPaymentMethodId } from '@/lib/deposit-methods';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
@@ -513,8 +513,8 @@ export default function Deposit() {
 
     {stage === 'review' ? <Card>
       <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Review deposit</Text>
-      <DetailRow label="Amount" value={moneyWithDisplayCurrencyAndSource(Number(amount), paymentCurrency || 'USD')} />
-      <DetailRow label="OG Exports fee (0%)" value={moneyWithDisplayCurrencyAndSource(paymentFeeAmount, paymentCurrency || 'USD')} />
+      <DetailRow label="Amount" value={money(Number(amount), paymentCurrency || 'USD')} />
+      <DetailRow label="OG Exports fee (0%)" value={money(paymentFeeAmount, paymentCurrency || 'USD')} />
       <DetailRow label="Payment method" value={selectedPaymentMethod?.label ?? '—'} />
       <DetailRow label="Receiving bank" value={first(selectedBank ?? {}, ['bank_name', 'name'])} />
       <View style={{ marginTop: 4, borderTopWidth: 1, borderTopColor: colors.border }}>
@@ -552,8 +552,8 @@ export default function Deposit() {
          <Status value={formatUiStatus(first(confirmation, ['review_status_label', 'status'], '—'))} />
       </View>
       <DetailRow label="Deposit reference" value={first(confirmation, ['reference', 'deposit_reference'])} />
-      <DetailRow label="Amount" value={moneyWithDisplayCurrencyAndSource(readAmount(confirmation, ['amount']), confirmationCurrency || 'USD')} />
-      <DetailRow label="OG Exports fee (0%)" value={moneyWithDisplayCurrencyAndSource(0, confirmationCurrency || 'USD')} />
+      <DetailRow label="Amount" value={money(readAmount(confirmation, ['amount']), confirmationCurrency || 'USD')} />
+      <DetailRow label="OG Exports fee (0%)" value={money(0, confirmationCurrency || 'USD')} />
       <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8 }}>Your deposit request is under review. Your wallet balance will update when the deposit is credited.</Text>
       <DepositProgress deposit={confirmation} />
       {receiptError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, marginTop: 10 }}>{receiptError}</Text> : null}
@@ -603,7 +603,7 @@ export default function Deposit() {
         <Card style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderColor: selected ? colors.primary : colors.border }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(item, ['reference', 'deposit_reference'], 'Deposit request')}</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{moneyWithDisplayCurrencyAndSource(readAmount(item, ['amount']), first(item, ['currency'], walletCurrency || 'USD'))} · {first(item, ['created_at', 'date'], '—')}</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>{money(readAmount(item, ['amount']), first(item, ['currency'], walletCurrency || 'USD'))} · {first(item, ['created_at', 'date'], '—')}</Text>
           </View>
           <Status value={first(item, ['review_status_label', 'status'], '—')} />
         </Card>
@@ -615,7 +615,7 @@ export default function Deposit() {
       <DetailRow label="Server status" value={first(record(timelineDeposit), ['review_status', 'status'], 'Not provided')} />
       <DetailRow
         label="Amount returned by OG Exports"
-        value={moneyWithDisplayCurrencyAndSource(
+        value={money(
           readAmount(record(timelineDeposit), ['amount']),
           first(record(timelineDeposit), ['currency', 'wallet_currency']) || 'USD',
         )}

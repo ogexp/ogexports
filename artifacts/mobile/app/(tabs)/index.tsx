@@ -16,7 +16,7 @@ import {
 } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Status } from '@/components/InvestorUI';
 import { AllocationDonut, type AllocationSlice } from '@/components/AllocationDonut';
-import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
+import { amount, availableBalanceFromDashboard, first, list, money, moneyToCurrency, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
 import { mergeDepositRequests, resolveActivityTransactionTarget } from '@/lib/deposit-activity';
 import { latestRecords } from '@/lib/latest-records';
 import { isInvestorNotificationUnread } from '@/lib/notification-utils';
@@ -208,6 +208,8 @@ export default function InvestorHome() {
   const benchmarkAvailable = data.benchmark_available === true;
   const displayMoney = (value: number | null, unit = currency) =>
     balanceHidden ? '••••••' : dashboard.isError ? 'Unavailable' : money(value, unit || 'USD');
+  const displayInvestmentMoney = (value: number | null, unit: string) =>
+    balanceHidden ? '••••••' : dashboard.isError ? 'Unavailable' : moneyToCurrency(value, unit || 'USD', 'USD');
   const displayRoi = balanceHidden ? '••••' : dashboard.isError ? 'Unavailable' : roi == null ? '—' : `${roi.toFixed(2)}%`;
   const metricMoney = (value: number | null, unit = currency) =>
     dashboard.isLoading ? '…' : dashboard.isError ? 'Unavailable' : displayMoney(value, unit);
@@ -464,7 +466,7 @@ export default function InvestorHome() {
       const boundedProgress = progress == null ? null : Math.max(0, Math.min(100, progress));
       const investmentAmount = amount(position, ['amount', 'investment_amount', 'principal']);
       const positionId = first(position, ['investment_id', 'id'], '');
-      const positionCurrency = first(position, ['currency'], first(trade, ['currency'], currency));
+      const positionCurrency = first(position, ['currency', 'amount_currency'], first(trade, ['currency', 'investment_currency'], 'USD'));
       return <MotionReveal key={positionId || `${tradeId}-${index}`} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}>
       <Card style={{ borderRadius: 22, padding: 18 }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
@@ -484,7 +486,7 @@ export default function InvestorHome() {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 15, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
           <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 14, backgroundColor: colors.secondary }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Investment amount</Text>
-            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 14, fontWeight: '700', marginTop: 5 }}>{displayMoney(investmentAmount, positionCurrency || 'USD')}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 14, fontWeight: '700', marginTop: 5 }}>{displayInvestmentMoney(investmentAmount, positionCurrency || 'USD')}</Text>
           </View>
           <View style={{ flex: 1, minWidth: 120, padding: 10, borderRadius: 14, backgroundColor: colors.secondary }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Estimated arrival</Text>

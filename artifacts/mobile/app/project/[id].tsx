@@ -21,7 +21,7 @@ import {
   useInvestInProject,
 } from '@workspace/api-client-react';
 import { Action, Card, ErrorState, Field, Screen, Status, SuccessFeedback } from '@/components/InvestorUI';
-import { amount, availableBalanceFromDashboard, first, messageOf, record, unwrap, money, moneyInSourceCurrency } from '@/lib/data';
+import { amount, availableBalanceFromDashboard, first, messageOf, record, unwrap, moneyToCurrency } from '@/lib/data';
 import { OpportunityDetailOverview } from '@/components/OpportunityDetailOverview';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -167,7 +167,7 @@ export default function OpportunityDetail() {
   const activeFlowStep = ({ details: 0, amount: 1, review: 2, risk: 3, confirmation: 4, success: 4 } as const)[stage];
   const currencyLabel = currency || (walletQuery.isLoading || walletQuery.isFetching ? 'Loading currency…' : 'Currency unavailable');
   const remainingCapacity = remainingFunding;
-  const formatTradeMoney = (value: number | null) => money(value, tradeCurrency || 'USD');
+  const formatTradeMoney = (value: number | null) => moneyToCurrency(value, tradeCurrency || currency || 'USD', 'USD');
   const feeValue = first(project, ['investment_fee', 'investor_fee', 'fee', 'fees', 'transaction_fee', 'platform_fee']);
   const cycleValue = first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], projectedCycle || '—');
   const distributionDateKeys = [
@@ -194,11 +194,11 @@ export default function OpportunityDetail() {
     ...(maximum == null ? [] : [['Maximum', formatTradeMoney(maximum)] as [string, string]]),
     ['Wallet balance', walletBalance == null
       ? dashboardQuery.isLoading ? 'Loading…' : 'Unavailable'
-      : money(walletBalance, walletCurrency || 'USD')],
+      : moneyToCurrency(walletBalance, walletCurrency || 'USD', 'USD')],
     ['Remaining capacity', formatTradeMoney(remainingCapacity)],
   ];
   const amountSummary = currency && Number.isFinite(Number(investAmount)) && Number(investAmount) > 0
-    ? moneyInSourceCurrency(Number(investAmount), currency)
+    ? moneyToCurrency(Number(investAmount), currency, 'USD')
     : investAmount ? 'Currency pending' : 'Not entered';
 
   function continueToReview() {
@@ -219,8 +219,8 @@ export default function OpportunityDetail() {
     }
     const value = Number(investAmount);
     if (!Number.isFinite(value) || value <= 0) { setError('Enter an investment amount greater than zero.'); return; }
-    if (currency && minimum != null && value < minimum) { setError(`The minimum investment for this opportunity is ${moneyInSourceCurrency(minimum, currency)}.`); return; }
-    if (currency && maximum != null && value > maximum) { setError(`The maximum investment for this opportunity is ${moneyInSourceCurrency(maximum, currency)}.`); return; }
+    if (currency && minimum != null && value < minimum) { setError(`The minimum investment for this opportunity is ${moneyToCurrency(minimum, currency, 'USD')}.`); return; }
+    if (currency && maximum != null && value > maximum) { setError(`The maximum investment for this opportunity is ${moneyToCurrency(maximum, currency, 'USD')}.`); return; }
     if (currency && walletCurrency && walletBalance != null && walletCurrency.toUpperCase() === currency.toUpperCase() && value > walletBalance) { setError('This amount is greater than your available wallet balance.'); return; }
     if (currency && remainingCapacity != null && value > remainingCapacity) { setError('This amount exceeds the remaining opportunity capacity.'); return; }
     setStage('review');
@@ -500,18 +500,18 @@ export default function OpportunityDetail() {
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5 }}>Confirm the trade and money movement details before moving to the published terms.</Text>
         <View style={{ marginTop: 16, marginBottom: 7, padding: 15, borderRadius: 14, backgroundColor: colors.lightGreen }}>
           <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700', letterSpacing: 0.7 }}>YOUR INVESTMENT</Text>
-          <Text style={{ color: colors.foreground, fontSize: 24, fontWeight: '700', marginTop: 5 }}>{moneyInSourceCurrency(Number(investAmount), currency)}</Text>
+          <Text style={{ color: colors.foreground, fontSize: 24, fontWeight: '700', marginTop: 5 }}>{moneyToCurrency(Number(investAmount), currency, 'USD')}</Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>{projectTitle} · {tradeLabel}</Text>
         </View>
         {[
           ['Trade', tradeLabel],
           ['Target return · not guaranteed', projectedReturn || '—'],
           ['Target distribution date · estimated', distributionDate],
-          ['Fees', feeValue || money(null, tradeCurrency || 'USD')],
+          ['Fees', feeValue || moneyToCurrency(null, tradeCurrency || 'USD', 'USD')],
           ['Trade cycle', cycleValue],
           ['Wallet debit', currency && walletCurrency
             ? currency.toUpperCase() === walletCurrency.toUpperCase()
-              ? moneyInSourceCurrency(Number(investAmount), walletCurrency)
+              ? moneyToCurrency(Number(investAmount), walletCurrency, 'USD')
               : 'Calculated by OG Exports at submission'
             : 'Validated by OG Exports at submission'],
           ['Payment method', 'Wallet balance'],
@@ -571,7 +571,7 @@ export default function OpportunityDetail() {
         </View> : null}
         <View style={{ backgroundColor: colors.lightGreen, borderRadius: 14, padding: 14, marginBottom: 14 }}>
           <Text style={{ color: colors.primary, fontSize: 10, letterSpacing: 0.7, fontWeight: '700' }}>FINAL REQUEST SUMMARY</Text>
-          <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 20, marginTop: 6 }}>{moneyInSourceCurrency(Number(investAmount), currency)}</Text>
+          <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 20, marginTop: 6 }}>{moneyToCurrency(Number(investAmount), currency, 'USD')}</Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>{projectTitle} · {tradeLabel}</Text>
           <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 10 }} />
           <Text style={{ color: colors.foreground, fontSize: 12 }}>Payment method: Wallet balance</Text>
@@ -590,8 +590,8 @@ export default function OpportunityDetail() {
         const status = first(confirmation, ['status'], '—');
         const investmentId = first(confirmation, ['id']);
         const resultCurrency = first(confirmation, ['amountCurrency'], currency);
-        const resultAmount = moneyInSourceCurrency(confirmation.amount, resultCurrency || 'USD');
-        const resultWalletAmount = typeof confirmation.amountPkr === 'number' ? moneyInSourceCurrency(confirmation.amountPkr, 'PKR') : '';
+        const resultAmount = moneyToCurrency(confirmation.amount, resultCurrency || 'USD', 'USD');
+        const resultWalletAmount = typeof confirmation.amountPkr === 'number' ? moneyToCurrency(confirmation.amountPkr, 'PKR', 'USD') : '';
         const exchangeRate = typeof confirmation.exchangeRate === 'number'
           ? `1 USD = ${confirmation.exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} PKR`
           : '';

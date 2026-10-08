@@ -3,7 +3,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useGetInvestorReports, useCreateInvestorReport, useGetInvestorStatement } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Status } from '@/components/InvestorUI';
-import { amount as readAmount, first, list, messageOf, money, moneyInSourceCurrency, record, unwrap } from '@/lib/data';
+import { amount as readAmount, displayCurrencyCode, first, list, messageOf, money, record, unwrap } from '@/lib/data';
 import { shareInvestorFile } from '@/lib/file-download';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -162,6 +162,12 @@ export default function Reports() {
             const feeUsd = readAmount(withdrawalBreakdown, ['fee_usd']);
             const totalDebit = readAmount(withdrawalBreakdown, ['total_debit']);
             const totalDebitUsd = readAmount(withdrawalBreakdown, ['total_debit_usd']);
+            const displayWithdrawalAmount = (value: number | null, usdValue: number | null) => {
+              if (value === null) return usdValue === null ? money(null, withdrawalCurrency) : money(usdValue, 'USD');
+              return usdValue !== null && displayCurrencyCode(withdrawalCurrency) !== withdrawalCurrency.toUpperCase()
+                ? money(usdValue, 'USD')
+                : money(value, withdrawalCurrency || 'USD');
+            };
             return <View key={id} style={{ borderTopWidth: 1, borderColor: colors.border, paddingTop: 9 }}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <View style={{ flex: 1 }}>
@@ -169,16 +175,13 @@ export default function Reports() {
                   <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{first(item, ['reference'], '—')} · {first(item, ['date_time'], '')}</Text>
                   {isWithdrawal ? <View style={{ marginTop: 5, gap: 2 }}>
                     <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-                      Payout: {payout === null ? moneyInSourceCurrency(null, withdrawalCurrency) : moneyInSourceCurrency(payout, withdrawalCurrency)}
-                      {withdrawalCurrency !== 'USD' && payoutUsd !== null ? ` · USD ${moneyInSourceCurrency(payoutUsd, 'USD')}` : ''}
+                      Payout: {displayWithdrawalAmount(payout, payoutUsd)}
                     </Text>
                     <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-                      Fee: {fee === null ? moneyInSourceCurrency(null, withdrawalCurrency) : moneyInSourceCurrency(fee, withdrawalCurrency)}
-                      {withdrawalCurrency !== 'USD' && feeUsd !== null ? ` · USD ${moneyInSourceCurrency(feeUsd, 'USD')}` : ''}
+                      Fee: {displayWithdrawalAmount(fee, feeUsd)}
                     </Text>
                     <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-                      Total wallet debit: {totalDebit === null ? moneyInSourceCurrency(null, withdrawalCurrency) : moneyInSourceCurrency(totalDebit, withdrawalCurrency)}
-                      {withdrawalCurrency !== 'USD' && totalDebitUsd !== null ? ` · USD ${moneyInSourceCurrency(totalDebitUsd, 'USD')}` : ''}
+                      Total wallet debit: {displayWithdrawalAmount(totalDebit, totalDebitUsd)}
                     </Text>
                   </View> : <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>Principal {money(principal, itemCurrency || 'USD')} · Profit {money(profit, itemCurrency || 'USD')}</Text>}
                 </View>

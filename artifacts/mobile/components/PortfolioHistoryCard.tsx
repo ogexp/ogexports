@@ -16,6 +16,7 @@ const chartTop = 10;
 export function PortfolioHistoryCard({
   points,
   currency,
+  targetCurrency,
   loading = false,
   defaultRange = '1M',
   compact = false,
@@ -23,6 +24,7 @@ export function PortfolioHistoryCard({
 }: {
   points: unknown;
   currency: string;
+  targetCurrency?: string;
   loading?: boolean;
   defaultRange?: Range;
   compact?: boolean;
@@ -63,7 +65,11 @@ export function PortfolioHistoryCard({
     <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
       <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700' }}>Portfolio value</Text><Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>History reported by OG Exports</Text></View>
       <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>
-        {loading ? 'Loading…' : hideValues ? '••••••' : money(chartPoints.length ? chartPoints[chartPoints.length - 1].value : null, currency || 'USD')}
+        {loading ? 'Loading…' : hideValues ? '••••••' : money(
+          chartPoints.length ? chartPoints[chartPoints.length - 1].value : null,
+          currency || 'USD',
+          targetCurrency ? { targetCurrency } : {},
+        )}
       </Text>
     </View>
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 15, marginBottom: 7 }}>

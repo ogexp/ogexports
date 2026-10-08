@@ -4,7 +4,7 @@ import { LocalizedText as Text } from '@/components/LocalizedText';
 import { Feather } from '@expo/vector-icons';
 import { Action, Card, ErrorState, Section, Status } from '@/components/InvestorUI';
 import { TradeProgressCard } from '@/components/TradeProgressCard';
-import { amount, first, list, money, record } from '@/lib/data';
+import { amount, first, list, moneyToCurrency, record } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
 
 type OpportunityDetailOverviewProps = {
@@ -135,7 +135,7 @@ export function OpportunityDetailOverview({
     || (amount(project, ['expected_return_pct']) == null ? '—' : `${amount(project, ['expected_return_pct'])}%`);
   const days = amount(project, ['investment_period_days', 'duration_days', 'trade_duration_days']);
   const term = first(project, ['investment_term', 'estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], days == null ? '—' : `${days} days`);
-  const formatMoney = (value: number | null) => money(value, currency);
+  const formatMoney = (value: number | null) => moneyToCurrency(value, currency, 'USD');
   const documents = list(project.documents);
   const stageUpdates = list(project.stage_updates);
   const investmentButtonTitle = fundingClosed
