@@ -69,7 +69,7 @@ class FinanceController extends Controller
             $query->where('status', $normalized);
         }
 
-        $this->filterByTransactionId($query, $request);
+        $this->filterByFinanceSearch($query, $request, ['reference', 'bank_reference']);
 
         $paginator = $query->latest()->paginate($this->perPage($request));
         $paginator->getCollection()->transform(fn (Deposit $deposit) => $this->transformDeposit($deposit));
@@ -106,6 +106,8 @@ class FinanceController extends Controller
         if ($status = $request->input('status')) {
             $query->whereIn('payment_status', DepositReviewStatuses::buyerStorageForFilter($status));
         }
+
+        $this->filterByFinanceSearch($query, $request, ['payment_reference', 'payment_field2_value'], false);
 
         $orders = $query->latest('payment_submitted_at')
             ->latest()
@@ -478,7 +480,7 @@ class FinanceController extends Controller
             $query->where('status', $status);
         }
 
-        $this->filterByTransactionId($query, $request);
+        $this->filterByFinanceSearch($query, $request, ['reference']);
 
         $paginator = $query->latest()->paginate($this->perPage($request));
         $paginator->getCollection()->transform(fn (Withdrawal $withdrawal) => $this->transformWithdrawal($withdrawal));
@@ -675,7 +677,7 @@ class FinanceController extends Controller
             $query->where('type', $type);
         }
 
-        $this->filterByTransactionId($query, $request);
+        $this->filterByFinanceSearch($query, $request, ['reference']);
 
         $paginator = $query->latest()->paginate($this->perPage($request));
         $paginator->getCollection()->transform(function (WalletTransaction $transaction) {
@@ -737,6 +739,79 @@ class FinanceController extends Controller
         $requestedId = (int) $normalizedId;
         $resolvedId = FinancialTransactionIdResolver::resolveId($query, $requestedId);
         $query->whereKey($resolvedId);
+    }
+
+    /**
+     * Search one finance list by its exact transaction ID or supported external reference.
+     *
+     * @param  array<int, string>  $referenceColumns
+     */
+    private function filterByFinanceSearch(
+        Builder $query,
+        Request $request,
+        array $referenceColumns,
+        bool $financialTransactionId = true
+    ): void {
+        if (! $request->query->has('search')) {
+            // Keep older admin clients that still send transaction_id working.
+            $this->filterByTransactionId($query, $request);
+
+            return;
+        }
+
+        $rawSearch = $request->query('search');
+        if (! is_string($rawSearch) && ! is_int($rawSearch)) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $search = trim((string) $rawSearch);
+        if (
+            $search === ''
+            || strlen($search) > 255
+            || preg_match('/[\x00-\x1F\x7F]/', $search)
+        ) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $requestedId = null;
+        if (ctype_digit($search)) {
+            $normalizedId = ltrim($search, '0');
+            $maxId = (string) PHP_INT_MAX;
+            if (
+                $normalizedId !== ''
+                && (
+                    strlen($normalizedId) < strlen($maxId)
+                    || (strlen($normalizedId) === strlen($maxId) && strcmp($normalizedId, $maxId) <= 0)
+                )
+            ) {
+                $requestedId = (int) $normalizedId;
+            }
+        }
+
+        $query->where(function (Builder $matches) use ($query, $search, $referenceColumns, $financialTransactionId, $requestedId) {
+            $hasMatch = false;
+
+            if ($requestedId !== null) {
+                $resolvedId = $financialTransactionId
+                    ? FinancialTransactionIdResolver::resolveId($query, $requestedId)
+                    : $requestedId;
+                $matches->whereKey($resolvedId);
+                $hasMatch = true;
+            }
+
+            foreach ($referenceColumns as $column) {
+                if ($hasMatch) {
+                    $matches->orWhere($column, '=', $search);
+                } else {
+                    $matches->where($column, '=', $search);
+                    $hasMatch = true;
+                }
+            }
+        });
     }
 
     public function platformWallet(): JsonResponse

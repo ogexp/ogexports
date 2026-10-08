@@ -4,6 +4,7 @@ use App\Models\Deposit;
 use App\Models\Investment;
 use App\Models\InvestmentProfitDistribution;
 use App\Models\InvestmentProject;
+use App\Models\Order;
 use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Models\Wallet;
@@ -259,6 +260,7 @@ it('filters admin finance lists by exact current and legacy transaction IDs with
         'currency' => 'USD',
         'method' => 'bank_transfer',
         'reference' => 'SEARCH-DEPOSIT',
+        'bank_reference' => 'BANK-DEP-REF-001',
         'status' => 'pending',
     ]);
     $depositId = assignConvertedFinancialId($deposit, 'deposits', 123);
@@ -267,7 +269,7 @@ it('filters admin finance lists by exact current and legacy transaction IDs with
         'investor_id' => $this->investor->id,
         'amount' => 75,
         'bank_details' => ['bank_name' => 'Test Bank'],
-        'reference' => 'SEARCH-WITHDRAWAL',
+        'reference' => 'PAY-WITHDRAWAL-REF-002',
         'status' => 'pending',
     ]);
     $withdrawalId = assignConvertedFinancialId($withdrawal, 'withdrawals', 456);
@@ -283,10 +285,24 @@ it('filters admin finance lists by exact current and legacy transaction IDs with
         'type' => 'profit',
         'amount' => 40,
         'direction' => 'credit',
-        'reference' => 'SEARCH-WALLET-TXN',
+        'reference' => 'PAY-WALLET-REF-003',
         'status' => 'completed',
     ]);
     $transactionId = assignConvertedFinancialId($transaction, 'wallet_transactions', 789);
+
+    $buyer = User::factory()->create(['account_status' => 'active']);
+    $buyer->assignRole('buyer');
+    $buyerPayment = Order::query()->create([
+        'order_number' => 'ORD-SEARCH-REF',
+        'buyer_id' => $buyer->id,
+        'status' => 'order_confirmed',
+        'payment_status' => 'pending_verification',
+        'payment_reference' => 'BUYER-PAYMENT-REF-004',
+        'payment_field2_value' => 'BUYER-FIELD-REF-005',
+        'total_value' => 250,
+        'currency' => 'USD',
+        'placed_at' => now(),
+    ]);
 
     $this->actingAs($this->admin)
         ->getJson('/api/admin/finance/deposits?transaction_id=123')
@@ -323,10 +339,66 @@ it('filters admin finance lists by exact current and legacy transaction IDs with
         ->assertOk()
         ->assertJsonCount(0, 'data');
 
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/deposits?search=BANK-DEP-REF-001')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $depositId);
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/deposits?search=SEARCH-DEPOSIT')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $depositId);
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/deposits?search=BANK-DEP-REF')
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/deposits?search=PAY-WITHDRAWAL-REF-002')
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/withdrawals?search=BANK-DEP-REF-001')
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/withdrawals?search=PAY-WITHDRAWAL-REF-002')
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $withdrawalId);
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/transactions?search=PAY-WALLET-REF-003')
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $transactionId);
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/transactions?search=BANK-DEP-REF-001')
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/buyer-deposits?search=BUYER-PAYMENT-REF-004')
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $buyerPayment->id);
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/buyer-deposits?search=BUYER-FIELD-REF-005')
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $buyerPayment->id);
+
     foreach ([
         '/api/admin/finance/deposits?transaction_id=invalid',
         '/api/admin/finance/withdrawals?transaction_id=invalid',
         '/api/admin/finance/transactions?transaction_id=invalid',
+    ] as $url) {
+        $this->actingAs($this->admin)
+            ->getJson($url)
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    foreach ([
+        '/api/admin/finance/deposits?search=',
+        '/api/admin/finance/withdrawals?search=',
+        '/api/admin/finance/transactions?search=',
+        '/api/admin/finance/buyer-deposits?search=',
+        '/api/admin/finance/deposits?search%5B%5D=invalid',
     ] as $url) {
         $this->actingAs($this->admin)
             ->getJson($url)

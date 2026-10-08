@@ -1896,18 +1896,23 @@ export async function fetchFinance() {
   }
 }
 
-export async function fetchAdminDepositsByTransactionId(transactionId: string): Promise<AdminDeposit[]> {
-  const res = await api.get("/api/admin/finance/deposits", { transaction_id: transactionId, per_page: 100 })
+export async function fetchAdminBuyerDepositsBySearchTerm(search: string): Promise<AdminBuyerDeposit[]> {
+  const res = await api.get("/api/admin/finance/buyer-deposits", { search, per_page: 100 })
+  return unwrapPage(res).data.map(mapBuyerDeposit)
+}
+
+export async function fetchAdminDepositsBySearchTerm(search: string): Promise<AdminDeposit[]> {
+  const res = await api.get("/api/admin/finance/deposits", { search, per_page: 100 })
   return unwrapPage(res).data.map(mapDeposit)
 }
 
-export async function fetchAdminWithdrawalsByTransactionId(transactionId: string): Promise<AdminWithdrawal[]> {
-  const res = await api.get("/api/admin/finance/withdrawals", { transaction_id: transactionId, per_page: 100 })
+export async function fetchAdminWithdrawalsBySearchTerm(search: string): Promise<AdminWithdrawal[]> {
+  const res = await api.get("/api/admin/finance/withdrawals", { search, per_page: 100 })
   return unwrapPage(res).data.map(mapWithdrawal)
 }
 
-export async function fetchAdminTransactionsByTransactionId(transactionId: string): Promise<AdminTransaction[]> {
-  const res = await api.get("/api/admin/finance/transactions", { transaction_id: transactionId, per_page: 100 })
+export async function fetchAdminTransactionsBySearchTerm(search: string): Promise<AdminTransaction[]> {
+  const res = await api.get("/api/admin/finance/transactions", { search, per_page: 100 })
   return unwrapPage(res).data.map(mapTransaction)
 }
 

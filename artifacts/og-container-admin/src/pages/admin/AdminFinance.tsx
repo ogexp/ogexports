@@ -6,7 +6,8 @@ import { DollarSign, ArrowDownCircle, ArrowUpCircle, CreditCard, CheckCircle2, X
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import {
   getDeposits, getBuyerDeposits, getWithdrawals, getTransactions,
-  fetchAdminDepositsByTransactionId, fetchAdminWithdrawalsByTransactionId, fetchAdminTransactionsByTransactionId,
+  fetchAdminBuyerDepositsBySearchTerm, fetchAdminDepositsBySearchTerm,
+  fetchAdminWithdrawalsBySearchTerm, fetchAdminTransactionsBySearchTerm,
   approveDeposit, rejectDeposit, cancelDepositAsync as cancelDeposit,
   approveBuyerDeposit, rejectBuyerDeposit, cancelBuyerDeposit,
   approveWithdrawal, rejectWithdrawal,
@@ -76,12 +77,15 @@ function DepositProofCell({ deposit }: { deposit: AdminDeposit }) {
   )
 }
 
-function TransactionIdSearch({ value, onChange, onSubmit, onClear, loading }: {
+function FinanceReferenceSearch({ value, onChange, onSubmit, onClear, loading, active, placeholder, label }: {
   value: string
   onChange: (value: string) => void
   onSubmit: () => void
   onClear: () => void
   loading: boolean
+  active: boolean
+  placeholder?: string
+  label?: string
 }) {
   return (
     <form
@@ -91,10 +95,9 @@ function TransactionIdSearch({ value, onChange, onSubmit, onClear, loading }: {
       <div className="relative w-full max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
-          aria-label="Transaction number"
+          aria-label={label || "Bank, payment, or transaction reference"}
           autoComplete="off"
-          inputMode="numeric"
-          placeholder="Find exact transaction number"
+          placeholder={placeholder || "Exact bank/payment reference or transaction number"}
           value={value}
           onChange={event => onChange(event.target.value)}
           className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
@@ -109,7 +112,7 @@ function TransactionIdSearch({ value, onChange, onSubmit, onClear, loading }: {
         <Search className="h-3.5 w-3.5" />
         {loading ? "Searching…" : "Find"}
       </button>
-      {value && (
+      {(value || active) && (
         <button
           type="button"
           onClick={onClear}
@@ -352,6 +355,9 @@ export default function AdminFinance() {
   const [deposits, setDeposits] = useState<AdminDeposit[]>(() => getDeposits())
   const [withdrawals, setWithdrawals] = useState<AdminWithdrawal[]>(() => getWithdrawals())
   const [transactions, setTransactions] = useState<AdminTransaction[]>(() => getTransactions())
+  const [buyerDepositSearchInput, setBuyerDepositSearchInput] = useState("")
+  const [buyerDepositSearchTerm, setBuyerDepositSearchTerm] = useState<string | null>(null)
+  const [searchedBuyerDeposits, setSearchedBuyerDeposits] = useState<AdminBuyerDeposit[] | null>(null)
   const [depositSearchInput, setDepositSearchInput] = useState("")
   const [depositSearchTerm, setDepositSearchTerm] = useState<string | null>(null)
   const [searchedDeposits, setSearchedDeposits] = useState<AdminDeposit[] | null>(null)
@@ -361,7 +367,7 @@ export default function AdminFinance() {
   const [transactionSearchInput, setTransactionSearchInput] = useState("")
   const [transactionSearchTerm, setTransactionSearchTerm] = useState<string | null>(null)
   const [searchedTransactions, setSearchedTransactions] = useState<AdminTransaction[] | null>(null)
-  const [financeSearchLoading, setFinanceSearchLoading] = useState<"deposits" | "withdrawals" | "transactions" | null>(null)
+  const [financeSearchLoading, setFinanceSearchLoading] = useState<"buyer-deposits" | "deposits" | "withdrawals" | "transactions" | null>(null)
   const [platformWallet, setPlatformWallet] = useState<PlatformWalletStats>(() => getPlatformWalletStats())
   const [financeStats, setFinanceStats] = useState<FinanceOverviewStats>(() => getFinanceStats())
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null)
@@ -386,45 +392,37 @@ export default function AdminFinance() {
     setFinanceStats(getFinanceStats())
 
     const searchRefreshes: Promise<void>[] = []
-    if (depositSearchTerm) {
-      searchRefreshes.push(fetchAdminDepositsByTransactionId(depositSearchTerm).then(setSearchedDeposits))
+    if (buyerDepositSearchTerm !== null) {
+      searchRefreshes.push(fetchAdminBuyerDepositsBySearchTerm(buyerDepositSearchTerm).then(setSearchedBuyerDeposits))
     }
-    if (withdrawalSearchTerm) {
-      searchRefreshes.push(fetchAdminWithdrawalsByTransactionId(withdrawalSearchTerm).then(setSearchedWithdrawals))
+    if (depositSearchTerm !== null) {
+      searchRefreshes.push(fetchAdminDepositsBySearchTerm(depositSearchTerm).then(setSearchedDeposits))
     }
-    if (transactionSearchTerm) {
-      searchRefreshes.push(fetchAdminTransactionsByTransactionId(transactionSearchTerm).then(setSearchedTransactions))
+    if (withdrawalSearchTerm !== null) {
+      searchRefreshes.push(fetchAdminWithdrawalsBySearchTerm(withdrawalSearchTerm).then(setSearchedWithdrawals))
+    }
+    if (transactionSearchTerm !== null) {
+      searchRefreshes.push(fetchAdminTransactionsBySearchTerm(transactionSearchTerm).then(setSearchedTransactions))
     }
     await Promise.allSettled(searchRefreshes)
   }
 
-  async function searchFinanceByTransactionId(kind: "deposits" | "withdrawals" | "transactions", value: string) {
-    const transactionId = value.trim()
-    if (!transactionId) {
-      if (kind === "deposits") {
-        setDepositSearchTerm(null)
-        setSearchedDeposits(null)
-      } else if (kind === "withdrawals") {
-        setWithdrawalSearchTerm(null)
-        setSearchedWithdrawals(null)
-      } else {
-        setTransactionSearchTerm(null)
-        setSearchedTransactions(null)
-      }
-      return
-    }
-
+  async function searchFinance(kind: "buyer-deposits" | "deposits" | "withdrawals" | "transactions", value: string) {
+    const searchTerm = value.trim()
     setFinanceSearchLoading(kind)
     try {
-      if (kind === "deposits") {
-        setSearchedDeposits(await fetchAdminDepositsByTransactionId(transactionId))
-        setDepositSearchTerm(transactionId)
+      if (kind === "buyer-deposits") {
+        setSearchedBuyerDeposits(await fetchAdminBuyerDepositsBySearchTerm(searchTerm))
+        setBuyerDepositSearchTerm(searchTerm)
+      } else if (kind === "deposits") {
+        setSearchedDeposits(await fetchAdminDepositsBySearchTerm(searchTerm))
+        setDepositSearchTerm(searchTerm)
       } else if (kind === "withdrawals") {
-        setSearchedWithdrawals(await fetchAdminWithdrawalsByTransactionId(transactionId))
-        setWithdrawalSearchTerm(transactionId)
+        setSearchedWithdrawals(await fetchAdminWithdrawalsBySearchTerm(searchTerm))
+        setWithdrawalSearchTerm(searchTerm)
       } else {
-        setSearchedTransactions(await fetchAdminTransactionsByTransactionId(transactionId))
-        setTransactionSearchTerm(transactionId)
+        setSearchedTransactions(await fetchAdminTransactionsBySearchTerm(searchTerm))
+        setTransactionSearchTerm(searchTerm)
       }
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Unable to search finance records.", "error")
@@ -433,8 +431,12 @@ export default function AdminFinance() {
     }
   }
 
-  function clearFinanceSearch(kind: "deposits" | "withdrawals" | "transactions") {
-    if (kind === "deposits") {
+  function clearFinanceSearch(kind: "buyer-deposits" | "deposits" | "withdrawals" | "transactions") {
+    if (kind === "buyer-deposits") {
+      setBuyerDepositSearchInput("")
+      setBuyerDepositSearchTerm(null)
+      setSearchedBuyerDeposits(null)
+    } else if (kind === "deposits") {
       setDepositSearchInput("")
       setDepositSearchTerm(null)
       setSearchedDeposits(null)
@@ -449,6 +451,7 @@ export default function AdminFinance() {
     }
   }
 
+  const visibleBuyerDeposits = searchedBuyerDeposits ?? buyerDeposits
   const visibleDeposits = searchedDeposits ?? deposits
   const visibleWithdrawals = searchedWithdrawals ?? withdrawals
   const visibleTransactions = searchedTransactions ?? transactions
@@ -677,6 +680,16 @@ export default function AdminFinance() {
 
             {activeTab === "buyer-deposits" && (
               <div>
+                <FinanceReferenceSearch
+                  value={buyerDepositSearchInput}
+                  onChange={setBuyerDepositSearchInput}
+                  onSubmit={() => { void searchFinance("buyer-deposits", buyerDepositSearchInput) }}
+                  onClear={() => clearFinanceSearch("buyer-deposits")}
+                  loading={financeSearchLoading === "buyer-deposits"}
+                  active={buyerDepositSearchTerm !== null}
+                  placeholder="Exact buyer payment reference"
+                  label="Buyer payment reference"
+                />
                 {pendingBuyerDeposits > 0 && (
                   <div className="mb-4 p-3 rounded-xl border border-yellow-200 bg-yellow-50 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
@@ -693,14 +706,18 @@ export default function AdminFinance() {
                       </tr>
                     </thead>
                     <tbody>
-                      {buyerDeposits.length === 0 && (
+                      {visibleBuyerDeposits.length === 0 && (
                         <tr>
                           <td colSpan={10} className="px-3 py-8 text-center text-sm text-muted-foreground">
-                            No buyer payment submissions yet. When a buyer marks an order as paid on Trade Finance, it appears here.
+                            {buyerDepositSearchTerm !== null
+                              ? buyerDepositSearchTerm
+                                ? "No buyer payments match this payment reference."
+                                : "Enter a payment reference to search buyer payments."
+                              : "No buyer payment submissions yet. When a buyer marks an order as paid on Trade Finance, it appears here."}
                           </td>
                         </tr>
                       )}
-                      {buyerDeposits.map(d => (
+                      {visibleBuyerDeposits.map(d => (
                         <tr key={d.id} className="border-b border-border/50 hover:bg-muted/20">
                           <td className="px-3 py-3 text-[11px] font-mono font-bold" style={{ color: EMERALD }}>{d.orderNumber}</td>
                           <td className="px-3 py-3 text-[12px] font-medium">{d.buyer}</td>
@@ -753,12 +770,13 @@ export default function AdminFinance() {
 
             {activeTab === "investor-deposits" && (
               <div>
-                <TransactionIdSearch
+                <FinanceReferenceSearch
                   value={depositSearchInput}
                   onChange={setDepositSearchInput}
-                  onSubmit={() => { void searchFinanceByTransactionId("deposits", depositSearchInput) }}
+                  onSubmit={() => { void searchFinance("deposits", depositSearchInput) }}
                   onClear={() => clearFinanceSearch("deposits")}
                   loading={financeSearchLoading === "deposits"}
+                  active={depositSearchTerm !== null}
                 />
                 {pendingDeposits > 0 && (
                   <div className="mb-4 p-3 rounded-xl border border-yellow-200 bg-yellow-50 flex items-center gap-2">
@@ -779,7 +797,11 @@ export default function AdminFinance() {
                       {visibleDeposits.length === 0 && (
                         <tr>
                           <td colSpan={11} className="px-3 py-8 text-center text-sm text-muted-foreground">
-                            {depositSearchTerm ? "No investor deposits match this transaction number." : "No investor deposits yet."}
+                            {depositSearchTerm !== null
+                              ? depositSearchTerm
+                                ? "No investor deposits match this bank/payment reference or transaction number."
+                                : "Enter a bank/payment reference or transaction number to search."
+                              : "No investor deposits yet."}
                           </td>
                         </tr>
                       )}
@@ -837,12 +859,13 @@ export default function AdminFinance() {
 
             {activeTab === "withdrawals" && (
               <div>
-                <TransactionIdSearch
+                <FinanceReferenceSearch
                   value={withdrawalSearchInput}
                   onChange={setWithdrawalSearchInput}
-                  onSubmit={() => { void searchFinanceByTransactionId("withdrawals", withdrawalSearchInput) }}
+                  onSubmit={() => { void searchFinance("withdrawals", withdrawalSearchInput) }}
                   onClear={() => clearFinanceSearch("withdrawals")}
                   loading={financeSearchLoading === "withdrawals"}
+                  active={withdrawalSearchTerm !== null}
                 />
                 {pendingWithdrawals > 0 && (
                   <div className="mb-4 p-3 rounded-xl border border-orange-200 bg-orange-50 flex items-center gap-2">
@@ -863,7 +886,11 @@ export default function AdminFinance() {
                       {visibleWithdrawals.length === 0 && (
                         <tr>
                           <td colSpan={8} className="px-3 py-8 text-center text-sm text-muted-foreground">
-                            {withdrawalSearchTerm ? "No withdrawals match this transaction number." : "No withdrawal requests yet."}
+                            {withdrawalSearchTerm !== null
+                              ? withdrawalSearchTerm
+                                ? "No withdrawals match this payment reference or transaction number."
+                                : "Enter a payment reference or transaction number to search."
+                              : "No withdrawal requests yet."}
                           </td>
                         </tr>
                       )}
@@ -931,18 +958,19 @@ export default function AdminFinance() {
 
             {activeTab === "transactions" && (
               <div>
-              <TransactionIdSearch
+              <FinanceReferenceSearch
                 value={transactionSearchInput}
                 onChange={setTransactionSearchInput}
-                onSubmit={() => { void searchFinanceByTransactionId("transactions", transactionSearchInput) }}
+                onSubmit={() => { void searchFinance("transactions", transactionSearchInput) }}
                 onClear={() => clearFinanceSearch("transactions")}
                 loading={financeSearchLoading === "transactions"}
+                active={transactionSearchTerm !== null}
               />
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border">
-                      {["Txn ID", "Type", "User", "Amount", "Date", "Method", "Status"].map(h => (
+                      {["Txn ID", "Type", "User", "Amount", "Date", "Reference", "Status"].map(h => (
                         <th key={h} className="text-left px-3 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase">{h}</th>
                       ))}
                     </tr>
@@ -961,7 +989,7 @@ export default function AdminFinance() {
                         <td className="px-3 py-3"><StatusBadge status={t.status} /></td>
                       </tr>
                     ))}
-                    {visibleTransactions.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-sm text-muted-foreground">{transactionSearchTerm ? "No transactions match this transaction number." : "No transactions yet"}</td></tr>}
+                    {visibleTransactions.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-sm text-muted-foreground">{transactionSearchTerm !== null ? transactionSearchTerm ? "No wallet transactions match this reference or transaction number." : "Enter a reference or transaction number to search." : "No transactions yet"}</td></tr>}
                   </tbody>
                 </table>
               </div>
