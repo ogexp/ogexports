@@ -23,6 +23,8 @@ import {
   withdrawalPaymentMethod,
 } from '@/lib/withdrawal-history';
 import { createTransactionReceipt, saveTransactionReceipt, type TransactionReceipt } from '@/lib/transaction-receipt';
+import { savedUsdEquivalentForRecordedAmount } from '@/lib/withdrawal-history';
+import { resolveTransactionPaymentMethod } from '@/lib/transaction-payment-method';
 
 type Filter = 'All' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
 type Category = Exclude<Filter, 'All'> | 'Other';
@@ -417,15 +419,9 @@ export default function Transactions() {
       ?? readAmount(matchedMeta, ['total_debit_usd']);
     const key = `withdrawal:${id || reference || `${page}-${index}`}`;
     const title = first(withdrawal, ['description'], 'Withdrawal');
-    const paymentMethod = withdrawalPaymentMethod(
-      withdrawal.payment_method,
-      withdrawal.method,
-      bankDetails.payment_method,
-      bankDetails.method,
-      matchedMeta.payment_method,
-      matchedMeta.method,
-      matched?.payment_method,
-      matched?.method,
+    const paymentMethod = resolveTransactionPaymentMethod(
+      [withdrawal, bankDetails, matchedMeta, matched ?? {}],
+      true,
     );
     rows.push({
       key,
@@ -498,10 +494,10 @@ export default function Transactions() {
     const investmentId = first(meta, ['investment_id'], first(transaction, ['investment_id']));
     const investment = investmentById.get(investmentId) ?? {};
     const title = first(transaction, ['description', 'title'], first(meta, ['project_title', 'project_name'], formatLabel(first(transaction, ['type', 'transaction_type'], 'Transaction'))));
-    const paymentMethod = first(
-      transaction,
-      ['payment_method', 'method'],
-      first(meta, ['payment_method', 'method'], category === 'Withdrawals' ? 'Bank Transfer' : ''),
+    const paymentMethod = resolveTransactionPaymentMethod(
+      [transaction, meta],
+      category === 'Withdrawals',
+      '',
     );
     const key = `wallet:${walletKey || `${page}-${index}`}`;
     rows.push({
@@ -924,7 +920,7 @@ export default function Transactions() {
               : null}
             <DetailLine label="Date / time" value={formatDateTime(row.occurredAt)} />
             <DetailLine label="Status" value={formatLabel(row.status)} />
-            <DetailLine label="Payment method" value={formatLabel(row.paymentMethod)} />
+            <DetailLine label="Payment method" value={row.paymentMethod} />
             <DetailLine label="Reference" value={row.reference} />
             {row.paymentReference && row.paymentReference !== row.reference
               ? <DetailLine label="Payment reference" value={row.paymentReference} />

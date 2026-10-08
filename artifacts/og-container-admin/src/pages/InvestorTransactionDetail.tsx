@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { api, unwrapList } from "@/lib/api"
 import { createTransactionReceipt, downloadTransactionReceipt } from "@/lib/transaction-receipt"
+import { resolveInvestorTransactionPaymentMethod } from "@/lib/investor-transaction-method"
 
 type TransactionKind = "deposit" | "withdrawal" | "wallet"
 type TransactionRecord = Record<string, unknown>
@@ -37,21 +38,6 @@ function text(value: unknown, fallback = "Not recorded") {
   if (value === null || value === undefined || value === "") return fallback
   if (typeof value === "object") return fallback
   return String(value)
-}
-
-function paymentMethodLabel(values: unknown[], fallback: string) {
-  for (const value of values) {
-    if (typeof value !== "string" && typeof value !== "number") continue
-    const candidate = String(value).trim()
-    if (!candidate || /^(?:[-–—]+|not recorded|not provided|not available|not applicable|n\/a|null|undefined)$/i.test(candidate)) {
-      continue
-    }
-    return candidate
-      .replace(/[_-]+/g, " ")
-      .replace(/\s+/g, " ")
-      .replace(/\b\w/g, character => character.toUpperCase())
-  }
-  return fallback
 }
 
 function recordedMoney(value: unknown, currency: string, usdEquivalent?: unknown) {
@@ -188,20 +174,10 @@ export default function InvestorTransactionDetail() {
   const walletType = text(record?.type ?? record?.transaction_type, "").toLowerCase()
   const isWithdrawalTransaction = kind === "withdrawal"
     || (kind === "wallet" && /withdraw|payout/.test(walletType))
-  const paymentMethod = isWithdrawalTransaction
-    ? paymentMethodLabel([
-      record?.payment_method,
-      record?.method,
-      bankDetails.payment_method,
-      bankDetails.method,
-      meta.payment_method,
-      meta.method,
-    ], "Bank Transfer")
-    : text(
-      record?.payment_method ?? record?.method
-        ?? bankDetails.payment_method ?? bankDetails.method
-        ?? meta.payment_method ?? meta.method,
-    )
+  const paymentMethod = resolveInvestorTransactionPaymentMethod(
+    [record ?? {}, bankDetails, meta],
+    isWithdrawalTransaction,
+  )
   const exchangeRate = numericValue(
     record?.exchange_rate ?? withdrawalBreakdown.exchange_rate ?? meta.exchange_rate,
   )

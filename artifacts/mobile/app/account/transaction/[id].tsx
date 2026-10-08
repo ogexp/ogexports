@@ -12,7 +12,7 @@ import { amount, first, list, messageOf, money, record, unwrap } from '@/lib/dat
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
-import { withdrawalPaymentMethod } from '@/lib/withdrawal-history';
+import { resolveTransactionPaymentMethod } from '@/lib/transaction-payment-method';
 
 const unavailable = '—';
 
@@ -90,15 +90,9 @@ export default function TransactionDetails() {
       : undefined;
   const withdrawalLedgerMeta = record(withdrawalWalletTransaction?.meta);
   const paymentMethod = isWithdrawalTransaction
-    ? withdrawalPaymentMethod(
-      transaction.payment_method,
-      transaction.method,
-      bankDetails.payment_method,
-      bankDetails.method,
-      meta.payment_method,
-      meta.method,
-      withdrawalLedgerMeta.payment_method,
-      withdrawalLedgerMeta.method,
+    ? resolveTransactionPaymentMethod(
+      [transaction, bankDetails, meta, withdrawalLedgerMeta],
+      true,
     )
     : first(
       transaction,
