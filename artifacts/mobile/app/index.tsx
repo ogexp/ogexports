@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, Image, Platform, View } from 'react-native';
+import { Animated, Easing, Platform, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
@@ -11,55 +11,75 @@ export default function Entry() {
   const colors = useColors();
   const { reduceMotion } = useMotion();
   const useNativeDriver = Platform.OS !== 'web';
-  const brandOpacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
-  const brandScale = useRef(new Animated.Value(reduceMotion ? 1 : 0.965)).current;
-  const brandLift = useRef(new Animated.Value(reduceMotion ? 0 : 8)).current;
-  const subtitleOpacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const logoReveal = useRef(new Animated.Value(0)).current;
+  const orbitReveal = useRef(new Animated.Value(0)).current;
+  const haloReveal = useRef(new Animated.Value(0)).current;
+  const wordmarkReveal = useRef(new Animated.Value(0)).current;
+  const subtitleOpacity = useRef(new Animated.Value(0)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
   const progressOffset = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (reduceMotion) {
-      brandOpacity.setValue(1);
-      brandScale.setValue(1);
-      brandLift.setValue(0);
-      subtitleOpacity.setValue(1);
-      return;
-    }
+    if (reduceMotion) return;
+
+    logoReveal.setValue(0);
+    orbitReveal.setValue(0);
+    haloReveal.setValue(0);
+    wordmarkReveal.setValue(0);
+    subtitleOpacity.setValue(0);
+
     const reveal = Animated.parallel([
-      Animated.timing(brandOpacity, {
+      Animated.spring(logoReveal, {
         toValue: 1,
-        duration: MOTION.component,
-        easing: Easing.out(Easing.cubic),
+        ...MOTION.successSpring,
         useNativeDriver,
       }),
-      Animated.timing(brandScale, {
-        toValue: 1,
-        duration: MOTION.component,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver,
-      }),
-      Animated.timing(brandLift, {
-        toValue: 0,
-        duration: MOTION.component,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver,
-      }),
+      Animated.sequence([
+        Animated.delay(55),
+        Animated.timing(orbitReveal, {
+          toValue: 1,
+          duration: MOTION.modal * 2 + MOTION.micro,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver,
+        }),
+      ]),
+      Animated.sequence([
+        Animated.delay(35),
+        Animated.timing(haloReveal, {
+          toValue: 1,
+          duration: MOTION.micro * 2,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver,
+        }),
+        Animated.timing(haloReveal, {
+          toValue: 0.12,
+          duration: MOTION.modal + MOTION.component,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver,
+        }),
+      ]),
+      Animated.sequence([
+        Animated.delay(MOTION.micro),
+        Animated.timing(wordmarkReveal, {
+          toValue: 1,
+          duration: MOTION.component + MOTION.micro,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver,
+        }),
+      ]),
+      Animated.sequence([
+        Animated.delay(MOTION.modal),
+        Animated.timing(subtitleOpacity, {
+          toValue: 1,
+          duration: MOTION.component,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver,
+        }),
+      ]),
     ]);
-    const subtitleReveal = Animated.timing(subtitleOpacity, {
-      toValue: 1,
-      duration: MOTION.micro,
-      delay: 40,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver,
-    });
     reveal.start();
-    subtitleReveal.start();
-    return () => {
-      reveal.stop();
-      subtitleReveal.stop();
-    };
-  }, [brandLift, brandOpacity, brandScale, reduceMotion, subtitleOpacity, useNativeDriver]);
+    return () => reveal.stop();
+  }, [haloReveal, logoReveal, orbitReveal, reduceMotion, subtitleOpacity, useNativeDriver, wordmarkReveal]);
 
   useEffect(() => {
     if (ready || reduceMotion) {
