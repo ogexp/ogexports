@@ -90,6 +90,19 @@ it('resolves legacy deposit and withdrawal IDs for investor detail and admin rev
         ->get('/api/investor/withdrawals/456/pdf')
         ->assertOk();
     expect($withdrawalPdf->headers->get('content-type'))->toContain('application/pdf');
+    expect($depositPdf->headers->get('content-disposition'))->toContain('LEGACY-DEPOSIT');
+    expect($withdrawalPdf->headers->get('content-disposition'))->toContain('LEGACY-WITHDRAWAL');
+
+    $otherInvestor = User::factory()->create(['account_status' => 'active']);
+    $otherInvestor->assignRole('investor');
+    foreach ([
+        '/api/investor/deposits/123',
+        '/api/investor/deposits/123/pdf',
+        '/api/investor/withdrawals/456',
+        '/api/investor/withdrawals/456/pdf',
+    ] as $url) {
+        $this->actingAs($otherInvestor)->getJson($url)->assertNotFound();
+    }
 
     $this->actingAs($this->admin)
         ->postJson('/api/admin/finance/deposits/123/reject')
@@ -152,10 +165,13 @@ it('resolves legacy investment and wallet-transaction IDs without weakening inve
         ->get('/api/investor/investments/789/pdf')
         ->assertOk();
     expect($investmentPdf->headers->get('content-type'))->toContain('application/pdf');
+    expect($investmentPdf->headers->get('content-disposition'))->toContain('LEGACY-INVESTMENT');
 
-    $this->actingAs($this->investor)
+    $investmentExport = $this->actingAs($this->investor)
         ->get('/api/investor/investments/789/export')
         ->assertOk();
+    expect($investmentExport->streamedContent())->toContain('LEGACY-INVESTMENT');
+    expect($investmentExport->headers->get('content-disposition'))->toContain('LEGACY-INVESTMENT');
 
     $this->actingAs($this->investor)
         ->getJson('/api/investor/wallet/transactions/987')
@@ -167,6 +183,7 @@ it('resolves legacy investment and wallet-transaction IDs without weakening inve
         ->get('/api/investor/wallet/transactions/987/pdf')
         ->assertOk();
     expect($transactionPdf->headers->get('content-type'))->toContain('application/pdf');
+    expect($transactionPdf->headers->get('content-disposition'))->toContain('LEGACY-WALLET-TXN');
 
     $this->actingAs($this->admin)
         ->getJson('/api/admin/project-investments/789')
@@ -200,9 +217,17 @@ it('resolves legacy investment and wallet-transaction IDs without weakening inve
 
     $otherInvestor = User::factory()->create(['account_status' => 'active']);
     $otherInvestor->assignRole('investor');
-    $this->actingAs($otherInvestor)
-        ->getJson('/api/investor/wallet/transactions/987')
-        ->assertNotFound();
+    foreach ([
+        '/api/investor/investments/789',
+        '/api/investor/investments/789/pdf',
+        '/api/investor/investments/789/export',
+        '/api/investor/wallet/transactions/987',
+        '/api/investor/wallet/transactions/987/pdf',
+    ] as $url) {
+        $this->actingAs($otherInvestor)
+            ->get($url)
+            ->assertNotFound();
+    }
 });
 
 it('keeps current eight-digit IDs exact and does not resolve missing legacy IDs', function () {

@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   useGetInvestorDeposit,
+  useGetInvestorWalletTransaction,
   useGetInvestorWalletTransactions,
   useGetInvestorWithdrawal,
 } from '@workspace/api-client-react';
@@ -62,15 +63,26 @@ export default function TransactionDetails() {
   const walletQuery = useGetInvestorWalletTransactions({ page: sourcePage, per_page: 100 }, {
     query: {
       queryKey: ['investor-wallet-transactions', sourcePage, 100],
-      enabled: Boolean(token && id && (kind === 'wallet' || kind === 'withdrawal')),
+      enabled: Boolean(token && id && kind === 'withdrawal'),
+      staleTime: 20_000,
+    },
+  });
+  const walletTransactionQuery = useGetInvestorWalletTransaction(Number(id), {
+    query: {
+      queryKey: ['investor-wallet-transaction-detail', id],
+      enabled: Boolean(token && id && kind === 'wallet'),
       staleTime: 20_000,
     },
   });
   const depositQuery = useGetInvestorDeposit(Number(id), queryOptions('deposit', kind === 'deposit'));
   const withdrawalQuery = useGetInvestorWithdrawal(Number(id), queryOptions('withdrawal', kind === 'withdrawal'));
-  const query = kind === 'deposit' ? depositQuery : kind === 'withdrawal' ? withdrawalQuery : walletQuery;
+  const query = kind === 'deposit'
+    ? depositQuery
+    : kind === 'withdrawal'
+      ? withdrawalQuery
+      : walletTransactionQuery;
   const walletTransaction = kind === 'wallet'
-    ? list(walletQuery.data).find(item => first(item, ['id', 'transaction_id']) === id)
+    ? record(unwrap(walletTransactionQuery.data))
     : undefined;
   const transaction = kind === 'wallet' ? walletTransaction ?? {} : record(unwrap(query.data));
   const hasRecord = Object.keys(transaction).length > 0;

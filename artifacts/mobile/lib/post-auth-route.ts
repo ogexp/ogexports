@@ -24,7 +24,7 @@ export type PostAuthHref =
   | '/(tabs)/wallet'
   | { pathname: '/project/[id]'; params: { id: string } }
   | { pathname: '/position/[id]'; params: { id: string } }
-  | { pathname: '/account/transaction/[id]'; params: { id: string } }
+  | { pathname: '/account/transaction/[id]'; params: { id: string; kind?: 'deposit' | 'withdrawal' | 'wallet'; page?: string } }
   | TransactionHref;
 
 function decode(value: string) {
@@ -67,7 +67,20 @@ export function resolvePostAuthHref(returnTo?: string | string[]): PostAuthHref 
 
   const transactionMatch = pathname.match(/^\/account\/transaction\/([^/]+)\/?$/);
   const transactionId = validId(decode(transactionMatch?.[1] ?? ''));
-  if (/^\d+$/.test(transactionId)) return { pathname: '/account/transaction/[id]', params: { id: transactionId } };
+  if (/^\d+$/.test(transactionId)) {
+    const kind = queryValue(query, 'kind');
+    const page = queryValue(query, 'page');
+    return {
+      pathname: '/account/transaction/[id]',
+      params: {
+        id: transactionId,
+        kind: ['deposit', 'withdrawal', 'wallet'].includes(kind)
+          ? kind as 'deposit' | 'withdrawal' | 'wallet'
+          : 'wallet',
+        page: /^\d+$/.test(page) ? page : undefined,
+      },
+    };
+  }
 
   if (pathname === '/account/transactions') {
     const tab = queryValue(query, 'tab');

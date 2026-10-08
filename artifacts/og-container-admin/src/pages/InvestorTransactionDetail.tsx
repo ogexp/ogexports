@@ -5,7 +5,7 @@ import { InvestPortalLayout } from "@/components/invest/InvestPortalLayout"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { api, unwrapList } from "@/lib/api"
+import { api } from "@/lib/api"
 import { createTransactionReceipt, downloadTransactionReceipt } from "@/lib/transaction-receipt"
 import { resolveInvestorTransactionPaymentMethod } from "@/lib/investor-transaction-method"
 
@@ -15,17 +15,13 @@ type TransactionRecord = Record<string, unknown>
 async function fetchInvestorTransactionRecord(
   kind: TransactionKind | null,
   id: string,
-  page: number,
-  perPage: number,
 ): Promise<TransactionRecord | null> {
   if (!kind || !id) return null
   if (kind === "wallet") {
-    const response = await api.get<unknown>("/api/investor/wallet/transactions", {
-      page,
-      per_page: perPage,
-    })
-    return unwrapList<TransactionRecord>(response)
-      .find(item => String(item.id ?? item.transaction_id ?? "") === id) ?? null
+    const response = await api.get<{ data?: TransactionRecord } & TransactionRecord>(
+      `/api/investor/wallet/transactions/${id}`,
+    )
+    return response?.data ?? response ?? null
   }
 
   const response = await api.get<{ data?: TransactionRecord } & TransactionRecord>(
@@ -88,18 +84,6 @@ export default function InvestorTransactionDetail() {
     ? params.type as TransactionKind
     : null
   const id = /^\d+$/.test(params.id || "") ? params.id : ""
-  const requestedPage = typeof window === "undefined"
-    ? null
-    : new URLSearchParams(window.location.search).get("page")
-  const requestedPerPage = typeof window === "undefined"
-    ? null
-    : new URLSearchParams(window.location.search).get("per_page")
-  const parsedPage = Number(requestedPage)
-  const parsedPerPage = Number(requestedPerPage)
-  const sourcePage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1
-  const sourcePerPage = Number.isInteger(parsedPerPage) && parsedPerPage > 0 && parsedPerPage <= 100
-    ? parsedPerPage
-    : 100
   const [record, setRecord] = useState<TransactionRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -121,7 +105,7 @@ export default function InvestorTransactionDetail() {
       setRecord(null)
       setError(false)
       try {
-        const response = await fetchInvestorTransactionRecord(kind, id, sourcePage, sourcePerPage)
+        const response = await fetchInvestorTransactionRecord(kind, id)
         if (!cancelled) setRecord(response)
       } catch {
         if (!cancelled) {
@@ -134,14 +118,14 @@ export default function InvestorTransactionDetail() {
     }
     void load()
     return () => { cancelled = true }
-  }, [kind, id, sourcePage, sourcePerPage])
+  }, [kind, id])
 
   useEffect(() => {
     let cancelled = false
     const refresh = () => {
       if (!kind || !id) return
       setError(false)
-      void fetchInvestorTransactionRecord(kind, id, sourcePage, sourcePerPage)
+      void fetchInvestorTransactionRecord(kind, id)
         .then(response => {
           if (!cancelled) setRecord(response)
         })
@@ -154,7 +138,7 @@ export default function InvestorTransactionDetail() {
       cancelled = true
       window.removeEventListener("og-investor-records-updated", refresh)
     }
-  }, [kind, id, sourcePage, sourcePerPage])
+  }, [kind, id])
 
   const status = text(record?.review_status ?? record?.status)
   const reference = text(record?.reference ?? record?.transaction_reference ?? record?.withdraw_id)

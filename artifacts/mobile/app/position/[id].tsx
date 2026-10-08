@@ -5,13 +5,14 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGetInvestorInvestment } from '@workspace/api-client-react';
-import { Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
+import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
 import { amount, displayCurrencyCode, first, list, messageOf, money, record, unwrap, type Json } from '@/lib/data';
 import { TradeTimeline } from '@/components/TradeTimeline';
 import { TradeProgressCard } from '@/components/TradeProgressCard';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { shareInvestorFile } from '@/lib/file-download';
+import { investmentDownloadSpec, type InvestmentDownloadKind } from '@/lib/investment-download';
 import {
   calculateExpectedProfitFromRoi,
   formatDistributionStatus,
@@ -45,6 +46,8 @@ export default function PositionDetail() {
   const colors = useColors();
   const [busyDocument, setBusyDocument] = useState('');
   const [documentErrors, setDocumentErrors] = useState<Record<string, string>>({});
+  const [busyInvestmentDownload, setBusyInvestmentDownload] = useState<InvestmentDownloadKind | ''>('');
+  const [investmentDownloadError, setInvestmentDownloadError] = useState('');
   const queryClient = useQueryClient();
   const query = useGetInvestorInvestment(id, { query: { queryKey: ['investor-position', id], enabled: Boolean(id && token) } });
   const refreshPosition = useCallback(() => {
@@ -241,10 +244,47 @@ export default function PositionDetail() {
     }
   }
 
+  async function downloadInvestmentFile(kind: InvestmentDownloadKind) {
+    setInvestmentDownloadError('');
+    setBusyInvestmentDownload(kind);
+    try {
+      if (!apiOrigin) throw new Error('Set the OG Exports investor server address in Settings before downloading.');
+      const target = investmentDownloadSpec(first(row, ['id', 'investment_id']), kind);
+      if (!target) throw new Error('The server did not provide a valid investment record ID.');
+      await shareInvestorFile(target.path, target.name, apiOrigin, target.mimeType, target.extension);
+    } catch (error) {
+      setInvestmentDownloadError(messageOf(error));
+    } finally {
+      setBusyInvestmentDownload('');
+    }
+  }
+
   return <Screen title="Investment Details" subtitle={first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(project, ['commodity_name', 'commodity', 'title', 'name'], 'Investment record'))} refreshable>
     {query.isLoading ? <LoadingCard label="Loading investment records…" /> : null}
     {query.isError ? <ErrorState message="This investment position could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
     {!query.isLoading && !query.isError ? <>
+      <Section title="Investment files" />
+      <Card style={{ gap: 10 }}>
+        <Action
+          title="Download PDF"
+          icon="download"
+          secondary
+          testID="position-download-pdf"
+          loading={busyInvestmentDownload === 'pdf'}
+          disabled={Boolean(busyInvestmentDownload && busyInvestmentDownload !== 'pdf') || !investmentDownloadSpec(first(row, ['id', 'investment_id']), 'pdf')}
+          onPress={() => void downloadInvestmentFile('pdf')}
+        />
+        <Action
+          title="Export details"
+          icon="file-text"
+          secondary
+          testID="position-export-investment"
+          loading={busyInvestmentDownload === 'export'}
+          disabled={Boolean(busyInvestmentDownload && busyInvestmentDownload !== 'export') || !investmentDownloadSpec(first(row, ['id', 'investment_id']), 'export')}
+          onPress={() => void downloadInvestmentFile('export')}
+        />
+        {investmentDownloadError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18 }}>{investmentDownloadError}</Text> : null}
+      </Card>
       <Section title="Investment Summary" />
       <Card>
         {investmentDetails.map(([label, value], index) => <View key={label} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14, paddingVertical: 11, borderBottomWidth: index < investmentDetails.length - 1 ? 1 : 0, borderBottomColor: colors.border }}>

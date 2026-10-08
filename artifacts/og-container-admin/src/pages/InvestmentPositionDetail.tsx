@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "wouter"
-import { ArrowLeft, ArrowUpRight, Download, FileText, Loader2, Package } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, Download, FileSpreadsheet, FileText, Loader2, Package } from "lucide-react"
 import { InvestPortalLayout } from "@/components/invest/InvestPortalLayout"
 import { InvestmentPositionCard, mapRowToPosition, type InvestmentPositionData } from "@/components/invest/InvestmentPositionCard"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { api, downloadAuthenticatedFile } from "@/lib/api"
-import { downloadInvestmentPdf } from "@/lib/investment-download"
+import { downloadInvestmentExport, downloadInvestmentPdf } from "@/lib/investment-download"
 import { createTransactionReceipt, downloadTransactionReceipt } from "@/lib/transaction-receipt"
 import { notify } from "@/lib/notify"
 import { formatInvestorProjectAmount } from "@/lib/invest-format"
@@ -28,6 +28,7 @@ export default function InvestmentPositionDetail() {
   const investmentId = Number(params.id)
   const [loading, setLoading] = useState(true)
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [exportLoading, setExportLoading] = useState(false)
   const [position, setPosition] = useState<InvestmentPositionData | null>(null)
   const [raw, setRaw] = useState<any>(null)
   const [refreshVersion, setRefreshVersion] = useState(0)
@@ -92,6 +93,24 @@ export default function InvestmentPositionDetail() {
     }
   }
 
+  async function handleDownloadExport() {
+    if (!position || exportLoading) return
+    setExportLoading(true)
+    try {
+      await downloadInvestmentExport(
+        position.investmentId,
+        position.investmentReference || position.projectReference,
+      )
+    } catch (error) {
+      notify.error(
+        "Export failed",
+        error instanceof Error ? error.message : "Could not export this investment.",
+      )
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
   return (
     <InvestPortalLayout
       title="Investment Details"
@@ -124,6 +143,18 @@ export default function InvestmentPositionDetail() {
                   ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
                   : <Download className="w-3.5 h-3.5 mr-1.5" />}
                 {pdfLoading ? "Preparing…" : "Download PDF"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                data-testid="investment-detail-export"
+                disabled={exportLoading}
+                onClick={() => void handleDownloadExport()}
+              >
+                {exportLoading
+                  ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                  : <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />}
+                {exportLoading ? "Preparing…" : "Export details"}
               </Button>
             </div>
           )}
