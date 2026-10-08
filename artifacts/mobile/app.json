@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "OG Exports Investor",
+    "name": "OG Exports",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -28,8 +28,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/og-logo.png",
-          "imageWidth": 150,
+          "image": "./assets/images/og-splash.png",
+          "imageWidth": 280,
           "resizeMode": "contain",
           "backgroundColor": "#F8FAF8"
         }
