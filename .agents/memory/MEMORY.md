@@ -17,6 +17,7 @@
 - [Biometric session unlock](biometric-session-unlock.md) — Face ID/fingerprint unlocks only a securely stored, account-scoped session; never store passwords or remove password fallback.
 - [First-withdrawal device security](first-withdrawal-device-security.md) — never gate a withdrawal on first-time app PIN/biometric setup; keep OTP and transaction-password verification.
 - [Admin dashboard source](admin-dashboard-source.md) — use the dashboard from the user's original frontend ZIP; do not create a replacement.
+- [Backend source archive](backend-source-archive.md) — check the supplied Laravel ZIP before asking for a backend repository; never expose its `.env`.
 - [Android file picker uploads](android-file-picker-uploads.md) — keep the Expo FileSystem `File` object for native uploads; Android cache-copy URIs can fail readability checks.
 - [Laravel test storage isolation](laravel-testing-storage-isolation.md) — avoid `Storage::fake('local')` when its shared framework test-disk directory contains tracked fixtures.
 - [OG Exports mobile motion performance](og-mobile-motion-performance.md) — keep other motion short; startup rings loop for six seconds with three dots spaced evenly around each.
