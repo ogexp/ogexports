@@ -22,6 +22,7 @@ import {
   savedUsdEquivalentForRecordedAmount,
   withdrawalPaymentMethod,
 } from '@/lib/withdrawal-history';
+import { resolveTransactionDisplayId } from '@/lib/transaction-id';
 import { createTransactionReceipt, saveTransactionReceipt, type TransactionReceipt } from '@/lib/transaction-receipt';
 import { resolveTransactionPaymentMethod } from '@/lib/transaction-payment-method';
 
@@ -32,6 +33,7 @@ type TransactionRow = {
   category: Category;
   title: string;
   transactionId: string;
+  displayTransactionId: string;
   detailKind: 'wallet' | 'deposit' | 'withdrawal' | 'investment';
   detailId: string;
   investmentId: string;
@@ -375,13 +377,21 @@ export default function Transactions() {
     const matchedMeta = record(matched?.meta);
     const key = `deposit:${id || reference || `${page}-${index}`}`;
     const title = first(deposit, ['description', 'bank_account_name'], 'Deposit');
+    const transactionId = first(matched ?? {}, ['id', 'transaction_id'], first(deposit, ['transaction_id']));
+    const displayTransactionId = resolveTransactionDisplayId(
+      transactionId,
+      first(deposit, ['id', 'deposit_id', 'depositId']),
+      reference,
+      unavailable,
+    );
     const paymentMethod = first(deposit, ['payment_method', 'method'], first(matchedMeta, ['payment_method', 'method']));
     const paymentReference = first(deposit, ['bank_reference', 'transfer_reference']);
     rows.push({
       key,
       category: 'Deposits',
       title,
-      transactionId: matched ? first(matched, ['id', 'transaction_id']) : first(deposit, ['transaction_id']),
+      transactionId,
+      displayTransactionId,
       detailKind: 'deposit',
       detailId: id || first(deposit, ['deposit_id', 'depositId']),
       investmentId: '',
@@ -476,6 +486,13 @@ export default function Transactions() {
       ?? readAmount(matchedMeta, ['total_debit_usd']);
     const key = `withdrawal:${id || reference || `${page}-${index}`}`;
     const title = first(withdrawal, ['description'], 'Withdrawal');
+    const transactionId = first(matched ?? {}, ['id', 'transaction_id'], first(withdrawal, ['transaction_id']));
+    const displayTransactionId = resolveTransactionDisplayId(
+      transactionId,
+      first(withdrawal, ['id', 'withdrawal_id', 'withdraw_id']),
+      reference,
+      unavailable,
+    );
     const paymentMethod = resolveTransactionPaymentMethod(
       [withdrawal, bankDetails, matchedMeta, matched ?? {}],
       true,
@@ -484,7 +501,8 @@ export default function Transactions() {
       key,
       category: 'Withdrawals',
       title,
-      transactionId: matched ? first(matched, ['id', 'transaction_id']) : first(withdrawal, ['transaction_id']),
+      transactionId,
+      displayTransactionId,
       detailKind: 'withdrawal',
       detailId: id || first(withdrawal, ['withdrawal_id', 'withdraw_id']),
       investmentId: '',
@@ -520,11 +538,14 @@ export default function Transactions() {
     const title = first(project, ['title', 'name'], first(investment, ['project_title'], 'Investment'));
     const paymentMethod = first(investment, ['payment_method', 'payment_source'], first(matched ?? {}, ['payment_method', 'method'], first(meta, ['payment_method', 'method'])));
     const key = `investment:${id || reference || `${page}-${index}`}`;
+    const transactionId = first(matched ?? {}, ['id', 'transaction_id'], first(investment, ['transaction_id']));
+    const displayTransactionId = resolveTransactionDisplayId(transactionId, id, reference, unavailable);
     rows.push({
       key,
       category: 'Investments',
       title,
-      transactionId: matched ? first(matched, ['id', 'transaction_id']) : first(investment, ['transaction_id']),
+      transactionId,
+      displayTransactionId,
       detailKind: 'investment',
       detailId: id,
       investmentId: id,
@@ -542,7 +563,9 @@ export default function Transactions() {
   });
 
   walletTransactions.forEach((transaction, index) => {
-    const id = first(transaction, ['id', 'transaction_id']);
+    const id = first(transaction, ['id', 'transaction_id', 'wallet_transaction_id']);
+    const reference = first(transaction, ['reference', 'transaction_reference']);
+    const displayTransactionId = resolveTransactionDisplayId(id, '', reference, unavailable);
     const walletKey = id || first(transaction, ['reference']);
     if (walletKey && usedWalletTransactions.has(walletKey)) return;
     const category = categoryForWalletTransaction(transaction);
@@ -563,6 +586,7 @@ export default function Transactions() {
       category,
       title,
       transactionId: id,
+      displayTransactionId,
       detailKind: 'wallet',
       detailId: id,
       investmentId,
@@ -572,7 +596,7 @@ export default function Transactions() {
       occurredAt: first(transaction, ['created_at', 'date']),
       status: first(transaction, ['status', 'state']),
       paymentMethod,
-      reference: first(transaction, ['reference', 'transaction_reference']),
+      reference,
       paymentReference: '',
       receipt: createTransactionReceipt(
         category === 'Deposits' ? 'deposit'
@@ -601,7 +625,7 @@ export default function Transactions() {
       : transactionStatus;
   const filteredRows = rows.filter(row => {
     const matchesFilter = filter === 'All' || row.category === filter;
-    const matchesSearch = !query || `${row.searchText} ${row.transactionId} ${row.investmentId} ${row.tradeId} ${row.reference} ${row.paymentReference} ${row.status} ${formatDateTime(row.occurredAt)} ${row.category}`.toLowerCase().includes(query);
+    const matchesSearch = !query || `${row.searchText} ${row.transactionId} ${row.displayTransactionId} ${row.investmentId} ${row.tradeId} ${row.reference} ${row.paymentReference} ${row.status} ${formatDateTime(row.occurredAt)} ${row.category}`.toLowerCase().includes(query);
     const matchesStatus = matchesHistoryStatus(row.status, activeStatusFilter);
     const matchesDate = filter !== 'Distributions'
       || matchesHistoryDateRange(row.occurredAt, historyDateFrom, historyDateTo);
@@ -956,7 +980,7 @@ export default function Transactions() {
             <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700', textAlign: 'right', maxWidth: '42%' }}>{amountLabel}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 10 }}>
-            <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 11, flex: 1 }}>{row.reference || unavailable}</Text>
+            <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 11, flex: 1 }}>ID: {row.displayTransactionId}</Text>
             <Status value={row.status || unavailable} />
           </View>
           {row.withdrawalBreakdown ? <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: 10, paddingTop: 2 }}>
@@ -966,7 +990,7 @@ export default function Transactions() {
             <DetailLine label="Currency" value={row.withdrawalBreakdown.currency} />
           </View> : null}
           {active ? <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: 12, paddingTop: 4 }}>
-            <DetailLine label="Transaction ID" value={row.transactionId} />
+            <DetailLine label="Transaction ID" value={row.displayTransactionId} />
             {row.category === 'Investments' || row.category === 'Distributions' || row.investmentId
               ? <DetailLine label="Investment ID" value={row.investmentId} />
               : null}

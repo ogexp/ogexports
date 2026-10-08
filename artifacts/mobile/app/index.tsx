@@ -23,8 +23,8 @@ export default function Entry() {
   const haloReveal = useRef(new Animated.Value(0)).current;
   const wordmarkReveal = useRef(new Animated.Value(0)).current;
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
-  const screenOpacity = useRef(new Animated.Value(1)).current;
   const progressOffset = useRef(new Animated.Value(0)).current;
+  const introStartedAt = useRef(Date.now());
   const [introDurationElapsed, setIntroDurationElapsed] = useState(false);
 
   useEffect(() => {
@@ -138,10 +138,18 @@ export default function Entry() {
       setIntroDurationElapsed(true);
       return;
     }
+    const remainingDuration = Math.max(
+      0,
+      INTRO_MIN_DURATION - (Date.now() - introStartedAt.current),
+    );
+    if (remainingDuration === 0) {
+      setIntroDurationElapsed(true);
+      return;
+    }
     setIntroDurationElapsed(false);
-    const timer = setTimeout(() => setIntroDurationElapsed(true), INTRO_MIN_DURATION);
+    const timer = setTimeout(() => setIntroDurationElapsed(true), remainingDuration);
     return () => clearTimeout(timer);
-  }, [motionSettingsReady, reduceMotion]);
+  }, [introStartedAt, motionSettingsReady, reduceMotion]);
 
   useEffect(() => {
     if (!ready || !motionSettingsReady) return;
@@ -149,26 +157,11 @@ export default function Entry() {
     const destination = token
       ? appUnlocked ? '/(tabs)' : '/lock'
       : onboardingComplete ? '/(auth)/login' : '/onboarding';
-    if (reduceMotion) {
-      router.replace(destination);
-      return;
-    }
-    const fadeOut = Animated.timing(screenOpacity, {
-      toValue: 0,
-      duration: 100,
-      easing: Easing.in(Easing.quad),
-      useNativeDriver,
-    });
-    fadeOut.start(({ finished }) => {
-      if (finished) router.replace(destination);
-    });
-    return () => {
-      fadeOut.stop();
-    };
-  }, [ready, motionSettingsReady, introDurationElapsed, token, onboardingComplete, appUnlocked, reduceMotion, screenOpacity, useNativeDriver]);
+    router.replace(destination);
+  }, [ready, motionSettingsReady, introDurationElapsed, token, onboardingComplete, appUnlocked, reduceMotion]);
 
   const playIntroMotion = motionSettingsReady && !reduceMotion;
-  const showStaticIntro = motionSettingsReady && reduceMotion;
+  const showStaticIntro = !motionSettingsReady || reduceMotion;
   const logoScale = logoReveal.interpolate({ inputRange: [0, 1], outputRange: [0.76, 1] });
   const logoLift = logoReveal.interpolate({ inputRange: [0, 1], outputRange: [14, 0] });
   const logoTilt = logoReveal.interpolate({ inputRange: [0, 1], outputRange: ['-13deg', '0deg'] });
@@ -185,7 +178,7 @@ export default function Entry() {
   const subtitleLift = subtitleOpacity.interpolate({ inputRange: [0, 1], outputRange: [5, 0] });
 
   return (
-    <Animated.View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 28, opacity: screenOpacity }}>
+    <Animated.View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 28 }}>
       <View style={{ alignItems: 'center' }}>
         <View style={{ width: 220, height: 186, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
           <Animated.View

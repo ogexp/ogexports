@@ -162,7 +162,7 @@ function RootLayoutNav() {
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="lock" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="project/[id]" options={{ title: t('Opportunity') }} />
         <Stack.Screen name="position/[id]" options={{ title: t('Investment') }} />
         <Stack.Screen name="tracking/[id]" options={{ title: t('Container tracking') }} />
