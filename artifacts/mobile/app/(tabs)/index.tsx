@@ -17,7 +17,7 @@ import {
 import { Card, EmptyState, ErrorState, LoadingCard, Status } from '@/components/InvestorUI';
 import { AllocationDonut, type AllocationSlice } from '@/components/AllocationDonut';
 import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap } from '@/lib/data';
-import { mergeDepositRequests } from '@/lib/deposit-activity';
+import { mergeDepositRequests, resolveActivityTransactionTarget } from '@/lib/deposit-activity';
 import { latestRecords } from '@/lib/latest-records';
 import { isInvestorNotificationUnread } from '@/lib/notification-utils';
 import { useAuth } from '@/context/AuthContext';
@@ -528,28 +528,22 @@ export default function InvestorHome() {
         const transactionId = first(item, ['id', 'transaction_id', 'reference']);
          const isDepositRequest = item.activity_source === 'deposit_request';
          const depositId = first(item, ['id', 'deposit_id', 'depositId', 'reference', 'deposit_reference']);
-        const explicitDepositId = first(item, ['deposit_id', 'depositId'], isDepositRequest ? first(item, ['id']) : '');
-        const withdrawalId = first(item, ['withdrawal_id', 'withdraw_id']);
         const investmentId = first(item, ['investment_id', 'investmentId']);
-        const walletTransactionId = first(item, ['transaction_id', 'id']);
+        const detailTarget = resolveActivityTransactionTarget(item);
          const searchValue = isDepositRequest
            ? first(item, ['reference', 'deposit_reference', 'bank_reference', 'transfer_reference', 'id'], kind)
            : transactionId || kind;
         return <MotionReveal key={transactionId || `${group.label}-${index}`} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}><Pressable accessibilityRole="button" accessibilityLabel={`Open ${kind} details`} onPress={() => {
-          if ((isDepositRequest || kind.toLowerCase().includes('deposit')) && /^\d+$/.test(explicitDepositId || depositId)) {
-            router.push({ pathname: '/account/transaction/[id]', params: { id: explicitDepositId || depositId, kind: 'deposit' } });
-            return;
-          }
-          if (kind.toLowerCase().includes('withdraw') && /^\d+$/.test(withdrawalId)) {
-            router.push({ pathname: '/account/transaction/[id]', params: { id: withdrawalId, kind: 'withdrawal' } });
+          if (detailTarget && detailTarget.kind !== 'wallet') {
+            router.push({ pathname: '/account/transaction/[id]', params: { id: detailTarget.id, kind: detailTarget.kind } });
             return;
           }
           if (kind.toLowerCase().includes('investment') && investmentId) {
             router.push({ pathname: '/position/[id]', params: { id: investmentId } });
             return;
           }
-          if (/^\d+$/.test(walletTransactionId)) {
-            router.push({ pathname: '/account/transaction/[id]', params: { id: walletTransactionId, kind: 'wallet' } });
+          if (detailTarget) {
+            router.push({ pathname: '/account/transaction/[id]', params: { id: detailTarget.id, kind: 'wallet' } });
             return;
           }
           router.push({

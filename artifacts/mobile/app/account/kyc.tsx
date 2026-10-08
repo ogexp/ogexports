@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Linking, Platform, Pressable, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
-import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile } from 'expo-file-system';
 import { Feather } from '@expo/vector-icons';
@@ -14,12 +13,40 @@ import { uploadInvestorFile } from '@/lib/file-upload';
 import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
-import { getInvestorKycStatus, investorKycProgressStep } from '@/lib/kyc';
+import { getInvestorKycStatus } from '@/lib/kyc';
+import { getInvestorKycFlowState } from '@/lib/kyc-flow-state';
 import { MotionProgress, motionHaptic } from '@/lib/motion';
+
+const FALLBACK_KYC_STEPS: Record<string, unknown>[] = [
+  {
+    key: 'passport_id',
+    doc_type: 'passport_id',
+    label: 'Passport / National ID',
+    desc: 'Government-issued ID (CNIC, Passport, or National ID)',
+    status: 'pending',
+    document: null,
+  },
+  {
+    key: 'proof_of_address',
+    doc_type: 'proof_of_address',
+    label: 'Proof of Address',
+    desc: 'Utility bill, bank statement, or official letter (last 3 months)',
+    status: 'pending',
+    document: null,
+  },
+  {
+    key: 'tax_certificate',
+    doc_type: 'tax_certificate',
+    label: 'Tax Certificate / NTN',
+    desc: 'Tax certificate, NTN, or equivalent tax registration',
+    status: 'pending',
+    document: null,
+  },
+];
 
 const documentLabels: Record<string, string> = {
   passport: 'Passport',
-  passport_id: 'Passport / national ID',
+  passport_id: 'Passport / National ID',
   national_id: 'National ID',
   national_id_card: 'National ID',
   cnic: 'National ID',
@@ -28,7 +55,7 @@ const documentLabels: Record<string, string> = {
   other_document: 'Other supported document',
   proof_of_address: 'Proof of address',
   bank_statement: 'Bank statement',
-  tax_certificate: 'Tax certificate',
+  tax_certificate: 'Tax Certificate / NTN',
 };
 
 export default function Kyc() {
@@ -40,23 +67,24 @@ export default function Kyc() {
   const submitKyc = useSubmitInvestorKyc();
   const profile = unwrap(query.data);
   const kyc = record(profile.kyc);
-  const steps = list(kyc.steps);
+  const serverSteps = list(kyc.steps);
+  const steps = serverSteps.length ? serverSteps : FALLBACK_KYC_STEPS;
   const personal = record(profile.personal);
   const address = record(profile.address);
   const flatStreetAddress = typeof profile.address === 'string' ? profile.address : first(profile, ['street']);
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const hasInitializedStep = useRef(false);
   const [selectedType, setSelectedType] = useState('passport_id');
-  const isAddressDocument = (item: Record<string, unknown>) => /address|utility|bank.?statement|government.?document/i.test(first(item, ['doc_type', 'key', 'label']));
-  const identitySteps = steps.filter(item => !isAddressDocument(item));
-  const addressSteps = steps.filter(isAddressDocument);
-  const currentDocumentSteps = step === 3 ? addressSteps : identitySteps;
+  const isSupportingDocument = (item: Record<string, unknown>) => /address|utility|bank.?statement|government.?document|tax|certificate|ntn/i.test(first(item, ['doc_type', 'key', 'label']));
+  const identitySteps = steps.filter(item => !isSupportingDocument(item));
+  const supportingSteps = steps.filter(isSupportingDocument);
+  const currentDocumentSteps = step === 3 ? supportingSteps : identitySteps;
   const selectedDocumentType = currentDocumentSteps.some(item => first(item, ['doc_type', 'key']) === selectedType)
     ? selectedType
     : first(record(currentDocumentSteps[0]), ['doc_type', 'key'], 'passport_id');
   const status = query.isLoading ? 'Loading' : getInvestorKycStatus(profile);
   const isVerified = status === 'Verified';
   const isUnderReview = status === 'Under Review';
-  const isReadOnly = isVerified || isUnderReview;
   const requiresUpdate = status === 'Action Required' || status === 'Rejected';
   const savedPersonalDetails = Boolean(
     (first(personal, ['name', 'full_name']) || first(profile, ['name', 'full_name']))
@@ -68,28 +96,28 @@ export default function Kyc() {
   );
   const identityDocumentsComplete = steps.length > 0
     && identitySteps.every(item => Boolean(first(record(item.document), ['path'])));
-  const progressStep = isVerified
-    ? 4
-    : isUnderReview || requiresUpdate
-      ? 3
-      : identityDocumentsComplete
-        ? 3
-        : savedPersonalDetails
-          ? 2
-          : investorKycProgressStep(status);
+  const allRequiredDocumentsUploaded = steps.length > 0
+    && steps.every(item => Boolean(first(record(item.document), ['path'])));
+  const { isReadOnly, progressStep, resumeStep } = getInvestorKycFlowState(
+    status,
+    savedPersonalDetails,
+    identityDocumentsComplete,
+  );
   const loginEmail = first(record(user), ['email'], first(personal, ['email']));
   const statusNote = first(kyc, ['action_required_reason', 'rejection_reason', 'review_note', 'message']);
   const identityCheckStatus = first(record(kyc.identity_check ?? kyc.identity_verification ?? profile.identity_check ?? profile.identity_verification), ['verification_status', 'status'], first(kyc, ['identity_check_status', 'identity_verification_status'], first(profile, ['identity_check_status', 'identity_verification_status'])));
   const livenessStatus = first(kyc, ['selfie_status', 'liveness_status'], first(profile, ['selfie_verification_status', 'liveness_status']));
   const bankVerification = record(kyc.bank_account_verification ?? profile.bank_account_verification);
   const bankVerificationStatus = first(bankVerification, ['verification_status', 'status'], first(kyc, ['bank_verification_status'], first(profile, ['bank_account_verification_status'])));
-  const addressVerificationStatus = addressSteps.length
-    ? addressSteps.map(item => first(record(item.document), ['review_status', 'status'], first(item, ['status'], first(record(item.document), ['original_name']) ? 'Uploaded' : 'Not uploaded'))).join(' · ')
+  const addressVerificationStatus = supportingSteps.length
+    ? supportingSteps.map(item => first(record(item.document), ['review_status', 'status'], first(item, ['status'], first(record(item.document), ['original_name']) ? 'Uploaded' : 'Not uploaded'))).join(' · ')
     : '—';
   const statusMessage = isVerified
     ? 'OG Exports has confirmed your identity verification. Investment eligibility is checked by the server.'
     : isUnderReview
-      ? 'Your documents were submitted. OG Exports controls the review and will update this status.'
+      ? allRequiredDocumentsUploaded
+        ? 'Your documents were submitted. OG Exports controls the review and will update this status.'
+        : 'The server currently reports your application as under review. Upload any remaining required documents; only OG Exports can change your verification status.'
       : requiresUpdate
         ? statusNote || (status === 'Rejected' ? 'OG Exports did not approve this application. Review your details and documents before submitting again.' : 'OG Exports requested additional information. Review your details and documents before resubmitting.')
         : 'Complete the requested information and documents. Your status changes only when confirmed by OG Exports.';
@@ -119,6 +147,10 @@ export default function Kyc() {
     setStreetAddress(first(address, ['address', 'street'], flatStreetAddress));
     setProvince(first(address, ['province', 'state'], first(profile, ['province', 'state'])));
     setPostalCode(first(address, ['postal_code', 'zip'], first(profile, ['postal_code', 'zip'])));
+    if (!hasInitializedStep.current) {
+      hasInitializedStep.current = true;
+      setStep(resumeStep);
+    }
   }, [query.data]);
 
   async function savePersonalDetails() {
@@ -254,6 +286,15 @@ export default function Kyc() {
     }
   }
 
+  async function contactCompliance() {
+    setError('');
+    try {
+      await Linking.openURL('mailto:info@ogexports.co?subject=Investor%20KYC%20Verification');
+    } catch {
+      setError('Unable to open your email app.');
+    }
+  }
+
   function renderDocumentGroup(requirements: Record<string, unknown>[], title: string, nextTitle: string, nextStep: 2 | 3 | null, includeIdNumber = false) {
     return <>
       <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginVertical: 8 }}>{title}</Text>
@@ -269,14 +310,13 @@ export default function Kyc() {
               <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(item, ['label'], documentLabels[type] ?? 'Verification document')}</Text><Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4, lineHeight: 18 }}>{first(item, ['desc'], 'Upload a clear copy of this document.')}</Text></View>
               <Status value={status} />
             </View>
-            {first(document, ['original_name']) ? <Text numberOfLines={1} style={{ color: colors.primary, fontSize: 12, marginTop: 10 }}>On file: {first(document, ['original_name'])}</Text> : null}
           </Card>
         </Pressable>;
       })}
       {!query.isLoading && requirements.length === 0 ? <Card><Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>No {title.toLowerCase()} requirements are available from OG Exports right now.</Text></Card> : null}
       <Card>
         <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginBottom: 6 }}>Upload a document</Text>
-        <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginBottom: 12 }}>{requirements.length ? `Selected: ${documentLabels[selectedDocumentType] ?? selectedDocumentType}. PDF and image files up to 10 MB are supported.` : 'Documents can be uploaded when OG Exports provides a requirement.'}</Text>
+        <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginBottom: 12 }}>{requirements.length ? `Selected: ${first(record(currentDocumentSteps.find(item => first(item, ['doc_type', 'key']) === selectedDocumentType)), ['label'], documentLabels[selectedDocumentType] ?? selectedDocumentType)}. PDF and image files up to 10 MB are supported.` : 'Documents can be uploaded when OG Exports provides a requirement.'}</Text>
         <Action title="Choose file and upload" icon="upload" loading={upload.isPending || documentPicking} disabled={!requirements.length} onPress={() => void pickAndUpload()} />
       </Card>
       {nextStep ? <View style={{ marginBottom: 12 }}><Action title={nextTitle} icon="arrow-right" secondary onPress={() => {
@@ -291,10 +331,35 @@ export default function Kyc() {
     </>;
   }
 
+  function renderUploadedDocuments() {
+    const uploadedDocuments = steps.filter(item => Boolean(first(record(item.document), ['path'])));
+    return <Card>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+        <Feather name="file-text" size={17} color={colors.primary} />
+        <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>Uploaded documents</Text>
+      </View>
+      {uploadedDocuments.length === 0
+        ? <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>No documents uploaded yet. Upload the listed requirements to continue.</Text>
+        : uploadedDocuments.map((item, index) => {
+          const type = first(item, ['doc_type', 'key'], `document-${index}`);
+          const document = record(item.document);
+          return <View key={type} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
+            <Feather name="file" size={16} color={colors.mutedForeground} />
+            <View style={{ flex: 1 }}>
+              <Text numberOfLines={1} style={{ color: colors.foreground, fontWeight: '600' }}>{first(document, ['original_name'], first(item, ['label'], documentLabels[type] ?? type))}</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 3 }}>{first(item, ['label'], documentLabels[type] ?? type)}</Text>
+            </View>
+            <Status value={first(item, ['status'], 'Uploaded')} />
+          </View>;
+        })}
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 10 }}>Uploaded files are attached to the investor application. Their verification status is controlled by OG Exports.</Text>
+    </Card>;
+  }
+
   function renderVerificationChecks() {
     const checks = [
       ['Identity document review', identityCheckStatus || 'Not available from OG Exports'],
-      ['Address document review', addressVerificationStatus],
+      ['Supporting document review', addressVerificationStatus],
       ['Selfie / liveness check', livenessStatus || 'Not available from OG Exports'],
       ['Bank-account verification', bankVerificationStatus || 'Not available from OG Exports'],
     ];
@@ -339,14 +404,6 @@ export default function Kyc() {
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5 }}>{statusMessage}</Text>
       </View>
       <Status value={status} />
-    </Card>
-
-    <Card>
-      <Text style={{ color: colors.foreground, fontWeight: '700' }}>Face ID & app sign-in</Text>
-      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 6, marginBottom: 11 }}>
-        Face ID, fingerprint, and app PIN are managed separately from identity verification.
-      </Text>
-      <Action title="Open Security & devices" icon="lock" secondary onPress={() => router.push('/account/security')} />
     </Card>
 
     <Card>
@@ -419,7 +476,7 @@ export default function Kyc() {
 
       {step === 3 ? <>
         <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginVertical: 8 }}>Step 3 · Address and verification review</Text>
-        {renderDocumentGroup(addressSteps, 'Address verification documents', '', null)}
+        {renderDocumentGroup(supportingSteps, 'Address and supporting documents', '', null)}
         {renderVerificationChecks()}
         {renderApplicationSummary('Review your information')}
         <Card>
@@ -429,5 +486,16 @@ export default function Kyc() {
         </Card>
       </> : null}
     </> : null}
+    {!query.isLoading && !query.isError ? renderUploadedDocuments() : null}
+    {!query.isLoading && !query.isError ? <Card>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 6 }}>
+        <Feather name="help-circle" size={17} color={colors.primary} />
+        <Text style={{ color: colors.foreground, fontWeight: '700' }}>Need help?</Text>
+      </View>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 11 }}>
+        Our compliance team can assist with your KYC verification.
+      </Text>
+      <Action title="Contact compliance" icon="mail" secondary onPress={() => void contactCompliance()} />
+    </Card> : null}
   </Screen>;
 }

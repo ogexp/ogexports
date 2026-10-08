@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeDepositRequests } from './deposit-activity.ts';
+import { mergeDepositRequests, resolveActivityTransactionTarget } from './deposit-activity.ts';
 
 test('adds pending deposit requests as recent deposit activity with their review status', () => {
   const merged = mergeDepositRequests([], [{
@@ -38,4 +38,33 @@ test('does not duplicate repeated deposit requests in the deposits response', ()
   const merged = mergeDepositRequests([], [repeatedDeposit, { ...repeatedDeposit }]);
 
   assert.equal(merged.length, 1);
+});
+
+test('routes a wallet ledger deposit by its wallet transaction ID', () => {
+  assert.deepEqual(
+    resolveActivityTransactionTarget({ id: 81000001, type: 'deposit' }),
+    { id: '81000001', kind: 'wallet' },
+  );
+});
+
+test('routes a tagged deposit request by its deposit record ID', () => {
+  assert.deepEqual(
+    resolveActivityTransactionTarget({ id: 81000002, type: 'deposit', activity_source: 'deposit_request' }),
+    { id: '81000002', kind: 'deposit' },
+  );
+});
+
+test('uses explicit related financial IDs and never treats a reference as a record ID', () => {
+  assert.deepEqual(
+    resolveActivityTransactionTarget({
+      id: 81000003,
+      type: 'wallet_credit',
+      meta: { deposit_id: 81000004 },
+    }),
+    { id: '81000004', kind: 'deposit' },
+  );
+  assert.equal(
+    resolveActivityTransactionTarget({ type: 'deposit', reference: '20261008' }),
+    null,
+  );
 });

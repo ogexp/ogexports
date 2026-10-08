@@ -47,10 +47,3 @@ export function getInvestorKycStatus(profileValue: unknown): InvestorKycStatus {
 export function isInvestorKycVerified(profile: unknown): boolean {
   return getInvestorKycStatus(profile) === 'Verified';
 }
-
-export function investorKycProgressStep(status: InvestorKycStatus): 1 | 2 | 3 | 4 {
-  if (status === 'Verified') return 4;
-  if (status === 'Under Review' || status === 'Action Required' || status === 'Rejected') return 3;
-  if (status === 'In Progress') return 2;
-  return 1;
-}

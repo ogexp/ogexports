@@ -30,6 +30,39 @@ function asRecord(value: unknown): ActivityRecord {
     : {};
 }
 
+export type ActivityTransactionTarget = {
+  id: string;
+  kind: 'deposit' | 'withdrawal' | 'wallet';
+};
+
+function validFinancialId(value: unknown): string {
+  const id = valueText(value);
+  return /^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id)) ? id : '';
+}
+
+export function resolveActivityTransactionTarget(item: ActivityRecord): ActivityTransactionTarget | null {
+  const meta = asRecord(item.meta ?? item.metadata);
+  const activitySource = firstText(item, ['activity_source']).toLowerCase();
+  const explicitDepositId = firstText(item, depositIdFields) || firstText(meta, depositIdFields);
+
+  if (activitySource === 'deposit_request') {
+    const id = validFinancialId(explicitDepositId) || validFinancialId(item.id);
+    return id ? { id, kind: 'deposit' } : null;
+  }
+  if (validFinancialId(explicitDepositId)) {
+    return { id: validFinancialId(explicitDepositId), kind: 'deposit' };
+  }
+
+  const withdrawalIdFields = ['withdrawal_id', 'withdrawalId', 'withdraw_id', 'withdrawId'];
+  const explicitWithdrawalId = firstText(item, withdrawalIdFields) || firstText(meta, withdrawalIdFields);
+  const withdrawalId = validFinancialId(explicitWithdrawalId)
+    || (activitySource === 'withdrawal_request' ? validFinancialId(item.id) : '');
+  if (withdrawalId) return { id: withdrawalId, kind: 'withdrawal' };
+
+  const walletId = validFinancialId(firstText(item, ['transaction_id', 'wallet_transaction_id', 'id']));
+  return walletId ? { id: walletId, kind: 'wallet' } : null;
+}
+
 function tokens(item: ActivityRecord, fields: string[]): string[] {
   const meta = asRecord(item.meta ?? item.metadata);
   return [...fields.map(field => valueText(item[field])), ...fields.map(field => valueText(meta[field]))]
