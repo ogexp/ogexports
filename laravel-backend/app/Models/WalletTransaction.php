@@ -25,6 +25,21 @@ class WalletTransaction extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::creating(function (self $transaction): void {
+            $meta = is_array($transaction->meta) ? $transaction->meta : [];
+            if (! isset($meta['currency']) && $transaction->wallet_id) {
+                $meta['currency'] = strtoupper((string) (
+                    $meta['wallet_currency']
+                    ?? Wallet::query()->whereKey($transaction->wallet_id)->value('currency')
+                    ?? 'USD'
+                ));
+                $transaction->meta = $meta;
+            }
+        });
+    }
+
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
