@@ -5,9 +5,8 @@ import { Link } from "wouter";
 import { InvestmentModuleOptional } from "@/components/auth/InvestmentModuleGate";
 
 const VIDEOS = [
-  "/videos/hero.mp4",
-  "/videos/global-trade-hero.mp4",
-  "/videos/investment-hero.mp4"
+  `${import.meta.env.BASE_URL}videos/global-trade-hero.mp4`,
+  `${import.meta.env.BASE_URL}videos/investment-hero.mp4`
 ];
 
 export function Hero() {

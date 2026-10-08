@@ -6,8 +6,8 @@ interface AuthSplitLayoutProps {
 }
 
 const VIDEOS = [
-  "/videos/global-trade-hero.mp4",
-  "/videos/investment-hero.mp4",
+  `${import.meta.env.BASE_URL}videos/global-trade-hero.mp4`,
+  `${import.meta.env.BASE_URL}videos/investment-hero.mp4`,
 ]
 
 export function AuthSplitLayout({ children }: AuthSplitLayoutProps) {

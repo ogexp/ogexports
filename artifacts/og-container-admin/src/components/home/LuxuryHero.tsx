@@ -6,8 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getSiteSettings } from "@/lib/cms-data";
 
 const VIDEOS = [
-  "/videos/global-trade-hero.mp4",
-  "/videos/investment-hero.mp4"
+  `${import.meta.env.BASE_URL}videos/global-trade-hero.mp4`,
+  `${import.meta.env.BASE_URL}videos/investment-hero.mp4`
 ];
 
 const TICKER_ITEMS = [
