@@ -25,11 +25,11 @@ Keep the full mobile country directory rather than narrowing it to the sibling w
 
 **How to apply:** when labels are standardized to match the website, keep previous official names and abbreviations searchable so stored values still display as selected.
 
-Use USD as the default display currency across the investor app. Let users choose USD, PKR, EUR, or GBP in account settings; do not show a second local-currency equivalent beneath Home's balance.
+New investor registrations default to USD for both Profile currency and the actual wallet. Profile currency controls the wallet and every monetary display across the investor app, including investment screens; there is no fixed-USD investment exception.
 
-**Why:** The user chose Profile currency for ordinary monetary displays, USD for investment displays, and wallet-currency units for deposit and withdrawal inputs and requests.
+**Why:** The user clarified that Profile currency must govern the wallet and all displays end-to-end, and new investors should start in USD.
 
-**How to apply:** Format ordinary wallet, account, and transaction amounts in Profile's selected currency using authenticated OG Exports rates. Pin investment options and investment-related displays—including Home investment cards, portfolio, positions, analytics, and details—to USD. Convert only for presentation; if a rate is unavailable, show the source amount with an explicit unavailable indication. Keep deposit and withdrawal input units and API request values in the stored wallet currency; never change wallet or ledger values. Preserve Home's privacy toggle and do not add a second currency below its balance.
+**How to apply:** Persist Profile currency through the authoritative Laravel API and keep the actual wallet denomination, balances, deposit/withdrawal units, and requests synchronized with it. When an existing wallet changes denomination, convert server-side at a recorded rate, preserve historical transaction currencies, and refuse the switch if outstanding financial operations make conversion unsafe. Keep every monetary display—including investment opportunities, positions, portfolio, analytics, and receipts—in the selected currency; never silently relabel an unconverted amount. Preserve Home's privacy toggle and do not add a second currency below its balance.
 
 **Why:** the user asked to match a specific Home-screen reference, including its green hero and five-item bottom navigation. The OG artwork remains the official logo; the new bank glyph is a screen-specific account icon. On 2026-10-06, the user said iOS pages still had too much top gap and twice reported that the Android tab bar remained too high. A later phone screenshot showed a large negative Android offset gets clipped by the system-navigation region; the user chose to stay on Expo Go rather than install a rebuilt app.
 
