@@ -2,10 +2,10 @@
   <rect width="900" height="1956" fill="#F8FAF8"/>
   <circle cx="-30" cy="950" r="278" fill="#F3F7F4" stroke="#E4ECE6" stroke-width="3"/>
   <circle cx="930" cy="1190" r="322" fill="#F3F7F4" stroke="#E4ECE6" stroke-width="3"/>
-  <image href="./og-logo.png" x="180" y="825" width="540" height="258" preserveAspectRatio="xMidYMid meet"/>
+  <image href="./og-logo.png" x="240" y="855" width="420" height="201" preserveAspectRatio="xMidYMid meet"/>
   <text
     x="450"
-    y="1175"
+    y="1148"
     text-anchor="middle"
     fill="#204D3B"
     font-family="Inter, Arial, sans-serif"
