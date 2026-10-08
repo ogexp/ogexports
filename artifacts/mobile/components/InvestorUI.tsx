@@ -146,8 +146,8 @@ export function Action({ title, onPress, icon, secondary = false, destructive = 
   );
 }
 
-export function Field({ label, value, onChangeText, placeholder, secureTextEntry, keyboardType, autoCapitalize = 'sentences', multiline, autoFocus, maxLength }: {
-  label: string; value: string; onChangeText: (value: string) => void; placeholder?: string; secureTextEntry?: boolean; keyboardType?: 'default' | 'email-address' | 'numeric' | 'decimal-pad' | 'phone-pad'; autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters'; multiline?: boolean; autoFocus?: boolean; maxLength?: number;
+export function Field({ label, value, onChangeText, placeholder, secureTextEntry, keyboardType, autoCapitalize = 'sentences', multiline, autoFocus, maxLength, editable = true }: {
+  label: string; value: string; onChangeText: (value: string) => void; placeholder?: string; secureTextEntry?: boolean; keyboardType?: 'default' | 'email-address' | 'numeric' | 'decimal-pad' | 'phone-pad'; autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters'; multiline?: boolean; autoFocus?: boolean; maxLength?: number; editable?: boolean;
 }) {
   const colors = useColors();
   const [focused, setFocused] = React.useState(false);
@@ -171,6 +171,7 @@ export function Field({ label, value, onChangeText, placeholder, secureTextEntry
       <Text style={[s.label, { color: colors.foreground }]}>{label}</Text>
       <View>
         <TextInput accessibilityLabel={label} value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.mutedForeground}
+          editable={editable}
           autoFocus={autoFocus} maxLength={maxLength}
           secureTextEntry={secureTextEntry} keyboardType={keyboardType} autoCapitalize={autoCapitalize} multiline={multiline}
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
@@ -181,6 +182,7 @@ export function Field({ label, value, onChangeText, placeholder, secureTextEntry
             borderWidth: 1,
             color: colors.foreground,
             outlineWidth: 0,
+            opacity: editable ? 1 : 0.65,
           }, multiline ? { minHeight: 92, textAlignVertical: 'top' } : null]} />
         <Animated.View pointerEvents="none" style={{
           position: 'absolute',

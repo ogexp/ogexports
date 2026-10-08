@@ -95,4 +95,4 @@ Profile currency is the single currency control for the investor wallet. If an e
 
 **Why:** The user asked to remove the Settings shortcut and have wallet currency follow Profile currency, including existing mismatches.
 
-**How to apply:** Keep mismatch notices informational, omit currency-pair arrows, and block unsafe deposit/withdrawal submissions until server-reported currencies match. Do not add a separate wallet-currency setting or ask investors to navigate to Settings from those notices.
+**How to apply:** Keep mismatch notices informational, omit currency-pair arrows, and block unsafe deposit/withdrawal submissions until server-reported currencies match. Keep amount fields visible during a mismatch; disable editing only while the authoritative currency is loading or being converted. Do not add a separate wallet-currency setting or ask investors to navigate to Settings from those notices.

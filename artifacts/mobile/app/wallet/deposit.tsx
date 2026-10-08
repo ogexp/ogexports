@@ -148,7 +148,6 @@ export default function Deposit() {
   const profileWalletCurrency = first(record(profile.user), ['walletCurrency', 'wallet_currency']).toUpperCase();
   const profileCurrency = appPreferences.preferences.currency.toUpperCase();
   const currencyCheckLoading = appPreferences.isLoading
-    || appPreferences.isSaving
     || dashboardQuery.isLoading
     || dashboardQuery.isFetching
     || profileQuery.isLoading
@@ -452,10 +451,18 @@ export default function Deposit() {
         syncError={appPreferences.error}
       /> : null}
       {dashboardQuery.isError ? <ErrorState message="Wallet currency could not be loaded." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} /> : null}
-      {!currencyCheckLoading && !currencyMismatch && !dashboardQuery.isError ? <>
+      {!dashboardQuery.isError && (paymentCurrency || currencyCheckLoading) ? <>
         <Section title="Amount" />
         <Card>
-          <Field label={`Deposit amount (${paymentCurrency || 'currency unavailable'})`} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
+          <Field
+            label={`Deposit amount (${paymentCurrency || 'checking currency'})`}
+            value={amount}
+            onChangeText={setAmount}
+            placeholder="0.00"
+            keyboardType="decimal-pad"
+            autoCapitalize="none"
+            editable={!currencyCheckLoading && !appPreferences.isSaving && Boolean(paymentCurrency)}
+          />
         </Card>
       </> : null}
 

@@ -165,7 +165,6 @@ export default function Withdraw() {
   ).toUpperCase();
   const profileCurrency = appPreferences.preferences.currency.toUpperCase();
   const currencyCheckLoading = appPreferences.isLoading
-    || appPreferences.isSaving
     || dashboardQuery.isLoading
     || dashboardQuery.isFetching
     || profileQuery.isLoading
@@ -484,7 +483,7 @@ export default function Withdraw() {
         <Action
           title="Proceed to Withdraw"
           icon="arrow-right"
-          disabled={currencyCheckLoading || currencyMismatch || dashboardQuery.isError || !withdrawalCurrency}
+          disabled={currencyCheckLoading || dashboardQuery.isError || !withdrawalCurrency}
           onPress={() => { setError(''); setNotice(''); setBankDetailsTouched(false); setStage('form'); }}
         />
       </Card>
@@ -522,8 +521,16 @@ export default function Withdraw() {
           }
         }}
       />
-      {!currencyCheckLoading && !currencyMismatch && !dashboardQuery.isError && withdrawalCurrency ? <>
-        <Field label={`Withdrawal amount (${withdrawalCurrency})`} value={amount} onChangeText={value => { setAmount(value); setError(''); }} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
+      {!dashboardQuery.isError && (withdrawalCurrency || currencyCheckLoading) ? <Field
+        label={`Withdrawal amount (${withdrawalCurrency || 'checking currency'})`}
+        value={amount}
+        onChangeText={value => { setAmount(value); setError(''); }}
+        placeholder="0.00"
+        keyboardType="decimal-pad"
+        autoCapitalize="none"
+        editable={!currencyCheckLoading && !appPreferences.isSaving && Boolean(withdrawalCurrency)}
+      /> : null}
+      {!currencyCheckLoading && !dashboardQuery.isError && withdrawalCurrency ? <>
         <DetailRow label="Wallet currency" value={withdrawalCurrency} />
         <DetailRow label="Minimum withdrawal" value={money(minimumWithdrawalUsd, 'USD')} />
         {amount.trim() && amountNumber == null ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 11, lineHeight: 16, marginTop: 3 }}>

@@ -4,12 +4,13 @@ import { I18nManager, Platform, useColorScheme } from 'react-native';
 import { reloadAppAsync } from 'expo';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  useGetInvestorDashboard,
   useGetInvestorExchangeRates,
   useGetInvestorProfile,
   useUpdateInvestorProfile,
 } from '@workspace/api-client-react';
 import { useAuth } from '@/context/AuthContext';
-import { configureMoneyDisplay, first, messageOf, record, unwrap, type Json } from '@/lib/data';
+import { configureMoneyDisplay, first, messageOf, record, unwrap, walletCurrencyFromDashboard, type Json } from '@/lib/data';
 import { configureUiLanguage, translateUi } from '@/lib/strings';
 import type { AppLanguage } from '@/lib/strings';
 
@@ -93,6 +94,13 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
       staleTime: 60_000,
     },
   });
+  const dashboardQuery = useGetInvestorDashboard({
+    query: {
+      queryKey: ['investor-dashboard'],
+      enabled: Boolean(token && userId),
+      staleTime: 30_000,
+    },
+  });
   const ratesQuery = useGetInvestorExchangeRates({
     query: {
       queryKey: ['investor-display-exchange-rates', userId],
@@ -105,7 +113,8 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   const profile = unwrap(profileQuery.data);
   const rateResponse = unwrap(ratesQuery.data);
   const profileUserId = first(record(profile.user), ['id']);
-  const walletCurrency = first(record(profile.user), ['walletCurrency', 'wallet_currency']).toUpperCase();
+  const profileWalletCurrency = first(record(profile.user), ['walletCurrency', 'wallet_currency']).toUpperCase();
+  const walletCurrency = walletCurrencyFromDashboard(dashboardQuery.data, profileWalletCurrency);
   const profileCurrencyPreference = parsePreferences(profile.preferences).currency;
   const rates = normalizeRates(rateResponse.rates, first(rateResponse, ['base']).toUpperCase());
   const ratesAsOf = first(rateResponse, ['as_of', 'updated_at']);
@@ -169,8 +178,8 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
       currencySyncAttempt.current = { key: '', at: 0 };
       return;
     }
-    if (!profileUserId || profileUserId !== userId) return;
-    if (profileQuery.isFetching || profileQuery.isError) return;
+    if (profileUserId && profileUserId !== userId) return;
+    if (profileQuery.isFetching || profileQuery.isError || dashboardQuery.isFetching) return;
     if (!profileCurrencyPreference || !walletCurrency || profileCurrencyPreference === walletCurrency) {
       currencySyncAttempt.current = { key: '', at: 0 };
       return;
@@ -191,6 +200,22 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
           data: { preferences: { ...currentPreferences, currency: profileCurrencyPreference } },
         });
         await queryClient.invalidateQueries();
+        const refreshedProfile = unwrap(queryClient.getQueryData(['investor-profile']));
+        const refreshedProfileWalletCurrency = first(
+          record(refreshedProfile.user),
+          ['walletCurrency', 'wallet_currency'],
+        ).toUpperCase();
+        const refreshedDashboardWalletCurrency = walletCurrencyFromDashboard(
+          queryClient.getQueryData(['investor-dashboard']),
+          '',
+        );
+        const staleWalletCurrency = [refreshedProfileWalletCurrency, refreshedDashboardWalletCurrency]
+          .find(currency => currency && currency !== profileCurrencyPreference);
+        if (staleWalletCurrency) {
+          setError(
+            `Profile currency is ${profileCurrencyPreference}, but the server still reports ${staleWalletCurrency} for the wallet. Deposit and withdrawal requests remain paused.`,
+          );
+        }
       } catch (syncError) {
         setError(messageOf(syncError));
       } finally {
@@ -203,6 +228,9 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     profileQuery.dataUpdatedAt,
     profileQuery.isFetching,
     profileQuery.isError,
+    dashboardQuery.data,
+    dashboardQuery.dataUpdatedAt,
+    dashboardQuery.isFetching,
     profile.preferences,
     profileCurrencyPreference,
     profileUserId,
