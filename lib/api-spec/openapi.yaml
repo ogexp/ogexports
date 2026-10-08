@@ -1711,7 +1711,7 @@ components:
     InvestorWithdrawalRecord:
       type: object
       additionalProperties: true
-      required: [amount, fee, fee_usd, total_debit, total_debit_usd, currency, status]
+      required: [amount, fee, fee_usd, total_debit, total_debit_usd, currency, payment_method, status]
       properties:
         amount:
           type: number
@@ -1736,7 +1736,10 @@ components:
           description: Currency used for amount, fee, and total_debit.
         exchange_rate:
           type: [number, "null"]
-          description: Submission-time PKR per USD rate when an FX snapshot applies.
+          description: PKR per USD rate captured when the request was submitted; null when not applicable, such as USD withdrawals.
+        payment_method:
+          type: string
+          description: Saved payment route used for the withdrawal request.
         status:
           type: string
     InvestorWithdrawalResponse:

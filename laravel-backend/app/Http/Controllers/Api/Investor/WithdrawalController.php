@@ -179,6 +179,7 @@ class WithdrawalController extends Controller
         $bankDetails = $this->verifiedBankAccountDetails($user, $accounts, $data, $walletCurrency);
 
         $bankDetails['currency'] = $walletCurrency;
+        $bankDetails['payment_method'] = 'Bank Transfer';
         $data['bank_details'] = $bankDetails;
 
         $withdrawal = DB::transaction(function () use ($data, $amount, $amountUsd, $exchangeRate, $fee, $feeUsd, $totalDebit, $totalDebitUsd, $walletCurrency, $user) {
@@ -215,6 +216,7 @@ class WithdrawalController extends Controller
                     'total_debit' => $totalDebit,
                     'total_debit_usd' => $totalDebitUsd,
                     'currency' => $walletCurrency,
+                    'payment_method' => $data['bank_details']['payment_method'],
                 ],
             );
 
@@ -393,6 +395,7 @@ class WithdrawalController extends Controller
             'total_debit' => $breakdown['total_debit'],
             'total_debit_usd' => $breakdown['total_debit_usd'],
             'currency' => $breakdown['currency'],
+            'payment_method' => $this->withdrawalPaymentMethod($bankDetails),
             'withdrawal_fee' => $breakdown['fee'],
             'withdrawal_fee_usd' => $breakdown['fee_usd'],
             'estimated_processing_time' => (string) config('withdrawal.estimated_processing_time', '1 to 2 working days'),
@@ -404,6 +407,16 @@ class WithdrawalController extends Controller
             'created_at' => $withdrawal->created_at?->toIso8601String(),
             'reviewed_at' => $withdrawal->reviewed_at?->toIso8601String(),
         ];
+    }
+
+    private function withdrawalPaymentMethod(array $bankDetails): string
+    {
+        $paymentMethod = trim((string) ($bankDetails['payment_method'] ?? $bankDetails['method'] ?? ''));
+        if (in_array(mb_strtolower($paymentMethod), ['', '-', '—', '–', 'not recorded', 'not provided', 'not available', 'n/a'], true)) {
+            return 'Bank Transfer';
+        }
+
+        return $paymentMethod;
     }
 
     private function maskEmail(string $email): string

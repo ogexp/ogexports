@@ -188,7 +188,8 @@ it('stores USD amount and PKR-per-USD rate when a Pakistani user withdraws', fun
         ->assertJsonPath('data.fee', 557)
         ->assertJsonPath('data.fee_usd', 2)
         ->assertJsonPath('data.total_debit', 28407)
-        ->assertJsonPath('data.total_debit_usd', 102);
+        ->assertJsonPath('data.total_debit_usd', 102)
+        ->assertJsonPath('data.payment_method', 'Bank Transfer');
 
     $withdrawal = Withdrawal::query()->where('investor_id', $investor->id)->firstOrFail();
 
@@ -198,11 +199,14 @@ it('stores USD amount and PKR-per-USD rate when a Pakistani user withdraws', fun
         ->and((float) $withdrawal->fee)->toBe(557.0)
         ->and((float) $withdrawal->fee_usd)->toBe(2.0)
         ->and((float) $withdrawal->total_debit)->toBe(28407.0)
-        ->and((float) $withdrawal->total_debit_usd)->toBe(102.0);
+        ->and((float) $withdrawal->total_debit_usd)->toBe(102.0)
+        ->and($withdrawal->bank_details['payment_method'])->toBe('Bank Transfer');
 
     $transaction = \App\Models\WalletTransaction::query()
         ->where('meta->withdrawal_id', $withdrawal->id)
         ->firstOrFail();
+    expect($transaction->meta['payment_method'])->toBe('Bank Transfer')
+        ->and((float) $transaction->meta['exchange_rate'])->toBe(278.5);
 
     $this->actingAs($investor)
         ->getJson("/api/investor/wallet/transactions/{$transaction->id}")
@@ -214,7 +218,8 @@ it('stores USD amount and PKR-per-USD rate when a Pakistani user withdraws', fun
         ->assertJsonPath('data.withdrawal_breakdown.total_debit', 28407)
         ->assertJsonPath('data.withdrawal_breakdown.total_debit_usd', 102)
         ->assertJsonPath('data.withdrawal_breakdown.currency', 'PKR')
-        ->assertJsonPath('data.withdrawal_breakdown.exchange_rate', 278.5);
+        ->assertJsonPath('data.withdrawal_breakdown.exchange_rate', 278.5)
+        ->assertJsonPath('data.meta.payment_method', 'Bank Transfer');
 
     $receiptHtml = view('pdf.withdrawal-receipt', [
         'withdrawal' => $withdrawal,

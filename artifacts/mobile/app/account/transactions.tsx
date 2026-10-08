@@ -14,7 +14,10 @@ import { amount as readAmount, first, Json, list, messageOf, money, record, unwr
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
-import { savedUsdEquivalentForRecordedAmount } from '@/lib/withdrawal-history';
+import {
+  savedUsdEquivalentForRecordedAmount,
+  withdrawalPaymentMethod,
+} from '@/lib/withdrawal-history';
 import { createTransactionReceipt, saveTransactionReceipt, type TransactionReceipt } from '@/lib/transaction-receipt';
 
 type Filter = 'All' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
@@ -88,7 +91,7 @@ function formatWithdrawalAmount(
   usdAmount: number | null,
   exchangeRate: number | null,
 ) {
-  if (value === null) return money(null, currency, { preserveSource: true });
+  if (value === null) return 'Not recorded';
   const currencyCode = currency.trim().toUpperCase();
   if (!currencyCode) return `${value.toFixed(2)} (currency not recorded)`;
 
@@ -332,21 +335,39 @@ export default function Transactions() {
     const reference = first(withdrawal, ['reference', 'withdraw_id']);
     const matched = findWalletTransaction('withdrawal', id, reference);
     markWalletTransactionUsed(matched);
+    const matchedMeta = record(matched?.meta);
     const bankDetails = record(withdrawal.bank_details);
-    const currency = first(withdrawal, ['currency', 'amount_currency'], first(bankDetails, ['currency']));
-    const exchangeRate = readAmount(withdrawal, ['exchange_rate']);
-    const payout = readAmount(withdrawal, ['amount']);
-    const payoutUsd = readAmount(withdrawal, ['amount_usd']);
-    const fee = readAmount(withdrawal, ['fee', 'withdrawal_fee']);
-    const feeUsd = readAmount(withdrawal, ['fee_usd', 'withdrawal_fee_usd']);
-    const totalDebit = readAmount(withdrawal, ['total_debit']);
-    const totalDebitUsd = readAmount(withdrawal, ['total_debit_usd']);
+    const currency = first(
+      withdrawal,
+      ['currency', 'amount_currency'],
+      first(bankDetails, ['currency'], first(matchedMeta, ['currency', 'wallet_currency'], first(matched ?? {}, ['currency']))),
+    );
+    const exchangeRate = readAmount(withdrawal, ['exchange_rate'])
+      ?? readAmount(matchedMeta, ['exchange_rate']);
+    const payout = readAmount(withdrawal, ['amount'])
+      ?? readAmount(matchedMeta, ['payout_amount', 'amount']);
+    const payoutUsd = readAmount(withdrawal, ['amount_usd'])
+      ?? readAmount(matchedMeta, ['payout_amount_usd', 'amount_usd']);
+    const fee = readAmount(withdrawal, ['fee', 'withdrawal_fee'])
+      ?? readAmount(matchedMeta, ['fee', 'withdrawal_fee']);
+    const feeUsd = readAmount(withdrawal, ['fee_usd', 'withdrawal_fee_usd'])
+      ?? readAmount(matchedMeta, ['fee_usd', 'withdrawal_fee_usd']);
+    const totalDebit = readAmount(withdrawal, ['total_debit'])
+      ?? readAmount(matchedMeta, ['total_debit'])
+      ?? readAmount(matched ?? {}, ['amount']);
+    const totalDebitUsd = readAmount(withdrawal, ['total_debit_usd'])
+      ?? readAmount(matchedMeta, ['total_debit_usd']);
     const key = `withdrawal:${id || reference || `${page}-${index}`}`;
     const title = first(withdrawal, ['description'], 'Withdrawal');
-    const paymentMethod = first(
-      withdrawal,
-      ['payment_method', 'method'],
-      first(bankDetails, ['payment_method', 'method'], 'Bank Transfer'),
+    const paymentMethod = withdrawalPaymentMethod(
+      withdrawal.payment_method,
+      withdrawal.method,
+      bankDetails.payment_method,
+      bankDetails.method,
+      matchedMeta.payment_method,
+      matchedMeta.method,
+      matched?.payment_method,
+      matched?.method,
     );
     rows.push({
       key,
@@ -364,7 +385,7 @@ export default function Transactions() {
         fee: formatWithdrawalAmount(fee, currency, feeUsd, exchangeRate),
         totalDebit: formatWithdrawalAmount(totalDebit, currency, totalDebitUsd, exchangeRate),
         exchangeRate: exchangeRate === null
-          ? 'Not recorded'
+          ? currency.trim().toUpperCase() === 'USD' ? 'Not applicable (USD)' : 'Not recorded'
           : `1 USD = ${exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${currency || 'PKR'}`,
       },
       occurredAt: first(withdrawal, ['created_at', 'date']),

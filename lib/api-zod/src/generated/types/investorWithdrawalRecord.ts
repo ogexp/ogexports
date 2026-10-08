@@ -37,10 +37,12 @@ export interface InvestorWithdrawalRecord {
   /** Currency used for amount, fee, and total_debit. */
   currency: string;
   /**
-     * Submission-time PKR per USD rate when an FX snapshot applies.
+     * PKR per USD rate captured when the request was submitted; null when not applicable, such as USD withdrawals.
      * @nullable
      */
   exchange_rate?: number | null;
+  /** Saved payment route used for the withdrawal request. */
+  payment_method: string;
   status: string;
   [key: string]: unknown;
  }

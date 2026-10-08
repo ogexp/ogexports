@@ -563,6 +563,7 @@ it('reserves the payout and fee on withdrawal request, then clears the full debi
         ->assertJsonPath('data.total_debit', 2502)
         ->assertJsonPath('data.total_debit_usd', 2502)
         ->assertJsonPath('data.currency', 'USD')
+        ->assertJsonPath('data.payment_method', 'Bank Transfer')
         ->assertJsonPath('data.estimated_processing_time', '1 to 2 working days');
     $withdrawalId = $response->json('data.id');
 
@@ -582,9 +583,14 @@ it('reserves the payout and fee on withdrawal request, then clears the full debi
     $transaction = WalletTransaction::query()
         ->where('meta->withdrawal_id', $withdrawalId)
         ->firstOrFail();
+    $withdrawal = Withdrawal::query()->findOrFail($withdrawalId);
     expect((float) $transaction->amount)->toBe(2502.0)
         ->and((float) $transaction->meta['payout_amount'])->toBe(2500.0)
-        ->and((float) $transaction->meta['fee'])->toBe(2.0);
+        ->and((float) $transaction->meta['fee'])->toBe(2.0)
+        ->and((float) $transaction->meta['total_debit'])->toBe(2502.0)
+        ->and($transaction->meta['payment_method'])->toBe('Bank Transfer');
+
+    expect($withdrawal->fresh()->bank_details['payment_method'])->toBe('Bank Transfer');
 
     $this->actingAs($this->investor)
         ->getJson("/api/investor/wallet/transactions/{$transaction->id}")
@@ -601,7 +607,9 @@ it('reserves the payout and fee on withdrawal request, then clears the full debi
         ->assertJsonPath('data.0.amount', 2500)
         ->assertJsonPath('data.0.fee', 2)
         ->assertJsonPath('data.0.total_debit', 2502)
-        ->assertJsonPath('data.0.currency', 'USD');
+        ->assertJsonPath('data.0.currency', 'USD')
+        ->assertJsonPath('data.0.payment_method', 'Bank Transfer')
+        ->assertJsonPath('data.0.exchange_rate', null);
 
     $this->actingAs($this->admin)
         ->postJson("/api/admin/finance/withdrawals/{$withdrawalId}/approve")

@@ -39,6 +39,47 @@ function text(value: unknown, fallback = "Not recorded") {
   return String(value)
 }
 
+function paymentMethodLabel(values: unknown[], fallback: string) {
+  for (const value of values) {
+    if (typeof value !== "string" && typeof value !== "number") continue
+    const candidate = String(value).trim()
+    if (!candidate || /^(?:[-–—]+|not recorded|not provided|not available|not applicable|n\/a|null|undefined)$/i.test(candidate)) {
+      continue
+    }
+    return candidate
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .replace(/\b\w/g, character => character.toUpperCase())
+  }
+  return fallback
+}
+
+function recordedMoney(value: unknown, currency: string, usdEquivalent?: unknown) {
+  const amount = typeof value === "number"
+    ? value
+    : typeof value === "string" && value.trim() !== ""
+      ? Number(value)
+      : Number.NaN
+  if (!Number.isFinite(amount)) return "Not recorded"
+  const code = currency.trim().toUpperCase()
+  let sourceAmount = amount.toFixed(2)
+  try {
+    if (code) sourceAmount = new Intl.NumberFormat(undefined, { style: "currency", currency: code }).format(amount)
+  } catch {
+    if (code) sourceAmount = `${amount.toFixed(2)} ${code}`
+  }
+  const equivalent = numericValue(usdEquivalent)
+  return code && code !== "USD" && equivalent !== null
+    ? `${sourceAmount} (${recordedMoney(equivalent, "USD")} USD equivalent)`
+    : sourceAmount
+}
+
+function numericValue(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) return Number(value)
+  return null
+}
+
 function validRelatedId(...values: unknown[]) {
   for (const value of values) {
     if (typeof value !== "string" && typeof value !== "number") continue
@@ -132,20 +173,43 @@ export default function InvestorTransactionDetail() {
   const status = text(record?.review_status ?? record?.status)
   const reference = text(record?.reference ?? record?.transaction_reference ?? record?.withdraw_id)
   const amount = text(record?.amount)
-  const currency = text(record?.currency ?? record?.amount_currency, "")
   const meta = record?.meta && typeof record.meta === "object" ? record.meta as TransactionRecord : {}
+  const withdrawalBreakdown = record?.withdrawal_breakdown && typeof record.withdrawal_breakdown === "object"
+    ? record.withdrawal_breakdown as TransactionRecord
+    : {}
   const bankDetails = record?.bank_details && typeof record.bank_details === "object"
     ? record.bank_details as TransactionRecord
     : {}
+  const currency = text(
+    record?.currency ?? record?.amount_currency
+      ?? withdrawalBreakdown.currency ?? bankDetails.currency ?? meta.currency ?? meta.wallet_currency,
+    "",
+  )
   const walletType = text(record?.type ?? record?.transaction_type, "").toLowerCase()
   const isWithdrawalTransaction = kind === "withdrawal"
     || (kind === "wallet" && /withdraw|payout/.test(walletType))
-  const paymentMethod = text(
-    record?.payment_method ?? record?.method
-      ?? bankDetails.payment_method ?? bankDetails.method
-      ?? meta.payment_method ?? meta.method,
-    isWithdrawalTransaction ? "Bank Transfer" : "Not recorded",
+  const paymentMethod = isWithdrawalTransaction
+    ? paymentMethodLabel([
+      record?.payment_method,
+      record?.method,
+      bankDetails.payment_method,
+      bankDetails.method,
+      meta.payment_method,
+      meta.method,
+    ], "Bank Transfer")
+    : text(
+      record?.payment_method ?? record?.method
+        ?? bankDetails.payment_method ?? bankDetails.method
+        ?? meta.payment_method ?? meta.method,
+    )
+  const exchangeRate = numericValue(
+    record?.exchange_rate ?? withdrawalBreakdown.exchange_rate ?? meta.exchange_rate,
   )
+  const exchangeRateLabel = currency.trim().toUpperCase() === "USD"
+    ? "Not applicable (USD)"
+    : exchangeRate === null
+      ? "Not recorded"
+      : `1 USD = ${exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${currency || "PKR"}`
   const relatedInvestmentId = validRelatedId(record?.investment_id, meta.investment_id)
   const relatedTradeId = validRelatedId(record?.trade_id, meta.trade_id)
   const details = kind === "deposit"
@@ -159,15 +223,30 @@ export default function InvestorTransactionDetail() {
         ["Reviewed", formatDate(record?.reviewed_at)],
         ["Review note", text(record?.note)],
       ]
-    : kind === "withdrawal"
+    : isWithdrawalTransaction
       ? [
         ["Record ID", text(record?.id, id)],
         ["Reference", reference],
         ["Status", status],
         ["Payment method", paymentMethod],
-        ["Requested bank payout", `${amount}${currency ? ` ${currency}` : ""}`],
-        ["Withdrawal fee", text(record?.fee ?? record?.withdrawal_fee)],
-        ["Total wallet debit", text(record?.total_debit)],
+        ["Requested bank payout", recordedMoney(
+          kind === "withdrawal"
+            ? record?.amount ?? withdrawalBreakdown.payout_amount ?? withdrawalBreakdown.amount
+            : withdrawalBreakdown.payout_amount ?? withdrawalBreakdown.amount,
+          currency,
+          record?.amount_usd ?? withdrawalBreakdown.payout_amount_usd,
+        )],
+        ["Withdrawal fee", recordedMoney(
+          record?.fee ?? record?.withdrawal_fee ?? withdrawalBreakdown.fee,
+          currency,
+          record?.fee_usd ?? record?.withdrawal_fee_usd ?? withdrawalBreakdown.fee_usd,
+        )],
+        ["Total wallet debit", recordedMoney(
+          record?.total_debit ?? withdrawalBreakdown.total_debit,
+          currency,
+          record?.total_debit_usd ?? withdrawalBreakdown.total_debit_usd,
+        )],
+        ["Exchange rate at submission", exchangeRateLabel],
         ["Estimated processing time", text(record?.estimated_processing_time)],
         ["Submitted", formatDate(record?.created_at)],
         ["Reviewed", formatDate(record?.reviewed_at)],

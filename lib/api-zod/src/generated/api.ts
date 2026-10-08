@@ -1304,7 +1304,8 @@ export const GetInvestorWithdrawalsResponse = zod.object({
   "total_debit": zod.number().nullable().describe('Recorded total amount reserved or debited from the investor wallet.'),
   "total_debit_usd": zod.number().nullable().describe('Saved USD equivalent of the total wallet debit; null when none was recorded.'),
   "currency": zod.string().describe('Currency used for amount, fee, and total_debit.'),
-  "exchange_rate": zod.number().nullish().describe('Submission-time PKR per USD rate when an FX snapshot applies.'),
+  "exchange_rate": zod.number().nullish().describe('PKR per USD rate captured when the request was submitted; null when not applicable, such as USD withdrawals.'),
+  "payment_method": zod.string().describe('Saved payment route used for the withdrawal request.'),
   "status": zod.string()
 })).optional()
 })
@@ -1369,7 +1370,8 @@ export const CreateInvestorWithdrawalResponse = zod.object({
   "total_debit": zod.number().nullable().describe('Recorded total amount reserved or debited from the investor wallet.'),
   "total_debit_usd": zod.number().nullable().describe('Saved USD equivalent of the total wallet debit; null when none was recorded.'),
   "currency": zod.string().describe('Currency used for amount, fee, and total_debit.'),
-  "exchange_rate": zod.number().nullish().describe('Submission-time PKR per USD rate when an FX snapshot applies.'),
+  "exchange_rate": zod.number().nullish().describe('PKR per USD rate captured when the request was submitted; null when not applicable, such as USD withdrawals.'),
+  "payment_method": zod.string().describe('Saved payment route used for the withdrawal request.'),
   "status": zod.string()
 })
 })
