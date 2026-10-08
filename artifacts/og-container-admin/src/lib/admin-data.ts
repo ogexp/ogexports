@@ -1896,6 +1896,21 @@ export async function fetchFinance() {
   }
 }
 
+export async function fetchAdminDepositsByTransactionId(transactionId: string): Promise<AdminDeposit[]> {
+  const res = await api.get("/api/admin/finance/deposits", { transaction_id: transactionId, per_page: 100 })
+  return unwrapPage(res).data.map(mapDeposit)
+}
+
+export async function fetchAdminWithdrawalsByTransactionId(transactionId: string): Promise<AdminWithdrawal[]> {
+  const res = await api.get("/api/admin/finance/withdrawals", { transaction_id: transactionId, per_page: 100 })
+  return unwrapPage(res).data.map(mapWithdrawal)
+}
+
+export async function fetchAdminTransactionsByTransactionId(transactionId: string): Promise<AdminTransaction[]> {
+  const res = await api.get("/api/admin/finance/transactions", { transaction_id: transactionId, per_page: 100 })
+  return unwrapPage(res).data.map(mapTransaction)
+}
+
 function applyFinanceStats(res: unknown) {
   const d = ((res as { data?: Record<string, unknown> })?.data ?? res) as Record<string, unknown>
   const cashflowRaw = Array.isArray(d.cashflow) ? d.cashflow : []

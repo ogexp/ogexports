@@ -7,6 +7,7 @@ use App\Models\InvestmentProject;
 use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Models\WalletTransaction;
 use App\Models\Withdrawal;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Database\Eloquent\Model;
@@ -224,4 +225,87 @@ it('keeps current eight-digit IDs exact and does not resolve missing legacy IDs'
     $this->actingAs($this->investor)
         ->getJson('/api/investor/deposits/654')
         ->assertNotFound();
+});
+
+it('filters admin finance lists by exact current and legacy transaction IDs within each record type', function () {
+    $deposit = Deposit::query()->create([
+        'investor_id' => $this->investor->id,
+        'amount' => 125,
+        'currency' => 'USD',
+        'method' => 'bank_transfer',
+        'reference' => 'SEARCH-DEPOSIT',
+        'status' => 'pending',
+    ]);
+    $depositId = assignConvertedFinancialId($deposit, 'deposits', 123);
+
+    $withdrawal = Withdrawal::query()->create([
+        'investor_id' => $this->investor->id,
+        'amount' => 75,
+        'bank_details' => ['bank_name' => 'Test Bank'],
+        'reference' => 'SEARCH-WITHDRAWAL',
+        'status' => 'pending',
+    ]);
+    $withdrawalId = assignConvertedFinancialId($withdrawal, 'withdrawals', 456);
+
+    $wallet = Wallet::query()->create([
+        'user_id' => $this->investor->id,
+        'currency' => 'USD',
+        'available_balance' => 0,
+        'pending_balance' => 0,
+    ]);
+    $transaction = WalletTransaction::query()->create([
+        'wallet_id' => $wallet->id,
+        'type' => 'profit',
+        'amount' => 40,
+        'direction' => 'credit',
+        'reference' => 'SEARCH-WALLET-TXN',
+        'status' => 'completed',
+    ]);
+    $transactionId = assignConvertedFinancialId($transaction, 'wallet_transactions', 789);
+
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/deposits?transaction_id=123')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $depositId);
+    $this->actingAs($this->admin)
+        ->getJson("/api/admin/finance/deposits?transaction_id={$depositId}")
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $depositId);
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/deposits?transaction_id=456')
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/withdrawals?transaction_id=456')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $withdrawalId);
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/withdrawals?transaction_id=123')
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/transactions?transaction_id=789')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $transactionId);
+    $this->actingAs($this->admin)
+        ->getJson('/api/admin/finance/transactions?transaction_id=123')
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+
+    foreach ([
+        '/api/admin/finance/deposits?transaction_id=invalid',
+        '/api/admin/finance/withdrawals?transaction_id=invalid',
+        '/api/admin/finance/transactions?transaction_id=invalid',
+    ] as $url) {
+        $this->actingAs($this->admin)
+            ->getJson($url)
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
 });

@@ -6,6 +6,7 @@ import { DollarSign, ArrowDownCircle, ArrowUpCircle, CreditCard, CheckCircle2, X
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import {
   getDeposits, getBuyerDeposits, getWithdrawals, getTransactions,
+  fetchAdminDepositsByTransactionId, fetchAdminWithdrawalsByTransactionId, fetchAdminTransactionsByTransactionId,
   approveDeposit, rejectDeposit, cancelDepositAsync as cancelDeposit,
   approveBuyerDeposit, rejectBuyerDeposit, cancelBuyerDeposit,
   approveWithdrawal, rejectWithdrawal,
@@ -72,6 +73,52 @@ function DepositProofCell({ deposit }: { deposit: AdminDeposit }) {
     <a href={href} target="_blank" rel="noopener noreferrer" title="View payment proof">
       <img src={href} alt="Payment proof" className="w-10 h-10 rounded object-cover border border-border hover:opacity-80 transition-opacity" />
     </a>
+  )
+}
+
+function TransactionIdSearch({ value, onChange, onSubmit, onClear, loading }: {
+  value: string
+  onChange: (value: string) => void
+  onSubmit: () => void
+  onClear: () => void
+  loading: boolean
+}) {
+  return (
+    <form
+      onSubmit={event => { event.preventDefault(); onSubmit() }}
+      className="mb-4 flex flex-wrap items-center gap-2"
+    >
+      <div className="relative w-full max-w-sm">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          aria-label="Transaction number"
+          autoComplete="off"
+          inputMode="numeric"
+          placeholder="Find exact transaction number"
+          value={value}
+          onChange={event => onChange(event.target.value)}
+          className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
+        />
+      </div>
+      <button
+        type="submit"
+        disabled={loading}
+        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        style={{ background: EMERALD }}
+      >
+        <Search className="h-3.5 w-3.5" />
+        {loading ? "Searching…" : "Find"}
+      </button>
+      {value && (
+        <button
+          type="button"
+          onClick={onClear}
+          className="rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
+        >
+          Clear
+        </button>
+      )}
+    </form>
   )
 }
 
@@ -305,6 +352,16 @@ export default function AdminFinance() {
   const [deposits, setDeposits] = useState<AdminDeposit[]>(() => getDeposits())
   const [withdrawals, setWithdrawals] = useState<AdminWithdrawal[]>(() => getWithdrawals())
   const [transactions, setTransactions] = useState<AdminTransaction[]>(() => getTransactions())
+  const [depositSearchInput, setDepositSearchInput] = useState("")
+  const [depositSearchTerm, setDepositSearchTerm] = useState<string | null>(null)
+  const [searchedDeposits, setSearchedDeposits] = useState<AdminDeposit[] | null>(null)
+  const [withdrawalSearchInput, setWithdrawalSearchInput] = useState("")
+  const [withdrawalSearchTerm, setWithdrawalSearchTerm] = useState<string | null>(null)
+  const [searchedWithdrawals, setSearchedWithdrawals] = useState<AdminWithdrawal[] | null>(null)
+  const [transactionSearchInput, setTransactionSearchInput] = useState("")
+  const [transactionSearchTerm, setTransactionSearchTerm] = useState<string | null>(null)
+  const [searchedTransactions, setSearchedTransactions] = useState<AdminTransaction[] | null>(null)
+  const [financeSearchLoading, setFinanceSearchLoading] = useState<"deposits" | "withdrawals" | "transactions" | null>(null)
   const [platformWallet, setPlatformWallet] = useState<PlatformWalletStats>(() => getPlatformWalletStats())
   const [financeStats, setFinanceStats] = useState<FinanceOverviewStats>(() => getFinanceStats())
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null)
@@ -327,7 +384,74 @@ export default function AdminFinance() {
     setTransactions(getTransactions())
     setPlatformWallet(getPlatformWalletStats())
     setFinanceStats(getFinanceStats())
+
+    const searchRefreshes: Promise<void>[] = []
+    if (depositSearchTerm) {
+      searchRefreshes.push(fetchAdminDepositsByTransactionId(depositSearchTerm).then(setSearchedDeposits))
+    }
+    if (withdrawalSearchTerm) {
+      searchRefreshes.push(fetchAdminWithdrawalsByTransactionId(withdrawalSearchTerm).then(setSearchedWithdrawals))
+    }
+    if (transactionSearchTerm) {
+      searchRefreshes.push(fetchAdminTransactionsByTransactionId(transactionSearchTerm).then(setSearchedTransactions))
+    }
+    await Promise.allSettled(searchRefreshes)
   }
+
+  async function searchFinanceByTransactionId(kind: "deposits" | "withdrawals" | "transactions", value: string) {
+    const transactionId = value.trim()
+    if (!transactionId) {
+      if (kind === "deposits") {
+        setDepositSearchTerm(null)
+        setSearchedDeposits(null)
+      } else if (kind === "withdrawals") {
+        setWithdrawalSearchTerm(null)
+        setSearchedWithdrawals(null)
+      } else {
+        setTransactionSearchTerm(null)
+        setSearchedTransactions(null)
+      }
+      return
+    }
+
+    setFinanceSearchLoading(kind)
+    try {
+      if (kind === "deposits") {
+        setSearchedDeposits(await fetchAdminDepositsByTransactionId(transactionId))
+        setDepositSearchTerm(transactionId)
+      } else if (kind === "withdrawals") {
+        setSearchedWithdrawals(await fetchAdminWithdrawalsByTransactionId(transactionId))
+        setWithdrawalSearchTerm(transactionId)
+      } else {
+        setSearchedTransactions(await fetchAdminTransactionsByTransactionId(transactionId))
+        setTransactionSearchTerm(transactionId)
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Unable to search finance records.", "error")
+    } finally {
+      setFinanceSearchLoading(null)
+    }
+  }
+
+  function clearFinanceSearch(kind: "deposits" | "withdrawals" | "transactions") {
+    if (kind === "deposits") {
+      setDepositSearchInput("")
+      setDepositSearchTerm(null)
+      setSearchedDeposits(null)
+    } else if (kind === "withdrawals") {
+      setWithdrawalSearchInput("")
+      setWithdrawalSearchTerm(null)
+      setSearchedWithdrawals(null)
+    } else {
+      setTransactionSearchInput("")
+      setTransactionSearchTerm(null)
+      setSearchedTransactions(null)
+    }
+  }
+
+  const visibleDeposits = searchedDeposits ?? deposits
+  const visibleWithdrawals = searchedWithdrawals ?? withdrawals
+  const visibleTransactions = searchedTransactions ?? transactions
 
   function selectTab(id: string) {
     setActiveTab(id)
@@ -629,6 +753,13 @@ export default function AdminFinance() {
 
             {activeTab === "investor-deposits" && (
               <div>
+                <TransactionIdSearch
+                  value={depositSearchInput}
+                  onChange={setDepositSearchInput}
+                  onSubmit={() => { void searchFinanceByTransactionId("deposits", depositSearchInput) }}
+                  onClear={() => clearFinanceSearch("deposits")}
+                  loading={financeSearchLoading === "deposits"}
+                />
                 {pendingDeposits > 0 && (
                   <div className="mb-4 p-3 rounded-xl border border-yellow-200 bg-yellow-50 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
@@ -645,14 +776,14 @@ export default function AdminFinance() {
                       </tr>
                     </thead>
                     <tbody>
-                      {deposits.length === 0 && (
+                      {visibleDeposits.length === 0 && (
                         <tr>
                           <td colSpan={11} className="px-3 py-8 text-center text-sm text-muted-foreground">
-                            No investor deposits yet.
+                            {depositSearchTerm ? "No investor deposits match this transaction number." : "No investor deposits yet."}
                           </td>
                         </tr>
                       )}
-                      {deposits.map(d => (
+                      {visibleDeposits.map(d => (
                         <tr key={d.id} className="border-b border-border/50 hover:bg-muted/20">
                           <td className="px-3 py-3 text-[11px] font-mono font-bold" style={{ color: EMERALD }}>{d.id}</td>
                           <td className="px-3 py-3 text-[12px] font-medium">{d.investor}</td>
@@ -706,6 +837,13 @@ export default function AdminFinance() {
 
             {activeTab === "withdrawals" && (
               <div>
+                <TransactionIdSearch
+                  value={withdrawalSearchInput}
+                  onChange={setWithdrawalSearchInput}
+                  onSubmit={() => { void searchFinanceByTransactionId("withdrawals", withdrawalSearchInput) }}
+                  onClear={() => clearFinanceSearch("withdrawals")}
+                  loading={financeSearchLoading === "withdrawals"}
+                />
                 {pendingWithdrawals > 0 && (
                   <div className="mb-4 p-3 rounded-xl border border-orange-200 bg-orange-50 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
@@ -722,14 +860,14 @@ export default function AdminFinance() {
                       </tr>
                     </thead>
                     <tbody>
-                      {withdrawals.length === 0 && (
+                      {visibleWithdrawals.length === 0 && (
                         <tr>
                           <td colSpan={8} className="px-3 py-8 text-center text-sm text-muted-foreground">
-                            No withdrawal requests yet.
+                            {withdrawalSearchTerm ? "No withdrawals match this transaction number." : "No withdrawal requests yet."}
                           </td>
                         </tr>
                       )}
-                      {withdrawals.map(w => {
+                      {visibleWithdrawals.map(w => {
                         const bd = w.bankDetails || {}
                         const bankDetailTitle = [
                           bd.account_holder && `Holder: ${bd.account_holder}`,
@@ -792,6 +930,14 @@ export default function AdminFinance() {
             )}
 
             {activeTab === "transactions" && (
+              <div>
+              <TransactionIdSearch
+                value={transactionSearchInput}
+                onChange={setTransactionSearchInput}
+                onSubmit={() => { void searchFinanceByTransactionId("transactions", transactionSearchInput) }}
+                onClear={() => clearFinanceSearch("transactions")}
+                loading={financeSearchLoading === "transactions"}
+              />
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -802,7 +948,7 @@ export default function AdminFinance() {
                     </tr>
                   </thead>
                   <tbody>
-                    {transactions.map(t => (
+                    {visibleTransactions.map(t => (
                       <tr key={t.id} className="border-b border-border/50 hover:bg-muted/20">
                         <td className="px-3 py-3 text-[11px] font-mono font-bold" style={{ color: EMERALD }}>{t.id}</td>
                         <td className="px-3 py-3">
@@ -815,9 +961,10 @@ export default function AdminFinance() {
                         <td className="px-3 py-3"><StatusBadge status={t.status} /></td>
                       </tr>
                     ))}
-                    {transactions.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-sm text-muted-foreground">No transactions yet</td></tr>}
+                    {visibleTransactions.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-sm text-muted-foreground">{transactionSearchTerm ? "No transactions match this transaction number." : "No transactions yet"}</td></tr>}
                   </tbody>
                 </table>
+              </div>
               </div>
             )}
 

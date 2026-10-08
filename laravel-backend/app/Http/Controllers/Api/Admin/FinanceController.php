@@ -15,14 +15,15 @@ use App\Services\BuyerTradeNotifier;
 use App\Support\AuditsActions;
 use App\Support\DepositReviewStatuses;
 use App\Support\ExchangeRateService;
-use App\Support\InvestorNotificationTypes;
+use App\Support\FinanceStatsService;
+use App\Support\FinancialTransactionIdResolver;
 use App\Support\InvestorMarket;
+use App\Support\InvestorNotificationTypes;
 use App\Support\MediaStorage;
 use App\Support\NotifiesUsers;
 use App\Support\PlatformWalletService;
 use App\Support\UserDisplayCurrency;
-use App\Support\FinanceStatsService;
-use App\Support\FinancialTransactionIdResolver;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -67,6 +68,8 @@ class FinanceController extends Controller
             $normalized = DepositReviewStatuses::normalize($status);
             $query->where('status', $normalized);
         }
+
+        $this->filterByTransactionId($query, $request);
 
         $paginator = $query->latest()->paginate($this->perPage($request));
         $paginator->getCollection()->transform(fn (Deposit $deposit) => $this->transformDeposit($deposit));
@@ -475,6 +478,8 @@ class FinanceController extends Controller
             $query->where('status', $status);
         }
 
+        $this->filterByTransactionId($query, $request);
+
         $paginator = $query->latest()->paginate($this->perPage($request));
         $paginator->getCollection()->transform(fn (Withdrawal $withdrawal) => $this->transformWithdrawal($withdrawal));
 
@@ -670,6 +675,8 @@ class FinanceController extends Controller
             $query->where('type', $type);
         }
 
+        $this->filterByTransactionId($query, $request);
+
         $paginator = $query->latest()->paginate($this->perPage($request));
         $paginator->getCollection()->transform(function (WalletTransaction $transaction) {
             $data = $transaction->toArray();
@@ -684,6 +691,52 @@ class FinanceController extends Controller
         });
 
         return response()->json($paginator);
+    }
+
+    private function filterByTransactionId(Builder $query, Request $request): void
+    {
+        $rawId = $request->input('transaction_id');
+        if ($rawId === null) {
+            return;
+        }
+
+        if (! is_string($rawId) && ! is_int($rawId)) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $id = trim((string) $rawId);
+        if ($id === '') {
+            return;
+        }
+
+        if (! ctype_digit($id)) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $normalizedId = ltrim($id, '0');
+        if ($normalizedId === '') {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $maxId = (string) PHP_INT_MAX;
+        if (
+            strlen($normalizedId) > strlen($maxId)
+            || (strlen($normalizedId) === strlen($maxId) && strcmp($normalizedId, $maxId) > 0)
+        ) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $requestedId = (int) $normalizedId;
+        $resolvedId = FinancialTransactionIdResolver::resolveId($query, $requestedId);
+        $query->whereKey($resolvedId);
     }
 
     public function platformWallet(): JsonResponse
