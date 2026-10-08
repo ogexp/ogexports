@@ -26,8 +26,8 @@ class InvestorPortfolioMetrics
     public static function summary(int $userId): array
     {
         $user = User::query()->with(['profile', 'wallet'])->find($userId);
-        $isPkr = $user ? UserDisplayCurrency::isPkrUser($user) : false;
-        $displayRate = $isPkr ? InvestorDepositFx::resolveDisplayRate($userId) : null;
+        $walletCurrency = $user ? UserDisplayCurrency::currencyForUser($user) : 'USD';
+        $displayRate = $walletCurrency === 'PKR' ? InvestorDepositFx::resolveDisplayRate($userId) : null;
 
         $investments = Investment::query()
             ->where('investor_id', $userId)
@@ -35,8 +35,8 @@ class InvestorPortfolioMetrics
             ->orderByDesc('invested_at')
             ->get();
 
-        $totalInvestedUsd = round((float) $investments->sum('amount'), 2);
-        $totalInvested = InvestorProfitTotals::sumInvestedWallet($investments, $isPkr, $displayRate);
+        $totalInvestedUsd = InvestorProfitTotals::sumInvestedUsd($investments);
+        $totalInvested = InvestorProfitTotals::sumInvestedWallet($investments, $walletCurrency, $displayRate);
         $profit = InvestorProfitTotals::profitEarned($userId, $user);
         $profitEarned = $profit['wallet'];
 
@@ -45,7 +45,7 @@ class InvestorPortfolioMetrics
             'total_invested' => $totalInvested,
             'total_invested_usd' => $totalInvestedUsd,
             'total_profit_earned' => $profitEarned,
-            'total_profit_earned_usd' => $isPkr ? $profit['usd'] : null,
+            'total_profit_earned_usd' => $profit['usd'],
             'lifetime_roi' => $totalInvested > 0
                 ? round(($profitEarned / $totalInvested) * 100, 2)
                 : 0.0,
@@ -71,8 +71,8 @@ class InvestorPortfolioMetrics
         }
 
         $user = User::query()->with(['profile', 'wallet'])->find($userId);
-        $isPkr = $user ? UserDisplayCurrency::isPkrUser($user) : false;
-        $displayRate = $isPkr ? InvestorDepositFx::resolveDisplayRate($userId) : null;
+        $walletCurrency = $user ? UserDisplayCurrency::currencyForUser($user) : 'USD';
+        $displayRate = $walletCurrency === 'PKR' ? InvestorDepositFx::resolveDisplayRate($userId) : null;
 
         $firstInvested = $investments
             ->filter(fn (Investment $inv) => $inv->invested_at !== null)
@@ -104,7 +104,7 @@ class InvestorPortfolioMetrics
                 ->where('direction', 'credit')
                 ->whereIn('type', InvestorProfitTotals::WALLET_PROFIT_TYPES)
                 ->where('status', 'completed')
-                ->get(['amount', 'created_at']);
+                ->get(['amount', 'created_at', 'meta']);
         }
 
         $series = [];
@@ -120,15 +120,19 @@ class InvestorPortfolioMetrics
 
                     return Carbon::parse($inv->invested_at)->lte($monthEnd);
                 })
-                ->sum(fn (Investment $inv) => InvestorProfitTotals::investmentToWallet($inv, $isPkr, $displayRate));
+                ->sum(fn (Investment $inv) => InvestorProfitTotals::investmentToWallet($inv, $walletCurrency, $displayRate));
 
             $distProfit = (float) $distributions
                 ->filter(fn ($d) => Carbon::parse($d->distributed_at)->lte($monthEnd))
-                ->sum(fn ($d) => InvestorProfitTotals::distributionToWallet($d, $isPkr, $displayRate));
+                ->sum(fn ($d) => InvestorProfitTotals::distributionToWallet($d, $walletCurrency, $displayRate));
 
             $walletProfit = (float) $walletProfits
                 ->filter(fn ($tx) => $tx->created_at && $tx->created_at->lte($monthEnd))
-                ->sum('amount');
+                ->sum(fn (WalletTransaction $tx) => InvestorProfitTotals::convertToCurrency(
+                    (float) $tx->amount,
+                    strtoupper((string) ((is_array($tx->meta) ? ($tx->meta['currency'] ?? null) : null) ?: $walletCurrency)),
+                    $walletCurrency,
+                ));
 
             $cumulativeProfit = $distProfit + $walletProfit;
             $roi = $cumulativeInvestment > 0

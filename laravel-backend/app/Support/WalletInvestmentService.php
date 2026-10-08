@@ -15,10 +15,10 @@ class WalletInvestmentService
     /**
      * Auto-approve a wallet-funded investment: deduct user wallet, credit platform wallet, activate investment.
      *
-     * For Pakistani PKR-wallet investors funding container projects, `$amount` is USD
-     * (capacity / project currency). Wallet debit uses the locked PKR conversion.
+     * `$amount` is denominated in the project's currency; the locked wallet debit
+     * conversion records the actual amount and currency removed from the wallet.
      *
-     * @return array{investment: Investment, capacity: array<string, mixed>}
+     * @return array{investment: Investment, capacity: array<string, mixed>, wallet_debit: float, wallet_currency: string, wallet_exchange_rate: float, wallet_rates_as_of: string|null, investment_amount_usd: float}
      */
     public function investFromWallet(User $user, InvestmentProject $project, float $amount): array
     {
@@ -54,22 +54,17 @@ class WalletInvestmentService
                 ]);
             }
 
-            $walletCurrency = InvestorMarket::currencyForUser($user);
-            $isPkrContainer = UserDisplayCurrency::isPkrUser($user)
-                && strtolower((string) $project->type) === 'container';
-
-            $amountPkr = null;
-            $exchangeRate = null;
-            $amountCurrency = $walletCurrency;
-            $walletDebit = $amount;
-
-            if ($isPkrContainer) {
-                $conversion = ExchangeRateService::convert($amount, 'USD', 'PKR');
-                $amountPkr = $conversion['amount'];
-                $exchangeRate = $conversion['rate'];
-                $amountCurrency = 'USD';
-                $walletDebit = $amountPkr;
-            }
+            $walletCurrency = strtoupper((string) UserDisplayCurrency::currencyForUser($user));
+            $investmentCurrency = strtolower((string) $project->type) === 'container'
+                ? 'USD'
+                : strtoupper((string) ($project->currency ?: 'USD'));
+            $conversion = ExchangeRateService::convert($amount, $investmentCurrency, $walletCurrency);
+            $investmentAmountUsd = ExchangeRateService::convert($amount, $investmentCurrency, 'USD')['amount'];
+            $walletDebit = $conversion['amount'];
+            $amountPkr = $walletCurrency === 'PKR' && $investmentCurrency === 'USD'
+                ? $walletDebit
+                : null;
+            $exchangeRate = $amountPkr !== null ? $conversion['rate'] : null;
 
             $wallet = Wallet::query()
                 ->where('user_id', $user->id)
@@ -102,7 +97,7 @@ class WalletInvestmentService
                 'amount' => $amount,
                 'amount_pkr' => $amountPkr,
                 'exchange_rate' => $exchangeRate,
-                'amount_currency' => $amountCurrency,
+                'amount_currency' => $investmentCurrency,
                 'status' => 'active',
                 'payment_source' => InvestmentPaymentSource::WALLET,
                 'invested_at' => now(),
@@ -126,9 +121,14 @@ class WalletInvestmentService
                     'investment_id' => $investment->id,
                     'project_id' => $project->id,
                     'auto_approved' => true,
-                    'amount_usd' => $amount,
+                    'amount_usd' => $investmentAmountUsd,
                     'amount_pkr' => $amountPkr,
                     'exchange_rate' => $exchangeRate,
+                    'currency' => $walletCurrency,
+                    'wallet_amount' => $walletDebit,
+                    'investment_currency' => $investmentCurrency,
+                    'wallet_exchange_rate' => $conversion['rate'],
+                    'wallet_rates_as_of' => $conversion['as_of'],
                 ],
             ]);
 
@@ -141,7 +141,7 @@ class WalletInvestmentService
                     'project_id' => $project->id,
                     'investor_id' => $user->id,
                     'wallet_transaction_id' => $walletTx->id,
-                    'amount_usd' => $amount,
+                    'amount_usd' => $investmentAmountUsd,
                     'amount_pkr' => $amountPkr,
                     'exchange_rate' => $exchangeRate,
                 ],
@@ -155,6 +155,11 @@ class WalletInvestmentService
             return [
                 'investment' => $investment->fresh()->load('project'),
                 'capacity' => $freshCapacity,
+                'wallet_debit' => $walletDebit,
+                'wallet_currency' => $walletCurrency,
+                'wallet_exchange_rate' => $conversion['rate'],
+                'wallet_rates_as_of' => $conversion['as_of'],
+                'investment_amount_usd' => $investmentAmountUsd,
             ];
         });
     }

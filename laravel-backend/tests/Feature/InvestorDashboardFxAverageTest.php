@@ -134,7 +134,8 @@ it('exposes fx block and aggregate USD on investor dashboard', function () {
 
     $expectedAvg = round((27850 * 278.5 + 55700 * 280.0) / (27850 + 55700), 8);
     $totalDeposits = 27850 + 55700;
-    $expectedDepositsUsd = round($totalDeposits / $expectedAvg, 2);
+    // USD dashboard totals use each deposit's submission-time USD snapshot.
+    $expectedDepositsUsd = 100 + 200;
 
     $response = $this->actingAs($investor)
         ->getJson('/api/investor/dashboard')

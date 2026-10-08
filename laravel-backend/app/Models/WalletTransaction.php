@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WalletTransaction extends Model
 {
+    protected $appends = ['currency'];
+
     protected $fillable = [
         'wallet_id',
         'type',
@@ -43,5 +45,17 @@ class WalletTransaction extends Model
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
+    }
+
+    public function getCurrencyAttribute(): string
+    {
+        $meta = is_array($this->meta) ? $this->meta : [];
+
+        return strtoupper((string) (
+            $meta['currency']
+            ?? $meta['wallet_currency']
+            ?? $this->wallet?->currency
+            ?? 'USD'
+        ));
     }
 }

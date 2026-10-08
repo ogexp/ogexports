@@ -3,7 +3,7 @@ import { Image, Pressable, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { Feather } from '@expo/vector-icons';
 import { Card } from '@/components/InvestorUI';
-import { amount, first, moneyToCurrency, record } from '@/lib/data';
+import { amount, first, money, record } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
 import { opportunityStatusGroup } from '@/lib/opportunities';
 import { MOTION, MotionProgress, useMotion } from '@/lib/motion';
@@ -162,7 +162,7 @@ export function OpportunityCard({ item, featured, progress, apiOrigin, onPress }
   const returnRate = opportunityValue(item, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi'])
     || (opportunityAmount(item, ['expected_return_pct']) != null ? `${opportunityAmount(item, ['expected_return_pct'])}%` : '—');
   const currencyLabel = currency || 'USD';
-  const formatMoney = (value: number | null) => moneyToCurrency(value, currencyLabel, 'USD');
+  const formatMoney = (value: number | null) => money(value, currencyLabel);
   const fundingProgress = progress == null
     ? opportunityAmount(item, ['funding_percentage', 'funding_progress_percent', 'funding_progress_pct', 'progress_percentage'])
     : progress;

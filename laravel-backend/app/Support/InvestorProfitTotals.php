@@ -25,7 +25,8 @@ class InvestorProfitTotals
     public static function profitEarned(int $userId, ?User $user = null, ?Carbon $monthStart = null, ?Carbon $monthEnd = null): array
     {
         $user ??= User::query()->with(['profile', 'wallet'])->find($userId);
-        $isPkr = $user ? UserDisplayCurrency::isPkrUser($user) : false;
+        $walletCurrency = $user ? UserDisplayCurrency::currencyForUser($user) : 'USD';
+        $isPkr = $walletCurrency === 'PKR';
         $displayRate = $isPkr ? InvestorDepositFx::resolveDisplayRate($userId) : null;
 
         $distributions = InvestmentProfitDistribution::query()
@@ -43,7 +44,7 @@ class InvestorProfitTotals
                 ->whereIn('type', self::WALLET_PROFIT_TYPES)
                 ->when($monthStart, fn ($q) => $q->where('created_at', '>=', $monthStart))
                 ->when($monthEnd, fn ($q) => $q->where('created_at', '<=', $monthEnd))
-                ->get(['amount', 'created_at']);
+                ->get(['amount', 'created_at', 'meta']);
         }
 
         $distributionWallet = 0.0;
@@ -51,15 +52,17 @@ class InvestorProfitTotals
         foreach ($distributions as $dist) {
             $usd = (float) $dist->profit_amount;
             $distributionUsd += $usd;
-            $distributionWallet += self::distributionToWallet($dist, $isPkr, $displayRate);
+            $distributionWallet += self::distributionToWallet($dist, $walletCurrency, $displayRate);
         }
 
-        $walletProfit = (float) $walletRows->sum('amount');
+        $walletProfit = 0.0;
         $walletUsd = 0.0;
-        if ($isPkr && $displayRate !== null && $displayRate > 0) {
-            $walletUsd = InvestorDepositFx::pkrToUsd($walletProfit, $displayRate);
-        } else {
-            $walletUsd = $walletProfit;
+        foreach ($walletRows as $row) {
+            $meta = is_array($row->meta) ? $row->meta : [];
+            $sourceCurrency = strtoupper((string) ($meta['currency'] ?? $walletCurrency));
+            $amount = (float) $row->amount;
+            $walletProfit += self::convertToCurrency($amount, $sourceCurrency, $walletCurrency);
+            $walletUsd += self::convertToCurrency($amount, $sourceCurrency, 'USD');
         }
 
         return [
@@ -90,11 +93,10 @@ class InvestorProfitTotals
         ?float $displayRate = null,
     ): array {
         $displayCurrency = strtoupper($displayCurrency);
-        $isPkr = $displayCurrency === 'PKR';
 
         $currentInvestmentValue = (float) $investments
             ->whereIn('status', ['pending', 'active'])
-            ->sum(fn (Investment $investment) => self::investmentToWallet($investment, $isPkr, $displayRate));
+            ->sum(fn (Investment $investment) => self::investmentToWallet($investment, $displayCurrency, $displayRate));
         $walletValue = (float) $wallet->available_balance + (float) $wallet->pending_balance;
 
         $confirmedDistributions = InvestmentProfitDistribution::query()
@@ -105,7 +107,7 @@ class InvestorProfitTotals
         $distributedReturns = (float) $confirmedDistributions
             ->sum(fn (InvestmentProfitDistribution $distribution) => self::distributionToWallet(
                 $distribution,
-                $isPkr,
+                $displayCurrency,
                 $displayRate,
             ));
 
@@ -116,9 +118,16 @@ class InvestorProfitTotals
             ->where('direction', 'credit')
             ->where('status', 'pending')
             ->whereIn('type', ['profit', 'distribution', 'dividend'])
-            ->sum('amount');
+            ->get(['amount', 'meta'])
+            ->sum(function (WalletTransaction $transaction) use ($displayCurrency): float {
+                $meta = is_array($transaction->meta) ? $transaction->meta : [];
 
-        $pendingDistribution = (float) $pendingDistribution;
+                return self::convertToCurrency(
+                    (float) $transaction->amount,
+                    strtoupper((string) ($meta['currency'] ?? $displayCurrency)),
+                    $displayCurrency,
+                );
+            });
 
         return [
             'total_portfolio_value' => round($currentInvestmentValue + $walletValue + $pendingDistribution, 2),
@@ -136,8 +145,8 @@ class InvestorProfitTotals
     public static function monthlyBreakdown(int $userId, ?User $user = null): array
     {
         $user ??= User::query()->with(['profile', 'wallet'])->find($userId);
-        $isPkr = $user ? UserDisplayCurrency::isPkrUser($user) : false;
-        $displayRate = $isPkr ? InvestorDepositFx::resolveDisplayRate($userId) : null;
+        $walletCurrency = $user ? UserDisplayCurrency::currencyForUser($user) : 'USD';
+        $displayRate = $walletCurrency === 'PKR' ? InvestorDepositFx::resolveDisplayRate($userId) : null;
 
         /** @var array<string, array{wallet: float, usd: float}> $byMonth */
         $byMonth = [];
@@ -149,7 +158,7 @@ class InvestorProfitTotals
                 ->where('direction', 'credit')
                 ->whereIn('type', self::WALLET_PROFIT_TYPES)
                 ->where('status', 'completed')
-                ->get(['amount', 'created_at']);
+                ->get(['amount', 'created_at', 'meta']);
 
             foreach ($walletRows as $tx) {
                 if (! $tx->created_at) {
@@ -157,13 +166,11 @@ class InvestorProfitTotals
                 }
                 $key = $tx->created_at->format('Y-m');
                 $amount = (float) $tx->amount;
+                $meta = is_array($tx->meta) ? $tx->meta : [];
+                $sourceCurrency = strtoupper((string) ($meta['currency'] ?? $walletCurrency));
                 $byMonth[$key] ??= ['wallet' => 0.0, 'usd' => 0.0];
-                $byMonth[$key]['wallet'] += $amount;
-                if ($isPkr && $displayRate !== null && $displayRate > 0) {
-                    $byMonth[$key]['usd'] += $amount / $displayRate;
-                } else {
-                    $byMonth[$key]['usd'] += $amount;
-                }
+                $byMonth[$key]['wallet'] += self::convertToCurrency($amount, $sourceCurrency, $walletCurrency);
+                $byMonth[$key]['usd'] += self::convertToCurrency($amount, $sourceCurrency, 'USD');
             }
         }
 
@@ -175,7 +182,7 @@ class InvestorProfitTotals
         foreach ($distributions as $dist) {
             $key = Carbon::parse($dist->distributed_at)->format('Y-m');
             $byMonth[$key] ??= ['wallet' => 0.0, 'usd' => 0.0];
-            $byMonth[$key]['wallet'] += self::distributionToWallet($dist, $isPkr, $displayRate);
+            $byMonth[$key]['wallet'] += self::distributionToWallet($dist, $walletCurrency, $displayRate);
             $byMonth[$key]['usd'] += (float) $dist->profit_amount;
         }
 
@@ -204,44 +211,80 @@ class InvestorProfitTotals
      */
     public static function distributionToWallet(
         InvestmentProfitDistribution $dist,
-        bool $isPkr,
+        bool|string $displayCurrency,
         ?float $displayRate = null,
     ): float {
-        if (! $isPkr) {
-            return (float) $dist->profit_amount;
-        }
+        $displayCurrency = self::normalizeCurrency($displayCurrency);
 
-        if ($dist->profit_amount_pkr !== null) {
+        if ($displayCurrency === 'PKR' && $dist->profit_amount_pkr !== null) {
             return (float) $dist->profit_amount_pkr;
         }
 
-        return self::usdToPkr((float) $dist->profit_amount, $displayRate);
+        return self::convertToCurrency((float) $dist->profit_amount, 'USD', $displayCurrency);
     }
 
     /**
      * Investment principal in wallet currency (PKR prefers amount_pkr).
      */
-    public static function investmentToWallet(Investment $inv, bool $isPkr, ?float $displayRate = null): float
+    public static function investmentToWallet(Investment $inv, bool|string $displayCurrency, ?float $displayRate = null): float
     {
-        if (! $isPkr) {
-            return (float) $inv->amount;
-        }
+        $displayCurrency = self::normalizeCurrency($displayCurrency);
 
-        if ($inv->amount_pkr !== null) {
+        if ($displayCurrency === 'PKR' && $inv->amount_pkr !== null) {
             return (float) $inv->amount_pkr;
         }
 
-        return self::usdToPkr((float) $inv->amount, $displayRate);
+        return self::convertToCurrency(
+            (float) $inv->amount,
+            strtoupper((string) ($inv->amount_currency ?: 'USD')),
+            $displayCurrency,
+        );
     }
 
     /**
      * @param  Collection<int, Investment>  $investments
      */
-    public static function sumInvestedWallet(Collection $investments, bool $isPkr, ?float $displayRate = null): float
+    public static function sumInvestedWallet(Collection $investments, bool|string $displayCurrency, ?float $displayRate = null): float
     {
         return round((float) $investments->sum(
-            fn (Investment $inv) => self::investmentToWallet($inv, $isPkr, $displayRate)
+            fn (Investment $inv) => self::investmentToWallet($inv, $displayCurrency, $displayRate)
         ), 2);
+    }
+
+    /**
+     * @param  Collection<int, Investment>  $investments
+     */
+    public static function sumInvestedUsd(Collection $investments): float
+    {
+        return round((float) $investments->sum(
+            fn (Investment $investment) => self::convertToCurrency(
+                (float) $investment->amount,
+                strtoupper((string) ($investment->amount_currency ?: 'USD')),
+                'USD',
+            )
+        ), 2);
+    }
+
+    private static function normalizeCurrency(bool|string $currency): string
+    {
+        if (is_bool($currency)) {
+            return $currency ? 'PKR' : 'USD';
+        }
+
+        $currency = strtoupper(trim($currency));
+
+        return preg_match('/^[A-Z]{3}$/', $currency) ? $currency : 'USD';
+    }
+
+    public static function convertToCurrency(float $amount, string $sourceCurrency, string $targetCurrency): float
+    {
+        $sourceCurrency = strtoupper(trim($sourceCurrency));
+        $targetCurrency = strtoupper(trim($targetCurrency));
+        if (abs($amount) < 0.0001 || $sourceCurrency === $targetCurrency) {
+            return round($amount, 2);
+        }
+
+        return (float) ExchangeRateService::convert($amount, $sourceCurrency, $targetCurrency)['amount'];
     }
 
     public static function usdToPkr(float $usd, ?float $displayRate = null): float

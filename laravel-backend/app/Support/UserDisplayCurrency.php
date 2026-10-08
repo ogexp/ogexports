@@ -24,22 +24,23 @@ class UserDisplayCurrency
             return strtoupper((string) $user->wallet->currency);
         }
 
+        $preferences = is_array($user->profile?->meta) ? ($user->profile->meta['preferences'] ?? []) : [];
+        $preferredCurrency = is_array($preferences)
+            ? strtoupper(trim((string) ($preferences['currency'] ?? '')))
+            : '';
+        if ($preferredCurrency !== '' && ExchangeRateService::isSupported($preferredCurrency)) {
+            return $preferredCurrency;
+        }
+
         return InvestorMarket::currencyForUser($user);
     }
 
     /**
-     * Wallet/market truth: Pakistani investor with a PKR wallet.
-     * Used for deposits, withdrawals, and ledger math — not for display formatting alone.
+     * Whether the investor's actual wallet is denominated in PKR.
      */
     public static function isPkrUser(?User $user): bool
     {
         if (! $user) {
-            return false;
-        }
-
-        $user->loadMissing(['profile', 'wallet']);
-
-        if (! self::isPakistanCountry($user->profile?->country)) {
             return false;
         }
 

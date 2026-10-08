@@ -55,12 +55,12 @@ class InvestorDashboardFinance
         $pendingWithdrawals = Withdrawal::query()
             ->where('investor_id', $investorId)
             ->whereIn('status', self::PENDING_WITHDRAWAL_STATUSES)
-            ->get(['id', 'amount', 'amount_usd', 'exchange_rate', 'status']);
+            ->get(['id', 'amount', 'amount_usd', 'exchange_rate', 'status', 'bank_details']);
 
         $approvedWithdrawals = Withdrawal::query()
             ->where('investor_id', $investorId)
             ->whereIn('status', self::APPROVED_WITHDRAWAL_STATUSES)
-            ->get(['id', 'amount', 'amount_usd', 'exchange_rate', 'status']);
+            ->get(['id', 'amount', 'amount_usd', 'exchange_rate', 'status', 'bank_details']);
 
         $pendingDepositsAmount = round((float) $pendingDeposits->sum(
             fn (Deposit $deposit) => self::depositToWallet($deposit, $walletCurrency)
@@ -71,20 +71,19 @@ class InvestorDashboardFinance
         ), 2);
 
         $pendingWithdrawalsAmount = round((float) $pendingWithdrawals->sum(
-            fn (Withdrawal $w) => (float) $w->amount
+            fn (Withdrawal $w) => self::withdrawalToCurrency($w, $walletCurrency)
         ), 2);
 
         $totalWithdrawalsAmount = round((float) $approvedWithdrawals->sum(
-            fn (Withdrawal $w) => (float) $w->amount
+            fn (Withdrawal $w) => self::withdrawalToCurrency($w, $walletCurrency)
         ), 2);
 
         $pendingWithdrawalsUsd = self::withdrawalsUsdSum($pendingWithdrawals, $walletCurrency, $isPkrInvestor, $displayUsdRate);
         $totalWithdrawalsUsd = self::withdrawalsUsdSum($approvedWithdrawals, $walletCurrency, $isPkrInvestor, $displayUsdRate);
 
-        $totalDepositsUsd = null;
-        if ($isPkrInvestor && $displayUsdRate !== null && $displayUsdRate > 0) {
-            $totalDepositsUsd = InvestorDepositFx::pkrToUsd($totalDepositsAmount, $displayUsdRate);
-        }
+        $totalDepositsUsd = round((float) $approvedDeposits->sum(
+            fn (Deposit $deposit) => self::depositToCurrency($deposit, 'USD')
+        ), 2);
 
         return [
             'pending_deposits_amount' => $pendingDepositsAmount,
@@ -109,17 +108,47 @@ class InvestorDashboardFinance
             return (float) $deposit->converted_amount;
         }
 
+        return self::depositToCurrency($deposit, $walletCurrency);
+    }
+
+    private static function depositToCurrency(Deposit $deposit, string $currency): float
+    {
+        if (strtoupper($currency) === 'USD' && $deposit->amount_usd !== null) {
+            return (float) $deposit->amount_usd;
+        }
+
         $depositCurrency = strtoupper($deposit->currency ?: 'USD');
 
-        try {
-            return (float) ExchangeRateService::convert(
-                (float) $deposit->amount,
-                $depositCurrency,
-                $walletCurrency
-            )['amount'];
-        } catch (\Throwable) {
-            return (float) $deposit->amount;
+        return (float) ExchangeRateService::convert(
+            (float) $deposit->amount,
+            $depositCurrency,
+            $currency
+        )['amount'];
+    }
+
+    private static function withdrawalToCurrency(Withdrawal $withdrawal, string $currency): float
+    {
+        $amount = (float) $withdrawal->amount;
+        $from = self::withdrawalCurrency($withdrawal, $currency);
+        if ($from === strtoupper($currency)) {
+            return $amount;
         }
+
+        return (float) ExchangeRateService::convert($amount, $from, $currency)['amount'];
+    }
+
+    private static function withdrawalCurrency(Withdrawal $withdrawal, string $fallbackCurrency): string
+    {
+        $bankDetails = is_array($withdrawal->bank_details) ? $withdrawal->bank_details : [];
+        $currency = strtoupper(trim((string) ($bankDetails['currency'] ?? '')));
+
+        if ($currency !== '') {
+            return $currency;
+        }
+
+        // Older PKR withdrawals recorded the exchange rate before bank-details
+        // currency was added. Otherwise, their amount followed the wallet currency.
+        return $withdrawal->exchange_rate !== null ? 'PKR' : strtoupper($fallbackCurrency);
     }
 
     /**
@@ -132,11 +161,7 @@ class InvestorDashboardFinance
         ?float $displayUsdRate,
     ): ?float {
         if ($withdrawals->isEmpty()) {
-            if ($isPkrInvestor) {
-                return 0.0;
-            }
-
-            return $walletCurrency === 'USD' ? 0.0 : null;
+            return 0.0;
         }
 
         $sum = 0.0;
@@ -168,20 +193,15 @@ class InvestorDashboardFinance
         }
 
         $amount = (float) $withdrawal->amount;
-
-        if ($walletCurrency === 'USD' || ! $isPkrInvestor) {
-            return $amount;
-        }
-
+        $sourceCurrency = self::withdrawalCurrency($withdrawal, $walletCurrency);
         $rate = $withdrawal->exchange_rate !== null ? (float) $withdrawal->exchange_rate : null;
-        if ($rate !== null && $rate > 0) {
+        if ($sourceCurrency === 'PKR' && $rate !== null && $rate > 0) {
             return round($amount / $rate, 2);
         }
-
-        if ($displayUsdRate !== null && $displayUsdRate > 0) {
-            return InvestorDepositFx::pkrToUsd($amount, $displayUsdRate);
+        if ($sourceCurrency === 'PKR' && $isPkrInvestor && $displayUsdRate !== null && $displayUsdRate > 0) {
+            return round($amount / $displayUsdRate, 2);
         }
 
-        return null;
+        return (float) ExchangeRateService::convert($amount, $sourceCurrency, 'USD')['amount'];
     }
 }

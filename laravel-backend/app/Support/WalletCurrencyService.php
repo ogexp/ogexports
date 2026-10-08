@@ -104,7 +104,6 @@ class WalletCurrencyService
             if (! isset($meta['currency'])) {
                 $meta['currency'] = strtoupper((string) (
                     $meta['wallet_currency']
-                    ?? $meta['currency']
                     ?? $sourceCurrency
                 ));
                 $transaction->meta = $meta;

@@ -7,10 +7,12 @@
  */
 import type { InvestorDashboardDataWallet } from './investorDashboardDataWallet';
 import type { InvestorDashboardSummary } from './investorDashboardSummary';
+import type { InvestorWalletTransaction } from './investorWalletTransaction';
 
 export interface InvestorDashboardData {
   summary: InvestorDashboardSummary;
   wallet: InvestorDashboardDataWallet;
+  recent_transactions?: InvestorWalletTransaction[];
   /** Fixed withdrawal fee expressed in the investor wallet currency. */
   withdrawal_fee?: number;
   /** Fixed withdrawal fee expressed in USD. */

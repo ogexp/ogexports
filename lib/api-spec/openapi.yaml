@@ -324,7 +324,7 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/InvestorProjectInvestmentRequest" }
       responses:
-        "201": { description: Server-confirmed investment record and updated project capacity, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorProjectInvestmentResponse" } } } }
+        "201": { description: "Server-confirmed investment record, wallet debit, and updated project capacity", content: { application/json: { schema: { $ref: "#/components/schemas/InvestorProjectInvestmentResponse" } } } }
   /investor/investments:
     get:
       operationId: getInvestorInvestments
@@ -419,7 +419,7 @@ paths:
         - { name: page, in: query, schema: { type: integer } }
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
       responses:
-        "200": { description: Wallet ledger, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+         "200": { description: Wallet ledger, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorWalletTransactionsResponse" } } } }
   /investor/wallet/transactions/{id}:
     get:
       operationId: getInvestorWalletTransaction
@@ -429,7 +429,7 @@ paths:
       parameters:
         - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
       responses:
-        "200": { description: Wallet transaction details, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "200": { description: Wallet transaction details, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorWalletTransactionResponse" } } } }
         "404": { description: Wallet transaction not found for this investor }
   /investor/wallet/exchange-rates:
     get:
@@ -1429,7 +1429,7 @@ components:
     InvestorProjectInvestmentResponse:
       type: object
       additionalProperties: true
-      required: [message, data, capacity]
+      required: [message, data, wallet_debit, wallet_currency, wallet_exchange_rate, wallet_rates_as_of, capacity]
       properties:
         message:
           type: string
@@ -1458,6 +1458,19 @@ components:
             approved_at:
               type: [string, "null"]
               format: date-time
+        wallet_debit:
+          type: number
+          description: Amount actually debited from the wallet, in wallet_currency.
+        wallet_currency:
+          type: string
+          description: Current wallet currency used for the debit.
+        wallet_exchange_rate:
+          type: [number, "null"]
+          description: Exchange rate used to convert the opportunity amount to wallet currency.
+        wallet_rates_as_of:
+          type: [string, "null"]
+          format: date-time
+          description: Timestamp for the exchange rates used for the wallet debit.
         capacity:
           type: object
           additionalProperties: true
@@ -1555,6 +1568,23 @@ components:
       additionalProperties: true
       required: [project]
       properties:
+        id:
+          type: integer
+        amount:
+          type: number
+          description: Original investment amount in amount_currency.
+        amount_currency:
+          type: string
+          description: Currency in which the investor entered the opportunity amount.
+        amount_pkr:
+          type: ["number", "null"]
+          description: Saved PKR equivalent, when one was recorded.
+        profit_amount:
+          type: ["number", "null"]
+          description: Recorded profit amount in USD.
+        profit_amount_pkr:
+          type: ["number", "null"]
+          description: Saved PKR equivalent of recorded profit, when one was recorded.
         project:
           $ref: "#/components/schemas/InvestorProjectDetail"
         expected_profit:
@@ -1591,6 +1621,36 @@ components:
       additionalProperties: true
       required: [total_portfolio_value, distributed_returns, pending_distribution, display_currency]
       properties:
+        total_investment:
+          type: number
+          description: Invested principal in display_currency.
+        total_investment_usd:
+          type: number
+          description: Invested principal converted to USD.
+        active_investment:
+          type: number
+          description: Pending and active invested principal in display_currency.
+        active_investment_usd:
+          type: number
+          description: Pending and active invested principal converted to USD.
+        total_profit_earned:
+          type: number
+          description: Earned profit in display_currency.
+        total_profit_earned_usd:
+          type: number
+          description: Earned profit converted to USD.
+        monthly_profit:
+          type: number
+          description: Current-month profit in display_currency.
+        monthly_profit_usd:
+          type: number
+          description: Current-month profit converted to USD.
+        available_balance:
+          type: number
+          description: Available wallet balance in display_currency.
+        pending_balance:
+          type: number
+          description: Reserved wallet balance in display_currency.
         total_portfolio_value:
           type: number
           description: Current pending and active investment principal, available and reserved wallet balances, and explicit pending distributions; completed investments are excluded because their return is credited to the wallet.
@@ -1618,6 +1678,10 @@ components:
             currency:
               type: string
               description: Currency used for wallet balances.
+        recent_transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvestorWalletTransaction"
         withdrawal_fee:
           type: number
           description: Fixed withdrawal fee expressed in the investor wallet currency.
@@ -1660,6 +1724,62 @@ components:
             estimated_processing_time:
               type: string
               description: Server-provided estimated withdrawal processing time.
+    InvestorWalletTransaction:
+      type: object
+      additionalProperties: true
+      required: [id, type, amount, direction, status, currency]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        amount:
+          type: number
+        direction:
+          type: string
+          enum: [credit, debit]
+        status:
+          type: string
+        currency:
+          type: string
+          description: Original currency denomination for this ledger row; it does not change when the wallet is converted.
+        reference:
+          type: ["string", "null"]
+        created_at:
+          type: ["string", "null"]
+          format: date-time
+        meta:
+          type: ["object", "null"]
+          additionalProperties: true
+    InvestorWalletTransactionsResponse:
+      type: object
+      additionalProperties: true
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvestorWalletTransaction"
+        current_page: { type: integer }
+        last_page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+        links: { type: array, items: { type: object, additionalProperties: true } }
+        meta: { type: object, additionalProperties: true }
+    InvestorWalletTransactionResponse:
+      type: object
+      additionalProperties: true
+      required: [data]
+      properties:
+        data:
+          allOf:
+            - $ref: "#/components/schemas/InvestorWalletTransaction"
+            - type: object
+              properties:
+                withdrawal_breakdown:
+                  anyOf:
+                    - $ref: "#/components/schemas/InvestorWalletWithdrawalBreakdown"
+                    - type: "null"
     InvestorWalletWithdrawalBreakdown:
       type: object
       additionalProperties: false
@@ -1840,7 +1960,6 @@ components:
         planned_date: { type: string, format: date, nullable: true }
     InvestorProfileUpdate:
       type: object
-      required: [name]
       properties:
         name:
           type: string
@@ -1854,6 +1973,14 @@ components:
           type: string
           description: Optional country or region.
           maxLength: 80
+        preferences:
+          type: object
+          additionalProperties: true
+          properties:
+            currency:
+              type: string
+              enum: [USD, PKR, EUR, GBP]
+              description: Selecting a currency converts the actual wallet balance and changes future wallet operations.
     InvestorWithdrawalInput:
       type: object
       additionalProperties: true

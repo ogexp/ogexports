@@ -35,8 +35,10 @@ it('allows investor registration when module is enabled', function () {
         'account_type' => 'investor',
         'country' => 'Pakistan',
     ])->assertCreated()
-        ->assertJsonPath('redirect', '/invest/dashboard')
-        ->assertJsonPath('user.accountType', 'investor');
+        ->assertJsonPath('requires_verification', true);
+
+    $investor = User::query()->where('email', 'investor-on@example.com')->firstOrFail();
+    expect($investor->hasRole('investor'))->toBeTrue();
 });
 
 it('blocks investor registration when module is disabled', function () {

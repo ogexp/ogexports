@@ -5,13 +5,14 @@
  * OG Exports investor and administrator API, generated from the Laravel API contract
  * OpenAPI spec version: 1.0.0
  */
+import type { InvestorProfileUpdatePreferences } from './investorProfileUpdatePreferences';
 
 export interface InvestorProfileUpdate {
   /**
      * @minLength 2
      * @maxLength 120
      */
-  name: string;
+  name?: string;
   /**
      * Optional mobile number with country calling code. This number is not verified by SMS.
      * @maxLength 32
@@ -22,4 +23,5 @@ export interface InvestorProfileUpdate {
      * @maxLength 80
      */
   country?: string;
+  preferences?: InvestorProfileUpdatePreferences;
 }

@@ -158,21 +158,23 @@ class InvestmentReviewService
 
             $investedAmount = (float) $investment->amount;
             $investedAmountPkr = $investment->amount_pkr !== null ? (float) $investment->amount_pkr : null;
+            $investmentCurrency = strtoupper((string) ($investment->amount_currency ?: 'USD'));
+            $investedAmountUsd = ExchangeRateService::convert(
+                $investedAmount,
+                $investmentCurrency,
+                'USD',
+            )['amount'];
             $roiPct = (float) ($project->expected_return_pct ?: 0);
             $profit = round($investedAmount * ($roiPct / 100), 2);
-            $profitPkr = $investedAmountPkr !== null
-                ? round($investedAmountPkr * ($roiPct / 100), 2)
-                : null;
-            $totalReturnUsd = round($investedAmount + $profit, 2);
-            $totalReturnWallet = $investedAmountPkr !== null && $profitPkr !== null
-                ? round($investedAmountPkr + $profitPkr, 2)
-                : $totalReturnUsd;
+            $profitUsd = ExchangeRateService::convert($profit, $investmentCurrency, 'USD')['amount'];
+            $profitPkr = null;
+            $totalReturnUsd = round($investedAmountUsd + $profitUsd, 2);
             $ref = $investment->reference ?: 'INV-'.$investment->id;
 
             $investment->update([
                 'status' => 'completed',
-                'profit_amount' => $profit,
-                'profit_amount_pkr' => $profitPkr,
+                'profit_amount' => $profitUsd,
+                'profit_amount_pkr' => null,
             ]);
 
             $wallet = Wallet::query()
@@ -185,16 +187,39 @@ class InvestmentReviewService
             if (! $wallet) {
                 $wallet = Wallet::query()->create([
                     'user_id' => $investment->investor_id,
-                    'currency' => InvestorMarket::currencyForUser($investment->investor),
+                    'currency' => UserDisplayCurrency::currencyForUser($investment->investor),
                     'available_balance' => 0,
                     'pending_balance' => 0,
                 ]);
             }
 
-            $walletCurrency = $wallet->currency ?: InvestorMarket::currencyForUser($investment->investor);
+            $walletCurrency = strtoupper((string) ($wallet->currency ?: UserDisplayCurrency::currencyForUser($investment->investor)));
+            $purchaseTransaction = WalletTransaction::query()
+                ->where('reference', $ref)
+                ->where('type', 'investment')
+                ->where('direction', 'debit')
+                ->first();
+            $purchaseMeta = is_array($purchaseTransaction?->meta) ? $purchaseTransaction->meta : [];
+            $fundingCurrency = strtoupper((string) (
+                $purchaseMeta['currency']
+                ?? ($investedAmountPkr !== null ? 'PKR' : $investmentCurrency)
+            ));
+            $fundingPrincipal = $purchaseTransaction
+                ? round((float) $purchaseTransaction->amount, 2)
+                : ExchangeRateService::convert($investedAmount, $investmentCurrency, $fundingCurrency)['amount'];
+            $fundingProfit = round($fundingPrincipal * ($roiPct / 100), 2);
+            $totalReturnFunding = round($fundingPrincipal + $fundingProfit, 2);
+            $walletConversion = ExchangeRateService::convert($totalReturnFunding, $fundingCurrency, $walletCurrency);
+            $totalReturnWallet = $walletConversion['amount'];
+            $investedAmountPkrForDistribution = null;
+            if ($walletCurrency === 'PKR') {
+                $investedAmountPkrForDistribution = ExchangeRateService::convert($investedAmountUsd, 'USD', 'PKR')['amount'];
+                $profitPkr = ExchangeRateService::convert($profitUsd, 'USD', 'PKR')['amount'];
+                $investment->update(['profit_amount_pkr' => $profitPkr]);
+            }
 
             $platformTx = PlatformWalletService::debit(
-                $totalReturnWallet,
+                $totalReturnFunding,
                 'investment_return_out',
                 $ref.'-return',
                 [
@@ -203,10 +228,16 @@ class InvestmentReviewService
                     'investor_id' => $investment->investor_id,
                     'invested_amount' => $investedAmount,
                     'invested_amount_pkr' => $investedAmountPkr,
-                    'profit_amount' => $profit,
+                    'profit_amount' => $profitUsd,
                     'profit_amount_pkr' => $profitPkr,
+                    'funding_currency' => $fundingCurrency,
+                    'funding_amount' => $totalReturnFunding,
+                    'wallet_amount' => $totalReturnWallet,
+                    'wallet_currency' => $walletCurrency,
+                    'wallet_exchange_rate' => $walletConversion['rate'],
+                    'wallet_rates_as_of' => $walletConversion['as_of'],
                 ],
-                $walletCurrency,
+                $fundingCurrency,
             );
 
             $wallet->increment('available_balance', $totalReturnWallet);
@@ -225,8 +256,15 @@ class InvestmentReviewService
                     'project_title' => $project->title,
                     'invested_amount' => $investedAmount,
                     'invested_amount_pkr' => $investedAmountPkr,
-                    'profit_amount' => $profit,
+                    'profit_amount' => $profitUsd,
                     'profit_amount_pkr' => $profitPkr,
+                    'investment_currency' => $investmentCurrency,
+                    'funding_currency' => $fundingCurrency,
+                    'funding_amount' => $totalReturnFunding,
+                    'wallet_amount' => $totalReturnWallet,
+                    'currency' => $walletCurrency,
+                    'wallet_exchange_rate' => $walletConversion['rate'],
+                    'wallet_rates_as_of' => $walletConversion['as_of'],
                     'roi_pct' => $roiPct,
                     'platform_wallet_transaction_id' => $platformTx->id,
                 ],
@@ -237,9 +275,9 @@ class InvestmentReviewService
                 'project_id' => $project->id,
                 'investor_id' => $investment->investor_id,
                 'project_type' => (string) $project->type,
-                'invested_amount' => $investedAmount,
-                'invested_amount_pkr' => $investedAmountPkr,
-                'profit_amount' => $profit,
+                'invested_amount' => $investedAmountUsd,
+                'invested_amount_pkr' => $investedAmountPkrForDistribution,
+                'profit_amount' => $profitUsd,
                 'profit_amount_pkr' => $profitPkr,
                 'total_return' => $totalReturnUsd,
                 'roi_pct' => $roiPct,

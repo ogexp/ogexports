@@ -7,7 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGetInvestorInvestment } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount, first, list, messageOf, moneyToCurrency, record, unwrap, type Json } from '@/lib/data';
+import { amount, first, list, messageOf, money, record, unwrap, type Json } from '@/lib/data';
 import { TradeTimeline } from '@/components/TradeTimeline';
 import { TradeProgressCard } from '@/components/TradeProgressCard';
 import { useAuth } from '@/context/AuthContext';
@@ -110,11 +110,11 @@ export default function PositionDetail() {
   const investedAmount = amount(row, ['amount', 'investment_amount', 'principal']);
   const investedPkr = amount(row, ['amount_pkr']);
   const investedAmountText = investedAmount != null
-    ? moneyToCurrency(investedAmount, currency || 'USD', 'USD')
+    ? money(investedAmount, currency || 'USD')
     : investedPkr != null
-      ? moneyToCurrency(investedPkr, 'PKR', 'USD')
-      : moneyToCurrency(null, currency || 'USD', 'USD');
-  const amountText = (value: number | null) => moneyToCurrency(value, currency || 'USD', 'USD');
+      ? money(investedPkr, 'PKR')
+      : money(null, currency || 'USD');
+  const amountText = (value: number | null) => money(value, currency || 'USD');
   const tradeCycle = first(row, ['trade_cycle', 'estimated_trade_cycle', 'duration'], first(project, ['trade_cycle', 'estimated_trade_cycle', 'duration'], first(trade, ['trade_cycle', 'estimated_trade_cycle', 'duration'], '')));
   const tradeCycleDays = first(row, ['investment_period_days', 'trade_cycle_days', 'duration_days'], first(project, ['investment_period_days', 'trade_cycle_days', 'duration_days'], first(trade, ['investment_period_days', 'trade_cycle_days', 'duration_days'], '')));
   const projectedAmount = amount(row, ['projected_return_amount', 'estimated_return_amount', 'target_return_amount', 'projected_distribution', 'estimated_distribution'])
@@ -131,9 +131,9 @@ export default function PositionDetail() {
   const totalReturn = amount(row, ['total_return', 'total_return_amount'])
     ?? amount(record(row.profit_distribution ?? row.distribution), ['total_return']);
   const actualPerformance: [string, string][] = [];
-  if (actualProfitUsd != null) actualPerformance.push(['Profit recorded (USD)', moneyToCurrency(actualProfitUsd, 'USD', 'USD')]);
-  else if (actualProfitPkr != null) actualPerformance.push(['Profit recorded (USD)', moneyToCurrency(actualProfitPkr, 'PKR', 'USD')]);
-  else actualPerformance.push(['Profit recorded (USD)', moneyToCurrency(null, 'USD', 'USD')]);
+  if (actualProfitUsd != null) actualPerformance.push(['Profit recorded', money(actualProfitUsd, 'USD')]);
+  else if (actualProfitPkr != null) actualPerformance.push(['Profit recorded', money(actualProfitPkr, 'PKR')]);
+  else actualPerformance.push(['Profit recorded', money(null, 'USD')]);
   if (actualReturn != null) actualPerformance.push(['Returned or distributed amount', amountText(actualReturn)]);
   if (totalReturn != null) actualPerformance.push(['Total return recorded', amountText(totalReturn)]);
 
@@ -170,9 +170,9 @@ export default function PositionDetail() {
   const expectedProfit = calculateExpectedProfitFromRoi(primaryInvestmentAmount, roiForCalculation) ?? reportedExpectedProfit;
   const expectedProfitPkr = calculateExpectedProfitFromRoi(investedPkr, roiForCalculation) ?? reportedExpectedProfitPkr;
   const expectedProfitText = expectedProfit != null
-    ? moneyToCurrency(expectedProfit, currency || 'USD', 'USD')
+    ? money(expectedProfit, currency || 'USD')
     : expectedProfitPkr != null
-      ? moneyToCurrency(expectedProfitPkr, 'PKR', 'USD')
+      ? money(expectedProfitPkr, 'PKR')
       : amountText(null);
   const distributionStatusRaw = firstAvailable([row], ['distribution_status', 'payout_status', 'profit_distribution_status'])
     || firstAvailable([distributionRecord], ['distribution_status', 'payout_status', 'status'])

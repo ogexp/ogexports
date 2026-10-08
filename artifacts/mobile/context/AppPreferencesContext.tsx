@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { I18nManager, Platform, useColorScheme } from 'react-native';
 import { reloadAppAsync } from 'expo';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetInvestorExchangeRates,
   useGetInvestorProfile,
@@ -23,6 +24,7 @@ export type AppPreferences = {
 
 type PreferencesContextValue = {
   preferences: AppPreferences;
+  walletCurrency: string;
   resolvedAppearance: 'light' | 'dark';
   isRTL: boolean;
   isLoading: boolean;
@@ -75,6 +77,7 @@ function normalizeRates(value: unknown, base: string): Record<string, number> {
 
 export function AppPreferencesProvider({ children }: { children: React.ReactNode }) {
   const { token, user } = useAuth();
+  const queryClient = useQueryClient();
   const systemAppearance = useColorScheme();
   const userId = first(record(user), ['id']);
   const [preferences, setPreferences] = useState<AppPreferences>(defaultPreferences);
@@ -100,6 +103,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   const updateProfile = useUpdateInvestorProfile();
   const profile = unwrap(profileQuery.data);
   const rateResponse = unwrap(ratesQuery.data);
+  const walletCurrency = first(record(profile.user), ['walletCurrency', 'wallet_currency']).toUpperCase();
   const rates = normalizeRates(rateResponse.rates, first(rateResponse, ['base']).toUpperCase());
   const ratesAsOf = first(rateResponse, ['as_of', 'updated_at']);
   const isRTL = preferences.language === 'ur' || preferences.language === 'ar';
@@ -143,6 +147,9 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     if (!preferencesLoaded || !profileQuery.data) return;
     const serverPreferences = record(profile.preferences);
     const parsed = parsePreferences(serverPreferences);
+    if (!parsed.currency && ['USD', 'PKR', 'EUR', 'GBP'].includes(walletCurrency)) {
+      parsed.currency = walletCurrency as DisplayCurrency;
+    }
     if (Object.keys(parsed).length) {
       setPreferences(current => ({ ...current, ...parsed }));
       if (userId) {
@@ -152,7 +159,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
         ).catch(() => undefined);
       }
     }
-  }, [preferencesLoaded, profileQuery.data, userId]);
+  }, [preferencesLoaded, profileQuery.data, userId, walletCurrency]);
 
   useEffect(() => {
     if (!preferencesLoaded) return;
@@ -191,17 +198,22 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
       await updateProfile.mutateAsync({ data: { preferences: preferencesToSave } });
       await AsyncStorage.setItem(preferenceStorageKey(userId), JSON.stringify(next));
       setPreferences(next);
-      void profileQuery.refetch();
+      if (patch.currency !== undefined) {
+        await queryClient.invalidateQueries();
+      } else {
+        void profileQuery.refetch();
+      }
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'App preferences could not be saved.');
       throw saveError;
     } finally {
       setIsSaving(false);
     }
-  }, [preferences, profile, profileQuery, token, updateProfile, userId]);
+  }, [preferences, profile, profileQuery, queryClient, token, updateProfile, userId]);
 
   const value = useMemo<PreferencesContextValue>(() => ({
     preferences,
+    walletCurrency,
     resolvedAppearance,
     isRTL,
     isLoading: !preferencesLoaded,
@@ -214,7 +226,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     savePreferences,
     clearError: () => setError(''),
   }), [
-    preferences, resolvedAppearance, isRTL, preferencesLoaded, isSaving, error,
+    preferences, walletCurrency, resolvedAppearance, isRTL, preferencesLoaded, isSaving, error,
     rates, ratesAsOf, ratesQuery.isLoading, ratesQuery.isError, savePreferences,
   ]);
 

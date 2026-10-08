@@ -9,7 +9,7 @@ import {
   useGetInvestorWalletTransactions,
 } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, Field, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount, first, list, money, moneyToCurrency, record } from '@/lib/data';
+import { amount, first, list, money, record } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, MotionReveal } from '@/lib/motion';
@@ -292,7 +292,7 @@ export default function InvestorSearch() {
                 {result.kind === 'investment' || result.kind === 'transaction'
                   ? <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700' }}>
                     {result.kind === 'investment'
-                      ? moneyToCurrency(result.value, result.currency || 'USD', 'USD')
+                      ? money(result.value, result.currency || 'USD')
                       : money(result.value, result.currency || 'USD')}
                   </Text>
                   : null}

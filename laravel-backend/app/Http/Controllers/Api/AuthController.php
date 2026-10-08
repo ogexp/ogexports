@@ -73,12 +73,15 @@ class AuthController extends Controller
             'user_id' => $user->id,
             'company_name' => $data['company_name'] ?? null,
             'country' => $data['country'] ?? null,
+            'meta' => $data['account_type'] === 'investor'
+                ? ['preferences' => ['currency' => 'USD']]
+                : [],
         ]);
 
         if ($data['account_type'] === 'investor') {
             Wallet::create([
                 'user_id' => $user->id,
-                'currency' => InvestorMarket::currencyForUser($user->fresh(['profile'])),
+                'currency' => 'USD',
             ]);
         }
 

@@ -206,7 +206,7 @@ class FinanceController extends Controller
         DB::transaction(function () use ($deposit, $request) {
             $deposit->loadMissing('investor.profile');
 
-            $walletCurrency = InvestorMarket::currencyForUser($deposit->investor);
+            $walletCurrency = UserDisplayCurrency::currencyForUser($deposit->investor);
             $depositCurrency = strtoupper($deposit->currency ?: 'USD');
 
             $conversion = ExchangeRateService::convert(

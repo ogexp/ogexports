@@ -17,7 +17,6 @@ use App\Support\ExchangeRateService;
 use App\Support\InvestmentCapacity;
 use App\Support\InvestorDashboardFinance;
 use App\Support\InvestorDepositFx;
-use App\Support\InvestorMarket;
 use App\Support\InvestorProfitTotals;
 use App\Support\KycGate;
 use App\Support\UserDisplayCurrency;
@@ -49,7 +48,7 @@ class DashboardController extends Controller
         $wallet = Wallet::query()->firstOrCreate(
             ['user_id' => $userId],
             [
-                'currency' => InvestorMarket::currencyForUser($user),
+                'currency' => UserDisplayCurrency::currencyForUser($user),
                 'available_balance' => 0,
                 'pending_balance' => 0,
             ]
@@ -61,43 +60,29 @@ class DashboardController extends Controller
             ->orderByDesc('invested_at')
             ->get();
 
-        $walletCurrency = strtoupper((string) ($wallet->currency ?: InvestorMarket::currencyForUser($user)));
-        $withdrawalTerms = WithdrawalTerms::forCurrency($walletCurrency);
-
-        $totalInvestedUsd = (float) $investments->sum('amount');
-        $activeInvestments = $investments->whereIn('status', ['pending', 'active']);
-        $activeInvestedUsd = (float) $activeInvestments->sum('amount');
-
-        $toWalletAmount = function (Investment $inv) use ($walletCurrency): float {
-            if ($walletCurrency === 'PKR') {
-                if ($inv->amount_pkr !== null) {
-                    return (float) $inv->amount_pkr;
-                }
-                try {
-                    return (float) ExchangeRateService::convert(
-                        (float) $inv->amount,
-                        'USD',
-                        'PKR'
-                    )['amount'];
-                } catch (\Throwable) {
-                    return (float) $inv->amount;
-                }
-            }
-
-            return (float) $inv->amount;
-        };
-
-        $totalInvested = (float) $investments->sum($toWalletAmount);
-        $activeInvested = (float) $activeInvestments->sum($toWalletAmount);
-        $activeCount = $activeInvestments->count();
-
-        $isPkrInvestor = UserDisplayCurrency::isPkrUser($user);
+        $walletCurrency = strtoupper((string) ($wallet->currency ?: UserDisplayCurrency::currencyForUser($user)));
+        $isPkrInvestor = $walletCurrency === 'PKR';
         $avgDepositRate = $isPkrInvestor
             ? InvestorDepositFx::weightedAverageDepositRate($userId)
             : null;
         $displayUsdRate = $isPkrInvestor
             ? InvestorDepositFx::resolveDisplayRate($userId)
             : null;
+        $withdrawalTerms = WithdrawalTerms::forCurrency($walletCurrency);
+
+        $totalInvestedUsd = InvestorProfitTotals::sumInvestedUsd($investments);
+        $activeInvestments = $investments->whereIn('status', ['pending', 'active']);
+        $activeInvestedUsd = InvestorProfitTotals::sumInvestedUsd($activeInvestments);
+
+        $toWalletAmount = fn (Investment $inv): float => InvestorProfitTotals::investmentToWallet(
+            $inv,
+            $walletCurrency,
+            $displayUsdRate,
+        );
+
+        $totalInvested = (float) $investments->sum($toWalletAmount);
+        $activeInvested = (float) $activeInvestments->sum($toWalletAmount);
+        $activeCount = $activeInvestments->count();
 
         $finance = InvestorDashboardFinance::forInvestor(
             $userId,
@@ -113,6 +98,7 @@ class DashboardController extends Controller
 
         $recentTransactions = WalletTransaction::query()
             ->where('wallet_id', $wallet->id)
+            ->with('wallet:id,currency')
             ->latest()
             ->limit(10)
             ->get()
@@ -132,7 +118,7 @@ class DashboardController extends Controller
             ->latest()
             ->limit(5)
             ->get()
-            ->map(fn (Withdrawal $w) => $this->transformWithdrawal($w))
+            ->map(fn (Withdrawal $w) => $this->transformWithdrawal($w, $walletCurrency))
             ->values();
 
         $myInvestments = $investments
@@ -215,35 +201,27 @@ class DashboardController extends Controller
         $dualCurrencyEnabled = PlatformSetting::dualCurrencyEnabled();
 
         $profitMonthly = InvestorProfitTotals::monthlyBreakdown($userId, $user);
-        $portfolioSeries = $this->buildPortfolioSeries($investments, $userId, $isPkrInvestor, $displayUsdRate);
+        $portfolioSeries = $this->buildPortfolioSeries($investments, $userId, $walletCurrency, $displayUsdRate);
         $allocation = $this->buildAllocation(
             $investments->whereIn('status', ['pending', 'active'])->values(),
             (float) $wallet->available_balance,
-            $isPkrInvestor,
+            $walletCurrency,
             $displayUsdRate,
         );
         $benchmarkSeries = $this->buildBenchmarkSeries($userId);
-        $nextDistribution = $this->buildNextDistribution($investments, $isPkrInvestor, $displayUsdRate);
+        $nextDistribution = $this->buildNextDistribution($investments, $walletCurrency, $displayUsdRate);
 
         $profitTotals = InvestorProfitTotals::profitEarned($userId, $user);
         $profitEarned = $profitTotals['wallet'];
-        $profitEarnedUsd = $isPkrInvestor ? $profitTotals['usd'] : null;
+        $profitEarnedUsd = $profitTotals['usd'];
 
         $currentMonthKey = now()->format('Y-m');
         $currentMonthRow = collect($profitMonthly)->firstWhere('month_key', $currentMonthKey);
         $monthlyProfit = (float) ($currentMonthRow['monthly'] ?? 0.0);
-        $monthlyProfitUsd = $isPkrInvestor
-            ? (float) ($currentMonthRow['monthly_usd'] ?? 0.0)
-            : null;
+        $monthlyProfitUsd = (float) ($currentMonthRow['monthly_usd'] ?? 0.0);
 
         $totalInvestmentDisplayUsd = round($totalInvestedUsd, 2);
         $activeInvestmentDisplayUsd = round($activeInvestedUsd, 2);
-
-        if ($isPkrInvestor && $displayUsdRate !== null && $displayUsdRate > 0) {
-            // Aggregate bracket USD uses average deposit rate (or live fallback).
-            $totalInvestmentDisplayUsd = InvestorDepositFx::pkrToUsd($totalInvested, $displayUsdRate);
-            $activeInvestmentDisplayUsd = InvestorDepositFx::pkrToUsd($activeInvested, $displayUsdRate);
-        }
 
         $portfolioSummary = InvestorProfitTotals::portfolioSummary(
             $investments,
@@ -368,15 +346,20 @@ class DashboardController extends Controller
             'direction' => $tx->direction,
             'method' => $meta['method'] ?? null,
             'amount' => (float) $tx->amount,
+            'currency' => $tx->currency,
             'status' => $tx->status,
             'remark' => $meta['note'] ?? $meta['remark'] ?? null,
             'created_at' => $tx->created_at?->toIso8601String(),
         ];
     }
 
-    private function transformWithdrawal(Withdrawal $w): array
+    private function transformWithdrawal(Withdrawal $w, string $walletCurrency = 'USD'): array
     {
         $bank = is_array($w->bank_details) ? $w->bank_details : [];
+        $currency = strtoupper(trim((string) ($bank['currency'] ?? '')));
+        if ($currency === '') {
+            $currency = $w->exchange_rate !== null ? 'PKR' : strtoupper($walletCurrency);
+        }
         $bankLabel = $bank['bank_name']
             ?? $bank['bank']
             ?? $bank['account_name']
@@ -392,6 +375,7 @@ class DashboardController extends Controller
             'date' => $w->created_at?->toDateString(),
             'date_label' => $w->created_at?->format('M j, Y'),
             'amount' => (float) $w->amount,
+            'currency' => $currency,
             'amount_usd' => $w->amount_usd !== null ? (float) $w->amount_usd : null,
             'exchange_rate' => $w->exchange_rate !== null ? (float) $w->exchange_rate : null,
             'bank' => $bankLabel,
@@ -575,7 +559,7 @@ class DashboardController extends Controller
     private function buildPortfolioSeries(
         Collection $investments,
         int $userId,
-        bool $isPkr = false,
+        string $walletCurrency = 'USD',
         ?float $displayRate = null,
     ): array {
         $events = [];
@@ -589,7 +573,7 @@ class DashboardController extends Controller
             $events[] = [
                 'at' => $at,
                 'type' => 'invest',
-                'amount' => InvestorProfitTotals::investmentToWallet($inv, $isPkr, $displayRate),
+                'amount' => InvestorProfitTotals::investmentToWallet($inv, $walletCurrency, $displayRate),
                 'profit' => 0.0,
                 'investment_id' => $inv->id,
             ];
@@ -606,16 +590,14 @@ class DashboardController extends Controller
             if (! $at) {
                 continue;
             }
-            $investedWallet = $isPkr
-                ? ($dist->invested_amount_pkr !== null
-                    ? (float) $dist->invested_amount_pkr
-                    : InvestorProfitTotals::usdToPkr((float) $dist->invested_amount, $displayRate))
-                : (float) $dist->invested_amount;
+            $investedWallet = $walletCurrency === 'PKR' && $dist->invested_amount_pkr !== null
+                ? (float) $dist->invested_amount_pkr
+                : ExchangeRateService::convert((float) $dist->invested_amount, 'USD', $walletCurrency)['amount'];
             $events[] = [
                 'at' => $at,
                 'type' => 'complete',
                 'amount' => $investedWallet,
-                'profit' => InvestorProfitTotals::distributionToWallet($dist, $isPkr, $displayRate),
+                'profit' => InvestorProfitTotals::distributionToWallet($dist, $walletCurrency, $displayRate),
                 'investment_id' => $dist->investment_id,
             ];
         }
@@ -836,7 +818,7 @@ class DashboardController extends Controller
      */
     private function buildNextDistribution(
         Collection $investments,
-        bool $isPkr = false,
+        string $walletCurrency = 'USD',
         ?float $displayRate = null,
     ): ?array {
         $candidates = [];
@@ -856,7 +838,7 @@ class DashboardController extends Controller
             }
 
             $roi = (float) ($project?->expected_return_pct ?: 0);
-            $amount = InvestorProfitTotals::investmentToWallet($inv, $isPkr, $displayRate);
+            $amount = InvestorProfitTotals::investmentToWallet($inv, $walletCurrency, $displayRate);
             $expectedProfit = round($amount * ($roi / 100), 2);
 
             $totalDays = $periodDays > 0
@@ -899,13 +881,13 @@ class DashboardController extends Controller
     private function buildAllocation(
         Collection $investments,
         float $availableBalance,
-        bool $isPkr = false,
+        string $walletCurrency = 'USD',
         ?float $displayRate = null,
     ): array {
         $byType = $investments
             ->groupBy(fn (Investment $inv) => strtolower((string) ($inv->project?->type ?: 'other')))
             ->map(fn (Collection $group) => (float) $group->sum(
-                fn (Investment $inv) => InvestorProfitTotals::investmentToWallet($inv, $isPkr, $displayRate)
+                fn (Investment $inv) => InvestorProfitTotals::investmentToWallet($inv, $walletCurrency, $displayRate)
             ));
 
         $total = (float) $byType->sum() + max(0, $availableBalance);

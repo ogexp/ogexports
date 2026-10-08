@@ -152,11 +152,14 @@ class ProjectController extends Controller
         $user = $request->user();
         $ref = $investment->reference ?: 'INV-'.$investment->id;
 
-        $amountUsd = (float) $investment->amount;
+        $investmentCurrency = strtoupper((string) $investment->amount_currency);
+        $amountUsd = (float) $result['investment_amount_usd'];
         $amountPkr = $investment->amount_pkr !== null ? (float) $investment->amount_pkr : null;
-        $walletNote = $amountPkr !== null
-            ? 'PKR '.number_format($amountPkr, 2).' ($'.number_format($amountUsd, 2).') was deducted from your wallet.'
-            : '$'.number_format($amountUsd, 2).' was deducted from your wallet.';
+        $walletAmount = (float) $result['wallet_debit'];
+        $walletCurrency = (string) $result['wallet_currency'];
+        $walletNote = number_format($walletAmount, 2).' '.$walletCurrency
+            .' was deducted from your wallet for a '.number_format((float) $investment->amount, 2)
+            .' '.$investmentCurrency.' investment.';
 
         NotifiesUsers::notifyAndEmail(
             $user,
@@ -173,9 +176,12 @@ class ProjectController extends Controller
             'investment_confirmed',
             [
                 'reference' => $ref,
-                'amount' => number_format($amountUsd, 2),
+                'amount' => number_format((float) $investment->amount, 2),
                 'amount_pkr' => $amountPkr !== null ? number_format($amountPkr, 2) : null,
-                'currency' => $amountPkr !== null ? 'USD' : strtoupper($project?->currency ?? InvestorMarket::currencyForUser($user)),
+                'currency' => $investmentCurrency,
+                'amount_usd' => number_format($amountUsd, 2),
+                'wallet_amount' => number_format($walletAmount, 2),
+                'wallet_currency' => $walletCurrency,
                 'project_name' => $project?->title ?? 'Investment Project',
                 'portal_url' => config('app.frontend_url', config('app.url')).'/invest/positions/'.$investment->id,
             ]
@@ -185,9 +191,8 @@ class ProjectController extends Controller
             ? '/admin/container-investments'
             : '/admin/investments';
 
-        $adminAmountLabel = $amountPkr !== null
-            ? 'PKR '.number_format($amountPkr, 2).' ($'.number_format($amountUsd, 2).')'
-            : '$'.number_format($amountUsd, 2);
+        $adminAmountLabel = number_format((float) $investment->amount, 2).' '.$investmentCurrency
+            .' (wallet debit: '.number_format($walletAmount, 2).' '.$walletCurrency.')';
 
         NotifiesAdmins::notify(
             AdminNotificationTypes::INVESTMENT_CREATED,
@@ -204,6 +209,10 @@ class ProjectController extends Controller
         return response()->json([
             'message' => 'Investment confirmed.',
             'data' => $investment,
+            'wallet_debit' => $walletAmount,
+            'wallet_currency' => $walletCurrency,
+            'wallet_exchange_rate' => $result['wallet_exchange_rate'],
+            'wallet_rates_as_of' => $result['wallet_rates_as_of'],
             'capacity' => [
                 'remaining_amount' => $result['capacity']['remaining_capacity'],
                 'pending_reserved' => $result['capacity']['pending_reserved'],

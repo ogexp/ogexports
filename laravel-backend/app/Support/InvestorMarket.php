@@ -33,6 +33,13 @@ class InvestorMarket
     {
         $user?->loadMissing('profile');
 
+        $meta = is_array($user?->profile?->meta) ? $user->profile->meta : [];
+        $preferences = is_array($meta['preferences'] ?? null) ? $meta['preferences'] : [];
+        $profileCurrency = strtoupper(trim((string) ($preferences['currency'] ?? '')));
+        if (in_array($profileCurrency, ['USD', 'PKR', 'EUR', 'GBP'], true)) {
+            return $profileCurrency;
+        }
+
         return self::currency($user?->profile?->country);
     }
 }

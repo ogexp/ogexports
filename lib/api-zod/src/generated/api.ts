@@ -97,9 +97,12 @@ export const updateInvestorMeBodyCountryMax = 80;
 
 
 export const UpdateInvestorMeBody = zod.object({
-  "name": zod.string().min(updateInvestorMeBodyNameMin).max(updateInvestorMeBodyNameMax),
+  "name": zod.string().min(updateInvestorMeBodyNameMin).max(updateInvestorMeBodyNameMax).optional(),
   "mobile": zod.string().max(updateInvestorMeBodyMobileMax).optional().describe('Optional mobile number with country calling code. This number is not verified by SMS.'),
-  "country": zod.string().max(updateInvestorMeBodyCountryMax).optional().describe('Optional country or region.')
+  "country": zod.string().max(updateInvestorMeBodyCountryMax).optional().describe('Optional country or region.'),
+  "preferences": zod.object({
+  "currency": zod.enum(['USD', 'PKR', 'EUR', 'GBP']).optional().describe('Selecting a currency converts the actual wallet balance and changes future wallet operations.')
+}).optional()
 })
 
 export const UpdateInvestorMeResponse = zod.record(zod.string(), zod.unknown())
@@ -205,6 +208,16 @@ export const ResetInvestorTransactionPasswordResponse = zod.record(zod.string(),
 export const GetInvestorDashboardResponse = zod.object({
   "data": zod.object({
   "summary": zod.object({
+  "total_investment": zod.number().optional().describe('Invested principal in display_currency.'),
+  "total_investment_usd": zod.number().optional().describe('Invested principal converted to USD.'),
+  "active_investment": zod.number().optional().describe('Pending and active invested principal in display_currency.'),
+  "active_investment_usd": zod.number().optional().describe('Pending and active invested principal converted to USD.'),
+  "total_profit_earned": zod.number().optional().describe('Earned profit in display_currency.'),
+  "total_profit_earned_usd": zod.number().optional().describe('Earned profit converted to USD.'),
+  "monthly_profit": zod.number().optional().describe('Current-month profit in display_currency.'),
+  "monthly_profit_usd": zod.number().optional().describe('Current-month profit converted to USD.'),
+  "available_balance": zod.number().optional().describe('Available wallet balance in display_currency.'),
+  "pending_balance": zod.number().optional().describe('Reserved wallet balance in display_currency.'),
   "total_portfolio_value": zod.number().describe('Current pending and active investment principal, available and reserved wallet balances, and explicit pending distributions; completed investments are excluded because their return is credited to the wallet.'),
   "distributed_returns": zod.number().describe('Confirmed profit amounts from investor distribution records with a distributed_at timestamp.'),
   "pending_distribution": zod.number().describe('Sum of pending credit ledger entries explicitly typed as profit, distribution, or dividend; forecast payouts are excluded.'),
@@ -213,6 +226,17 @@ export const GetInvestorDashboardResponse = zod.object({
   "wallet": zod.object({
   "currency": zod.string().describe('Currency used for wallet balances.')
 }),
+  "recent_transactions": zod.array(zod.object({
+  "id": zod.number().int(),
+  "type": zod.string(),
+  "amount": zod.number(),
+  "direction": zod.enum(['credit', 'debit']),
+  "status": zod.string(),
+  "currency": zod.string().describe('Original currency denomination for this ledger row; it does not change when the wallet is converted.'),
+  "reference": zod.string().nullish(),
+  "created_at": zod.coerce.date().nullish(),
+  "meta": zod.record(zod.string(), zod.unknown()).nullish()
+})).optional(),
   "withdrawal_fee": zod.number().optional().describe('Fixed withdrawal fee expressed in the investor wallet currency.'),
   "withdrawal_fee_usd": zod.number().optional().describe('Fixed withdrawal fee expressed in USD.'),
   "withdrawal_fee_currency": zod.string().optional().describe('Currency used for withdrawal_fee and total_debit.'),
@@ -790,6 +814,10 @@ export const InvestInProjectResponse = zod.object({
   "invested_at": zod.coerce.date().nullish(),
   "approved_at": zod.coerce.date().nullish()
 }),
+  "wallet_debit": zod.number().describe('Amount actually debited from the wallet, in wallet_currency.'),
+  "wallet_currency": zod.string().describe('Current wallet currency used for the debit.'),
+  "wallet_exchange_rate": zod.number().nullable().describe('Exchange rate used to convert the opportunity amount to wallet currency.'),
+  "wallet_rates_as_of": zod.coerce.date().nullable().describe('Timestamp for the exchange rates used for the wallet debit.'),
   "capacity": zod.object({
   "remaining_amount": zod.number(),
   "pending_reserved": zod.number(),
@@ -946,6 +974,12 @@ export const getInvestorInvestmentResponseDataInvestmentPeriodProgressOneProgres
 
 export const GetInvestorInvestmentResponse = zod.object({
   "data": zod.object({
+  "id": zod.number().int().optional(),
+  "amount": zod.number().optional().describe('Original investment amount in amount_currency.'),
+  "amount_currency": zod.string().optional().describe('Currency in which the investor entered the opportunity amount.'),
+  "amount_pkr": zod.number().nullish().describe('Saved PKR equivalent, when one was recorded.'),
+  "profit_amount": zod.number().nullish().describe('Recorded profit amount in USD.'),
+  "profit_amount_pkr": zod.number().nullish().describe('Saved PKR equivalent of recorded profit, when one was recorded.'),
   "project": zod.object({
   "id": zod.number().int().optional(),
   "title": zod.string().optional(),
@@ -1193,7 +1227,25 @@ export const GetInvestorWalletTransactionsQueryParams = zod.object({
   "per_page": zod.coerce.number().int().min(1).max(getInvestorWalletTransactionsQueryPerPageMax).optional()
 })
 
-export const GetInvestorWalletTransactionsResponse = zod.record(zod.string(), zod.unknown())
+export const GetInvestorWalletTransactionsResponse = zod.object({
+  "data": zod.array(zod.object({
+  "id": zod.number().int(),
+  "type": zod.string(),
+  "amount": zod.number(),
+  "direction": zod.enum(['credit', 'debit']),
+  "status": zod.string(),
+  "currency": zod.string().describe('Original currency denomination for this ledger row; it does not change when the wallet is converted.'),
+  "reference": zod.string().nullish(),
+  "created_at": zod.coerce.date().nullish(),
+  "meta": zod.record(zod.string(), zod.unknown()).nullish()
+})),
+  "current_page": zod.number().int().optional(),
+  "last_page": zod.number().int().optional(),
+  "per_page": zod.number().int().optional(),
+  "total": zod.number().int().optional(),
+  "links": zod.array(zod.record(zod.string(), zod.unknown())).optional(),
+  "meta": zod.record(zod.string(), zod.unknown()).optional()
+})
 
 
 /**
@@ -1206,7 +1258,30 @@ export const GetInvestorWalletTransactionParams = zod.object({
   "id": zod.coerce.number().int().min(1)
 })
 
-export const GetInvestorWalletTransactionResponse = zod.record(zod.string(), zod.unknown())
+export const GetInvestorWalletTransactionResponse = zod.object({
+  "data": zod.object({
+  "id": zod.number().int(),
+  "type": zod.string(),
+  "amount": zod.number(),
+  "direction": zod.enum(['credit', 'debit']),
+  "status": zod.string(),
+  "currency": zod.string().describe('Original currency denomination for this ledger row; it does not change when the wallet is converted.'),
+  "reference": zod.string().nullish(),
+  "created_at": zod.coerce.date().nullish(),
+  "meta": zod.record(zod.string(), zod.unknown()).nullish()
+}).and(zod.object({
+  "withdrawal_breakdown": zod.union([zod.object({
+  "payout_amount": zod.number().describe('Requested bank payout in the wallet currency.'),
+  "payout_amount_usd": zod.number().nullable().describe('Saved USD equivalent of the payout, when one was recorded.'),
+  "fee": zod.number().nullable().describe('Recorded withdrawal fee in the wallet currency; null when no fee was saved.'),
+  "fee_usd": zod.number().nullable().describe('Saved USD equivalent of the fee; null when none was recorded.'),
+  "total_debit": zod.number().nullable().describe('Recorded total debit, or actual ledger debit for older withdrawals.'),
+  "total_debit_usd": zod.number().nullable().describe('Saved USD equivalent of the total debit, when one was recorded.'),
+  "currency": zod.string().nullable().describe('Currency recorded for the wallet withdrawal.'),
+  "exchange_rate": zod.number().nullable().describe('Saved PKR-per-USD exchange-rate snapshot, when one was recorded.')
+}),zod.null()]).optional()
+}))
+})
 
 
 /**

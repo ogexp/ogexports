@@ -483,6 +483,20 @@ export type InvestorProjectInvestmentResponseCapacity = {
 export interface InvestorProjectInvestmentResponse {
   message: string;
   data: InvestorProjectInvestmentResponseData;
+  /** Amount actually debited from the wallet, in wallet_currency. */
+  wallet_debit: number;
+  /** Current wallet currency used for the debit. */
+  wallet_currency: string;
+  /**
+     * Exchange rate used to convert the opportunity amount to wallet currency.
+     * @nullable
+     */
+  wallet_exchange_rate: number | null;
+  /**
+     * Timestamp for the exchange rates used for the wallet debit.
+     * @nullable
+     */
+  wallet_rates_as_of: string | null;
   capacity: InvestorProjectInvestmentResponseCapacity;
   [key: string]: unknown;
  }
@@ -582,6 +596,26 @@ export type InvestorInvestmentDetailProfitDistribution = {
  * Investor position fields and its Laravel project resource.
  */
 export interface InvestorInvestmentDetail {
+  id?: number;
+  /** Original investment amount in amount_currency. */
+  amount?: number;
+  /** Currency in which the investor entered the opportunity amount. */
+  amount_currency?: string;
+  /**
+     * Saved PKR equivalent, when one was recorded.
+     * @nullable
+     */
+  amount_pkr?: number | null;
+  /**
+     * Recorded profit amount in USD.
+     * @nullable
+     */
+  profit_amount?: number | null;
+  /**
+     * Saved PKR equivalent of recorded profit, when one was recorded.
+     * @nullable
+     */
+  profit_amount_pkr?: number | null;
   project: InvestorProjectDetail;
   /** Server-calculated expected profit in the investment currency, using invested amount multiplied by the project's reported ROI percentage. */
   expected_profit?: number;
@@ -608,6 +642,26 @@ export interface InvestorInvestmentDetailResponse {
  * Financial summary amounts are denominated in display_currency.
  */
 export interface InvestorDashboardSummary {
+  /** Invested principal in display_currency. */
+  total_investment?: number;
+  /** Invested principal converted to USD. */
+  total_investment_usd?: number;
+  /** Pending and active invested principal in display_currency. */
+  active_investment?: number;
+  /** Pending and active invested principal converted to USD. */
+  active_investment_usd?: number;
+  /** Earned profit in display_currency. */
+  total_profit_earned?: number;
+  /** Earned profit converted to USD. */
+  total_profit_earned_usd?: number;
+  /** Current-month profit in display_currency. */
+  monthly_profit?: number;
+  /** Current-month profit converted to USD. */
+  monthly_profit_usd?: number;
+  /** Available wallet balance in display_currency. */
+  available_balance?: number;
+  /** Reserved wallet balance in display_currency. */
+  pending_balance?: number;
   /** Current pending and active investment principal, available and reserved wallet balances, and explicit pending distributions; completed investments are excluded because their return is credited to the wallet. */
   total_portfolio_value: number;
   /** Confirmed profit amounts from investor distribution records with a distributed_at timestamp. */
@@ -625,9 +679,40 @@ export type InvestorDashboardDataWallet = {
   [key: string]: unknown;
  };
 
+export type InvestorWalletTransactionDirection = typeof InvestorWalletTransactionDirection[keyof typeof InvestorWalletTransactionDirection];
+
+
+export const InvestorWalletTransactionDirection = {
+  credit: 'credit',
+  debit: 'debit',
+} as const;
+
+/**
+ * @nullable
+ */
+export type InvestorWalletTransactionMeta = { [key: string]: unknown } | null;
+
+export interface InvestorWalletTransaction {
+  id: number;
+  type: string;
+  amount: number;
+  direction: InvestorWalletTransactionDirection;
+  status: string;
+  /** Original currency denomination for this ledger row; it does not change when the wallet is converted. */
+  currency: string;
+  /** @nullable */
+  reference?: string | null;
+  /** @nullable */
+  created_at?: string | null;
+  /** @nullable */
+  meta?: InvestorWalletTransactionMeta;
+  [key: string]: unknown;
+ }
+
 export interface InvestorDashboardData {
   summary: InvestorDashboardSummary;
   wallet: InvestorDashboardDataWallet;
+  recent_transactions?: InvestorWalletTransaction[];
   /** Fixed withdrawal fee expressed in the investor wallet currency. */
   withdrawal_fee?: number;
   /** Fixed withdrawal fee expressed in USD. */
@@ -659,6 +744,21 @@ export type InvestorWalletResponseData = {
 
 export interface InvestorWalletResponse {
   data: InvestorWalletResponseData;
+  [key: string]: unknown;
+ }
+
+export type InvestorWalletTransactionsResponseLinksItem = { [key: string]: unknown };
+
+export type InvestorWalletTransactionsResponseMeta = { [key: string]: unknown };
+
+export interface InvestorWalletTransactionsResponse {
+  data: InvestorWalletTransaction[];
+  current_page?: number;
+  last_page?: number;
+  per_page?: number;
+  total?: number;
+  links?: InvestorWalletTransactionsResponseLinksItem[];
+  meta?: InvestorWalletTransactionsResponseMeta;
   [key: string]: unknown;
  }
 
@@ -701,6 +801,15 @@ export interface InvestorWalletWithdrawalBreakdown {
      */
   exchange_rate: number | null;
 }
+
+export type InvestorWalletTransactionResponseData = InvestorWalletTransaction & ({
+  withdrawal_breakdown?: InvestorWalletWithdrawalBreakdown | null;
+});
+
+export interface InvestorWalletTransactionResponse {
+  data: InvestorWalletTransactionResponseData;
+  [key: string]: unknown;
+ }
 
 export type InvestorMonthlyStatementResponseDataTransactionsItemWithdrawalBreakdown = {
   /** @nullable */
@@ -901,12 +1010,31 @@ export interface PayoutProgressPushEvent {
   planned_date: string | null;
 }
 
+/**
+ * Selecting a currency converts the actual wallet balance and changes future wallet operations.
+ */
+export type InvestorProfileUpdatePreferencesCurrency = typeof InvestorProfileUpdatePreferencesCurrency[keyof typeof InvestorProfileUpdatePreferencesCurrency];
+
+
+export const InvestorProfileUpdatePreferencesCurrency = {
+  USD: 'USD',
+  PKR: 'PKR',
+  EUR: 'EUR',
+  GBP: 'GBP',
+} as const;
+
+export type InvestorProfileUpdatePreferences = {
+  /** Selecting a currency converts the actual wallet balance and changes future wallet operations. */
+  currency?: InvestorProfileUpdatePreferencesCurrency;
+  [key: string]: unknown;
+ };
+
 export interface InvestorProfileUpdate {
   /**
      * @minLength 2
      * @maxLength 120
      */
-  name: string;
+  name?: string;
   /**
      * Optional mobile number with country calling code. This number is not verified by SMS.
      * @maxLength 32
@@ -917,6 +1045,7 @@ export interface InvestorProfileUpdate {
      * @maxLength 80
      */
   country?: string;
+  preferences?: InvestorProfileUpdatePreferences;
 }
 
 /**

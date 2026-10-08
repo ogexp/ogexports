@@ -336,7 +336,9 @@ export default function Settings() {
         })}
       </View>
 
-      <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>Display currency</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>
+        {translateUi('Profile and wallet currency', appLanguage)}
+      </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 7 }}>
         {(['USD', 'PKR', 'EUR', 'GBP'] as const).map(currency => {
           const selected = appPreferences.preferences.currency === currency;
@@ -358,8 +360,15 @@ export default function Settings() {
           ? translateUi('Loading authenticated OG Exports exchange rates. Until rates are available, amounts stay in their source currency.', appLanguage)
           : appPreferences.ratesError
             ? translateUi('Exchange rates are unavailable. Amounts stay in their source currency and are marked as unavailable for conversion.', appLanguage)
-            : <>{translateUi('Display-only conversion uses authenticated OG Exports rates', appLanguage)}{appPreferences.ratesAsOf ? ` as of ${appPreferences.ratesAsOf}` : ''}. {translateUi('Transaction amounts are submitted in their original currency.', appLanguage)}</>}
+            : <>{translateUi('Selecting a currency converts your available wallet balance at the authenticated rate and sets the currency used for future wallet requests.', appLanguage)}{appPreferences.ratesAsOf ? ` ${translateUi('Rates as of', appLanguage)} ${appPreferences.ratesAsOf}.` : ''} {translateUi('Wallet transaction history remains in the currency recorded at the time of each transaction.', appLanguage)}</>}
       </Text>
+      {appPreferences.walletCurrency
+        && appPreferences.walletCurrency !== appPreferences.preferences.currency
+        ? <Text style={{ color: colors.primary, fontSize: 11, lineHeight: 17, marginBottom: 14 }}>
+          {translateUi('Your wallet and Profile currencies differ. Tap the selected currency to convert the available balance.', appLanguage)}
+          {' '}{appPreferences.walletCurrency} → {appPreferences.preferences.currency}
+        </Text>
+        : null}
 
       <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>Appearance</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>

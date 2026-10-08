@@ -16,6 +16,8 @@ use App\Support\AdminNotificationTypes;
 use App\Support\InvestorBankAccountPresenter;
 use App\Support\InvestorBankAccounts;
 use App\Support\NotifiesAdmins;
+use App\Support\WalletCurrencyService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
@@ -133,79 +135,91 @@ class ProfileController extends Controller
             'risk_profile' => ['nullable', 'string', 'max:50'],
             'notification_prefs' => ['nullable', 'array'],
             'preferences' => ['nullable', 'array'],
+            'preferences.currency' => ['sometimes', 'string', Rule::in(['USD', 'PKR', 'EUR', 'GBP'])],
             'account_status' => ['sometimes', 'string', Rule::in(['active', 'suspended'])],
             'meta' => ['nullable', 'array'],
         ]);
 
-        $userFill = collect($data)->only(['name', 'phone'])->all();
-        if (array_key_exists('account_status', $data)) {
-            $userFill['account_status'] = $data['account_status'];
-        }
-        if ($userFill !== []) {
-            $user->fill($userFill)->save();
-        }
-
-        $profile = $user->profile()->firstOrCreate(['user_id' => $user->id]);
-        $meta = is_array($profile->meta) ? $profile->meta : [];
-
-        foreach ([
-            'dob', 'nationality', 'cnic', 'company_type', 'registration_no', 'industry',
-            'founded', 'revenue', 'employees', 'website', 'province', 'postal_code',
-            'address_line2', 'risk_profile',
-        ] as $key) {
-            if (array_key_exists($key, $data)) {
-                $meta[$key] = $data[$key];
+        $walletCurrencyChange = null;
+        DB::transaction(function () use ($user, $data, &$walletCurrencyChange): void {
+            $userFill = collect($data)->only(['name', 'phone'])->all();
+            if (array_key_exists('account_status', $data)) {
+                $userFill['account_status'] = $data['account_status'];
             }
-        }
-        if (array_key_exists('tax', $data)) {
-            $meta['tax'] = $data['tax'];
-        }
-        if (array_key_exists('bank', $data)) {
-            $meta['bank'] = $data['bank'];
-        }
-        if (array_key_exists('withdraw_bank', $data)) {
-            $meta['withdraw_bank'] = $data['withdraw_bank'];
-            $meta['bank_accounts'] = InvestorBankAccounts::upsertAccount(
-                InvestorBankAccounts::normalizeFromMeta($meta),
-                is_array($data['withdraw_bank']) ? $data['withdraw_bank'] : []
-            );
-        }
-        if (array_key_exists('bank_accounts', $data)) {
-            $meta['bank_accounts'] = InvestorBankAccounts::sanitizeForStorage(
-                is_array($data['bank_accounts']) ? $data['bank_accounts'] : []
-            );
-            $default = InvestorBankAccounts::defaultAccount($meta['bank_accounts']);
-            if ($default !== null) {
-                $meta['withdraw_bank'] = [
-                    'bank_name' => $default['bank_name'] ?? '',
-                    'account_holder' => $default['account_holder'] ?? '',
-                    'account_number' => $default['account_number'] ?? '',
-                    'iban' => $default['iban'] ?? '',
-                    'swift' => $default['swift'] ?? '',
-                    'branch' => $default['branch'] ?? '',
-                    'currency' => $default['currency'] ?? 'USD',
-                ];
+            if ($userFill !== []) {
+                $user->fill($userFill)->save();
             }
-        }
-        if (array_key_exists('notification_prefs', $data)) {
-            $meta['notification_prefs'] = array_merge($meta['notification_prefs'] ?? [], $data['notification_prefs'] ?? []);
-        }
-        if (array_key_exists('preferences', $data)) {
-            $meta['preferences'] = array_merge($meta['preferences'] ?? [], $data['preferences'] ?? []);
-        }
-        if (! empty($data['meta']) && is_array($data['meta'])) {
-            $meta = array_replace_recursive($meta, $data['meta']);
-        }
 
-        $profile->fill(collect($data)->only([
-            'company_name', 'country', 'city', 'address', 'avatar_url',
-        ])->all());
-        $profile->meta = $meta;
-        $profile->save();
+            $profile = $user->profile()->firstOrCreate(['user_id' => $user->id]);
+            $meta = is_array($profile->meta) ? $profile->meta : [];
+
+            foreach ([
+                'dob', 'nationality', 'cnic', 'company_type', 'registration_no', 'industry',
+                'founded', 'revenue', 'employees', 'website', 'province', 'postal_code',
+                'address_line2', 'risk_profile',
+            ] as $key) {
+                if (array_key_exists($key, $data)) {
+                    $meta[$key] = $data[$key];
+                }
+            }
+            if (array_key_exists('tax', $data)) {
+                $meta['tax'] = $data['tax'];
+            }
+            if (array_key_exists('bank', $data)) {
+                $meta['bank'] = $data['bank'];
+            }
+            if (array_key_exists('withdraw_bank', $data)) {
+                $meta['withdraw_bank'] = $data['withdraw_bank'];
+                $meta['bank_accounts'] = InvestorBankAccounts::upsertAccount(
+                    InvestorBankAccounts::normalizeFromMeta($meta),
+                    is_array($data['withdraw_bank']) ? $data['withdraw_bank'] : []
+                );
+            }
+            if (array_key_exists('bank_accounts', $data)) {
+                $meta['bank_accounts'] = InvestorBankAccounts::sanitizeForStorage(
+                    is_array($data['bank_accounts']) ? $data['bank_accounts'] : []
+                );
+                $default = InvestorBankAccounts::defaultAccount($meta['bank_accounts']);
+                if ($default !== null) {
+                    $meta['withdraw_bank'] = [
+                        'bank_name' => $default['bank_name'] ?? '',
+                        'account_holder' => $default['account_holder'] ?? '',
+                        'account_number' => $default['account_number'] ?? '',
+                        'iban' => $default['iban'] ?? '',
+                        'swift' => $default['swift'] ?? '',
+                        'branch' => $default['branch'] ?? '',
+                        'currency' => $default['currency'] ?? 'USD',
+                    ];
+                }
+            }
+            if (array_key_exists('notification_prefs', $data)) {
+                $meta['notification_prefs'] = array_merge($meta['notification_prefs'] ?? [], $data['notification_prefs'] ?? []);
+            }
+            if (array_key_exists('preferences', $data)) {
+                $meta['preferences'] = array_merge($meta['preferences'] ?? [], $data['preferences'] ?? []);
+            }
+            if (! empty($data['meta']) && is_array($data['meta'])) {
+                $meta = array_replace_recursive($meta, $data['meta']);
+            }
+
+            if (isset($data['preferences']['currency']) && $user->hasRole('investor')) {
+                $walletCurrencyChange = app(WalletCurrencyService::class)->change(
+                    $user,
+                    $data['preferences']['currency'],
+                );
+            }
+
+            $profile->fill(collect($data)->only([
+                'company_name', 'country', 'city', 'address', 'avatar_url',
+            ])->all());
+            $profile->meta = $meta;
+            $profile->save();
+        });
 
         return response()->json([
             'message' => 'Profile updated.',
             'data' => $this->show($request)->getData(true)['data'],
+            'wallet_currency_change' => $walletCurrencyChange,
         ]);
     }
 

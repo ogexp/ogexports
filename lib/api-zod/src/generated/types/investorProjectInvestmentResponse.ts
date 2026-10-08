@@ -11,6 +11,20 @@ import type { InvestorProjectInvestmentResponseData } from './investorProjectInv
 export interface InvestorProjectInvestmentResponse {
   message: string;
   data: InvestorProjectInvestmentResponseData;
+  /** Amount actually debited from the wallet, in wallet_currency. */
+  wallet_debit: number;
+  /** Current wallet currency used for the debit. */
+  wallet_currency: string;
+  /**
+     * Exchange rate used to convert the opportunity amount to wallet currency.
+     * @nullable
+     */
+  wallet_exchange_rate: number | null;
+  /**
+     * Timestamp for the exchange rates used for the wallet debit.
+     * @nullable
+     */
+  wallet_rates_as_of: Date | null;
   capacity: InvestorProjectInvestmentResponseCapacity;
   [key: string]: unknown;
  }

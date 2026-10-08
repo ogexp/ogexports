@@ -13,6 +13,26 @@ import type { InvestorProjectDetail } from './investorProjectDetail';
  * Investor position fields and its Laravel project resource.
  */
 export interface InvestorInvestmentDetail {
+  id?: number;
+  /** Original investment amount in amount_currency. */
+  amount?: number;
+  /** Currency in which the investor entered the opportunity amount. */
+  amount_currency?: string;
+  /**
+     * Saved PKR equivalent, when one was recorded.
+     * @nullable
+     */
+  amount_pkr?: number | null;
+  /**
+     * Recorded profit amount in USD.
+     * @nullable
+     */
+  profit_amount?: number | null;
+  /**
+     * Saved PKR equivalent of recorded profit, when one was recorded.
+     * @nullable
+     */
+  profit_amount_pkr?: number | null;
   project: InvestorProjectDetail;
   /** Server-calculated expected profit in the investment currency, using invested amount multiplied by the project's reported ROI percentage. */
   expected_profit?: number;

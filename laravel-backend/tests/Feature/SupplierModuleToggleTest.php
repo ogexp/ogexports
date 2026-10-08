@@ -35,8 +35,10 @@ it('allows supplier registration when module is enabled', function () {
         'account_type' => 'supplier',
         'country' => 'Pakistan',
     ])->assertCreated()
-        ->assertJsonPath('redirect', '/supplier/dashboard')
-        ->assertJsonPath('user.accountType', 'supplier');
+        ->assertJsonPath('requires_verification', true);
+
+    $supplier = User::query()->where('email', 'supplier-on@example.com')->firstOrFail();
+    expect($supplier->hasRole('supplier'))->toBeTrue();
 });
 
 it('blocks supplier registration when module is disabled', function () {

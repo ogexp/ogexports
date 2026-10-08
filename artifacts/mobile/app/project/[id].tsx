@@ -21,7 +21,7 @@ import {
   useInvestInProject,
 } from '@workspace/api-client-react';
 import { Action, Card, ErrorState, Field, Screen, Status, SuccessFeedback } from '@/components/InvestorUI';
-import { amount, availableBalanceFromDashboard, first, messageOf, record, unwrap, moneyToCurrency } from '@/lib/data';
+import { amount, availableBalanceFromDashboard, convertAmountToCurrency, first, messageOf, money, record, unwrap } from '@/lib/data';
 import { OpportunityDetailOverview } from '@/components/OpportunityDetailOverview';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
@@ -132,6 +132,11 @@ export default function OpportunityDetail() {
     first(tradeData, ['currency', 'investment_currency'], apiCurrencyFallback),
   );
   const tradeCurrency = currency;
+  const needsWalletConversion = Boolean(
+    currency
+    && walletCurrency
+    && currency.toUpperCase() !== walletCurrency.toUpperCase(),
+  );
   const reportedReturn = first(project, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi']);
   const returnRate = amount(project, ['expected_return_pct']);
   const projectedReturn = reportedReturn || (returnRate != null ? `${returnRate}%` : '');
@@ -167,7 +172,7 @@ export default function OpportunityDetail() {
   const activeFlowStep = ({ details: 0, amount: 1, review: 2, risk: 3, confirmation: 4, success: 4 } as const)[stage];
   const currencyLabel = currency || (walletQuery.isLoading || walletQuery.isFetching ? 'Loading currency…' : 'Currency unavailable');
   const remainingCapacity = remainingFunding;
-  const formatTradeMoney = (value: number | null) => moneyToCurrency(value, tradeCurrency || currency || 'USD', 'USD');
+  const formatTradeMoney = (value: number | null) => money(value, tradeCurrency || currency || 'USD');
   const feeValue = first(project, ['investment_fee', 'investor_fee', 'fee', 'fees', 'transaction_fee', 'platform_fee']);
   const cycleValue = first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], projectedCycle || '—');
   const distributionDateKeys = [
@@ -194,11 +199,11 @@ export default function OpportunityDetail() {
     ...(maximum == null ? [] : [['Maximum', formatTradeMoney(maximum)] as [string, string]]),
     ['Wallet balance', walletBalance == null
       ? dashboardQuery.isLoading ? 'Loading…' : 'Unavailable'
-      : moneyToCurrency(walletBalance, walletCurrency || 'USD', 'USD')],
+      : money(walletBalance, walletCurrency || 'USD')],
     ['Remaining capacity', formatTradeMoney(remainingCapacity)],
   ];
   const amountSummary = currency && Number.isFinite(Number(investAmount)) && Number(investAmount) > 0
-    ? moneyToCurrency(Number(investAmount), currency, 'USD')
+    ? money(Number(investAmount), currency)
     : investAmount ? 'Currency pending' : 'Not entered';
 
   function continueToReview() {
@@ -219,9 +224,15 @@ export default function OpportunityDetail() {
     }
     const value = Number(investAmount);
     if (!Number.isFinite(value) || value <= 0) { setError('Enter an investment amount greater than zero.'); return; }
-    if (currency && minimum != null && value < minimum) { setError(`The minimum investment for this opportunity is ${moneyToCurrency(minimum, currency, 'USD')}.`); return; }
-    if (currency && maximum != null && value > maximum) { setError(`The maximum investment for this opportunity is ${moneyToCurrency(maximum, currency, 'USD')}.`); return; }
-    if (currency && walletCurrency && walletBalance != null && walletCurrency.toUpperCase() === currency.toUpperCase() && value > walletBalance) { setError('This amount is greater than your available wallet balance.'); return; }
+    if (currency && minimum != null && value < minimum) { setError(`The minimum investment for this opportunity is ${money(minimum, currency)}.`); return; }
+    if (currency && maximum != null && value > maximum) { setError(`The maximum investment for this opportunity is ${money(maximum, currency)}.`); return; }
+    const amountInWalletCurrency = currency && walletCurrency
+      ? convertAmountToCurrency(value, currency, walletCurrency)
+      : null;
+    if (amountInWalletCurrency != null && walletBalance != null && amountInWalletCurrency > walletBalance) {
+      setError('This amount is greater than your available wallet balance.');
+      return;
+    }
     if (currency && remainingCapacity != null && value > remainingCapacity) { setError('This amount exceeds the remaining opportunity capacity.'); return; }
     setStage('review');
   }
@@ -297,6 +308,12 @@ export default function OpportunityDetail() {
         amountCurrency: first(investment, ['amount_currency', 'currency'], first(payload, ['amount_currency', 'currency'], currency)),
         amountPkr: amount(investment, ['amount_pkr']) ?? amount(payload, ['amount_pkr']),
         exchangeRate: amount(investment, ['exchange_rate']) ?? amount(payload, ['exchange_rate']),
+        walletAmount: amount(response, ['wallet_debit', 'wallet_amount'])
+          ?? amount(payload, ['wallet_debit', 'wallet_amount'])
+          ?? amount(investment, ['wallet_amount']),
+        walletCurrency: first(response, ['wallet_currency'], first(payload, ['wallet_currency'], walletCurrency)),
+        walletExchangeRate: amount(response, ['wallet_exchange_rate'])
+          ?? amount(payload, ['wallet_exchange_rate']),
         date: responseDate,
         serverRecord: response,
       });
@@ -450,7 +467,7 @@ export default function OpportunityDetail() {
       {kycVerified && stage === 'amount' ? <Card>
         <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', letterSpacing: -0.25 }}>Set your investment amount</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 5, marginBottom: 16 }}>
-          Choose an amount for this trade. OG Exports checks it against the current opportunity and wallet limits.
+          Enter the amount in {currency || 'the opportunity currency'}. This summary uses your Profile currency, and OG Exports converts the wallet debit at its server rate when you submit.
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12, marginBottom: 16, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background }}>
           <View style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.lightGreen }}>
@@ -466,10 +483,10 @@ export default function OpportunityDetail() {
           if (nextAmount !== investAmount) setAgreementAccepted(false);
           setInvestAmount(nextAmount);
         }} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
-        {currency?.toUpperCase() === 'USD' && walletCurrency.toUpperCase() === 'PKR' ? <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 9, backgroundColor: colors.lightGreen, padding: 12, borderRadius: 12, marginBottom: 14 }}>
+        {needsWalletConversion ? <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 9, backgroundColor: colors.lightGreen, padding: 12, borderRadius: 12, marginBottom: 14 }}>
           <Feather name="refresh-cw" size={15} color={colors.primary} style={{ marginTop: 2 }} />
           <Text style={{ flex: 1, color: colors.foreground, fontSize: 11, lineHeight: 17 }}>
-            Container investments are entered in USD. OG Exports converts the PKR wallet debit at submission; this app does not estimate the exchange rate.
+            Your {currency} investment will be debited in {walletCurrency}. OG Exports supplies the exchange rate when it submits the request; this app does not estimate the wallet debit.
           </Text>
         </View> : null}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
@@ -500,19 +517,17 @@ export default function OpportunityDetail() {
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5 }}>Confirm the trade and money movement details before moving to the published terms.</Text>
         <View style={{ marginTop: 16, marginBottom: 7, padding: 15, borderRadius: 14, backgroundColor: colors.lightGreen }}>
           <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700', letterSpacing: 0.7 }}>YOUR INVESTMENT</Text>
-          <Text style={{ color: colors.foreground, fontSize: 24, fontWeight: '700', marginTop: 5 }}>{moneyToCurrency(Number(investAmount), currency, 'USD')}</Text>
+          <Text style={{ color: colors.foreground, fontSize: 24, fontWeight: '700', marginTop: 5 }}>{money(Number(investAmount), currency)}</Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>{projectTitle} · {tradeLabel}</Text>
         </View>
         {[
           ['Trade', tradeLabel],
           ['Target return · not guaranteed', projectedReturn || '—'],
           ['Target distribution date · estimated', distributionDate],
-          ['Fees', feeValue || moneyToCurrency(null, tradeCurrency || 'USD', 'USD')],
+          ['Fees', feeValue || money(null, tradeCurrency || 'USD')],
           ['Trade cycle', cycleValue],
           ['Wallet debit', currency && walletCurrency
-            ? currency.toUpperCase() === walletCurrency.toUpperCase()
-              ? moneyToCurrency(Number(investAmount), walletCurrency, 'USD')
-              : 'Calculated by OG Exports at submission'
+            ? money(convertAmountToCurrency(Number(investAmount), currency, walletCurrency), walletCurrency)
             : 'Validated by OG Exports at submission'],
           ['Payment method', 'Wallet balance'],
         ].map(([label, value]) => <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
@@ -571,7 +586,7 @@ export default function OpportunityDetail() {
         </View> : null}
         <View style={{ backgroundColor: colors.lightGreen, borderRadius: 14, padding: 14, marginBottom: 14 }}>
           <Text style={{ color: colors.primary, fontSize: 10, letterSpacing: 0.7, fontWeight: '700' }}>FINAL REQUEST SUMMARY</Text>
-          <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 20, marginTop: 6 }}>{moneyToCurrency(Number(investAmount), currency, 'USD')}</Text>
+          <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 20, marginTop: 6 }}>{money(Number(investAmount), currency)}</Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>{projectTitle} · {tradeLabel}</Text>
           <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 10 }} />
           <Text style={{ color: colors.foreground, fontSize: 12 }}>Payment method: Wallet balance</Text>
@@ -590,11 +605,15 @@ export default function OpportunityDetail() {
         const status = first(confirmation, ['status'], '—');
         const investmentId = first(confirmation, ['id']);
         const resultCurrency = first(confirmation, ['amountCurrency'], currency);
-        const resultAmount = moneyToCurrency(confirmation.amount, resultCurrency || 'USD', 'USD');
-        const resultWalletAmount = typeof confirmation.amountPkr === 'number' ? moneyToCurrency(confirmation.amountPkr, 'PKR', 'USD') : '';
-        const exchangeRate = typeof confirmation.exchangeRate === 'number'
-          ? `1 USD = ${confirmation.exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} PKR`
-          : '';
+        const resultAmount = money(confirmation.amount, resultCurrency || 'USD');
+        const resultWalletAmount = typeof confirmation.walletAmount === 'number'
+          ? money(confirmation.walletAmount, first(confirmation, ['walletCurrency'], walletCurrency || 'USD'))
+          : typeof confirmation.amountPkr === 'number' ? money(confirmation.amountPkr, 'PKR') : '';
+        const exchangeRate = typeof confirmation.walletExchangeRate === 'number'
+          ? `1 ${resultCurrency || 'USD'} = ${confirmation.walletExchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${first(confirmation, ['walletCurrency'], walletCurrency || 'USD')}`
+          : typeof confirmation.exchangeRate === 'number'
+            ? `1 USD = ${confirmation.exchangeRate.toLocaleString(undefined, { maximumFractionDigits: 8 })} PKR`
+            : '';
         return <Card style={{ borderColor: colors.primary }}>
           <Text style={{ color: colors.primary, fontSize: 10, letterSpacing: 0.7, fontWeight: '700', marginBottom: 10 }}>INVESTMENT CONFIRMATION</Text>
           <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>

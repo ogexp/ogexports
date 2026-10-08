@@ -121,11 +121,26 @@ class InvestorReportGenerator
         ?Carbon $startDate,
         ?Carbon $endDate,
     ): array {
-        $displayPkr = UserDisplayCurrency::isPkrUser($user);
+        $walletCurrency = UserDisplayCurrency::currencyForUser($user);
+        $displayCurrency = $walletCurrency === 'PKR' && ! UserDisplayCurrency::pkrDisplayEnabled()
+            ? 'USD'
+            : $walletCurrency;
+        $displayPkr = $displayCurrency === 'PKR';
         $displayRate = $displayPkr ? InvestorDepositFx::resolveDisplayRate($user->id) : null;
+        $formatCurrency = static function (float $amount, ?float $usdEquivalent = null) use ($displayCurrency): string {
+            $primary = $displayCurrency === 'USD'
+                ? '$'.number_format($amount, 2, '.', ',')
+                : $displayCurrency.' '.number_format($amount, 2, '.', ',');
 
-        $filteredInvestedUsd = round((float) $investments->sum('amount'), 2);
-        $filteredInvested = InvestorProfitTotals::sumInvestedWallet($investments, $displayPkr, $displayRate);
+            if ($displayCurrency === 'USD' || $usdEquivalent === null) {
+                return $primary;
+            }
+
+            return $primary.' ($'.number_format($usdEquivalent, 2, '.', ',').')';
+        };
+
+        $filteredInvestedUsd = InvestorProfitTotals::sumInvestedUsd($investments);
+        $filteredInvested = InvestorProfitTotals::sumInvestedWallet($investments, $displayCurrency, $displayRate);
 
         $distributions = InvestmentProfitDistribution::query()
             ->where('investor_id', $user->id)
@@ -137,7 +152,7 @@ class InvestorReportGenerator
 
         $filteredProfitUsd = (float) $distributions->sum('profit_amount');
         $filteredProfit = (float) $distributions->sum(
-            fn (InvestmentProfitDistribution $d) => InvestorProfitTotals::distributionToWallet($d, $displayPkr, $displayRate)
+            fn (InvestmentProfitDistribution $d) => InvestorProfitTotals::distributionToWallet($d, $displayCurrency, $displayRate)
         );
 
         $wallet = Wallet::query()->where('user_id', $user->id)->first();
@@ -151,12 +166,20 @@ class InvestorReportGenerator
                 ->when($endDate, fn ($q) => $q->where('created_at', '<=', $endDate))
                 ->orderByDesc('created_at')
                 ->get();
-            $walletProfit = (float) $walletProfitRows->sum('amount');
-            $filteredProfit += $walletProfit;
-            if ($displayPkr && $displayRate !== null && $displayRate > 0) {
-                $filteredProfitUsd += InvestorDepositFx::pkrToUsd($walletProfit, $displayRate);
-            } else {
-                $filteredProfitUsd += $walletProfit;
+            foreach ($walletProfitRows as $transaction) {
+                $meta = is_array($transaction->meta) ? $transaction->meta : [];
+                $sourceCurrency = strtoupper((string) ($meta['currency'] ?? $wallet->currency ?? 'USD'));
+                $amount = (float) $transaction->amount;
+                $filteredProfit += InvestorProfitTotals::convertToCurrency(
+                    $amount,
+                    $sourceCurrency,
+                    $displayCurrency,
+                );
+                $filteredProfitUsd += InvestorProfitTotals::convertToCurrency(
+                    $amount,
+                    $sourceCurrency,
+                    'USD',
+                );
             }
         }
 
@@ -167,68 +190,58 @@ class InvestorReportGenerator
             ? round(($filteredProfit / $filteredInvested) * 100, 2)
             : 0.0;
 
-        $investmentRows = $investments->map(function (Investment $inv) use ($user) {
+        $investmentRows = $investments->map(function (Investment $inv) use ($formatCurrency, $displayCurrency) {
             $project = $inv->project;
             $roiPct = (float) ($project?->expected_return_pct ?: 0);
-            $amountUsd = (float) $inv->amount;
-            $amountPkr = $inv->amount_pkr !== null ? (float) $inv->amount_pkr : null;
-            $rate = $inv->exchange_rate !== null ? (float) $inv->exchange_rate : null;
+            $amountCurrency = strtoupper((string) ($inv->amount_currency ?: 'USD'));
+            $amountUsd = InvestorProfitTotals::convertToCurrency((float) $inv->amount, $amountCurrency, 'USD');
             $profitUsd = $inv->profit_amount !== null
                 ? (float) $inv->profit_amount
-                : round($amountUsd * ($roiPct / 100), 2);
-            $profitPkr = $inv->profit_amount_pkr !== null
+                : InvestorProfitTotals::convertToCurrency(
+                    round((float) $inv->amount * ($roiPct / 100), 2),
+                    $amountCurrency,
+                    'USD',
+                );
+            $amountDisplay = InvestorProfitTotals::investmentToWallet($inv, $displayCurrency);
+            $profitDisplay = $displayCurrency === 'PKR' && $inv->profit_amount_pkr !== null
                 ? (float) $inv->profit_amount_pkr
-                : ($amountPkr !== null ? round($amountPkr * ($roiPct / 100), 2) : null);
+                : InvestorProfitTotals::convertToCurrency($profitUsd, 'USD', $displayCurrency);
 
             return [
                 'reference' => (string) ($inv->reference ?: $project?->reference ?: 'INV-'.$inv->id),
                 'project' => (string) ($project?->title ?: 'Investment #'.$inv->id),
                 'type' => (string) ($project?->type ?: ''),
                 'status' => (string) $inv->status,
-                'amount' => $amountUsd,
-                'profit' => $profitUsd,
-                'amount_label' => UserDisplayCurrency::formatInvestmentDual($user, $amountUsd, $amountPkr, $rate),
-                'profit_label' => UserDisplayCurrency::formatInvestmentDual($user, $profitUsd, $profitPkr, $rate),
+                'amount' => $amountDisplay,
+                'profit' => $profitDisplay,
+                'amount_label' => $formatCurrency($amountDisplay, $amountUsd),
+                'profit_label' => $formatCurrency($profitDisplay, $profitUsd),
                 'roi' => $roiPct,
                 'invested_at' => $inv->invested_at?->format('Y-m-d') ?: '',
             ];
         })->values()->all();
 
-        $distributionRows = $distributions->map(function (InvestmentProfitDistribution $d) use ($user, $displayPkr, $displayRate) {
+        $distributionRows = $distributions->map(function (InvestmentProfitDistribution $d) use ($formatCurrency, $displayCurrency) {
             $investedUsd = (float) $d->invested_amount;
             $profitUsd = (float) $d->profit_amount;
-            $investedPkr = $d->invested_amount_pkr !== null
+            $investedDisplay = $displayCurrency === 'PKR' && $d->invested_amount_pkr !== null
                 ? (float) $d->invested_amount_pkr
-                : ($displayPkr ? InvestorProfitTotals::usdToPkr($investedUsd, $displayRate) : null);
-            $profitPkr = $d->profit_amount_pkr !== null
-                ? (float) $d->profit_amount_pkr
-                : ($displayPkr ? InvestorProfitTotals::usdToPkr($profitUsd, $displayRate) : null);
+                : InvestorProfitTotals::convertToCurrency($investedUsd, 'USD', $displayCurrency);
+            $profitDisplay = InvestorProfitTotals::distributionToWallet($d, $displayCurrency);
 
             return [
                 'project' => (string) ($d->project?->title ?: 'Project #'.$d->project_id),
-                'invested_amount' => $investedUsd,
-                'profit_amount' => $profitUsd,
-                'invested_amount_label' => UserDisplayCurrency::formatInvestmentDual($user, $investedUsd, $investedPkr, $displayRate),
-                'profit_amount_label' => UserDisplayCurrency::formatInvestmentDual($user, $profitUsd, $profitPkr, $displayRate),
+                'invested_amount' => $investedDisplay,
+                'profit_amount' => $profitDisplay,
+                'invested_amount_label' => $formatCurrency($investedDisplay, $investedUsd),
+                'profit_amount_label' => $formatCurrency($profitDisplay, $profitUsd),
                 'roi_pct' => (float) $d->roi_pct,
                 'distributed_at' => $d->distributed_at?->format('Y-m-d') ?: '',
             ];
         })->values()->all();
 
-        $totalInvestedPkr = $displayPkr ? $filteredInvested : null;
-        $totalProfitPkr = $displayPkr ? $filteredProfit : null;
-        $totalInvestedLabel = UserDisplayCurrency::formatInvestmentDual(
-            $user,
-            $filteredInvestedUsd,
-            $totalInvestedPkr,
-            $displayRate,
-        );
-        $totalProfitLabel = UserDisplayCurrency::formatInvestmentDual(
-            $user,
-            $filteredProfitUsd,
-            $totalProfitPkr,
-            $displayRate,
-        );
+        $totalInvestedLabel = $formatCurrency($filteredInvested, $filteredInvestedUsd);
+        $totalProfitLabel = $formatCurrency($filteredProfit, $filteredProfitUsd);
 
         return [
             'user' => $user,
@@ -238,6 +251,7 @@ class InvestorReportGenerator
             'start_date' => $startDate?->toDateString(),
             'end_date' => $endDate?->toDateString(),
             'display_pkr' => $displayPkr,
+            'display_currency' => $displayCurrency,
             'summary' => [
                 'total_invested' => $filteredInvested,
                 'total_profit_earned' => $filteredProfit,
@@ -253,13 +267,24 @@ class InvestorReportGenerator
             ],
             'investments' => $investmentRows,
             'distributions' => $distributionRows,
-            'wallet_profits' => $walletProfitRows->map(fn (WalletTransaction $tx) => [
-                'type' => (string) $tx->type,
-                'amount' => (float) $tx->amount,
-                'amount_label' => UserDisplayCurrency::formatWalletDual($user, (float) $tx->amount),
-                'reference' => (string) ($tx->reference ?: 'TXN-'.$tx->id),
-                'date' => $tx->created_at?->format('Y-m-d') ?: '',
-            ])->values()->all(),
+            'wallet_profits' => $walletProfitRows->map(function (WalletTransaction $tx) use ($formatCurrency, $displayCurrency) {
+                $sourceCurrency = strtoupper((string) (
+                    (is_array($tx->meta) ? ($tx->meta['currency'] ?? null) : null)
+                    ?: $displayCurrency
+                ));
+                $amount = (float) $tx->amount;
+
+                return [
+                    'type' => (string) $tx->type,
+                    'amount' => InvestorProfitTotals::convertToCurrency($amount, $sourceCurrency, $displayCurrency),
+                    'amount_label' => $formatCurrency(
+                        InvestorProfitTotals::convertToCurrency($amount, $sourceCurrency, $displayCurrency),
+                        InvestorProfitTotals::convertToCurrency($amount, $sourceCurrency, 'USD'),
+                    ),
+                    'reference' => (string) ($tx->reference ?: 'TXN-'.$tx->id),
+                    'date' => $tx->created_at?->format('Y-m-d') ?: '',
+                ];
+            })->values()->all(),
         ];
     }
 

@@ -10,6 +10,26 @@
  * Financial summary amounts are denominated in display_currency.
  */
 export interface InvestorDashboardSummary {
+  /** Invested principal in display_currency. */
+  total_investment?: number;
+  /** Invested principal converted to USD. */
+  total_investment_usd?: number;
+  /** Pending and active invested principal in display_currency. */
+  active_investment?: number;
+  /** Pending and active invested principal converted to USD. */
+  active_investment_usd?: number;
+  /** Earned profit in display_currency. */
+  total_profit_earned?: number;
+  /** Earned profit converted to USD. */
+  total_profit_earned_usd?: number;
+  /** Current-month profit in display_currency. */
+  monthly_profit?: number;
+  /** Current-month profit converted to USD. */
+  monthly_profit_usd?: number;
+  /** Available wallet balance in display_currency. */
+  available_balance?: number;
+  /** Reserved wallet balance in display_currency. */
+  pending_balance?: number;
   /** Current pending and active investment principal, available and reserved wallet balances, and explicit pending distributions; completed investments are excluded because their return is credited to the wallet. */
   total_portfolio_value: number;
   /** Confirmed profit amounts from investor distribution records with a distributed_at timestamp. */

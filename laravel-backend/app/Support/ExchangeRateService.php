@@ -95,8 +95,19 @@ class ExchangeRateService
      */
     public static function pkrToUsdSnapshot(float $pkrAmount): array
     {
-        $usd = self::convert($pkrAmount, 'PKR', 'USD');
-        $rate = self::convert(1.0, 'USD', 'PKR');
+        return self::toUsdSnapshot($pkrAmount, 'PKR');
+    }
+
+    /**
+     * USD equivalent plus the source-currency units per 1 USD used for the snapshot.
+     *
+     * @return array{amount_usd: float, exchange_rate: float, as_of: string|null}
+     */
+    public static function toUsdSnapshot(float $amount, string $currency): array
+    {
+        $currency = strtoupper(trim($currency));
+        $usd = self::convert($amount, $currency, 'USD');
+        $rate = self::convert(1.0, 'USD', $currency);
 
         return [
             'amount_usd' => $usd['amount'],

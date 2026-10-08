@@ -5,12 +5,15 @@ use App\Models\User;
 use App\Models\InvestorBankAccountVerification;
 use App\Models\UserProfile;
 use App\Models\Wallet;
+use App\Models\WalletCurrencyConversion;
+use App\Models\WalletTransaction;
 use App\Models\Withdrawal;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use App\Support\InvestorBankAccountPresenter;
+use App\Support\ExchangeRateService;
 
 uses(RefreshDatabase::class);
 
@@ -87,6 +90,99 @@ it('preserves an existing USD wallet when reading it for a Pakistan-based invest
         ->assertOk()
         ->assertJsonPath('data.wallet.currency', 'USD')
         ->assertJsonPath('data.summary.available_balance', 1150.33);
+});
+
+it('converts the wallet balance and preserves historical transaction currency when Profile currency changes', function () {
+    config(['currency.fallback_rates' => [
+        'USD' => 1,
+        'PKR' => 278.5,
+        'EUR' => 0.92,
+        'GBP' => 0.79,
+    ]]);
+    ExchangeRateService::clearCache();
+    Http::fake(['*' => Http::response(null, 500)]);
+
+    $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
+    $transaction = WalletTransaction::query()->create([
+        'wallet_id' => $wallet->id,
+        'type' => 'deposit',
+        'amount' => 250,
+        'direction' => 'credit',
+        'reference' => 'OLD-USD-LEDGER',
+        'status' => 'completed',
+        'meta' => ['note' => 'recorded before currency change'],
+    ]);
+    $transaction->forceFill(['meta' => ['note' => 'recorded before currency change']])->save();
+
+    $token = $this->investor->createToken('wallet_currency_conversion_test')->plainTextToken;
+    $this->withHeader('Authorization', 'Bearer '.$token)
+        ->putJson('/api/investor/profile', [
+            'preferences' => ['currency' => 'EUR'],
+        ])
+        ->assertOk()
+        ->assertJsonPath('wallet_currency_change.from_currency', 'USD')
+        ->assertJsonPath('wallet_currency_change.to_currency', 'EUR');
+
+    $wallet->refresh();
+    $transaction->refresh();
+    $conversion = WalletCurrencyConversion::query()->where('wallet_id', $wallet->id)->firstOrFail();
+
+    expect($wallet->currency)->toBe('EUR')
+        ->and((float) $wallet->available_balance)->toBe(9200.0)
+        ->and($transaction->meta['currency'] ?? null)->toBe('USD')
+        ->and($transaction->meta['note'] ?? null)->toBe('recorded before currency change')
+        ->and($conversion->from_currency)->toBe('USD')
+        ->and($conversion->to_currency)->toBe('EUR')
+        ->and((float) $conversion->from_amount)->toBe(10000.0)
+        ->and((float) $conversion->to_amount)->toBe(9200.0)
+        ->and((float) $conversion->exchange_rate)->toBe(0.92)
+        ->and($conversion->rates_as_of)->not->toBeNull();
+
+    $this->withHeader('Authorization', 'Bearer '.$token)
+        ->getJson('/api/investor/wallet/transactions')
+        ->assertOk()
+        ->assertJsonPath('data.0.currency', 'USD');
+});
+
+it('blocks Profile currency changes while a deposit is pending', function () {
+    Deposit::query()->create([
+        'investor_id' => $this->investor->id,
+        'amount' => 100,
+        'currency' => 'USD',
+        'method' => 'bank_transfer',
+        'reference' => 'PENDING-DEPOSIT',
+        'status' => 'pending',
+    ]);
+
+    $token = $this->investor->createToken('pending_deposit_currency_test')->plainTextToken;
+    $this->withHeader('Authorization', 'Bearer '.$token)
+        ->putJson('/api/investor/profile', [
+            'preferences' => ['currency' => 'EUR'],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['preferences.currency']);
+
+    expect(Wallet::query()->where('user_id', $this->investor->id)->value('currency'))->toBe('USD');
+});
+
+it('blocks Profile currency changes while a withdrawal is pending', function () {
+    Withdrawal::query()->create([
+        'investor_id' => $this->investor->id,
+        'amount' => 100,
+        'bank_details' => ['currency' => 'USD'],
+        'reference' => 'PENDING-WITHDRAWAL',
+        'status' => 'pending',
+    ]);
+
+    $token = $this->investor->createToken('pending_withdrawal_currency_test')->plainTextToken;
+    $this->withHeader('Authorization', 'Bearer '.$token)
+        ->putJson('/api/investor/profile', [
+            'preferences' => ['currency' => 'EUR'],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['preferences.currency']);
+
+    expect(Wallet::query()->where('user_id', $this->investor->id)->value('currency'))->toBe('USD');
 });
 
 it('accepts a mobile deposit without currency and defaults to wallet currency', function () {

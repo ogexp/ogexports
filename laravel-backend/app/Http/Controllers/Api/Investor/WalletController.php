@@ -9,9 +9,9 @@ use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Models\Withdrawal;
 use App\Support\ExchangeRateService;
-use App\Support\InvestorMarket;
 use App\Support\FinancialTransactionIdResolver;
 use App\Support\InvestorWithdrawalBreakdown;
+use App\Support\UserDisplayCurrency;
 use App\Support\WithdrawalTerms;
 use App\Services\InvestorTransactionPdfGenerator;
 use Illuminate\Http\JsonResponse;
@@ -24,7 +24,7 @@ class WalletController extends Controller
     public function show(Request $request): JsonResponse
     {
         $user = $request->user()->loadMissing('profile');
-        $defaultWalletCurrency = InvestorMarket::currencyForUser($user);
+        $defaultWalletCurrency = UserDisplayCurrency::currencyForUser($user);
 
         $wallet = Wallet::query()->firstOrCreate(
             ['user_id' => $user->id],
@@ -80,13 +80,14 @@ class WalletController extends Controller
         $wallet = Wallet::query()->firstOrCreate(
             ['user_id' => $request->user()->id],
             [
-                'currency' => InvestorMarket::currencyForUser($request->user()),
+                'currency' => UserDisplayCurrency::currencyForUser($request->user()),
                 'available_balance' => 0,
                 'pending_balance' => 0,
             ]
         );
 
         $transactions = $wallet->transactions()
+            ->with('wallet:id,currency')
             ->latest()
             ->paginate($this->perPage($request));
 

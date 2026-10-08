@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use App\Models\PlatformSetting;
+use App\Models\Wallet;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -40,7 +42,7 @@ it('allows credentialed product requests from the local frontend', function () {
         ->assertHeader('Access-Control-Allow-Credentials', 'true');
 });
 
-it('registers a buyer and redirects to buyer dashboard', function () {
+it('registers a buyer and requires email verification', function () {
     $response = $this->withHeader('Origin', 'http://localhost:5000')
         ->postJson('/api/auth/register', [
             'name' => 'Test Buyer',
@@ -52,14 +54,42 @@ it('registers a buyer and redirects to buyer dashboard', function () {
         ]);
 
     $response->assertCreated()
-        ->assertJsonPath('redirect', '/buyer/dashboard')
-        ->assertJsonPath('user.accountType', 'buyer')
-        ->assertJsonPath('user.profile.country', 'Pakistan');
+        ->assertJsonPath('requires_verification', true)
+        ->assertJsonPath('email', 'newbuyer@example.com');
 
-    $this->assertAuthenticated();
+    $this->assertGuest();
     $buyer = User::where('email', 'newbuyer@example.com')->first();
     expect($buyer->hasRole('buyer'))->toBeTrue();
     expect($buyer->profile?->country)->toBe('Pakistan');
+});
+
+it('registers Pakistan-based investors with USD as the initial Profile and wallet currency', function () {
+    PlatformSetting::query()->create([
+        'site_name' => 'OG Exports',
+        'registration_open' => true,
+        'investment_open' => true,
+        'supplier_module_enabled' => true,
+        'investment_module_enabled' => true,
+        'currency' => 'USD',
+    ]);
+
+    $this->postJson('/api/auth/register', [
+        'name' => 'New Investor',
+        'email' => 'new-investor-currency@example.com',
+        'password' => 'Password@123',
+        'password_confirmation' => 'Password@123',
+        'account_type' => 'investor',
+        'country' => 'Pakistan',
+    ])->assertCreated()
+        ->assertJsonPath('requires_verification', true)
+        ->assertJsonPath('email', 'new-investor-currency@example.com');
+
+    $investor = User::query()->where('email', 'new-investor-currency@example.com')->firstOrFail();
+    $preferences = $investor->profile?->meta['preferences'] ?? [];
+    $wallet = Wallet::query()->where('user_id', $investor->id)->firstOrFail();
+
+    expect($preferences['currency'] ?? null)->toBe('USD')
+        ->and($wallet->currency)->toBe('USD');
 });
 
 it('logs in admin and can access admin dashboard', function () {

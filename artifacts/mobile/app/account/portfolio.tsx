@@ -9,7 +9,7 @@ import {
   useGetInvestorInvestments,
 } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount, availableBalanceFromDashboard, first, list, moneyToCurrency, record, unwrap } from '@/lib/data';
+import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, MotionProgress, MotionReveal } from '@/lib/motion';
@@ -30,7 +30,7 @@ function supplied(value: string, fallback = '—') {
 }
 
 function reportedMoney(value: number | null, currency: string) {
-  return moneyToCurrency(value, currency, 'USD');
+  return money(value, currency);
 }
 
 function reportedDate(value: string) {
@@ -158,10 +158,10 @@ export default function Portfolio() {
       ?? amount(trade, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage']);
     const boundedProgress = progress == null ? null : Math.max(0, Math.min(100, progress));
     const amountLabel = investedAmount != null
-      ? moneyToCurrency(investedAmount, investmentCurrency || 'USD', 'USD')
+      ? money(investedAmount, investmentCurrency || 'USD')
       : investedPkr != null
-        ? moneyToCurrency(investedPkr, 'PKR', 'USD')
-        : moneyToCurrency(null, investmentCurrency || 'USD', 'USD');
+        ? money(investedPkr, 'PKR')
+        : money(null, investmentCurrency || 'USD');
     const expectedProfit = amount(item, ['expected_profit']) ?? amount(dashboardInvestment, ['expected_profit']);
     const roi = amount(dashboardInvestment, ['roi'])
       ?? amount(item, ['roi', 'expected_return_pct'])
@@ -358,7 +358,6 @@ export default function Portfolio() {
     <PortfolioHistoryCard
       points={series.points}
       currency={first(series, ['currency'], currency || 'USD')}
-      targetCurrency="USD"
       loading={dashboardQuery.isLoading}
       defaultRange="3M"
     />

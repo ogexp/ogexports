@@ -9,7 +9,7 @@ import {
 } from '@workspace/api-client-react';
 import { AllocationDonut, type AllocationSlice } from '@/components/AllocationDonut';
 import { Card, ErrorState, Screen, Section } from '@/components/InvestorUI';
-import { amount, convertAmountToCurrency, first, list, moneyToCurrency, record, unwrap, type Json } from '@/lib/data';
+import { amount, convertAmountToCurrency, first, list, money, record, unwrap, type Json } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -81,7 +81,7 @@ function createAllocation(trades: TradeAggregate[], field: 'commodity' | 'destin
 function moneyLabel(value: number | null, currency: string, loading: boolean, error: boolean) {
   if (loading) return 'Loading…';
   if (error) return 'Unavailable';
-  return moneyToCurrency(value, currency || 'USD', 'USD');
+  return money(value, currency || 'USD');
 }
 
 export default function TradeAnalytics() {
@@ -240,7 +240,6 @@ export default function TradeAnalytics() {
       subtitle="Share of comparable USD capital"
       data={commodityAllocation}
       currency="USD"
-      targetCurrency="USD"
       missingAmounts={missingCapitalCount}
       note={allocationNote}
     />
@@ -251,7 +250,6 @@ export default function TradeAnalytics() {
       subtitle="Share of comparable USD capital"
       data={destinationAllocation}
       currency="USD"
-      targetCurrency="USD"
       missingAmounts={missingCapitalCount}
       note={allocationNote}
     />

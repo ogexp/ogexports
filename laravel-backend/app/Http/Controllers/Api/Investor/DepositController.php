@@ -161,17 +161,9 @@ class DepositController extends Controller
             ?? null;
 
         $currency = strtoupper($data['currency']);
-        $amountUsd = null;
-        $usdExchangeRate = null;
-
-        if (
-            UserDisplayCurrency::isPkrUser($request->user())
-            && $currency === 'PKR'
-        ) {
-            $snapshot = ExchangeRateService::pkrToUsdSnapshot((float) $data['amount']);
-            $amountUsd = $snapshot['amount_usd'];
-            $usdExchangeRate = $snapshot['exchange_rate'];
-        }
+        $snapshot = ExchangeRateService::toUsdSnapshot((float) $data['amount'], $currency);
+        $amountUsd = $currency === 'USD' ? null : $snapshot['amount_usd'];
+        $usdExchangeRate = $currency === 'USD' ? null : $snapshot['exchange_rate'];
 
         $deposit = Deposit::create([
             'investor_id' => $request->user()->id,

@@ -142,18 +142,12 @@ class WithdrawalController extends Controller
         /** @var User $user */
         $user = $request->user()->fresh();
         $amount = round((float) $data['amount'], 2);
-        $amountUsd = null;
-        $exchangeRate = null;
-
-        if (UserDisplayCurrency::isPkrUser($user)) {
-            $snapshot = ExchangeRateService::pkrToUsdSnapshot($amount);
-            $amountUsd = $snapshot['amount_usd'];
-            $exchangeRate = $snapshot['exchange_rate'];
-        }
-
         $walletCurrency = UserDisplayCurrency::currencyForUser($user);
+        $snapshot = ExchangeRateService::toUsdSnapshot($amount, $walletCurrency);
+        $amountUsd = $walletCurrency === 'USD' ? null : $snapshot['amount_usd'];
+        $exchangeRate = $walletCurrency === 'USD' ? null : $snapshot['exchange_rate'];
         $minimumWithdrawalUsd = round((float) config('withdrawal.minimum_usd', 100), 2);
-        $amountUsdForMinimum = $amountUsd ?? $amount;
+        $amountUsdForMinimum = $amountUsd ?? ($walletCurrency === 'USD' ? $amount : null);
 
         if ($amountUsdForMinimum < $minimumWithdrawalUsd) {
             $message = sprintf(

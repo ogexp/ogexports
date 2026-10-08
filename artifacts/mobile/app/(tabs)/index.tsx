@@ -16,7 +16,7 @@ import {
 } from '@workspace/api-client-react';
 import { Card, EmptyState, ErrorState, LoadingCard, Status } from '@/components/InvestorUI';
 import { AllocationDonut, type AllocationSlice } from '@/components/AllocationDonut';
-import { amount, availableBalanceFromDashboard, first, list, money, moneyToCurrency, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
+import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
 import { mergeDepositRequests, resolveActivityTransactionTarget } from '@/lib/deposit-activity';
 import { latestRecords } from '@/lib/latest-records';
 import { isInvestorNotificationUnread } from '@/lib/notification-utils';
@@ -209,7 +209,7 @@ export default function InvestorHome() {
   const displayMoney = (value: number | null, unit = currency) =>
     balanceHidden ? '••••••' : dashboard.isError ? 'Unavailable' : money(value, unit || 'USD');
   const displayInvestmentMoney = (value: number | null, unit: string) =>
-    balanceHidden ? '••••••' : dashboard.isError ? 'Unavailable' : moneyToCurrency(value, unit || 'USD', 'USD');
+    balanceHidden ? '••••••' : dashboard.isError ? 'Unavailable' : money(value, unit || 'USD');
   const displayRoi = balanceHidden ? '••••' : dashboard.isError ? 'Unavailable' : roi == null ? '—' : `${roi.toFixed(2)}%`;
   const metricMoney = (value: number | null, unit = currency) =>
     dashboard.isLoading ? '…' : dashboard.isError ? 'Unavailable' : displayMoney(value, unit);
