@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, useMotion } from '@/lib/motion';
 
-const INTRO_MIN_DURATION = 2000;
+const INTRO_MIN_DURATION = 5000;
 
 export default function Entry() {
   const { ready, token, onboardingComplete, appUnlocked } = useAuth();
