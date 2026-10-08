@@ -9,7 +9,7 @@ import {
   useUpdateInvestorProfile,
 } from '@workspace/api-client-react';
 import { useAuth } from '@/context/AuthContext';
-import { configureMoneyDisplay, first, record, unwrap, type Json } from '@/lib/data';
+import { configureMoneyDisplay, first, messageOf, record, unwrap, type Json } from '@/lib/data';
 import { configureUiLanguage, translateUi } from '@/lib/strings';
 import type { AppLanguage } from '@/lib/strings';
 
@@ -84,7 +84,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
-  const currencySyncAttempt = useRef('');
+  const currencySyncAttempt = useRef<{ key: string; at: number }>({ key: '', at: 0 });
 
   const profileQuery = useGetInvestorProfile({
     query: {
@@ -104,6 +104,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   const updateProfile = useUpdateInvestorProfile();
   const profile = unwrap(profileQuery.data);
   const rateResponse = unwrap(ratesQuery.data);
+  const profileUserId = first(record(profile.user), ['id']);
   const walletCurrency = first(record(profile.user), ['walletCurrency', 'wallet_currency']).toUpperCase();
   const profileCurrencyPreference = parsePreferences(profile.preferences).currency;
   const rates = normalizeRates(rateResponse.rates, first(rateResponse, ['base']).toUpperCase());
@@ -165,18 +166,21 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
 
   useEffect(() => {
     if (!preferencesLoaded || !profileQuery.data || !userId || !token) {
-      currencySyncAttempt.current = '';
+      currencySyncAttempt.current = { key: '', at: 0 };
       return;
     }
+    if (!profileUserId || profileUserId !== userId) return;
+    if (profileQuery.isFetching || profileQuery.isError) return;
     if (!profileCurrencyPreference || !walletCurrency || profileCurrencyPreference === walletCurrency) {
-      currencySyncAttempt.current = '';
+      currencySyncAttempt.current = { key: '', at: 0 };
       return;
     }
     if (isSaving) return;
 
     const attemptKey = `${userId}:${profileCurrencyPreference}:${walletCurrency}`;
-    if (currencySyncAttempt.current === attemptKey) return;
-    currencySyncAttempt.current = attemptKey;
+    if (currencySyncAttempt.current.key === attemptKey
+      && Date.now() - currencySyncAttempt.current.at < 60_000) return;
+    currencySyncAttempt.current = { key: attemptKey, at: Date.now() };
     setError('');
     setIsSaving(true);
 
@@ -188,9 +192,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
         });
         await queryClient.invalidateQueries();
       } catch (syncError) {
-        setError(syncError instanceof Error
-          ? syncError.message
-          : 'Wallet currency could not be synchronized with Profile.');
+        setError(messageOf(syncError));
       } finally {
         setIsSaving(false);
       }
@@ -198,8 +200,12 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   }, [
     preferencesLoaded,
     profileQuery.data,
+    profileQuery.dataUpdatedAt,
+    profileQuery.isFetching,
+    profileQuery.isError,
     profile.preferences,
     profileCurrencyPreference,
+    profileUserId,
     walletCurrency,
     userId,
     token,

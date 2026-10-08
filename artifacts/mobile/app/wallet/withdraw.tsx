@@ -165,6 +165,7 @@ export default function Withdraw() {
   ).toUpperCase();
   const profileCurrency = appPreferences.preferences.currency.toUpperCase();
   const currencyCheckLoading = appPreferences.isLoading
+    || appPreferences.isSaving
     || dashboardQuery.isLoading
     || dashboardQuery.isFetching
     || profileQuery.isLoading
@@ -436,8 +437,8 @@ export default function Withdraw() {
       {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the latest Profile and wallet currencies…</Text></Card> : null}
       {!currencyCheckLoading && currencyMismatch ? <WalletCurrencyMismatchNotice
         mismatchedCurrencies={currencyMismatchCurrencies}
-        profileCurrency={profileCurrency}
         language={appPreferences.preferences.language}
+        syncError={appPreferences.error}
       /> : null}
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Card style={{ flex: 1, borderTopWidth: 3, borderTopColor: colors.border }}>
@@ -494,8 +495,8 @@ export default function Withdraw() {
       {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the latest Profile and wallet currencies…</Text></Card> : null}
       {!currencyCheckLoading && currencyMismatch ? <WalletCurrencyMismatchNotice
         mismatchedCurrencies={currencyMismatchCurrencies}
-        profileCurrency={profileCurrency}
         language={appPreferences.preferences.language}
+        syncError={appPreferences.error}
       /> : null}
       {profileQuery.isError ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginBottom: 8 }}>
         Saved bank details could not be loaded. You can still enter them below.
@@ -592,8 +593,8 @@ export default function Withdraw() {
       {currencyCheckLoading ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginBottom: 10 }}>Confirming the latest Profile and wallet currencies…</Text> : null}
       {!currencyCheckLoading && currencyMismatch ? <WalletCurrencyMismatchNotice
         mismatchedCurrencies={currencyMismatchCurrencies}
-        profileCurrency={profileCurrency}
         language={appPreferences.preferences.language}
+        syncError={appPreferences.error}
       /> : null}
       <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginBottom: 14 }}>
         {otpEmail ? <><Text>Code sent to</Text><Text> {otpEmail}</Text></> : 'Enter the six-digit code sent to your registered email.'}

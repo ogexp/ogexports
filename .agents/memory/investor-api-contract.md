@@ -91,8 +91,8 @@ The actual wallet currency must follow Profile currency through an authoritative
 
 **How to apply:** Keep dashboard, wallet, withdrawal terms, and forms aligned to the selected Profile currency after conversion. Preserve bank settlement currency as a separate field and retain currency/rate snapshots for every converted balance and historical event.
 
-Profile currency is the single currency control for the investor wallet. Currency-mismatch notices must not offer a Settings shortcut; the server converts the wallet when the Profile currency is saved.
+Profile currency is the single currency control for the investor wallet. If an existing account's Profile and wallet currencies differ, reconcile it through the Profile update conversion path after authoritative data loads; do not mutate on GET or relabel client-side.
 
-**Why:** The user asked to remove the Settings shortcut and have wallet currency follow Profile currency.
+**Why:** The user asked to remove the Settings shortcut and have wallet currency follow Profile currency, including existing mismatches.
 
-**How to apply:** Keep mismatch notices informational and block unsafe deposit/withdrawal submissions until server-reported currencies match. Do not add a separate wallet-currency setting or ask investors to navigate to Settings from those notices.
+**How to apply:** Keep mismatch notices informational, omit currency-pair arrows, and block unsafe deposit/withdrawal submissions until server-reported currencies match. Do not add a separate wallet-currency setting or ask investors to navigate to Settings from those notices.

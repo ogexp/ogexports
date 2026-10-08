@@ -7,15 +7,15 @@ import { translateUi, type AppLanguage } from '@/lib/strings';
 
 type Props = {
   mismatchedCurrencies: string[];
-  profileCurrency: string;
   language: AppLanguage;
+  syncError?: string;
   testID?: string;
 };
 
 export function WalletCurrencyMismatchNotice({
   mismatchedCurrencies,
-  profileCurrency,
   language,
+  syncError = '',
   testID = 'wallet-currency-mismatch',
 }: Props) {
   const colors = useColors();
@@ -35,13 +35,13 @@ export function WalletCurrencyMismatchNotice({
         <Text accessibilityRole="alert" style={{ color: colors.foreground, fontSize: 12, lineHeight: 18, fontWeight: '600' }}>
           {translateUi('Wallet currency follows your Profile currency.', language)}
         </Text>
-        <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: '700', marginTop: 5 }}>
-          {mismatchedCurrencies.join(' / ')} → {profileCurrency}
-        </Text>
       </View>
     </View>
     <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 9, marginBottom: 11 }}>
       {translateUi('Deposit and withdrawal requests are paused until the wallet matches your Profile currency.', language)}
     </Text>
+    {syncError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 11, lineHeight: 16 }}>
+      {syncError}
+    </Text> : null}
   </View>;
 }

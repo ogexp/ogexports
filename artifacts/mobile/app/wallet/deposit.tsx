@@ -148,6 +148,7 @@ export default function Deposit() {
   const profileWalletCurrency = first(record(profile.user), ['walletCurrency', 'wallet_currency']).toUpperCase();
   const profileCurrency = appPreferences.preferences.currency.toUpperCase();
   const currencyCheckLoading = appPreferences.isLoading
+    || appPreferences.isSaving
     || dashboardQuery.isLoading
     || dashboardQuery.isFetching
     || profileQuery.isLoading
@@ -385,8 +386,8 @@ export default function Deposit() {
       {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the latest Profile and wallet currencies…</Text></Card> : null}
       {!currencyCheckLoading && currencyMismatch ? <WalletCurrencyMismatchNotice
         mismatchedCurrencies={currencyMismatchCurrencies}
-        profileCurrency={profileCurrency}
         language={appPreferences.preferences.language}
+        syncError={appPreferences.error}
       /> : null}
       {DEPOSIT_PAYMENT_METHODS.map(method => {
         const selected = method.id === paymentMethodId;
@@ -447,8 +448,8 @@ export default function Deposit() {
       {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the latest Profile and wallet currencies…</Text></Card> : null}
       {!currencyCheckLoading && currencyMismatch ? <WalletCurrencyMismatchNotice
         mismatchedCurrencies={currencyMismatchCurrencies}
-        profileCurrency={profileCurrency}
         language={appPreferences.preferences.language}
+        syncError={appPreferences.error}
       /> : null}
       {dashboardQuery.isError ? <ErrorState message="Wallet currency could not be loaded." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} /> : null}
       {!currencyCheckLoading && !currencyMismatch && !dashboardQuery.isError ? <>
@@ -557,8 +558,8 @@ export default function Deposit() {
       {currencyCheckLoading ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 8 }}>Confirming the latest Profile and wallet currencies…</Text> : null}
       {!currencyCheckLoading && currencyMismatch ? <WalletCurrencyMismatchNotice
         mismatchedCurrencies={currencyMismatchCurrencies}
-        profileCurrency={profileCurrency}
         language={appPreferences.preferences.language}
+        syncError={appPreferences.error}
       /> : null}
       <DetailRow label="Amount" value={money(Number(amount), paymentCurrency || 'USD')} />
       <DetailRow label="OG Exports fee (0%)" value={money(paymentFeeAmount, paymentCurrency || 'USD')} />
