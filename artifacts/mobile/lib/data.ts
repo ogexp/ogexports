@@ -114,6 +114,14 @@ export function walletCurrencyFromDashboard(value: unknown, fallback = 'USD'): s
   return /^[A-Z]{3}$/.test(fallbackCurrency) ? fallbackCurrency : '';
 }
 
+export function mismatchedWalletCurrencies(profileCurrency: string, ...walletCurrencies: string[]): string[] {
+  const expectedCurrency = profileCurrency.trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(expectedCurrency)) return [];
+  return [...new Set(walletCurrencies
+    .map(currency => currency.trim().toUpperCase())
+    .filter(currency => /^[A-Z]{3}$/.test(currency) && currency !== expectedCurrency))];
+}
+
 export function money(value: unknown, currency?: string, options: { preserveSource?: boolean; targetCurrency?: string } = {}): string {
   const missingValue = value === null || value === undefined || value === '';
   const parsed = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN;

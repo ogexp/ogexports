@@ -13,14 +13,17 @@ import {
   useGetInvestorDeposits,
   useGetInvestorPaymentBankAccounts,
   useGetInvestorDashboard,
+  useGetInvestorProfile,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
+import { WalletCurrencyMismatchNotice } from '@/components/WalletCurrencyMismatchNotice';
 import { formatUiStatus } from '@/lib/strings';
-import { amount as readAmount, first, list, messageOf, money, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
+import { amount as readAmount, first, list, messageOf, mismatchedWalletCurrencies, money, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
 import { DEPOSIT_PAYMENT_METHODS, type DepositPaymentMethodId } from '@/lib/deposit-methods';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
+import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { useColors } from '@/hooks/useColors';
 import { motionHaptic } from '@/lib/motion';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
@@ -123,9 +126,11 @@ function CopyableBankDetailRow({ label, value, copied, accessibilityLabel, testI
 
 export default function Deposit() {
   const { token, apiOrigin, beginExternalFilePicker, endExternalFilePicker } = useAuth();
+  const appPreferences = useAppPreferences();
   const colors = useColors();
   const queryClient = useQueryClient();
   const dashboardQuery = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
+  const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: Boolean(token), staleTime: 60_000, refetchOnMount: 'always' } });
   const optionsQuery = useGetInvestorDepositOptions({ query: { queryKey: ['investor-deposit-options'], enabled: Boolean(token) } });
   const banksQuery = useGetInvestorPaymentBankAccounts({ query: { queryKey: ['investor-payment-bank-accounts'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const depositsQuery = useGetInvestorDeposits({ per_page: 5 }, { query: { queryKey: ['investor-deposits'], enabled: Boolean(token) } });
@@ -139,6 +144,18 @@ export default function Deposit() {
     dashboardQuery.data,
     first(wallet, ['currency', 'default_currency'], ''),
   );
+  const profile = unwrap(profileQuery.data);
+  const profileWalletCurrency = first(record(profile.user), ['walletCurrency', 'wallet_currency']).toUpperCase();
+  const profileCurrency = appPreferences.preferences.currency.toUpperCase();
+  const currencyCheckLoading = appPreferences.isLoading
+    || dashboardQuery.isLoading
+    || dashboardQuery.isFetching
+    || profileQuery.isLoading
+    || profileQuery.isFetching;
+  const currencyMismatchCurrencies = currencyCheckLoading
+    ? []
+    : mismatchedWalletCurrencies(profileCurrency, walletCurrency, profileWalletCurrency, appPreferences.walletCurrency);
+  const currencyMismatch = currencyMismatchCurrencies.length > 0;
   const [amount, setAmount] = useState('');
   const [bankId, setBankId] = useState('');
   const [projectId, setProjectId] = useState('');
@@ -248,7 +265,15 @@ export default function Deposit() {
 
   function validateDeposit() {
     const numericAmount = Number(amount);
-    if (dashboardQuery.isLoading || dashboardQuery.isFetching || dashboardQuery.isError || !walletCurrency) {
+    if (currencyCheckLoading) {
+      setError('Wait for the latest Profile and wallet currencies to be confirmed before continuing.');
+      return false;
+    }
+    if (currencyMismatch) {
+      setError('Your wallet and Profile currencies differ. Tap the selected currency to convert the available balance.');
+      return false;
+    }
+    if (dashboardQuery.isError || dashboardQuery.isLoading || dashboardQuery.isFetching || !walletCurrency) {
       setError(dashboardQuery.isError
         ? 'Wallet currency could not be loaded. Retry before continuing.'
         : 'Wait for the wallet currency to load before continuing.');
@@ -350,17 +375,29 @@ export default function Deposit() {
       : 'Your deposit request is under review. Your wallet balance will update when the deposit is credited.';
 
   return <Screen key={stage} title="Add funds" subtitle={selectedPaymentMethod
-    ? `Deposit via ${selectedPaymentMethod.label} · ${paymentCurrency || 'wallet currency unavailable'}`
+    ? `Deposit via ${selectedPaymentMethod.label} · ${currencyCheckLoading ? 'confirming wallet currency' : paymentCurrency || 'wallet currency unavailable'}`
     : 'Choose a payment method to get started'} refreshable>
     {stage === 'method' ? <>
       <Section title="1 · Payment Method" />
       <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 4 }}>
         Choose a deposit method. Bank details and amount fields will appear next.
       </Text>
+      {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the latest Profile and wallet currencies…</Text></Card> : null}
+      {!currencyCheckLoading && currencyMismatch ? <WalletCurrencyMismatchNotice
+        mismatchedCurrencies={currencyMismatchCurrencies}
+        profileCurrency={profileCurrency}
+        language={appPreferences.preferences.language}
+        onOpenSettings={() => router.push('/account/settings' as never)}
+      /> : null}
       {DEPOSIT_PAYMENT_METHODS.map(method => {
         const selected = method.id === paymentMethodId;
         return <Pressable key={method.id} accessibilityRole="button" accessibilityState={{ selected }}
-          testID={`deposit-payment-method-${method.id}`} onPress={() => setPaymentMethodId(method.id)}
+          testID={`deposit-payment-method-${method.id}`} onPress={() => {
+            setPaymentMethodId(method.id);
+            setError('');
+            setNotice('');
+            setStage('form');
+          }}
           style={{ marginBottom: 10 }}>
           <Card style={{
             borderColor: selected ? colors.primary : colors.border,
@@ -393,7 +430,7 @@ export default function Deposit() {
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 9 }}>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.mutedForeground, fontSize: 9, letterSpacing: 0.6 }}>WALLET CURRENCY</Text>
-                <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700', marginTop: 2 }}>{paymentCurrency || '—'}</Text>
+                <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700', marginTop: 2 }}>{currencyCheckLoading ? 'Checking…' : paymentCurrency || '—'}</Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.mutedForeground, fontSize: 9, letterSpacing: 0.6 }}>FEES</Text>
@@ -404,18 +441,24 @@ export default function Deposit() {
         </Pressable>;
       })}
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 10 }}>{error}</Text> : null}
-      <Action title="Continue" icon="arrow-right" testID="continue-deposit-payment-method" disabled={!selectedPaymentMethod}
-        onPress={() => { setError(''); setStage('form'); }} />
     </> : null}
 
     {stage === 'form' ? <>
       <Section title="2 · Deposit Details" />
-      {dashboardQuery.isLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Loading wallet currency…</Text></Card> : null}
+      {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the latest Profile and wallet currencies…</Text></Card> : null}
+      {!currencyCheckLoading && currencyMismatch ? <WalletCurrencyMismatchNotice
+        mismatchedCurrencies={currencyMismatchCurrencies}
+        profileCurrency={profileCurrency}
+        language={appPreferences.preferences.language}
+        onOpenSettings={() => router.push('/account/settings' as never)}
+      /> : null}
       {dashboardQuery.isError ? <ErrorState message="Wallet currency could not be loaded." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} /> : null}
-      <Section title="Amount" />
-      <Card>
-        <Field label={`Deposit amount (${paymentCurrency || 'currency unavailable'})`} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
-      </Card>
+      {!currencyCheckLoading && !currencyMismatch && !dashboardQuery.isError ? <>
+        <Section title="Amount" />
+        <Card>
+          <Field label={`Deposit amount (${paymentCurrency || 'currency unavailable'})`} value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" autoCapitalize="none" />
+        </Card>
+      </> : null}
 
       <Section title="Payment Method" right={<Pressable accessibilityRole="button" accessibilityLabel="Change payment method"
         testID="change-deposit-payment-method" onPress={() => { setError(''); setStage('method'); }}>
@@ -502,7 +545,7 @@ export default function Deposit() {
           </View> : null}
           {proofRequired ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16 }}>The selected payment account requires proof before submission.</Text> : null}
           {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, lineHeight: 18 }}>{error}</Text> : null}
-          <Action title="Review deposit" icon="arrow-right" disabled={!paymentCurrency || !amount || Number(amount) < 1 || !selectedBank || !reference.trim() || (proofRequired && !proof)} onPress={() => {
+          <Action title="Review deposit" icon="arrow-right" disabled={currencyCheckLoading || currencyMismatch || !paymentCurrency || !amount || Number(amount) < 1 || !selectedBank || !reference.trim() || (proofRequired && !proof)} onPress={() => {
             setError('');
             if (validateDeposit()) setStage('review');
           }} />
@@ -513,6 +556,13 @@ export default function Deposit() {
 
     {stage === 'review' ? <Card>
       <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Review deposit</Text>
+      {currencyCheckLoading ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 8 }}>Confirming the latest Profile and wallet currencies…</Text> : null}
+      {!currencyCheckLoading && currencyMismatch ? <WalletCurrencyMismatchNotice
+        mismatchedCurrencies={currencyMismatchCurrencies}
+        profileCurrency={profileCurrency}
+        language={appPreferences.preferences.language}
+        onOpenSettings={() => router.push('/account/settings' as never)}
+      /> : null}
       <DetailRow label="Amount" value={money(Number(amount), paymentCurrency || 'USD')} />
       <DetailRow label="OG Exports fee (0%)" value={money(paymentFeeAmount, paymentCurrency || 'USD')} />
       <DetailRow label="Payment method" value={selectedPaymentMethod?.label ?? '—'} />
@@ -539,7 +589,9 @@ export default function Deposit() {
       {selectedProject ? <DetailRow label="Project association" value={first(selectedProject, ['title', 'name'], 'Investment project')} /> : null}
        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8, marginBottom: 12 }}>OG Exports will review this request. Your wallet balance will update when the deposit is credited.</Text>
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
-      <Action title="Submit deposit request" icon="lock" loading={create.isPending} onPress={() => void submit()} />
+      <Action title="Submit deposit request" icon="lock" loading={create.isPending}
+        disabled={currencyCheckLoading || currencyMismatch || dashboardQuery.isError || !paymentCurrency}
+        onPress={() => void submit()} />
       <View style={{ marginTop: 10 }}><Action title="Edit deposit" secondary onPress={() => { setError(''); setStage('form'); }} /></View>
     </Card> : null}
 

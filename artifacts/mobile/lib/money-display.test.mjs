@@ -8,6 +8,7 @@ import {
   money,
   moneyInSourceCurrency,
   moneyToCurrency,
+  mismatchedWalletCurrencies,
   walletCurrencyFromDashboard,
 } from './data.ts';
 
@@ -78,6 +79,13 @@ test('wallet currency never falls back to the dashboard display-currency prefere
   assert.equal(walletCurrencyFromDashboard({
     data: { summary: { display_currency: 'PKR' } },
   }, ''), '');
+});
+
+test('detects wallet currencies that have not synced to the selected Profile currency', () => {
+  assert.deepEqual(mismatchedWalletCurrencies('USD', 'PKR', 'PKR'), ['PKR']);
+  assert.deepEqual(mismatchedWalletCurrencies('USD', 'USD', 'USD'), []);
+  assert.deepEqual(mismatchedWalletCurrencies('USD', 'PKR', 'EUR'), ['PKR', 'EUR']);
+  assert.deepEqual(mismatchedWalletCurrencies('', 'PKR'), []);
 });
 
 test('missing monetary values use a display-only zero in the selected currency', () => {
