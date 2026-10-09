@@ -122,3 +122,19 @@ it('formats PK investor amounts as USD only when PKR display is disabled', funct
     $ctx = UserDisplayCurrency::contextForUser($investor);
     expect($ctx['display_pkr'])->toBeFalse();
 });
+
+it('exposes the Profile currency separately from the server wallet amount currency', function () {
+    $investor = pkInvestorForDual();
+    $profile = $investor->profile;
+    $meta = is_array($profile->meta) ? $profile->meta : [];
+    $meta['preferences'] = ['currency' => 'USD'];
+    $profile->update(['meta' => $meta]);
+
+    $investor = $investor->fresh(['profile', 'wallet']);
+    $context = UserDisplayCurrency::contextForUser($investor);
+    $payload = UserDisplayCurrency::userPayload($investor);
+
+    expect($context['profile_currency'])->toBe('USD')
+        ->and($context['wallet_currency'])->toBe('PKR')
+        ->and($payload['profile_currency'])->toBe('USD');
+});

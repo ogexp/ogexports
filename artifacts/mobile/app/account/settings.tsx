@@ -337,7 +337,7 @@ export default function Settings() {
       </View>
 
       <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>
-        {translateUi('Profile and wallet currency', appLanguage)}
+        {translateUi('Profile currency', appLanguage)}
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 7 }}>
         {(['USD', 'PKR', 'EUR', 'GBP'] as const).map(currency => {

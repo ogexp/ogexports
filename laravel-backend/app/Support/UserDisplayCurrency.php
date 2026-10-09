@@ -132,7 +132,7 @@ class UserDisplayCurrency
     }
 
     /**
-     * @return array{country: string|null, currency: string, display_pkr: bool, wallet_currency: string|null}
+     * @return array{country: string|null, currency: string, profile_currency: string, display_pkr: bool, wallet_currency: string|null}
      */
     public static function contextForUser(?User $user): array
     {
@@ -140,6 +140,7 @@ class UserDisplayCurrency
             return [
                 'country' => null,
                 'currency' => 'USD',
+                'profile_currency' => 'USD',
                 'display_pkr' => false,
                 'wallet_currency' => null,
             ];
@@ -149,10 +150,12 @@ class UserDisplayCurrency
         $country = $user->profile?->country;
         $walletCurrency = $user->wallet?->currency ? strtoupper((string) $user->wallet->currency) : null;
         $currency = self::currencyForUser($user);
+        $profileCurrency = InvestorMarket::currencyForUser($user);
 
         return [
             'country' => $country,
             'currency' => $currency,
+            'profile_currency' => $profileCurrency,
             'display_pkr' => self::shouldDisplayPkr($user),
             'wallet_currency' => $walletCurrency,
         ];
@@ -175,6 +178,7 @@ class UserDisplayCurrency
             'email' => $user->email,
             'country' => $ctx['country'],
             'currency' => $ctx['currency'],
+            'profile_currency' => $ctx['profile_currency'],
             'display_currency' => $ctx['display_pkr'] ? 'PKR' : ($ctx['currency'] === 'PKR' && ! self::pkrDisplayEnabled() ? 'USD' : $ctx['currency']),
             'display_pkr' => $ctx['display_pkr'],
             'wallet_currency' => $ctx['wallet_currency'],

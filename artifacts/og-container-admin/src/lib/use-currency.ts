@@ -106,7 +106,7 @@ export interface CurrencyKit {
   /** Platform setting: show PKR + ($USD) when true (investors only). */
   dualEnabled: boolean
   country: string
-  /** Wallet ledger currency (PKR or USD, etc.) */
+  /** Investor currency selected in Profile; server conversion keeps the wallet synchronized. */
   walletCurrency: string
   sym: string
   symLabel: string
@@ -272,11 +272,11 @@ export function useCurrency(): CurrencyKit {
   ).trim()
 
   const walletCurrency = String(
-    meCtx?.walletCurrency
-    || meCtx?.currency
-    || (role === "investor"
-      ? "USD"
-      : isPakistanCountry(country) ? "PKR" : "USD"),
+    role === "investor"
+      ? meCtx?.currency || "USD"
+      : meCtx?.walletCurrency
+        || meCtx?.currency
+        || (isPakistanCountry(country) ? "PKR" : "USD"),
   ).toUpperCase()
 
   const meInvestPkrRaw = (me as any)?.investPkrDisplayEnabled

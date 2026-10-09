@@ -884,8 +884,14 @@ function mapUser(u: any): AdminUser {
     portfolio: u.portfolioTotal != null || u.portfolio_total != null
       ? formatUserAmount(
           Number(u.portfolioTotal ?? u.portfolio_total ?? 0),
-          userCurrencyContextFromApi({ country: profile.country, display_pkr: u.displayPkr ?? u.display_pkr, currency: u.displayCurrency ?? u.display_currency, wallet_currency: u.walletCurrency ?? u.wallet?.currency }),
-          { sourceCurrency: u.walletCurrency ?? u.wallet?.currency ?? u.displayCurrency ?? "USD", nativeAmount: Number(u.portfolioTotal ?? u.portfolio_total ?? 0), role: "investor" },
+          userCurrencyContextFromApi({
+            ...u,
+            country: profile.country,
+            profile_currency: u.profileCurrency ?? u.profile_currency,
+            display_pkr: u.displayPkr ?? u.display_pkr,
+            wallet_currency: u.walletCurrency ?? u.wallet_currency ?? u.wallet?.currency,
+          }),
+          { sourceCurrency: u.walletCurrency ?? u.wallet_currency ?? u.wallet?.currency ?? u.profileCurrency ?? u.profile_currency ?? u.currency ?? u.displayCurrency ?? u.display_currency ?? "USD", nativeAmount: Number(u.portfolioTotal ?? u.portfolio_total ?? 0), role: "investor" },
         )
       : undefined,
   }

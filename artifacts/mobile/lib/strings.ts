@@ -655,7 +655,7 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Currency conversion unavailable","کرنسی کی تبدیلی دستیاب نہیں","تحويل العملة غير متاح"],
   ["Dark","گہرا","داكن"],
   ["Data preferences","ڈیٹا کی ترجیحات","تفضيلات البيانات"],
-  ["Profile and wallet currency","پروفائل اور والیٹ کی کرنسی","عملة الملف الشخصي والمحفظة"],
+  ["Profile currency","پروفائل کی کرنسی","عملة الملف الشخصي"],
   ["Selecting a currency converts your available wallet balance at the authenticated rate and sets the currency used for future wallet requests.","کرنسی منتخب کرنے سے تصدیق شدہ شرح پر دستیاب والیٹ بیلنس تبدیل ہوگا اور آئندہ والیٹ درخواستوں کی کرنسی مقرر ہوگی۔","يؤدي اختيار العملة إلى تحويل الرصيد المتاح في المحفظة بالسعر الموثّق وتحديد عملة طلبات المحفظة المستقبلية."],
   ["Rates as of","شرح تبادلہ کی تاریخ","أسعار الصرف بتاريخ"],
   ["Wallet currency follows your Profile currency.","والیٹ کی کرنسی آپ کے پروفائل کی کرنسی کے مطابق ہوتی ہے۔","عملة المحفظة تتبع عملة ملفك الشخصي."],
