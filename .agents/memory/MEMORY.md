@@ -10,7 +10,7 @@
 - [Notification preference migration](investor-notification-preference-migration.md) — category preferences override matching legacy settings without dropping old keys or changing email/push controls.
 - [Expo DevTools runtime](expo-devtools-runtime.md) — a missing libglib can break the optional debugger without blocking Metro or the app preview.
 - [Expo workflow log freshness](expo-workflow-log-freshness.md) — when Metro errors conflict with exports, restart the managed Expo workflow and inspect fresh logs before changing code.
-- [OG Exports Expo account separation](og-exports-expo-account.md) — use the separate Expo account for OG Exports; do not build it under OG Landmark's project.
+- [OG Exports Expo and GitHub separation](og-exports-expo-account.md) — use OG Exports' own Expo project and `ogexp/ogexp` repo, never OG Landmark's.
 - [OG Exports platform principles](og-exports-platform-principles.md) — make trade traceability, verified documents/status, simple real-trade data, and financial security visible throughout the investor app.
 - [OG Exports phase workflow](og-exports-phase-workflow.md) — implement the investor app one user-provided phase at a time, then verify before moving on.
 - [OpenAPI binary uploads](openapi-binary-validation.md) — enforce upload size limits on the server; generated Zod schemas cannot apply maxLength to Blob fields.
