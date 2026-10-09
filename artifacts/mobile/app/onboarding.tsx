@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Image, PanResponder, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Image, PanResponder, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
@@ -259,11 +259,12 @@ function IllustrationLayer({ kind, stage, progress }: {
   );
 }
 
-function OnboardingIllustration({ kind, stageA, stageB, stageC }: {
+function OnboardingIllustration({ kind, stageA, stageB, stageC, reduceMotion }: {
   kind: IllustrationKind;
   stageA: Animated.Value;
   stageB: Animated.Value;
   stageC: Animated.Value;
+  reduceMotion: boolean;
 }) {
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const travelProgress = useRef(new Animated.Value(0)).current;
@@ -272,6 +273,21 @@ function OnboardingIllustration({ kind, stageA, stageB, stageC }: {
     : kind === 'shipment'
       ? 'Cargo ship moving through cargo preparation, shipment and destination milestones'
       : 'Digital investor portfolio with trade investments, wallet and performance';
+
+  useEffect(() => {
+    travelProgress.setValue(0);
+    if (reduceMotion || viewport.width <= 0 || viewport.height <= 0) return;
+
+    const travelLoop = Animated.loop(Animated.timing(travelProgress, {
+      toValue: 1,
+      duration: 2000,
+      easing: Easing.linear,
+      useNativeDriver: Platform.OS !== 'web',
+      isInteraction: false,
+    }));
+    travelLoop.start();
+    return () => travelLoop.stop();
+  }, [kind, reduceMotion, travelProgress, viewport.height, viewport.width]);
 
   return (
     <View
@@ -306,12 +322,14 @@ export default function Onboarding() {
   const opacity = useRef(new Animated.Value(1)).current;
   const translateX = useRef(new Animated.Value(0)).current;
   const illustrationOpacity = useRef(new Animated.Value(0)).current;
+  const illustrationScale = useRef(new Animated.Value(0.96)).current;
   const illustrationStages = useRef([
     new Animated.Value(0),
     new Animated.Value(0),
     new Animated.Value(0),
   ]).current;
   const copyOpacity = useRef(new Animated.Value(0)).current;
+  const copyOffset = useRef(new Animated.Value(10)).current;
   const swipeDirection = useRef(1);
   const slide = slides[step];
 
@@ -332,13 +350,17 @@ export default function Onboarding() {
   useEffect(() => {
     if (reduceMotion) {
       illustrationOpacity.setValue(1);
+      illustrationScale.setValue(1);
       illustrationStages.forEach(stage => stage.setValue(1));
       copyOpacity.setValue(1);
+      copyOffset.setValue(0);
       return;
     }
     illustrationOpacity.setValue(0);
+    illustrationScale.setValue(0.96);
     illustrationStages.forEach(stage => stage.setValue(0));
     copyOpacity.setValue(0);
+    copyOffset.setValue(10);
     const useNativeDriver = Platform.OS !== 'web';
     const illustrationReveal = Animated.stagger(105, illustrationStages.map(stage => Animated.timing(stage, {
       toValue: 1,
@@ -347,18 +369,33 @@ export default function Onboarding() {
       useNativeDriver,
     })));
     const reveal = Animated.stagger(45, [
-      Animated.timing(illustrationOpacity, {
-        toValue: 1,
-        duration: MOTION.component,
-        easing: MOTION.easeOut,
-        useNativeDriver,
-      }),
-      Animated.timing(copyOpacity, {
-        toValue: 1,
-        duration: MOTION.component,
-        easing: MOTION.easeOut,
-        useNativeDriver,
-      }),
+      Animated.parallel([
+        Animated.timing(illustrationOpacity, {
+          toValue: 1,
+          duration: MOTION.component,
+          easing: MOTION.easeOut,
+          useNativeDriver,
+        }),
+        Animated.spring(illustrationScale, {
+          toValue: 1,
+          ...MOTION.successSpring,
+          useNativeDriver,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(copyOpacity, {
+          toValue: 1,
+          duration: MOTION.component,
+          easing: MOTION.easeOut,
+          useNativeDriver,
+        }),
+        Animated.timing(copyOffset, {
+          toValue: 0,
+          duration: MOTION.component,
+          easing: MOTION.easeOut,
+          useNativeDriver,
+        }),
+      ]),
     ]);
     illustrationReveal.start();
     reveal.start();
@@ -366,7 +403,7 @@ export default function Onboarding() {
       reveal.stop();
       illustrationReveal.stop();
     };
-  }, [copyOpacity, illustrationOpacity, illustrationStages, reduceMotion, step]);
+  }, [copyOffset, copyOpacity, illustrationOpacity, illustrationScale, illustrationStages, reduceMotion, step]);
 
   const swipeResponder = useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_, gesture) => !reduceMotion && Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
@@ -411,12 +448,12 @@ export default function Onboarding() {
       </View>
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <Animated.View {...swipeResponder.panHandlers} style={{ opacity, transform: [{ translateX }] }}>
-          <Animated.View style={{ opacity: illustrationOpacity }}>
+          <Animated.View style={{ opacity: illustrationOpacity, transform: [{ scale: illustrationScale }] }}>
             <Card style={{ height: 218, padding: 0, overflow: 'hidden', backgroundColor: colors.secondary, borderColor: colors.border, marginBottom: 23 }}>
-              <OnboardingIllustration kind={slide.illustration} stageA={illustrationStages[0]} stageB={illustrationStages[1]} stageC={illustrationStages[2]} />
+              <OnboardingIllustration kind={slide.illustration} stageA={illustrationStages[0]} stageB={illustrationStages[1]} stageC={illustrationStages[2]} reduceMotion={reduceMotion} />
             </Card>
           </Animated.View>
-          <Animated.View style={{ opacity: copyOpacity }}>
+          <Animated.View style={{ opacity: copyOpacity, transform: [{ translateY: copyOffset }] }}>
             <Text style={{ color: colors.primary, fontSize: 29, lineHeight: 36, fontWeight: '700', marginTop: 4, textAlign: 'center', letterSpacing: -0.4 }}>{slide.title}</Text>
             <Text style={{ color: colors.foreground, opacity: 0.78, fontSize: 15, lineHeight: 23, marginTop: 10, textAlign: 'center' }}>{slide.body}</Text>
           </Animated.View>
