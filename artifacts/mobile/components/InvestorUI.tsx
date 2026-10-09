@@ -294,7 +294,7 @@ export function EmptyState({ title, body, icon = 'inbox' }: { title: string; bod
     }
     Animated.timing(opacity, { toValue: 1, duration: 220, useNativeDriver: Platform.OS !== 'web' }).start();
   }, [opacity, reduceMotion]);
-  return <Animated.View style={{ opacity, transform: [{ translateY: opacity.interpolate({ inputRange: [0, 1], outputRange: [5, 0] }) }] }}>
+  return <Animated.View style={{ opacity }}>
     <Card style={{ alignItems: 'center', padding: 24 }}>
       <View style={{ width: 44, height: 44, borderRadius: 16, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' }}>
         <Feather name={icon} size={20} color={colors.primary} />
@@ -308,26 +308,12 @@ export function EmptyState({ title, body, icon = 'inbox' }: { title: string; bod
 export function LoadingCard({ label = 'Loading…', lines = 3 }: { label?: string; lines?: number }) {
   const colors = useColors();
   const { preferences } = useAppPreferences();
-  const { reduceMotion } = useMotion();
-  const opacity = React.useRef(new Animated.Value(0.58)).current;
-  React.useEffect(() => {
-    if (reduceMotion) {
-      opacity.setValue(0.72);
-      return;
-    }
-    const pulse = Animated.loop(Animated.sequence([
-      Animated.timing(opacity, { toValue: 0.92, duration: 850, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(opacity, { toValue: 0.58, duration: 850, useNativeDriver: Platform.OS !== 'web' }),
-    ]));
-    pulse.start();
-    return () => pulse.stop();
-  }, [opacity, reduceMotion]);
   return <Card>
     <View accessibilityRole="progressbar" accessibilityLabel={translateUi(label, preferences.language)} style={{ gap: 12 }}>
-      <Animated.View style={{ opacity, width: '40%', height: 13, borderRadius: 7, backgroundColor: colors.secondary }} />
+      <View style={{ opacity: 0.72, width: '40%', height: 13, borderRadius: 7, backgroundColor: colors.secondary }} />
       {Array.from({ length: Math.max(1, lines - 1) }, (_, index) => (
-        <Animated.View key={index} style={{
-          opacity,
+        <View key={index} style={{
+          opacity: 0.72,
           width: index === lines - 2 ? '58%' : '82%',
           height: 11,
           borderRadius: 6,
@@ -341,15 +327,11 @@ export function LoadingCard({ label = 'Loading…', lines = 3 }: { label?: strin
 export function SuccessMark({ icon, feedback = 'success' }: { icon?: IconName; feedback?: 'success' | 'approved' | 'ack' | 'attention' | 'none' }) {
   const colors = useColors();
   const { reduceMotion } = useMotion();
-  const scale = React.useRef(new Animated.Value(reduceMotion ? 1 : 0.94)).current;
   const opacity = React.useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
-  const haloScale = React.useRef(new Animated.Value(0.82)).current;
-  const haloOpacity = React.useRef(new Animated.Value(0)).current;
   const feedbackFired = React.useRef(false);
   const isAcknowledgement = feedback === 'ack';
-  const isApproved = feedback === 'approved';
   const isAttention = feedback === 'attention';
-  const isPendingTone = isAcknowledgement || isApproved;
+  const isPendingTone = isAcknowledgement || feedback === 'approved';
   const markColor = isAttention ? colors.destructive : isPendingTone ? colors.statusPending : colors.statusSuccess;
   const markBackground = isAttention ? `${colors.destructive}1A` : isPendingTone ? colors.statusPendingBackground : colors.statusSuccessBackground;
   React.useEffect(() => {
@@ -358,46 +340,18 @@ export function SuccessMark({ icon, feedback = 'success' }: { icon?: IconName; f
       if (feedback !== 'none') motionHaptic(feedback === 'success' ? 'success' : feedback === 'attention' ? 'error' : 'micro');
     }
     if (reduceMotion) {
-      scale.setValue(1);
       opacity.setValue(1);
-      haloScale.setValue(1);
-      haloOpacity.setValue(0);
       return;
     }
-    const entrance = Animated.parallel([
-      Animated.spring(scale, { toValue: 1, ...MOTION.successSpring, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(opacity, { toValue: 1, duration: MOTION.micro, useNativeDriver: Platform.OS !== 'web' }),
-    ]);
-    if (feedback === 'none') {
-      entrance.start();
-      return;
-    }
-    Animated.parallel([
-      entrance,
-      Animated.parallel([
-        Animated.timing(haloScale, { toValue: 1.42, duration: MOTION.modal, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.sequence([
-          Animated.timing(haloOpacity, { toValue: 0.42, duration: MOTION.micro, useNativeDriver: Platform.OS !== 'web' }),
-          Animated.timing(haloOpacity, { toValue: 0, duration: MOTION.modal - MOTION.micro, useNativeDriver: Platform.OS !== 'web' }),
-        ]),
-      ]),
-    ]).start();
-  }, [feedback, haloOpacity, haloScale, opacity, reduceMotion, scale]);
+    const entrance = Animated.timing(opacity, {
+      toValue: 1,
+      duration: MOTION.micro,
+      useNativeDriver: Platform.OS !== 'web',
+    });
+    entrance.start();
+    return () => entrance.stop();
+  }, [feedback, opacity, reduceMotion]);
   return <View style={{ width: 68, height: 68, alignItems: 'center', justifyContent: 'center' }}>
-    {feedback !== 'none' ? <Animated.View
-      accessible={false}
-      importantForAccessibility="no"
-      style={{
-        position: 'absolute',
-        width: 54,
-        height: 54,
-        borderRadius: 27,
-        borderWidth: 1,
-        borderColor: markColor,
-        opacity: reduceMotion ? 0 : haloOpacity,
-        transform: [{ scale: reduceMotion ? 1 : haloScale }],
-      }}
-    /> : null}
     <Animated.View style={{
       width: 48,
       height: 48,
@@ -406,7 +360,6 @@ export function SuccessMark({ icon, feedback = 'success' }: { icon?: IconName; f
       justifyContent: 'center',
       backgroundColor: markBackground,
       opacity,
-      transform: [{ scale }],
     }}>
       <Feather name={icon || (isAttention ? 'alert-circle' : isAcknowledgement ? 'clock' : 'check')} size={23} color={markColor} />
     </Animated.View>
@@ -436,7 +389,6 @@ export function SuccessFeedback({
   const insets = useSafeAreaInsets();
   const { reduceMotion } = useMotion();
   const opacity = React.useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
-  const scale = React.useRef(new Animated.Value(reduceMotion ? 1 : MOTION.modalScale)).current;
   const transition = React.useRef<Animated.CompositeAnimation | null>(null);
   const dismissing = React.useRef(false);
   const successChime = useAudioPlayer(require('../assets/sounds/transaction-complete.mp3'));
@@ -475,25 +427,18 @@ export function SuccessFeedback({
     }
     dismissing.current = true;
     transition.current?.stop();
-    const exit = Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: MOTION.micro,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-      Animated.timing(scale, {
-        toValue: MOTION.modalScale,
-        duration: MOTION.micro,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-    ]);
+    const exit = Animated.timing(opacity, {
+      toValue: 0,
+      duration: MOTION.micro,
+      useNativeDriver: Platform.OS !== 'web',
+    });
     transition.current = exit;
     exit.start(({ finished }) => {
       if (transition.current === exit) transition.current = null;
       dismissing.current = false;
       if (finished) onDismiss();
     });
-  }, [onDismiss, opacity, reduceMotion, scale]);
+  }, [onDismiss, opacity, reduceMotion]);
 
   React.useEffect(() => {
     if (!visible) {
@@ -501,27 +446,18 @@ export function SuccessFeedback({
       transition.current?.stop();
       transition.current = null;
       opacity.setValue(0);
-      scale.setValue(reduceMotion ? 1 : MOTION.modalScale);
       return;
     }
     dismissing.current = false;
     if (reduceMotion) {
       opacity.setValue(1);
-      scale.setValue(1);
       return;
     }
-    const entrance = Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: MOTION.component,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-      Animated.spring(scale, {
-        toValue: 1,
-        ...MOTION.successSpring,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-    ]);
+    const entrance = Animated.timing(opacity, {
+      toValue: 1,
+      duration: MOTION.component,
+      useNativeDriver: Platform.OS !== 'web',
+    });
     transition.current = entrance;
     entrance.start(() => {
       if (transition.current === entrance) transition.current = null;
@@ -530,7 +466,7 @@ export function SuccessFeedback({
       entrance.stop();
       if (transition.current === entrance) transition.current = null;
     };
-  }, [opacity, reduceMotion, scale, visible]);
+  }, [opacity, reduceMotion, visible]);
 
   return <Modal
     visible={visible}
@@ -575,7 +511,6 @@ export function SuccessFeedback({
           shadowRadius: 28,
           shadowOffset: { width: 0, height: 14 },
           elevation: 14,
-          transform: [{ scale: reduceMotion ? 1 : scale }],
         }}
       >
         <SuccessMark feedback={feedback} />

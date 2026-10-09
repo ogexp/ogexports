@@ -101,23 +101,24 @@ export function MotionReveal({ children, delay = 0, style, testID }: {
 }) {
   const { reduceMotion } = useMotion();
   const opacity = React.useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
-  const offset = React.useRef(new Animated.Value(reduceMotion ? 0 : MOTION.revealY)).current;
 
   useEffect(() => {
     if (reduceMotion) {
       opacity.setValue(1);
-      offset.setValue(0);
       return;
     }
-    const animation = Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: MOTION.component, delay, easing: MOTION.easeOut, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(offset, { toValue: 0, duration: MOTION.component, delay, easing: MOTION.easeOut, useNativeDriver: Platform.OS !== 'web' }),
-    ]);
+    const animation = Animated.timing(opacity, {
+      toValue: 1,
+      duration: MOTION.component,
+      delay,
+      easing: MOTION.easeOut,
+      useNativeDriver: Platform.OS !== 'web',
+    });
     animation.start();
     return () => animation.stop();
-  }, [delay, offset, opacity, reduceMotion]);
+  }, [delay, opacity, reduceMotion]);
 
-  return <Animated.View testID={testID} style={[style, { opacity, transform: [{ translateY: offset }] }]}>{children}</Animated.View>;
+  return <Animated.View testID={testID} style={[style, { opacity }]}>{children}</Animated.View>;
 }
 
 export function MotionProgress({ value, height = 6, color, trackColor, style, accessibilityLabel }: {

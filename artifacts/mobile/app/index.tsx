@@ -23,7 +23,6 @@ export default function Entry() {
   const haloReveal = useRef(new Animated.Value(0)).current;
   const wordmarkReveal = useRef(new Animated.Value(0)).current;
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
-  const progressOffset = useRef(new Animated.Value(0)).current;
   const introStartedAt = useRef(Date.now());
   const [introDurationElapsed, setIntroDurationElapsed] = useState(false);
 
@@ -118,19 +117,6 @@ export default function Entry() {
       outerOrbitLoop.stop();
     };
   }, [haloReveal, logoReveal, motionSettingsReady, orbitReveal, orbitSpin, outerOrbitReveal, outerOrbitSpin, reduceMotion, subtitleOpacity, useNativeDriver, wordmarkReveal]);
-
-  useEffect(() => {
-    if (ready || reduceMotion || !motionSettingsReady) {
-      progressOffset.setValue(0);
-      return;
-    }
-    const progress = Animated.loop(Animated.sequence([
-      Animated.timing(progressOffset, { toValue: 22, duration: 560, easing: Easing.inOut(Easing.quad), useNativeDriver }),
-      Animated.timing(progressOffset, { toValue: -22, duration: 560, easing: Easing.inOut(Easing.quad), useNativeDriver }),
-    ]));
-    progress.start();
-    return () => progress.stop();
-  }, [motionSettingsReady, progressOffset, ready, reduceMotion, useNativeDriver]);
 
   useEffect(() => {
     if (!motionSettingsReady) return;
@@ -266,7 +252,7 @@ export default function Entry() {
           }}>Global Trade. Digital Investment.</Animated.Text>
           {!ready && motionSettingsReady ? <>
             <View accessibilityRole="progressbar" accessibilityLabel="Preparing your investor experience" style={{ width: 72, height: 3, borderRadius: 2, overflow: 'hidden', backgroundColor: colors.secondary, marginTop: 24 }}>
-              <Animated.View style={{ width: 28, height: 3, borderRadius: 2, backgroundColor: colors.primary, transform: [{ translateX: progressOffset }] }} />
+              <View style={{ width: 28, height: 3, borderRadius: 2, backgroundColor: colors.primary }} />
             </View>
             <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 8 }}>Preparing your investor experience</Text>
           </> : null}
