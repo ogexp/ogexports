@@ -88,22 +88,58 @@ export default function Wallet() {
 
   return <Screen title="Wallet" subtitle="Your account balance and wallet activity" refreshable>
     <LinearGradient
-      colors={[colors.primary, colors.accent]}
+      colors={[colors.balanceCardStart, colors.balanceCardEnd]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={{ borderRadius: 22, padding: 21, marginBottom: 12 }}
+      style={{
+        borderRadius: 22,
+        padding: 21,
+        marginBottom: 12,
+        overflow: 'hidden',
+        minHeight: 168,
+        justifyContent: 'space-between',
+      }}
     >
+      <View
+        accessible={false}
+        style={{
+          position: 'absolute',
+          width: 156,
+          height: 156,
+          borderRadius: 78,
+          borderWidth: 1,
+          borderColor: colors.balanceCardText,
+          opacity: 0.09,
+          top: -67,
+          right: -24,
+        }}
+      />
+      <View
+        accessible={false}
+        style={{
+          position: 'absolute',
+          width: 112,
+          height: 112,
+          borderRadius: 56,
+          borderWidth: 1,
+          borderColor: colors.balanceCardText,
+          opacity: 0.07,
+          top: -46,
+          right: -2,
+        }}
+      />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: '700', letterSpacing: 0.9 }}>OG EXPORTS WALLET</Text>
-        <Feather name="credit-card" size={21} color={colors.primaryForeground} />
+        <Text style={{ color: colors.balanceCardText, fontSize: 11, fontWeight: '700', letterSpacing: 1.15 }}>OG EXPORTS WALLET</Text>
+        <Feather name="credit-card" size={20} color={colors.accent} />
       </View>
-      <Text style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: '600', letterSpacing: 0.6, marginTop: 26 }}>AVAILABLE BALANCE</Text>
+      <View style={{ height: 1, width: 34, backgroundColor: colors.accent, opacity: 0.8, marginTop: 25 }} />
+      <Text style={{ color: colors.balanceCardText, fontSize: 11, fontWeight: '600', letterSpacing: 0.8, marginTop: 13, opacity: 0.88 }}>AVAILABLE BALANCE</Text>
       <MotionReveal key={balanceLabel(available, currency, dashboard.isLoading, dashboard.isError)}>
-      <Text adjustsFontSizeToFit numberOfLines={1} style={{ color: colors.primaryForeground, fontSize: 33, fontWeight: '700', marginTop: 7 }}>
+      <Text adjustsFontSizeToFit numberOfLines={1} style={{ color: colors.balanceCardText, fontSize: 33, fontWeight: '700', letterSpacing: -0.45, marginTop: 6 }}>
         {balanceLabel(available, currency, dashboard.isLoading, dashboard.isError)}
       </Text>
       </MotionReveal>
-      <Text style={{ color: colors.primaryForeground, fontSize: 11, opacity: 0.82, marginTop: 7 }}>
+      <Text style={{ color: colors.balanceCardText, fontSize: 11, opacity: 0.82, marginTop: 7 }}>
         {currency || 'USD'} account
       </Text>
     </LinearGradient>
