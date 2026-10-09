@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "OG Exports",
-    "slug": "mobile",
+    "slug": "og-exports",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/og-logo.png",
@@ -10,7 +10,9 @@
     "ios": {
       "supportsTablet": false
     },
-    "android": {},
+    "android": {
+      "package": "com.ogexports.investor"
+    },
     "web": {
       "favicon": "./assets/images/og-logo.png"
     },
@@ -30,8 +32,14 @@
         {
           "backgroundColor": "#F7F6F2"
         }
-      ]
+      ],
+      "expo-audio"
     ],
+    "extra": {
+      "eas": {
+        "projectId": "6a3d65e6-af41-4def-bdae-4d693f31effa"
+      }
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
