@@ -11,6 +11,7 @@ import { useInvestorRegister } from '@workspace/api-client-react';
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
+import { goBackOrReplace } from '@/lib/safe-navigation';
 
 type RegisterFieldProps = {
   label: string;
@@ -152,7 +153,7 @@ export default function Register() {
           accessibilityRole="button"
           accessibilityLabel="Go back"
           hitSlop={10}
-          onPress={() => router.back()}
+          onPress={() => goBackOrReplace('/(auth)/login')}
           style={s.backButton}
         >
           <Feather name="arrow-left" size={21} color={colors.primary} />

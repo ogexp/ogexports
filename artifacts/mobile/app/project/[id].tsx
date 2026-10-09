@@ -30,6 +30,7 @@ import { getInvestorKycStatus, isInvestorKycVerified } from '@/lib/kyc';
 import { verifyAppPin } from '@/lib/app-pin';
 import { motionHaptic } from '@/lib/motion';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
+import { goBackOrReplace } from '@/lib/safe-navigation';
 
 function formatEstimatedDistributionDate(value: string): string {
   const raw = value.trim();
@@ -437,7 +438,7 @@ export default function OpportunityDetail() {
         riskError={settingsQuery.isError ? settingsQuery.error : undefined}
         documentError={documentError}
         documentBusy={documentBusy}
-        onBack={() => router.back()}
+        onBack={() => goBackOrReplace('/(tabs)/trade')}
         onInvest={() => {
           if (!investmentAvailable) return;
           setError('');

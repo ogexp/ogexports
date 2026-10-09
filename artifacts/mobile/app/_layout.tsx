@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { AppState, Platform, StatusBar as NativeStatusBar } from 'react-native';
+import { AppState, Platform, Pressable, StatusBar as NativeStatusBar } from 'react-native';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import { Feather } from '@expo/vector-icons';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { router, Stack, useGlobalSearchParams, usePathname, useSegments } from 'expo-router';
+import { router, Stack, useGlobalSearchParams, usePathname, useSegments, type Href } from 'expo-router';
 import { isRunningInExpoGo } from 'expo';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
@@ -25,6 +26,7 @@ import { notificationHref } from '@/lib/notification-routing';
 import { record } from '@/lib/data';
 import { translateUi } from '@/lib/strings';
 import { MOTION, MotionProvider, useMotion } from '@/lib/motion';
+import { goBackOrReplace } from '@/lib/safe-navigation';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -45,6 +47,18 @@ function RootLayoutNav() {
   const statusBar = Platform.OS === 'android'
     ? <NativeStatusBar barStyle={useLightStatusBar ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
     : <ExpoStatusBar style={useLightStatusBar ? 'light' : 'dark'} />;
+  const safeBackButton = (fallbackHref: Href, testID: string) => () => (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={t('Back')}
+      hitSlop={10}
+      onPress={() => goBackOrReplace(fallbackHref)}
+      style={{ minWidth: 40, minHeight: 44, justifyContent: 'center', paddingRight: 8 }}
+    >
+      <Feather name={isRTL ? 'arrow-right' : 'arrow-left'} size={21} color={colors.primary} />
+    </Pressable>
+  );
   const pathname = usePathname();
   const routeParams = useGlobalSearchParams();
   const returnTo = serializeRouteState(pathname, routeParams);
@@ -157,6 +171,7 @@ function RootLayoutNav() {
         headerTintColor: colors.primary,
         headerStyle: { backgroundColor: colors.background },
         headerTitleStyle: { color: colors.foreground },
+        headerLeft: safeBackButton('/(tabs)', 'stack-header-back'),
         contentStyle: { backgroundColor: colors.background, direction: isRTL ? 'rtl' : 'ltr' },
       }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -164,7 +179,10 @@ function RootLayoutNav() {
         <Stack.Screen name="lock" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
-        <Stack.Screen name="project/[id]" options={{ title: t('Opportunity') }} />
+        <Stack.Screen name="project/[id]" options={{
+          title: t('Opportunity'),
+          headerLeft: safeBackButton('/(tabs)/trade', 'project-header-back'),
+        }} />
         <Stack.Screen name="position/[id]" options={{ title: t('Investment') }} />
         <Stack.Screen name="tracking/[id]" options={{ title: t('Container tracking') }} />
         <Stack.Screen name="account/profile" options={{ title: '' }} />

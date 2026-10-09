@@ -58,8 +58,43 @@ storage_version_token = "1791490598916086"
 content_type = "application/octet-stream"
 
 [[outputs]]
-id = "VsWyJtXUf3FUr80hJelNy"
-uri = "file://attached_assets/generated_audio/og-transaction-complete-chime.mp3"
-type = "audio"
-title = "OG transaction complete chime"
-description = "Generated sound effect: A short premium mobile banking app transaction-complete notification chime: two warm ascending bell-like notes with a delicate crystal-glass tone, soft rounded attack, subtle …"
+id = "ppohR1iEqIVHy7BddDay5"
+uri = "file://exports/OG%20Exports%20app%2009-10-26.zip"
+type = "unspecified"
+title = "OG Exports app 09-10-26.zip"
+description = "Complete OG Exports investor mobile app source ZIP."
+logical_id = "ffea6471-b9f3-4260-9b9a-69dcad51d7ff"
+content_hash = "sha256:c9ae4a77a82932da7828ff2699a366a9fe4381dea275c7a310525ef0670ec63b"
+size = 1490122
+mtime_ms = 1791550806142
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/ffea6471-b9f3-4260-9b9a-69dcad51d7ff/f29767c4-a040-4248-9f51-df023d51cd35"
+storage_version_token = "1791551083790371"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "IWct86O63aTSDva48GR3A"
+uri = "file://exports/OG%20Exports%20Web%20Frontend%2009-10-26.zip"
+type = "unspecified"
+title = "OG Exports Web Frontend 09-10-26.zip"
+description = "Complete OG Exports web frontend source ZIP."
+logical_id = "cf6aa593-06fe-423a-ba84-b958524cc51c"
+content_hash = "sha256:26d6ae75c9ae26ea7ec26d029945d34a22a302810f61d7125583e656a433763b"
+size = 17553728
+mtime_ms = 1791551280762
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/cf6aa593-06fe-423a-ba84-b958524cc51c/348c13ef-0989-4dea-99ef-842c5427a020"
+storage_version_token = "1791551343320570"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "ZH6YrrafT3LX2GUTe9g9p"
+uri = "file://exports/OG%20Exports%20Backend%2009-10-26.zip"
+type = "unspecified"
+title = "OG Exports Backend 09-10-26.zip"
+description = "Laravel backend source ZIP; environment secrets, database snapshot, user uploads, and runtime logs are excluded."
+logical_id = "79cc42df-e728-4729-9bd0-86df0dfb80ef"
+content_hash = "sha256:14ba546b542154bf703e7a971852638a2d0c3eaafd565c4e5c6e86f9d12d0130"
+size = 8816194
+mtime_ms = 1791551557378
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/79cc42df-e728-4729-9bd0-86df0dfb80ef/4c7638fd-d034-4478-b061-99076127c83d"
+storage_version_token = "1791551605407276"
+content_type = "application/octet-stream"
