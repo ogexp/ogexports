@@ -1,16 +1,15 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { I18nManager, Platform, useColorScheme } from 'react-native';
 import { reloadAppAsync } from 'expo';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  useGetInvestorDashboard,
   useGetInvestorExchangeRates,
   useGetInvestorProfile,
   useUpdateInvestorProfile,
 } from '@workspace/api-client-react';
 import { useAuth } from '@/context/AuthContext';
-import { configureMoneyDisplay, first, messageOf, record, unwrap, walletCurrencyFromDashboard, type Json } from '@/lib/data';
+import { configureMoneyDisplay, first, messageOf, record, unwrap, type Json } from '@/lib/data';
 import { configureUiLanguage, translateUi } from '@/lib/strings';
 import type { AppLanguage } from '@/lib/strings';
 
@@ -25,7 +24,6 @@ export type AppPreferences = {
 
 type PreferencesContextValue = {
   preferences: AppPreferences;
-  walletCurrency: string;
   resolvedAppearance: 'light' | 'dark';
   isRTL: boolean;
   isLoading: boolean;
@@ -85,20 +83,11 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
-  const currencySyncAttempt = useRef<{ key: string; at: number }>({ key: '', at: 0 });
-
   const profileQuery = useGetInvestorProfile({
     query: {
       queryKey: ['investor-profile'],
       enabled: Boolean(token && userId),
       staleTime: 60_000,
-    },
-  });
-  const dashboardQuery = useGetInvestorDashboard({
-    query: {
-      queryKey: ['investor-dashboard'],
-      enabled: Boolean(token && userId),
-      staleTime: 30_000,
     },
   });
   const ratesQuery = useGetInvestorExchangeRates({
@@ -112,12 +101,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   const updateProfile = useUpdateInvestorProfile();
   const profile = unwrap(profileQuery.data);
   const rateResponse = unwrap(ratesQuery.data);
-  const profileUserId = first(record(profile.user), ['id']);
-  const profileWalletCurrency = first(record(profile.user), ['walletCurrency', 'wallet_currency']).toUpperCase();
-  const walletCurrency = walletCurrencyFromDashboard(dashboardQuery.data, profileWalletCurrency);
   const parsedProfilePreferences = parsePreferences(profile.preferences);
-  const profileCurrencyWasStored = Boolean(parsedProfilePreferences.currency);
-  const profileCurrencyPreference: DisplayCurrency = parsedProfilePreferences.currency ?? 'USD';
   const rates = normalizeRates(rateResponse.rates, first(rateResponse, ['base']).toUpperCase());
   const ratesAsOf = first(rateResponse, ['as_of', 'updated_at']);
   const isRTL = preferences.language === 'ur' || preferences.language === 'ar';
@@ -171,77 +155,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
         ).catch(() => undefined);
       }
     }
-  }, [preferencesLoaded, profileQuery.data, userId, walletCurrency]);
-
-  useEffect(() => {
-    if (!preferencesLoaded || !profileQuery.data || !userId || !token) {
-      currencySyncAttempt.current = { key: '', at: 0 };
-      return;
-    }
-    if (profileUserId && profileUserId !== userId) return;
-    if (profileQuery.isFetching || profileQuery.isError || dashboardQuery.isFetching) return;
-    if (!walletCurrency || (profileCurrencyWasStored && profileCurrencyPreference === walletCurrency)) {
-      currencySyncAttempt.current = { key: '', at: 0 };
-      return;
-    }
-    if (isSaving) return;
-
-    const attemptKey = `${userId}:${profileCurrencyPreference}:${walletCurrency}:${profileCurrencyWasStored ? 'stored' : 'default'}`;
-    if (currencySyncAttempt.current.key === attemptKey
-      && Date.now() - currencySyncAttempt.current.at < 60_000) return;
-    currencySyncAttempt.current = { key: attemptKey, at: Date.now() };
-    setError('');
-    setIsSaving(true);
-
-    void (async () => {
-      try {
-        const currentPreferences = record(profile.preferences);
-        await updateProfile.mutateAsync({
-          data: { preferences: { ...currentPreferences, currency: profileCurrencyPreference } },
-        });
-        await queryClient.invalidateQueries();
-        const refreshedProfile = unwrap(queryClient.getQueryData(['investor-profile']));
-        const refreshedProfileWalletCurrency = first(
-          record(refreshedProfile.user),
-          ['walletCurrency', 'wallet_currency'],
-        ).toUpperCase();
-        const refreshedDashboardWalletCurrency = walletCurrencyFromDashboard(
-          queryClient.getQueryData(['investor-dashboard']),
-          '',
-        );
-        const staleWalletCurrency = [refreshedProfileWalletCurrency, refreshedDashboardWalletCurrency]
-          .find(currency => currency && currency !== profileCurrencyPreference);
-        if (staleWalletCurrency) {
-          setError(
-            `Profile currency is ${profileCurrencyPreference}, but the server still reports ${staleWalletCurrency} for the wallet. Deposit and withdrawal requests remain paused.`,
-          );
-        }
-      } catch (syncError) {
-        setError(messageOf(syncError));
-      } finally {
-        setIsSaving(false);
-      }
-    })();
-  }, [
-    preferencesLoaded,
-    profileQuery.data,
-    profileQuery.dataUpdatedAt,
-    profileQuery.isFetching,
-    profileQuery.isError,
-    dashboardQuery.data,
-    dashboardQuery.dataUpdatedAt,
-    dashboardQuery.isFetching,
-    profile.preferences,
-    profileCurrencyPreference,
-    profileCurrencyWasStored,
-    profileUserId,
-    walletCurrency,
-    userId,
-    token,
-    isSaving,
-    updateProfile,
-    queryClient,
-  ]);
+  }, [preferencesLoaded, profileQuery.data, userId]);
 
   useEffect(() => {
     if (!preferencesLoaded) return;
@@ -295,7 +209,6 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
 
   const value = useMemo<PreferencesContextValue>(() => ({
     preferences,
-    walletCurrency,
     resolvedAppearance,
     isRTL,
     isLoading: !preferencesLoaded,
@@ -308,7 +221,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     savePreferences,
     clearError: () => setError(''),
   }), [
-    preferences, walletCurrency, resolvedAppearance, isRTL, preferencesLoaded, isSaving, error,
+    preferences, resolvedAppearance, isRTL, preferencesLoaded, isSaving, error,
     rates, ratesAsOf, ratesQuery.isLoading, ratesQuery.isError, savePreferences,
   ]);
 

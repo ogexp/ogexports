@@ -32,6 +32,7 @@ function pkInvestorForDual(): User
         'user_id' => $investor->id,
         'country' => 'Pakistan',
         'company_name' => 'PK Dual Co',
+        'meta' => ['preferences' => ['currency' => 'PKR']],
     ]);
 
     Wallet::query()->create([
@@ -100,6 +101,45 @@ it('formats wallet amounts as PKR only when dual currency is disabled', function
     expect(UserDisplayCurrency::formatWalletDual($investor, 1000.0))
         ->toBe('PKR 1,000.00')
         ->not->toContain('$');
+});
+
+it('converts the USD wallet amount into the investor-selected PKR display currency', function () {
+    PlatformSetting::query()->create([
+        'site_name' => 'OG Exports',
+        'invest_pkr_display_enabled' => true,
+        'invest_dual_currency_enabled' => false,
+        'currency' => 'USD',
+    ]);
+
+    $investor = pkInvestorForDual();
+    $investor->wallet->update(['currency' => 'USD']);
+    $investor->refresh();
+
+    expect(UserDisplayCurrency::currencyForUser($investor))->toBe('USD')
+        ->and(UserDisplayCurrency::formatWalletDual($investor, 10.0))
+        ->toBe('PKR 2,785.00');
+});
+
+it('formats USD wallet amounts in the investor-selected EUR display currency', function () {
+    config(['currency.fallback_rates' => [
+        'USD' => 1,
+        'PKR' => 278.5,
+        'EUR' => 0.92,
+        'GBP' => 0.79,
+    ]]);
+    ExchangeRateService::clearCache();
+    Http::fake(['*' => Http::response(null, 500)]);
+
+    $investor = pkInvestorForDual();
+    $profileMeta = $investor->profile->meta;
+    $profileMeta['preferences'] = ['currency' => 'EUR'];
+    $investor->profile->update(['meta' => $profileMeta]);
+    $investor->wallet->update(['currency' => 'USD']);
+    $investor = $investor->fresh(['profile', 'wallet']);
+
+    expect(UserDisplayCurrency::currencyForUser($investor))->toBe('USD')
+        ->and(UserDisplayCurrency::formatWalletDual($investor, 100.0))
+        ->toBe('EUR 92.00');
 });
 
 it('formats PK investor amounts as USD only when PKR display is disabled', function () {

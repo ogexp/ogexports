@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Models\Withdrawal;
-use App\Support\InvestorMarket;
 use App\Support\InvestorProfitTotals;
 use App\Support\InvestorWithdrawalBreakdown;
 use Carbon\Carbon;
@@ -39,12 +38,12 @@ class InvestorMonthlyStatementService
         $wallet = Wallet::query()->firstOrCreate(
             ['user_id' => $user->id],
             [
-                'currency' => InvestorMarket::currencyForUser($user),
+                'currency' => 'USD',
                 'available_balance' => 0,
                 'pending_balance' => 0,
             ],
         );
-        $currency = $wallet->currency ?: InvestorMarket::currencyForUser($user);
+        $currency = $wallet->currency ?: 'USD';
 
         $transactions = $wallet->transactions()
             ->with('wallet')

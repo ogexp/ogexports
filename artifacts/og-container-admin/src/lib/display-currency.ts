@@ -6,8 +6,10 @@ export function isPakistanCountry(country?: string | null): boolean {
 
 export interface DisplayCurrencyContext {
   country?: string | null
-  /** Selected investor currency from Profile; the wallet must follow this. */
+  /** Selected investor display currency from Profile. */
   currency?: string | null
+  /** Server-approved display currency after platform display rules are applied. */
+  displayCurrency?: string | null
   /** Current server wallet denomination, used only to interpret raw amounts. */
   walletCurrency?: string | null
   displayPkr?: boolean | null
@@ -39,7 +41,7 @@ export function isPkrDisplayUser(
   const currency = String(ctx.currency || "").trim().toUpperCase()
   if (currency) return currency === "PKR"
 
-  return role !== "investor" && isPakistanCountry(ctx.country)
+  return isPakistanCountry(ctx.country)
 }
 
 /** Build context from a `/api/me` (or similar) user payload. */
@@ -61,6 +63,7 @@ export function displayCurrencyContextFromApi(user?: any): DisplayCurrencyContex
       ?? profilePreferences.currency
       ?? user.currency
       ?? null,
+    displayCurrency: user.display_currency ?? user.displayCurrency ?? null,
     walletCurrency: user.wallet_currency ?? user.walletCurrency ?? user.wallet?.currency ?? null,
     displayPkr: user.display_pkr ?? user.displayPkr ?? null,
   }

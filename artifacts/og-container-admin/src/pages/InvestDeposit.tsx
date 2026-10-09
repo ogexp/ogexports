@@ -193,9 +193,9 @@ export default function InvestDeposit() {
       ? "Checking your current available balance…"
     : isWalletMethod && (walletBalance == null || !walletCurrency)
       ? "Wallet balance or currency is not available."
-    : isWalletMethod && walletProject && (!walletProject.currency || walletProject.currency !== walletCurrency)
-      ? "Wallet and project currencies do not match; conversion terms are not provided."
-      : isWalletMethod && walletBalance != null && amountNum > walletBalance
+    : isWalletMethod && walletProject && !walletProject.currency
+      ? "Project currency is not provided."
+      : isWalletMethod && walletProject?.currency === walletCurrency && walletBalance != null && amountNum > walletBalance
         ? `Amount cannot exceed your available wallet balance (${fmtW(walletBalance)})`
         : null
   const walletBalanceLabel = dashboardBalanceQuery.isFetching
@@ -333,8 +333,7 @@ export default function InvestDeposit() {
           || walletBalance == null
           || !walletCurrency
           || !walletProject
-          || walletProject.currency !== walletCurrency
-          || amountNum > walletBalance
+          || (walletProject.currency === walletCurrency && amountNum > walletBalance)
         ) {
           notify.error(walletAmountError || "Invalid investment amount")
           return

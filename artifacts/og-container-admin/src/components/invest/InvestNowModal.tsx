@@ -70,15 +70,10 @@ export function InvestNowModal({
   const termsProvided = Boolean(investment.currency)
     && investment.minInvestment != null
     && termProvided
-  const walletCurrencyMatches = Boolean(
-    investment.currency && walletCurrency
-      && investment.currency.toUpperCase() === walletCurrency,
-  )
   const canContinue = !full
     && termsProvided
     && remaining != null
     && walletBalance != null
-    && walletCurrencyMatches
     && !walletLoading
     && !dashboardBalanceQuery.isError
 
@@ -108,12 +103,13 @@ export function InvestNowModal({
     if (dashboardBalanceQuery.isError) return "Available balance could not be loaded from the investor dashboard."
     if (walletLoading) return "Refreshing your available balance…"
     if (walletBalance == null || !walletCurrency) return "Wallet balance or currency is not available."
-    if (!walletCurrencyMatches) return "Wallet and project currencies do not match; conversion terms are not provided."
     if (investment.minInvestment == null) return "Minimum investment is not provided."
     if (value < investment.minInvestment) return `Minimum investment is ${formatInvestorProjectAmount(investment.minInvestment, investment.currency)}`
     if (investment.maxInvestment != null && value > investment.maxInvestment) return `Maximum investment is ${formatInvestorProjectAmount(investment.maxInvestment, investment.currency)}`
     if (value > remaining) return `Only ${formatInvestorProjectAmount(remaining, investment.currency)} remaining capacity`
-    if (walletDebitNeeded > walletBalance) return `Amount cannot exceed wallet balance (${formatInvestorProjectAmount(walletBalance, walletCurrency)})`
+    if (investment.currency?.toUpperCase() === walletCurrency && walletDebitNeeded > walletBalance) {
+      return `Amount cannot exceed wallet balance (${formatInvestorProjectAmount(walletBalance, walletCurrency)})`
+    }
     return null
   })()
   const normalizedInvestmentStatus = (confirmation?.status || "").toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim()

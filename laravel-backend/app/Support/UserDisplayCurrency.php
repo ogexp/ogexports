@@ -20,19 +20,7 @@ class UserDisplayCurrency
 
         $user->loadMissing(['profile', 'wallet']);
 
-        if ($user->wallet?->currency) {
-            return strtoupper((string) $user->wallet->currency);
-        }
-
-        $preferences = is_array($user->profile?->meta) ? ($user->profile->meta['preferences'] ?? []) : [];
-        $preferredCurrency = is_array($preferences)
-            ? strtoupper(trim((string) ($preferences['currency'] ?? '')))
-            : '';
-        if ($preferredCurrency !== '' && ExchangeRateService::isSupported($preferredCurrency)) {
-            return $preferredCurrency;
-        }
-
-        return InvestorMarket::currencyForUser($user);
+        return strtoupper((string) ($user->wallet?->currency ?: 'USD'));
     }
 
     /**
@@ -74,7 +62,8 @@ class UserDisplayCurrency
      */
     public static function shouldDisplayPkr(?User $user): bool
     {
-        return self::pkrDisplayEnabled() && self::isPkrUser($user);
+        return self::pkrDisplayEnabled()
+            && InvestorMarket::currencyForUser($user) === 'PKR';
     }
 
     /**
@@ -179,7 +168,9 @@ class UserDisplayCurrency
             'country' => $ctx['country'],
             'currency' => $ctx['currency'],
             'profile_currency' => $ctx['profile_currency'],
-            'display_currency' => $ctx['display_pkr'] ? 'PKR' : ($ctx['currency'] === 'PKR' && ! self::pkrDisplayEnabled() ? 'USD' : $ctx['currency']),
+            'display_currency' => $ctx['profile_currency'] === 'PKR' && ! self::pkrDisplayEnabled()
+                ? 'USD'
+                : $ctx['profile_currency'],
             'display_pkr' => $ctx['display_pkr'],
             'wallet_currency' => $ctx['wallet_currency'],
             'invest_pkr_display_enabled' => self::pkrDisplayEnabled(),
@@ -219,6 +210,17 @@ class UserDisplayCurrency
         ?float $rate = null,
     ): string {
         $usd = round($usd, 2);
+        $profileCurrency = InvestorMarket::currencyForUser($user);
+
+        if (in_array($profileCurrency, ['EUR', 'GBP'], true)) {
+            try {
+                $converted = (float) ExchangeRateService::convert($usd, 'USD', $profileCurrency)['amount'];
+            } catch (\Throwable) {
+                return '$'.number_format($usd, 2).' ('.$profileCurrency.' rate unavailable)';
+            }
+
+            return $profileCurrency.' '.number_format(round($converted, 2), 2);
+        }
 
         if (! self::shouldDisplayPkr($user)) {
             return '$'.number_format($usd, 2);
@@ -232,7 +234,7 @@ class UserDisplayCurrency
                     $pkr = (float) ExchangeRateService::convert($usd, 'USD', 'PKR')['amount'];
                 }
             } catch (\Throwable) {
-                $pkr = $usd;
+                return '$'.number_format($usd, 2).' (PKR rate unavailable)';
             }
         }
 
@@ -253,13 +255,31 @@ class UserDisplayCurrency
     public static function formatWalletDual(?User $user, float $amount): string
     {
         $amount = round($amount, 2);
+        $walletCurrency = self::currencyForUser($user);
+        $profileCurrency = InvestorMarket::currencyForUser($user);
+
+        if (in_array($profileCurrency, ['EUR', 'GBP'], true)) {
+            try {
+                $converted = (float) ExchangeRateService::convert(
+                    $amount,
+                    $walletCurrency,
+                    $profileCurrency,
+                )['amount'];
+            } catch (\Throwable) {
+                return self::formatCurrencyAmount($amount, $walletCurrency)
+                    .' ('.$profileCurrency.' rate unavailable)';
+            }
+
+            return $profileCurrency.' '.number_format(round($converted, 2), 2);
+        }
 
         if (! self::shouldDisplayPkr($user)) {
-            if (self::isPkrUser($user)) {
+            if ($walletCurrency !== 'USD') {
                 try {
-                    $usd = (float) ExchangeRateService::convert($amount, 'PKR', 'USD')['amount'];
+                    $usd = (float) ExchangeRateService::convert($amount, $walletCurrency, 'USD')['amount'];
                 } catch (\Throwable) {
-                    $usd = 0.0;
+                    return self::formatCurrencyAmount($amount, $walletCurrency)
+                        .' (USD rate unavailable)';
                 }
 
                 return '$'.number_format(round($usd, 2), 2);
@@ -268,18 +288,36 @@ class UserDisplayCurrency
             return '$'.number_format($amount, 2);
         }
 
-        $pkrLabel = 'PKR '.number_format($amount, 2);
+        try {
+            $pkr = $walletCurrency === 'PKR'
+                ? $amount
+                : (float) ExchangeRateService::convert($amount, $walletCurrency, 'PKR')['amount'];
+            $usd = (float) ExchangeRateService::convert($amount, $walletCurrency, 'USD')['amount'];
+        } catch (\Throwable) {
+            if ($walletCurrency === 'PKR') {
+                return self::formatCurrencyAmount($amount, 'PKR')
+                    .' (USD equivalent unavailable)';
+            }
+
+            return self::formatCurrencyAmount($amount, $walletCurrency)
+                .' (PKR rate unavailable)';
+        }
+
+        $pkrLabel = 'PKR '.number_format(round($pkr, 2), 2);
 
         if (! self::dualCurrencyEnabled()) {
             return $pkrLabel;
         }
 
-        try {
-            $usd = (float) ExchangeRateService::convert($amount, 'PKR', 'USD')['amount'];
-        } catch (\Throwable) {
-            $usd = 0.0;
-        }
-
         return $pkrLabel.' ($'.number_format($usd, 2).')';
+    }
+
+    private static function formatCurrencyAmount(float $amount, string $currency): string
+    {
+        $currency = strtoupper($currency);
+
+        return $currency === 'USD'
+            ? '$'.number_format($amount, 2)
+            : $currency.' '.number_format($amount, 2);
     }
 }

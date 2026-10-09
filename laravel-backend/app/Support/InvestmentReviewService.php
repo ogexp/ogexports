@@ -9,7 +9,6 @@ use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Support\InvestmentActivation;
 use App\Support\InvestmentCapacity;
-use App\Support\InvestorMarket;
 use App\Support\PlatformWalletService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -187,7 +186,7 @@ class InvestmentReviewService
             if (! $wallet) {
                 $wallet = Wallet::query()->create([
                     'user_id' => $investment->investor_id,
-                    'currency' => UserDisplayCurrency::currencyForUser($investment->investor),
+                    'currency' => 'USD',
                     'available_balance' => 0,
                     'pending_balance' => 0,
                 ]);

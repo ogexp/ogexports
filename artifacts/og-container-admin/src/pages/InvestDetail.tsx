@@ -135,16 +135,12 @@ export default function InvestDetail() {
     ? longTerm!.investmentPeriodDays != null || longTerm!.investmentPeriodMonths != null
     : container!.investmentPeriodDays != null
   const termsReady = Boolean(inv.currency) && inv.minInvestment != null && hasTerm
-  const walletCurrencyMatches = Boolean(
-    inv.currency && walletCurrency && inv.currency.toUpperCase() === walletCurrency,
-  )
   const canInvest = (isProject
     ? longTerm!.status === "open"
     : isContainerProjectInvestable(project.status))
     && !capacityFull
     && capacityRemaining != null
     && termsReady
-    && walletCurrencyMatches
 
   const val = Number(amount)
   const walletDebitNeeded = val
@@ -152,7 +148,6 @@ export default function InvestDetail() {
     walletLoading
     || dashboardBalanceQuery.isError
     || walletBalance == null
-    || !walletCurrencyMatches
     || !termsReady
     || capacityRemaining == null
     || walletBalance <= 0
@@ -160,7 +155,7 @@ export default function InvestDetail() {
     || (inv.minInvestment != null && val < inv.minInvestment)
     || (inv.maxInvestment != null && val > inv.maxInvestment)
     || val > capacityRemaining
-    || (val > 0 && walletDebitNeeded > walletBalance)
+    || (val > 0 && inv.currency?.toUpperCase() === walletCurrency && walletDebitNeeded > walletBalance)
 
   const handleInvestClick = () => {
     if (!isSignedIn) return
@@ -456,9 +451,7 @@ export default function InvestDetail() {
                       ? "Fully Subscribed"
                       : !termsReady
                         ? "Terms Not Available"
-                        : !walletCurrencyMatches
-                          ? "Wallet Currency Not Matched"
-                          : capacityRemaining == null
+                        : capacityRemaining == null
                             ? "Capacity Not Available"
                             : "Funding Closed"}
                   </Button>

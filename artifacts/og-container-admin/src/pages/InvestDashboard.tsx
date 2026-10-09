@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { notify } from "@/lib/notify"
 import { useCurrency } from "@/lib/use-currency"
 import { formatInvestorLedgerAmount } from "@/lib/format-investor-ledger"
+import { formatInvestorProjectAmount } from "@/lib/invest-format"
 import { useLocalAuth } from "@/lib/local-auth"
 import { Link, useLocation } from "wouter"
 import { InvestPortalLayout } from "@/components/invest/InvestPortalLayout"
@@ -1190,7 +1191,10 @@ export default function InvestDashboard() {
                             <td className={`py-3 px-3 font-semibold ${TXN_COLORS[tx.type] || ""}`}>{tx.type || "—"}</td>
                             <td className="py-3 px-3 text-muted-foreground">{tx.method || "—"}</td>
                             <td className={`py-3 px-3 font-bold ${isOut ? "text-red-400" : "text-emerald-500"}`}>
-                              {fmtW(Math.abs(n(tx.amount)))}
+                              {formatInvestorProjectAmount(
+                                Math.abs(n(tx.amount)),
+                                String(tx.currency || tx.wallet_currency || c.walletCurrency || "USD"),
+                              )}
                             </td>
                             <td className="py-3 px-3">
                               <Badge className={`text-[10px] capitalize border-0 ${paymentStatusBadgeClass(tx.status)}`}>

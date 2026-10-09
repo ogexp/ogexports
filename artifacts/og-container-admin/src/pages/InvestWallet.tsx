@@ -133,7 +133,9 @@ export default function InvestWallet() {
   const [pendingBalance, setPendingBalance] = useState<number | null>(null)
   const [walletCurrencyFromWallet, setWalletCurrencyFromWallet] = useState("")
   const walletCurrency = dashboardBalanceQuery.data?.currency || walletCurrencyFromWallet
-  const fmtW = (amount: number | null) => formatInvestorProjectAmount(amount, walletCurrency)
+  const fmtW = (amount: number | null) => amount == null
+    ? "Not provided"
+    : c.fmtWalletAmount(amount, walletCurrency)
   const [depositBreakdown, setDepositBreakdown] = useState<DepositBreakdown[]>([])
   const [depositBreakdownAvailable, setDepositBreakdownAvailable] = useState(false)
   const [txns, setTxns] = useState<WalletTxn[]>([])

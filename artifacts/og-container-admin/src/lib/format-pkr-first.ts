@@ -17,10 +17,52 @@ export function getCachedPkrRate(): number {
 
 /** Update the in-memory FX cache (used by useCurrency after fetching rates). */
 export function setRatesCache(rates: Record<string, number>, asOf: string | null = null): void {
+  const normalizedRates: Record<string, number> = { USD: 1 }
+  for (const [rawCode, rawRate] of Object.entries(rates)) {
+    const code = rawCode.trim().toUpperCase()
+    const rate = Number(rawRate)
+    if (/^[A-Z]{3}$/.test(code) && Number.isFinite(rate) && rate > 0) {
+      normalizedRates[code] = rate
+    }
+  }
   ratesCache = {
-    rates: { USD: 1, ...rates },
+    rates: normalizedRates,
     asOf,
   }
+}
+
+/** Return the server-provided number of currency units per 1 USD, if known. */
+export function getCachedCurrencyRate(currency: string): number | null {
+  const code = String(currency || "").trim().toUpperCase()
+  if (code === "USD") return 1
+  const rate = ratesCache.rates[code]
+  return Number.isFinite(rate) && rate > 0 ? rate : null
+}
+
+/**
+ * Convert a display amount using the last exchange-rate payload from the API.
+ * Null means a required rate is unavailable; callers must keep the source code
+ * visible rather than relabeling the unconverted amount.
+ */
+export function convertCachedCurrency(
+  amount: number,
+  fromCurrency: string,
+  toCurrency: string,
+): number | null {
+  const from = String(fromCurrency || "").trim().toUpperCase()
+  const to = String(toCurrency || "").trim().toUpperCase()
+  if (!Number.isFinite(amount) || !/^[A-Z]{3}$/.test(from) || !/^[A-Z]{3}$/.test(to)) {
+    return null
+  }
+  if (from === to) return Math.round(amount * 100) / 100
+
+  const fromRate = getCachedCurrencyRate(from)
+  const toRate = getCachedCurrencyRate(to)
+  if (fromRate == null || toRate == null) return null
+
+  const usd = from === "USD" ? amount : amount / fromRate
+  const converted = to === "USD" ? usd : usd * toRate
+  return Number.isFinite(converted) ? Math.round(converted * 100) / 100 : null
 }
 
 export function getRatesCacheAsOf(): string | null {

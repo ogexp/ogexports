@@ -19,26 +19,32 @@ mobile 10 MiB range as production-supported until this patch is deployed and
 the image and PDF boundary tests are run against production with an authorized
 investor account.
 
-## Wallet currency synchronization patch
+## USD wallet normalization patch set
 
-`wallet-currency-sync.patch` applies to the supplied Laravel source from its
-project root. It adds the missing Profile-to-wallet currency conversion, records
-the conversion and preserves transaction-history currencies. It does not touch
-`.env`.
+Apply both patches, in order, to the supplied Laravel source from its project
+root. Profile currency remains a display preference; new wallets default to
+USD, and changing Profile currency never changes wallet denomination. The
+second patch adds a report-only-by-default command to convert safe legacy
+wallets to USD, records each conversion, and preserves historical transaction
+currencies. Neither patch touches `.env`.
 
 Apply and verify it with:
 
 ```sh
 git apply --check /path/to/wallet-currency-sync.patch
 git apply /path/to/wallet-currency-sync.patch
+git apply --check /path/to/wallet-currency-usd.patch
+git apply /path/to/wallet-currency-usd.patch
 php artisan migrate --force
-php artisan test --compact tests/Feature/MobileInvestorWalletTest.php
+php artisan test --compact tests/Feature/MobileInvestorWalletTest.php tests/Unit/UserDisplayCurrencyDualTest.php
+php artisan wallets:normalize-usd
 ```
 
-Run the patch commands from the Laravel project root, replacing
-`/path/to/wallet-currency-sync.patch` with the downloaded patch file's location.
+Run the commands from the Laravel project root, replacing each patch path with
+the downloaded file's location.
 
 The migration only creates the conversion-audit table; it does not change
-wallet balances. After deployment, an investor's Profile currency sync can
-convert an existing available balance when the server wallet currency differs.
-Pending deposits or withdrawals block that conversion.
+wallet balances. The normalization command is a dry run unless `--apply` is
+provided. Review its conversion totals and skipped-wallet reasons first, and
+only run `php artisan wallets:normalize-usd --apply` after the affected
+pending or unresolved operations have been settled.

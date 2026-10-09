@@ -24,7 +24,7 @@ class WalletController extends Controller
     public function show(Request $request): JsonResponse
     {
         $user = $request->user()->loadMissing('profile');
-        $defaultWalletCurrency = UserDisplayCurrency::currencyForUser($user);
+        $defaultWalletCurrency = 'USD';
 
         $wallet = Wallet::query()->firstOrCreate(
             ['user_id' => $user->id],
@@ -80,7 +80,7 @@ class WalletController extends Controller
         $wallet = Wallet::query()->firstOrCreate(
             ['user_id' => $request->user()->id],
             [
-                'currency' => UserDisplayCurrency::currencyForUser($request->user()),
+                'currency' => 'USD',
                 'available_balance' => 0,
                 'pending_balance' => 0,
             ]

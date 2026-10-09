@@ -11,7 +11,6 @@ use App\Models\Wallet;
 use App\Services\AuthOtpService;
 use App\Support\AuthFlowLogger;
 use App\Support\InvestmentModule;
-use App\Support\InvestorMarket;
 use App\Support\AdminNotificationTypes;
 use App\Support\NotifiesAdmins;
 use App\Support\SupplierModule;
@@ -81,7 +80,7 @@ class AuthController extends Controller
         if ($data['account_type'] === 'investor') {
             Wallet::create([
                 'user_id' => $user->id,
-                'currency' => InvestorMarket::currencyForUser($user->fresh(['profile'])),
+                'currency' => 'USD',
             ]);
         }
 

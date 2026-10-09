@@ -48,7 +48,7 @@ class DashboardController extends Controller
         $wallet = Wallet::query()->firstOrCreate(
             ['user_id' => $userId],
             [
-                'currency' => UserDisplayCurrency::currencyForUser($user),
+                'currency' => 'USD',
                 'available_balance' => 0,
                 'pending_balance' => 0,
             ]

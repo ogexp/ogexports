@@ -360,14 +360,8 @@ export default function Settings() {
           ? translateUi('Loading authenticated OG Exports exchange rates. Until rates are available, amounts stay in their source currency.', appLanguage)
           : appPreferences.ratesError
             ? translateUi('Exchange rates are unavailable. Amounts stay in their source currency and are marked as unavailable for conversion.', appLanguage)
-            : <>{translateUi('Selecting a currency converts your available wallet balance at the authenticated rate and sets the currency used for future wallet requests.', appLanguage)}{appPreferences.ratesAsOf ? ` ${translateUi('Rates as of', appLanguage)} ${appPreferences.ratesAsOf}.` : ''} {translateUi('Wallet transaction history remains in the currency recorded at the time of each transaction.', appLanguage)}</>}
+            : <>{translateUi('The selected currency changes how your wallet amounts are displayed. Wallet balances and new wallet requests remain denominated in USD. Historical transactions keep their recorded currency.', appLanguage)}{appPreferences.ratesAsOf ? ` ${translateUi('Rates as of', appLanguage)} ${appPreferences.ratesAsOf}.` : ''}</>}
       </Text>
-      {appPreferences.walletCurrency
-        && appPreferences.walletCurrency !== appPreferences.preferences.currency
-        ? <Text style={{ color: colors.primary, fontSize: 11, lineHeight: 17, marginBottom: 14 }}>
-          {translateUi('Deposit and withdrawal requests are paused until the wallet matches your Profile currency.', appLanguage)}
-        </Text>
-        : null}
 
       <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>Appearance</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>

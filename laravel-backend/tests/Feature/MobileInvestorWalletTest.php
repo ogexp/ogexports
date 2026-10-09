@@ -114,7 +114,7 @@ it('creates a USD wallet for a Pakistan-based investor when Profile currency is 
     expect(Wallet::query()->where('user_id', $this->investor->id)->value('currency'))->toBe('USD');
 });
 
-it('converts the wallet balance and preserves historical transaction currency when Profile currency changes', function () {
+it('changes Profile display currency without changing the USD wallet or transaction ledger', function () {
     config(['currency.fallback_rates' => [
         'USD' => 1,
         'PKR' => 278.5,
@@ -136,29 +136,23 @@ it('converts the wallet balance and preserves historical transaction currency wh
     ]);
     $transaction->forceFill(['meta' => ['note' => 'recorded before currency change']])->save();
 
-    $token = $this->investor->createToken('wallet_currency_conversion_test')->plainTextToken;
+    $token = $this->investor->createToken('wallet_display_currency_test')->plainTextToken;
     $this->withHeader('Authorization', 'Bearer '.$token)
         ->putJson('/api/investor/profile', [
             'preferences' => ['currency' => 'EUR'],
         ])
         ->assertOk()
-        ->assertJsonPath('wallet_currency_change.from_currency', 'USD')
-        ->assertJsonPath('wallet_currency_change.to_currency', 'EUR');
+        ->assertJsonPath('data.preferences.currency', 'EUR')
+        ->assertJsonMissingPath('wallet_currency_change');
 
     $wallet->refresh();
     $transaction->refresh();
-    $conversion = WalletCurrencyConversion::query()->where('wallet_id', $wallet->id)->firstOrFail();
 
-    expect($wallet->currency)->toBe('EUR')
-        ->and((float) $wallet->available_balance)->toBe(9200.0)
-        ->and($transaction->meta['currency'] ?? null)->toBe('USD')
+    expect($wallet->currency)->toBe('USD')
+        ->and((float) $wallet->available_balance)->toBe(10_000.0)
+        ->and($transaction->meta['currency'] ?? null)->toBeNull()
         ->and($transaction->meta['note'] ?? null)->toBe('recorded before currency change')
-        ->and($conversion->from_currency)->toBe('USD')
-        ->and($conversion->to_currency)->toBe('EUR')
-        ->and((float) $conversion->from_amount)->toBe(10000.0)
-        ->and((float) $conversion->to_amount)->toBe(9200.0)
-        ->and((float) $conversion->exchange_rate)->toBe(0.92)
-        ->and($conversion->rates_as_of)->not->toBeNull();
+        ->and(WalletCurrencyConversion::query()->where('wallet_id', $wallet->id)->exists())->toBeFalse();
 
     $this->withHeader('Authorization', 'Bearer '.$token)
         ->getJson('/api/investor/wallet/transactions')
@@ -166,34 +160,72 @@ it('converts the wallet balance and preserves historical transaction currency wh
         ->assertJsonPath('data.0.currency', 'USD');
 });
 
-it('reconciles a stale wallet when the submitted Profile currency is already selected', function () {
-    $profile = $this->investor->profile;
-    $meta = is_array($profile->meta) ? $profile->meta : [];
-    $meta['preferences'] = ['currency' => 'USD'];
-    $profile->update(['meta' => $meta]);
-
+it('converts a legacy non-USD wallet to USD and preserves its historical transaction currency', function () {
+    config(['currency.fallback_rates' => [
+        'USD' => 1,
+        'PKR' => 278.5,
+        'EUR' => 0.92,
+        'GBP' => 0.79,
+    ]]);
+    ExchangeRateService::clearCache();
+    Http::fake(['*' => Http::response(null, 500)]);
     $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
     $wallet->update([
         'currency' => 'PKR',
-        'available_balance' => 0,
+        'available_balance' => 27_850.0,
         'pending_balance' => 0,
     ]);
+    $transaction = WalletTransaction::query()->create([
+        'wallet_id' => $wallet->id,
+        'type' => 'deposit',
+        'amount' => 500,
+        'direction' => 'credit',
+        'reference' => 'OLD-PKR-LEDGER',
+        'status' => 'completed',
+        'meta' => ['note' => 'legacy PKR ledger entry'],
+    ]);
+    $transaction->forceFill(['meta' => ['note' => 'legacy PKR ledger entry']])->save();
 
-    $token = $this->investor->createToken('wallet_currency_reconcile_test')->plainTextToken;
-    $this->withHeader('Authorization', 'Bearer '.$token)
-        ->putJson('/api/investor/profile', [
-            'preferences' => ['currency' => 'USD'],
-        ])
-        ->assertOk()
-        ->assertJsonPath('data.preferences.currency', 'USD')
-        ->assertJsonPath('wallet_currency_change.from_currency', 'PKR')
-        ->assertJsonPath('wallet_currency_change.to_currency', 'USD');
+    $this->artisan('wallets:normalize-usd', ['--apply' => true])
+        ->assertExitCode(0);
 
-    expect($wallet->fresh()->currency)->toBe('USD')
-        ->and((float) $wallet->fresh()->available_balance)->toBe(0.0);
+    $wallet->refresh();
+    $transaction->refresh();
+    $conversion = WalletCurrencyConversion::query()->where('wallet_id', $wallet->id)->firstOrFail();
+
+    expect($wallet->currency)->toBe('USD')
+        ->and((float) $wallet->available_balance)->toBe(100.0)
+        ->and($transaction->meta['currency'] ?? null)->toBe('PKR')
+        ->and($transaction->meta['note'] ?? null)->toBe('legacy PKR ledger entry')
+        ->and($conversion->from_currency)->toBe('PKR')
+        ->and($conversion->to_currency)->toBe('USD')
+        ->and((float) $conversion->from_amount)->toBe(27_850.0)
+        ->and((float) $conversion->to_amount)->toBe(100.0)
+        ->and($conversion->rates_as_of)->not->toBeNull();
 });
 
-it('blocks Profile currency changes while a deposit is pending', function () {
+it('reports a legacy conversion without changing the wallet unless apply is explicit', function () {
+    config(['currency.fallback_rates' => [
+        'USD' => 1,
+        'PKR' => 278.5,
+        'EUR' => 0.92,
+        'GBP' => 0.79,
+    ]]);
+    ExchangeRateService::clearCache();
+    Http::fake(['*' => Http::response(null, 500)]);
+    $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
+    $wallet->update(['currency' => 'PKR', 'available_balance' => 27_850, 'pending_balance' => 0]);
+
+    $this->artisan('wallets:normalize-usd')
+        ->assertExitCode(0)
+        ->expectsOutputToContain("Wallet {$wallet->id}: PKR 27850.00 → USD 100.00");
+
+    expect($wallet->fresh()->currency)->toBe('PKR')
+        ->and((float) $wallet->fresh()->available_balance)->toBe(27_850.0)
+        ->and(WalletCurrencyConversion::query()->where('wallet_id', $wallet->id)->exists())->toBeFalse();
+});
+
+it('allows changing Profile display currency while a deposit is pending without changing wallet currency', function () {
     Deposit::query()->create([
         'investor_id' => $this->investor->id,
         'amount' => 100,
@@ -208,13 +240,35 @@ it('blocks Profile currency changes while a deposit is pending', function () {
         ->putJson('/api/investor/profile', [
             'preferences' => ['currency' => 'EUR'],
         ])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['preferences.currency']);
+        ->assertOk()
+        ->assertJsonPath('data.preferences.currency', 'EUR');
 
     expect(Wallet::query()->where('user_id', $this->investor->id)->value('currency'))->toBe('USD');
 });
 
-it('blocks Profile currency changes while a withdrawal is pending', function () {
+it('skips converting a non-USD wallet with an unresolved deposit', function () {
+    $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
+    $wallet->update(['currency' => 'PKR', 'available_balance' => 27_850, 'pending_balance' => 0]);
+    Deposit::query()->create([
+        'investor_id' => $this->investor->id,
+        'amount' => 100,
+        'currency' => 'USD',
+        'method' => 'bank_transfer',
+        'reference' => 'PENDING-DEPOSIT-NORMALIZATION',
+        'status' => 'pending',
+    ]);
+
+    $this->artisan('wallets:normalize-usd', ['--apply' => true])
+        ->assertExitCode(1)
+        ->expectsOutputToContain("Wallet {$wallet->id} skipped: deposit is pending or unresolved.");
+
+    expect($wallet->fresh()->currency)->toBe('PKR')
+        ->and((float) $wallet->fresh()->available_balance)->toBe(27_850.0);
+});
+
+it('skips converting a non-USD wallet with an unresolved withdrawal', function () {
+    $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
+    $wallet->update(['currency' => 'PKR', 'available_balance' => 27_850, 'pending_balance' => 0]);
     Withdrawal::query()->create([
         'investor_id' => $this->investor->id,
         'amount' => 100,
@@ -223,15 +277,12 @@ it('blocks Profile currency changes while a withdrawal is pending', function () 
         'status' => 'pending',
     ]);
 
-    $token = $this->investor->createToken('pending_withdrawal_currency_test')->plainTextToken;
-    $this->withHeader('Authorization', 'Bearer '.$token)
-        ->putJson('/api/investor/profile', [
-            'preferences' => ['currency' => 'EUR'],
-        ])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['preferences.currency']);
+    $this->artisan('wallets:normalize-usd', ['--apply' => true])
+        ->assertExitCode(1)
+        ->expectsOutputToContain("Wallet {$wallet->id} skipped: withdrawal is pending or under review.");
 
-    expect(Wallet::query()->where('user_id', $this->investor->id)->value('currency'))->toBe('USD');
+    expect($wallet->fresh()->currency)->toBe('PKR')
+        ->and((float) $wallet->fresh()->available_balance)->toBe(27_850.0);
 });
 
 it('accepts a mobile deposit without currency and defaults to wallet currency', function () {

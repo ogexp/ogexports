@@ -13,7 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use App\Support\AuditsActions;
 use App\Support\InvestmentModule;
-use App\Support\InvestorMarket;
 use App\Support\SupplierModule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -177,7 +176,7 @@ class UserController extends Controller
         if ($data['role'] === 'investor') {
             Wallet::create([
                 'user_id' => $user->id,
-                'currency' => InvestorMarket::currencyForUser($user->fresh(['profile'])),
+                'currency' => 'USD',
             ]);
         }
 

@@ -35,7 +35,7 @@ class WalletReservation
         if (! $wallet) {
             $wallet = Wallet::create([
                 'user_id' => $user->id,
-                'currency' => InvestorMarket::currencyForUser($user),
+                'currency' => 'USD',
                 'available_balance' => 0,
                 'pending_balance' => 0,
             ]);

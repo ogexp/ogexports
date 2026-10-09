@@ -1,0 +1,567 @@
+diff --git a/app/Support/UserDisplayCurrency.php b/app/Support/UserDisplayCurrency.php
+--- a/app/Support/UserDisplayCurrency.php
++++ b/app/Support/UserDisplayCurrency.php
+@@ -20,26 +20,15 @@
+ 
+         $user->loadMissing(['profile', 'wallet']);
+ 
+-        if ($user->wallet?->currency) {
+-            return strtoupper((string) $user->wallet->currency);
+-        }
+-
+-        return InvestorMarket::currencyForUser($user);
+-    }
+-
+-    /**
+-     * Wallet/market truth: Pakistani investor with a PKR wallet.
+-     * Used for deposits, withdrawals, and ledger math — not for display formatting alone.
++        return strtoupper((string) ($user->wallet?->currency ?: 'USD'));
++    }
++
++    /**
++     * Whether the investor's actual wallet is denominated in PKR.
+      */
+     public static function isPkrUser(?User $user): bool
+     {
+         if (! $user) {
+-            return false;
+-        }
+-
+-        $user->loadMissing(['profile', 'wallet']);
+-
+-        if (! self::isPakistanCountry($user->profile?->country)) {
+             return false;
+         }
+ 
+@@ -73,7 +62,8 @@
+      */
+     public static function shouldDisplayPkr(?User $user): bool
+     {
+-        return self::pkrDisplayEnabled() && self::isPkrUser($user);
++        return self::pkrDisplayEnabled()
++            && InvestorMarket::currencyForUser($user) === 'PKR';
+     }
+ 
+     /**
+@@ -131,7 +121,7 @@
+     }
+ 
+     /**
+-     * @return array{country: string|null, currency: string, display_pkr: bool, wallet_currency: string|null}
++     * @return array{country: string|null, currency: string, profile_currency: string, display_pkr: bool, wallet_currency: string|null}
+      */
+     public static function contextForUser(?User $user): array
+     {
+@@ -139,6 +129,7 @@
+             return [
+                 'country' => null,
+                 'currency' => 'USD',
++                'profile_currency' => 'USD',
+                 'display_pkr' => false,
+                 'wallet_currency' => null,
+             ];
+@@ -148,10 +139,12 @@
+         $country = $user->profile?->country;
+         $walletCurrency = $user->wallet?->currency ? strtoupper((string) $user->wallet->currency) : null;
+         $currency = self::currencyForUser($user);
++        $profileCurrency = InvestorMarket::currencyForUser($user);
+ 
+         return [
+             'country' => $country,
+             'currency' => $currency,
++            'profile_currency' => $profileCurrency,
+             'display_pkr' => self::shouldDisplayPkr($user),
+             'wallet_currency' => $walletCurrency,
+         ];
+@@ -174,7 +167,10 @@
+             'email' => $user->email,
+             'country' => $ctx['country'],
+             'currency' => $ctx['currency'],
+-            'display_currency' => $ctx['display_pkr'] ? 'PKR' : ($ctx['currency'] === 'PKR' && ! self::pkrDisplayEnabled() ? 'USD' : $ctx['currency']),
++            'profile_currency' => $ctx['profile_currency'],
++            'display_currency' => $ctx['profile_currency'] === 'PKR' && ! self::pkrDisplayEnabled()
++                ? 'USD'
++                : $ctx['profile_currency'],
+             'display_pkr' => $ctx['display_pkr'],
+             'wallet_currency' => $ctx['wallet_currency'],
+             'invest_pkr_display_enabled' => self::pkrDisplayEnabled(),
+@@ -214,6 +210,17 @@
+         ?float $rate = null,
+     ): string {
+         $usd = round($usd, 2);
++        $profileCurrency = InvestorMarket::currencyForUser($user);
++
++        if (in_array($profileCurrency, ['EUR', 'GBP'], true)) {
++            try {
++                $converted = (float) ExchangeRateService::convert($usd, 'USD', $profileCurrency)['amount'];
++            } catch (\Throwable) {
++                return '$'.number_format($usd, 2).' ('.$profileCurrency.' rate unavailable)';
++            }
++
++            return $profileCurrency.' '.number_format(round($converted, 2), 2);
++        }
+ 
+         if (! self::shouldDisplayPkr($user)) {
+             return '$'.number_format($usd, 2);
+@@ -227,7 +234,7 @@
+                     $pkr = (float) ExchangeRateService::convert($usd, 'USD', 'PKR')['amount'];
+                 }
+             } catch (\Throwable) {
+-                $pkr = $usd;
++                return '$'.number_format($usd, 2).' (PKR rate unavailable)';
+             }
+         }
+ 
+@@ -248,13 +255,31 @@
+     public static function formatWalletDual(?User $user, float $amount): string
+     {
+         $amount = round($amount, 2);
++        $walletCurrency = self::currencyForUser($user);
++        $profileCurrency = InvestorMarket::currencyForUser($user);
++
++        if (in_array($profileCurrency, ['EUR', 'GBP'], true)) {
++            try {
++                $converted = (float) ExchangeRateService::convert(
++                    $amount,
++                    $walletCurrency,
++                    $profileCurrency,
++                )['amount'];
++            } catch (\Throwable) {
++                return self::formatCurrencyAmount($amount, $walletCurrency)
++                    .' ('.$profileCurrency.' rate unavailable)';
++            }
++
++            return $profileCurrency.' '.number_format(round($converted, 2), 2);
++        }
+ 
+         if (! self::shouldDisplayPkr($user)) {
+-            if (self::isPkrUser($user)) {
++            if ($walletCurrency !== 'USD') {
+                 try {
+-                    $usd = (float) ExchangeRateService::convert($amount, 'PKR', 'USD')['amount'];
++                    $usd = (float) ExchangeRateService::convert($amount, $walletCurrency, 'USD')['amount'];
+                 } catch (\Throwable) {
+-                    $usd = 0.0;
++                    return self::formatCurrencyAmount($amount, $walletCurrency)
++                        .' (USD rate unavailable)';
+                 }
+ 
+                 return '$'.number_format(round($usd, 2), 2);
+@@ -263,18 +288,36 @@
+             return '$'.number_format($amount, 2);
+         }
+ 
+-        $pkrLabel = 'PKR '.number_format($amount, 2);
++        try {
++            $pkr = $walletCurrency === 'PKR'
++                ? $amount
++                : (float) ExchangeRateService::convert($amount, $walletCurrency, 'PKR')['amount'];
++            $usd = (float) ExchangeRateService::convert($amount, $walletCurrency, 'USD')['amount'];
++        } catch (\Throwable) {
++            if ($walletCurrency === 'PKR') {
++                return self::formatCurrencyAmount($amount, 'PKR')
++                    .' (USD equivalent unavailable)';
++            }
++
++            return self::formatCurrencyAmount($amount, $walletCurrency)
++                .' (PKR rate unavailable)';
++        }
++
++        $pkrLabel = 'PKR '.number_format(round($pkr, 2), 2);
+ 
+         if (! self::dualCurrencyEnabled()) {
+             return $pkrLabel;
+         }
+ 
+-        try {
+-            $usd = (float) ExchangeRateService::convert($amount, 'PKR', 'USD')['amount'];
+-        } catch (\Throwable) {
+-            $usd = 0.0;
+-        }
+-
+         return $pkrLabel.' ($'.number_format($usd, 2).')';
+     }
++
++    private static function formatCurrencyAmount(float $amount, string $currency): string
++    {
++        $currency = strtoupper($currency);
++
++        return $currency === 'USD'
++            ? '$'.number_format($amount, 2)
++            : $currency.' '.number_format($amount, 2);
++    }
+ }
+diff --git a/app/Http/Controllers/Api/Investor/DashboardController.php b/app/Http/Controllers/Api/Investor/DashboardController.php
+--- a/app/Http/Controllers/Api/Investor/DashboardController.php
++++ b/app/Http/Controllers/Api/Investor/DashboardController.php
+@@ -48,7 +48,7 @@
+         $wallet = Wallet::query()->firstOrCreate(
+             ['user_id' => $userId],
+             [
+-                'currency' => InvestorMarket::currencyForUser($user),
++                'currency' => 'USD',
+                 'available_balance' => 0,
+                 'pending_balance' => 0,
+             ]
+@@ -60,7 +60,7 @@
+             ->orderByDesc('invested_at')
+             ->get();
+ 
+-        $walletCurrency = strtoupper((string) ($wallet->currency ?: InvestorMarket::currencyForUser($user)));
++        $walletCurrency = strtoupper((string) ($wallet->currency ?: 'USD'));
+ 
+         $totalInvestedUsd = (float) $investments->sum('amount');
+         $activeInvestments = $investments->whereIn('status', ['pending', 'active']);
+@@ -89,7 +89,7 @@
+         $activeInvested = (float) $activeInvestments->sum($toWalletAmount);
+         $activeCount = $activeInvestments->count();
+ 
+-        $isPkrInvestor = UserDisplayCurrency::isPkrUser($user);
++        $isPkrInvestor = $walletCurrency === 'PKR';
+         $avgDepositRate = $isPkrInvestor
+             ? InvestorDepositFx::weightedAverageDepositRate($userId)
+             : null;
+@@ -255,7 +255,7 @@
+                 ],
+                 'wallet' => [
+                     'id' => $wallet->id,
+-                    'currency' => $wallet->currency ?: InvestorMarket::currencyForUser($user),
++                    'currency' => $wallet->currency ?: 'USD',
+                     'available_balance' => (float) $wallet->available_balance,
+                     'pending_balance' => (float) $wallet->pending_balance,
+                 ],
+diff --git a/app/Http/Controllers/Api/Admin/FinanceController.php b/app/Http/Controllers/Api/Admin/FinanceController.php
+--- a/app/Http/Controllers/Api/Admin/FinanceController.php
++++ b/app/Http/Controllers/Api/Admin/FinanceController.php
+@@ -200,7 +200,7 @@
+         DB::transaction(function () use ($deposit, $request) {
+             $deposit->loadMissing('investor.profile');
+ 
+-            $walletCurrency = InvestorMarket::currencyForUser($deposit->investor);
++            $walletCurrency = UserDisplayCurrency::currencyForUser($deposit->investor);
+             $depositCurrency = strtoupper($deposit->currency ?: 'USD');
+ 
+             $conversion = ExchangeRateService::convert(
+@@ -211,12 +211,8 @@
+ 
+             $wallet = Wallet::query()->firstOrCreate(
+                 ['user_id' => $deposit->investor_id],
+-                ['currency' => $walletCurrency, 'available_balance' => 0, 'pending_balance' => 0]
++                ['currency' => 'USD', 'available_balance' => 0, 'pending_balance' => 0]
+             );
+-
+-            if ($wallet->currency !== $walletCurrency) {
+-                $wallet->update(['currency' => $walletCurrency]);
+-            }
+ 
+             $wallet->increment('available_balance', $conversion['amount']);
+ 
+diff --git a/app/Support/InvestmentReviewService.php b/app/Support/InvestmentReviewService.php
+--- a/app/Support/InvestmentReviewService.php
++++ b/app/Support/InvestmentReviewService.php
+@@ -185,13 +185,13 @@
+             if (! $wallet) {
+                 $wallet = Wallet::query()->create([
+                     'user_id' => $investment->investor_id,
+-                    'currency' => InvestorMarket::currencyForUser($investment->investor),
++                    'currency' => 'USD',
+                     'available_balance' => 0,
+                     'pending_balance' => 0,
+                 ]);
+             }
+ 
+-            $walletCurrency = $wallet->currency ?: InvestorMarket::currencyForUser($investment->investor);
++            $walletCurrency = $wallet->currency ?: 'USD';
+ 
+             $platformTx = PlatformWalletService::debit(
+                 $totalReturnWallet,
+diff --git a/app/Support/WalletReservation.php b/app/Support/WalletReservation.php
+--- a/app/Support/WalletReservation.php
++++ b/app/Support/WalletReservation.php
+@@ -35,7 +35,7 @@
+         if (! $wallet) {
+             $wallet = Wallet::create([
+                 'user_id' => $user->id,
+-                'currency' => InvestorMarket::currencyForUser($user),
++                'currency' => 'USD',
+                 'available_balance' => 0,
+                 'pending_balance' => 0,
+             ]);
+diff --git a/app/Console/Commands/NormalizeInvestorWalletsToUsd.php b/app/Console/Commands/NormalizeInvestorWalletsToUsd.php
+new file mode 100644
+--- /dev/null
++++ b/app/Console/Commands/NormalizeInvestorWalletsToUsd.php
+@@ -0,0 +1,175 @@
++<?php
++
++namespace App\Console\Commands;
++
++use App\Models\Deposit;
++use App\Models\Wallet;
++use App\Models\WalletCurrencyConversion;
++use App\Models\WalletTransaction;
++use App\Models\Withdrawal;
++use App\Support\ExchangeRateService;
++use Illuminate\Console\Command;
++use Illuminate\Support\Facades\DB;
++use Throwable;
++
++class NormalizeInvestorWalletsToUsd extends Command
++{
++    protected $signature = 'wallets:normalize-usd {--apply : Convert safe non-USD wallet balances; without this flag the command only reports}';
++
++    protected $description = 'Convert safe legacy investor wallets to USD and preserve their original ledger currencies';
++
++    public function handle(): int
++    {
++        $apply = (bool) $this->option('apply');
++        $converted = 0;
++        $skipped = 0;
++        $unchanged = 0;
++
++        if (! $apply) {
++            $this->warn('Dry run only. No wallet or ledger records will be changed. Use --apply to perform conversions.');
++        }
++
++        Wallet::query()
++            ->orderBy('id')
++            ->chunkById(100, function ($wallets) use ($apply, &$converted, &$skipped, &$unchanged): void {
++                foreach ($wallets as $wallet) {
++                    try {
++                        $result = DB::transaction(function () use ($wallet, $apply): array {
++                            $lockedWallet = Wallet::query()->whereKey($wallet->id)->lockForUpdate()->first();
++                            if (! $lockedWallet) {
++                                return ['status' => 'skipped', 'reason' => 'wallet disappeared'];
++                            }
++
++                            $sourceCurrency = strtoupper(trim((string) $lockedWallet->currency));
++                            if ($sourceCurrency === 'USD') {
++                                return ['status' => 'unchanged'];
++                            }
++
++                            $unsafeReason = $this->unsafeReason($lockedWallet);
++                            if ($unsafeReason !== null) {
++                                return ['status' => 'skipped', 'reason' => $unsafeReason];
++                            }
++
++                            if (! ExchangeRateService::isSupported($sourceCurrency)) {
++                                return ['status' => 'skipped', 'reason' => "unsupported currency {$sourceCurrency}"];
++                            }
++
++                            $fromAmount = round((float) $lockedWallet->available_balance, 2);
++                            if ($fromAmount < 0) {
++                                return ['status' => 'skipped', 'reason' => 'negative available balance'];
++                            }
++
++                            $conversion = ExchangeRateService::convert($fromAmount, $sourceCurrency, 'USD');
++                            $toAmount = $conversion['amount'];
++
++                            if (! $apply) {
++                                return [
++                                    'status' => 'would_convert',
++                                    'from_currency' => $sourceCurrency,
++                                    'from_amount' => $fromAmount,
++                                    'to_amount' => $toAmount,
++                                ];
++                            }
++
++                            foreach ($lockedWallet->transactions()->lockForUpdate()->get() as $transaction) {
++                                $meta = is_array($transaction->meta) ? $transaction->meta : [];
++                                if (! isset($meta['currency'])) {
++                                    $meta['currency'] = strtoupper((string) ($meta['wallet_currency'] ?? $sourceCurrency));
++                                    $transaction->meta = $meta;
++                                    $transaction->save();
++                                }
++                            }
++
++                            $lockedWallet->forceFill([
++                                'currency' => 'USD',
++                                'available_balance' => $toAmount,
++                            ])->save();
++
++                            WalletCurrencyConversion::query()->create([
++                                'wallet_id' => $lockedWallet->id,
++                                'initiated_by' => null,
++                                'from_currency' => $sourceCurrency,
++                                'to_currency' => 'USD',
++                                'from_amount' => $fromAmount,
++                                'to_amount' => $toAmount,
++                                'exchange_rate' => $conversion['rate'],
++                                'rates_as_of' => $conversion['as_of'],
++                            ]);
++
++                            return [
++                                'status' => 'converted',
++                                'from_currency' => $sourceCurrency,
++                                'from_amount' => $fromAmount,
++                                'to_amount' => $toAmount,
++                            ];
++                        }, 3);
++                    } catch (Throwable $exception) {
++                        $result = ['status' => 'skipped', 'reason' => $exception->getMessage()];
++                    }
++
++                    if ($result['status'] === 'unchanged') {
++                        $unchanged++;
++                        continue;
++                    }
++
++                    if ($result['status'] === 'skipped') {
++                        $skipped++;
++                        $this->warn("Wallet {$wallet->id} skipped: {$result['reason']}.");
++                        continue;
++                    }
++
++                    if ($result['status'] === 'would_convert') {
++                        $converted++;
++                        $this->line(
++                            "Wallet {$wallet->id}: {$result['from_currency']} "
++                            .number_format($result['from_amount'], 2, '.', '')
++                            .' → USD '.number_format($result['to_amount'], 2, '.', '')
++                        );
++                        continue;
++                    }
++
++                    $converted++;
++                    $this->info(
++                        "Wallet {$wallet->id} converted: {$result['from_currency']} "
++                        .number_format($result['from_amount'], 2, '.', '')
++                        .' → USD '.number_format($result['to_amount'], 2, '.', '')
++                    );
++                }
++            });
++
++        $verb = $apply ? 'Converted' : 'Would convert';
++        $this->info("{$verb} {$converted} wallet(s); {$unchanged} already USD; {$skipped} skipped.");
++
++        return $skipped > 0 ? self::FAILURE : self::SUCCESS;
++    }
++
++    private function unsafeReason(Wallet $wallet): ?string
++    {
++        if (abs((float) $wallet->pending_balance) > 0.0001) {
++            return 'pending wallet balance is non-zero';
++        }
++
++        if (Deposit::query()
++            ->where('investor_id', $wallet->user_id)
++            ->whereNotIn('status', ['approved', 'rejected', 'cancelled', 'failed'])
++            ->exists()) {
++            return 'deposit is pending or unresolved';
++        }
++
++        if (Withdrawal::query()
++            ->where('investor_id', $wallet->user_id)
++            ->whereIn('status', ['pending', 'processing', 'review', 'under_review'])
++            ->exists()) {
++            return 'withdrawal is pending or under review';
++        }
++
++        if (WalletTransaction::query()
++            ->where('wallet_id', $wallet->id)
++            ->whereIn('status', ['pending', 'processing', 'review', 'under_review'])
++            ->exists()) {
++            return 'wallet transaction is pending';
++        }
++
++        return null;
++    }
++}
+diff --git a/tests/Unit/UserDisplayCurrencyDualTest.php b/tests/Unit/UserDisplayCurrencyDualTest.php
+--- a/tests/Unit/UserDisplayCurrencyDualTest.php
++++ b/tests/Unit/UserDisplayCurrencyDualTest.php
+@@ -32,6 +32,7 @@
+         'user_id' => $investor->id,
+         'country' => 'Pakistan',
+         'company_name' => 'PK Dual Co',
++        'meta' => ['preferences' => ['currency' => 'PKR']],
+     ]);
+ 
+     Wallet::query()->create([
+@@ -43,6 +44,20 @@
+ 
+     return $investor->fresh(['profile', 'wallet']);
+ }
++
++it('defaults an investor without a stored Profile currency to USD regardless of country', function () {
++    $investor = User::factory()->create(['account_status' => 'active']);
++    $investor->assignRole('investor');
++
++    UserProfile::query()->create([
++        'user_id' => $investor->id,
++        'country' => 'Pakistan',
++        'company_name' => 'USD Default Co',
++        'meta' => [],
++    ]);
++
++    expect(UserDisplayCurrency::currencyForUser($investor))->toBe('USD');
++});
+ 
+ it('formats investment as PKR only when dual currency is disabled', function () {
+     PlatformSetting::query()->create([
+@@ -88,6 +103,45 @@
+         ->not->toContain('$');
+ });
+ 
++it('converts the USD wallet amount into the investor-selected PKR display currency', function () {
++    PlatformSetting::query()->create([
++        'site_name' => 'OG Exports',
++        'invest_pkr_display_enabled' => true,
++        'invest_dual_currency_enabled' => false,
++        'currency' => 'USD',
++    ]);
++
++    $investor = pkInvestorForDual();
++    $investor->wallet->update(['currency' => 'USD']);
++    $investor->refresh();
++
++    expect(UserDisplayCurrency::currencyForUser($investor))->toBe('USD')
++        ->and(UserDisplayCurrency::formatWalletDual($investor, 10.0))
++        ->toBe('PKR 2,785.00');
++});
++
++it('formats USD wallet amounts in the investor-selected EUR display currency', function () {
++    config(['currency.fallback_rates' => [
++        'USD' => 1,
++        'PKR' => 278.5,
++        'EUR' => 0.92,
++        'GBP' => 0.79,
++    ]]);
++    ExchangeRateService::clearCache();
++    Http::fake(['*' => Http::response(null, 500)]);
++
++    $investor = pkInvestorForDual();
++    $profileMeta = $investor->profile->meta;
++    $profileMeta['preferences'] = ['currency' => 'EUR'];
++    $investor->profile->update(['meta' => $profileMeta]);
++    $investor->wallet->update(['currency' => 'USD']);
++    $investor = $investor->fresh(['profile', 'wallet']);
++
++    expect(UserDisplayCurrency::currencyForUser($investor))->toBe('USD')
++        ->and(UserDisplayCurrency::formatWalletDual($investor, 100.0))
++        ->toBe('EUR 92.00');
++});
++
+ it('formats PK investor amounts as USD only when PKR display is disabled', function () {
+     PlatformSetting::query()->create([
+         'site_name' => 'OG Exports',
+@@ -108,3 +162,19 @@
+     $ctx = UserDisplayCurrency::contextForUser($investor);
+     expect($ctx['display_pkr'])->toBeFalse();
+ });
++
++it('exposes the Profile currency separately from the server wallet amount currency', function () {
++    $investor = pkInvestorForDual();
++    $profile = $investor->profile;
++    $meta = is_array($profile->meta) ? $profile->meta : [];
++    $meta['preferences'] = ['currency' => 'USD'];
++    $profile->update(['meta' => $meta]);
++
++    $investor = $investor->fresh(['profile', 'wallet']);
++    $context = UserDisplayCurrency::contextForUser($investor);
++    $payload = UserDisplayCurrency::userPayload($investor);
++
++    expect($context['profile_currency'])->toBe('USD')
++        ->and($context['wallet_currency'])->toBe('PKR')
++        ->and($payload['profile_currency'])->toBe('USD');
++});

@@ -17,7 +17,6 @@ use App\Support\DepositReviewStatuses;
 use App\Support\ExchangeRateService;
 use App\Support\FinanceStatsService;
 use App\Support\FinancialTransactionIdResolver;
-use App\Support\InvestorMarket;
 use App\Support\InvestorNotificationTypes;
 use App\Support\MediaStorage;
 use App\Support\NotifiesUsers;
@@ -219,10 +218,6 @@ class FinanceController extends Controller
                 ['user_id' => $deposit->investor_id],
                 ['currency' => $walletCurrency, 'available_balance' => 0, 'pending_balance' => 0]
             );
-
-            if ($wallet->currency !== $walletCurrency) {
-                $wallet->update(['currency' => $walletCurrency]);
-            }
 
             $wallet->increment('available_balance', $conversion['amount']);
 

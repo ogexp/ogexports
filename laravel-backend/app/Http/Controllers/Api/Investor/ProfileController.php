@@ -16,7 +16,6 @@ use App\Support\AdminNotificationTypes;
 use App\Support\InvestorBankAccountPresenter;
 use App\Support\InvestorBankAccounts;
 use App\Support\NotifiesAdmins;
-use App\Support\WalletCurrencyService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -140,8 +139,7 @@ class ProfileController extends Controller
             'meta' => ['nullable', 'array'],
         ]);
 
-        $walletCurrencyChange = null;
-        DB::transaction(function () use ($user, $data, &$walletCurrencyChange): void {
+        DB::transaction(function () use ($user, $data): void {
             $userFill = collect($data)->only(['name', 'phone'])->all();
             if (array_key_exists('account_status', $data)) {
                 $userFill['account_status'] = $data['account_status'];
@@ -202,13 +200,6 @@ class ProfileController extends Controller
                 $meta = array_replace_recursive($meta, $data['meta']);
             }
 
-            if (isset($data['preferences']['currency']) && $user->hasRole('investor')) {
-                $walletCurrencyChange = app(WalletCurrencyService::class)->change(
-                    $user,
-                    $data['preferences']['currency'],
-                );
-            }
-
             $profile->fill(collect($data)->only([
                 'company_name', 'country', 'city', 'address', 'avatar_url',
             ])->all());
@@ -219,7 +210,6 @@ class ProfileController extends Controller
         return response()->json([
             'message' => 'Profile updated.',
             'data' => $this->show($request)->getData(true)['data'],
-            'wallet_currency_change' => $walletCurrencyChange,
         ]);
     }
 

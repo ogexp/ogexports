@@ -12,10 +12,9 @@ import {
   useSendInvestorWithdrawalOtp,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
-import { WalletCurrencyMismatchNotice } from '@/components/WalletCurrencyMismatchNotice';
 import { formatUiStatus } from '@/lib/strings';
 import { TransactionPasswordResetModal } from '@/components/TransactionPasswordResetModal';
-import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, mismatchedWalletCurrencies, money, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
+import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, money, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { useColors } from '@/hooks/useColors';
@@ -158,21 +157,11 @@ export default function Withdraw() {
   const dashboard = unwrap(dashboardQuery.data);
   const wallet = record(dashboard.wallet);
   const profile = unwrap(profileQuery.data);
-  const profileWalletCurrency = first(record(profile.user), ['walletCurrency', 'wallet_currency']).toUpperCase();
   const walletCurrency = walletCurrencyFromDashboard(
     dashboardQuery.data,
     first(wallet, ['currency', 'default_currency'], ''),
   ).toUpperCase();
-  const profileCurrency = appPreferences.preferences.currency.toUpperCase();
-  const currencyCheckLoading = appPreferences.isLoading
-    || dashboardQuery.isLoading
-    || dashboardQuery.isFetching
-    || profileQuery.isLoading
-    || profileQuery.isFetching;
-  const currencyMismatchCurrencies = currencyCheckLoading
-    ? []
-    : mismatchedWalletCurrencies(profileCurrency, walletCurrency, profileWalletCurrency, appPreferences.walletCurrency);
-  const currencyMismatch = currencyMismatchCurrencies.length > 0;
+  const currencyCheckLoading = dashboardQuery.isLoading || dashboardQuery.isFetching;
   const availableBalance = walletCurrency ? availableBalanceFromDashboard(dashboardQuery.data) : null;
   const pendingBalance = walletCurrency ? readAmount(wallet, ['pending_balance']) : null;
   const savedBankDetails = useMemo(() => savedWithdrawalBank(profile), [profile]);
@@ -282,12 +271,7 @@ export default function Withdraw() {
     setError('');
     setNotice('');
     if (currencyCheckLoading) {
-      setError('Wait for the latest Profile and wallet currencies to be confirmed before continuing.');
-      return;
-    }
-    if (currencyMismatch) {
-      setError('Your wallet and Profile currencies must match before continuing. No request was sent.');
-      setStage('form');
+      setError('Wait for the wallet currency to be confirmed before continuing.');
       return;
     }
     try {
@@ -307,11 +291,7 @@ export default function Withdraw() {
     setError('');
     setNotice('');
     if (currencyCheckLoading) {
-      setError('Wait for the latest Profile and wallet currencies to be confirmed before continuing.');
-      return;
-    }
-    if (currencyMismatch) {
-      setError('Your wallet and Profile currencies must match before continuing. No request was sent.');
+      setError('Wait for the wallet currency to be confirmed before continuing.');
       return;
     }
     if (dashboardQuery.isError || dashboardQuery.isFetching) {
@@ -345,12 +325,7 @@ export default function Withdraw() {
     setError('');
     setNotice('');
     if (currencyCheckLoading) {
-      setError('Wait for the latest Profile and wallet currencies to be confirmed before continuing.');
-      return;
-    }
-    if (currencyMismatch) {
-      setError('Your wallet and Profile currencies must match before continuing. No request was sent.');
-      setStage('form');
+      setError('Wait for the wallet currency to be confirmed before continuing.');
       return;
     }
     if (dashboardQuery.isError || dashboardQuery.isFetching) {
@@ -433,12 +408,7 @@ export default function Withdraw() {
       ? <ErrorState message="Available balance was not returned by OG Exports." onRetry={() => void dashboardQuery.refetch()} />
       : null}
     {stage === 'overview' ? <>
-      {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the latest Profile and wallet currencies…</Text></Card> : null}
-      {!currencyCheckLoading && currencyMismatch ? <WalletCurrencyMismatchNotice
-        mismatchedCurrencies={currencyMismatchCurrencies}
-        language={appPreferences.preferences.language}
-        syncError={appPreferences.error}
-      /> : null}
+      {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the wallet currency…</Text></Card> : null}
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Card style={{ flex: 1, borderTopWidth: 3, borderTopColor: colors.border }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '600' }}>Available balance</Text>
@@ -471,7 +441,7 @@ export default function Withdraw() {
         </View>
         <DetailRow label="Processing time" value={processingTime || 'Not provided'} />
         <DetailRow label="Tax treatment" value={taxTreatment || 'Not specified'} />
-        <DetailRow label="Wallet currency" value={currencyCheckLoading ? 'Checking…' : currencyMismatch ? 'Out of sync' : withdrawalCurrency || 'Not provided'} />
+        <DetailRow label="Wallet currency" value={currencyCheckLoading ? 'Checking…' : withdrawalCurrency || 'Not provided'} />
       </Card>
       {pendingBalance != null && pendingBalance > 0 ? <Card>
         <DetailRow label="Pending withdrawals reserved" value={money(pendingBalance, withdrawalCurrency || 'USD')} />
@@ -491,12 +461,7 @@ export default function Withdraw() {
 
     {stage === 'form' ? <Card>
       <Section title="Bank Details & Amount" />
-      {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the latest Profile and wallet currencies…</Text></Card> : null}
-      {!currencyCheckLoading && currencyMismatch ? <WalletCurrencyMismatchNotice
-        mismatchedCurrencies={currencyMismatchCurrencies}
-        language={appPreferences.preferences.language}
-        syncError={appPreferences.error}
-      /> : null}
+      {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the wallet currency…</Text></Card> : null}
       {profileQuery.isError ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginBottom: 8 }}>
         Saved bank details could not be loaded. You can still enter them below.
       </Text> : null}
@@ -588,7 +553,7 @@ export default function Withdraw() {
             title="Continue to Security"
             icon="arrow-right"
             loading={sendOtp.isPending}
-            disabled={currencyCheckLoading || currencyMismatch || dashboardQuery.isError || !withdrawalCurrency}
+            disabled={currencyCheckLoading || dashboardQuery.isError || !withdrawalCurrency}
             onPress={() => void continueToSecurity()}
           />
         </View>
@@ -597,12 +562,7 @@ export default function Withdraw() {
 
     {stage === 'security' ? <Card testID="withdraw-security-step">
       <Section title="Security verification" />
-      {currencyCheckLoading ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginBottom: 10 }}>Confirming the latest Profile and wallet currencies…</Text> : null}
-      {!currencyCheckLoading && currencyMismatch ? <WalletCurrencyMismatchNotice
-        mismatchedCurrencies={currencyMismatchCurrencies}
-        language={appPreferences.preferences.language}
-        syncError={appPreferences.error}
-      /> : null}
+      {currencyCheckLoading ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginBottom: 10 }}>Confirming the wallet currency…</Text> : null}
       <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginBottom: 14 }}>
         {otpEmail ? <><Text>Code sent to</Text><Text> {otpEmail}</Text></> : 'Enter the six-digit code sent to your registered email.'}
       </Text>
@@ -622,7 +582,7 @@ export default function Withdraw() {
           title="Resend verification code"
           secondary
           loading={sendOtp.isPending}
-          disabled={otpCooldown > 0 || currencyCheckLoading || currencyMismatch}
+          disabled={otpCooldown > 0 || currencyCheckLoading}
           onPress={() => void requestOtp()}
         />
         {otpCooldown > 0 ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 7 }}>
@@ -657,7 +617,7 @@ export default function Withdraw() {
             title="Verify & Continue"
             icon="arrow-right"
             loading={create.isPending}
-            disabled={otp.length !== 6 || !hasTransactionPasswordInput || currencyCheckLoading || currencyMismatch}
+            disabled={otp.length !== 6 || !hasTransactionPasswordInput || currencyCheckLoading}
             onPress={() => void submit()}
           />
         </View>

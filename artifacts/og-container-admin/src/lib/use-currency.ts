@@ -17,6 +17,7 @@ import {
 } from "@/lib/display-currency"
 import { parsePlatformBool } from "@/lib/parse-platform-bool"
 import {
+  convertCachedCurrency,
   formatMoneyCode,
   formatPkrFirst,
   getCachedPkrRate,
@@ -106,7 +107,9 @@ export interface CurrencyKit {
   /** Platform setting: show PKR + ($USD) when true (investors only). */
   dualEnabled: boolean
   country: string
-  /** Investor currency selected in Profile; server conversion keeps the wallet synchronized. */
+  /** Profile-selected amount display currency, independent of wallet denomination. */
+  displayCurrency: string
+  /** Actual wallet denomination from the API, used as the source for wallet amounts. */
   walletCurrency: string
   sym: string
   symLabel: string
@@ -134,26 +137,44 @@ function buildCurrencyKit(
   pkrRate: number,
   isPK: boolean,
   walletCurrency: string,
+  displayCurrency: string,
   dualEnabled: boolean,
   role: TradeCurrencyRole,
 ): CurrencyKit {
   const walletCode = String(walletCurrency || (isPK ? "PKR" : "USD")).toUpperCase()
+  const displayCode = String(displayCurrency || (isPK ? "PKR" : "USD")).toUpperCase()
+  const usesIsoFxDisplay = role === "investor" && ["EUR", "GBP"].includes(displayCode)
   const rate = isPK ? pkrRate : 1
-  const sym = isPK ? "PKR" : "$"
-  const symLabel = isPK ? "PKR" : "USD"
-  const flag = isPK ? "🇵🇰" : "🌍"
-  const label = isPK ? "Pakistani Rupee (PKR)" : "US Dollar (USD)"
+  const sym = displayCode === "USD" ? "$" : `${displayCode} `
+  const symLabel = displayCode
+  const flag = displayCode === "PKR" ? "🇵🇰" : displayCode === "EUR" ? "🇪🇺" : displayCode === "GBP" ? "🇬🇧" : "🌍"
+  const label = displayCode === "PKR"
+    ? "Pakistani Rupee (PKR)"
+    : displayCode === "EUR"
+      ? "Euro (EUR)"
+      : displayCode === "GBP"
+        ? "British Pound (GBP)"
+        : "US Dollar (USD)"
+
+  function formatFxDisplay(amount: number, sourceCurrency: string) {
+    const converted = convertCachedCurrency(amount, sourceCurrency, displayCode)
+    return converted == null
+      ? formatMoneyCode(amount, sourceCurrency)
+      : formatMoneyCode(converted, displayCode)
+  }
 
   function convert(usd: number) {
     return usd * rate
   }
 
   function fmt(usd: number) {
+    if (usesIsoFxDisplay) return formatFxDisplay(Number(usd) || 0, "USD")
     return formatPkrFirst(usd, { isPK, rate: isPK ? pkrRate : undefined, dualEnabled })
   }
 
   function fmtNative(amount: number) {
     const n = Number(amount) || 0
+    if (usesIsoFxDisplay) return formatFxDisplay(n, "USD")
     if (isPK) return `PKR ${n.toLocaleString(undefined, LOCALE_OPTS)}`
     return `$${n.toLocaleString(undefined, LOCALE_OPTS)}`
   }
@@ -182,6 +203,7 @@ function buildCurrencyKit(
   }
 
   function fmtDual(usd: number, pkrAmount?: number | null, lockedRate?: number | null) {
+    if (usesIsoFxDisplay) return formatFxDisplay(Number(usd) || 0, "USD")
     return formatPkrFirst(usd, {
       isPK,
       pkrAmount,
@@ -197,6 +219,7 @@ function buildCurrencyKit(
   ) {
     const code = String(walletCurrencyOverride || walletCode).toUpperCase()
     const n = Number(amount) || 0
+    if (usesIsoFxDisplay) return formatFxDisplay(n, code)
     const effectiveRate = lockedRate != null && Number(lockedRate) > 0
       ? Number(lockedRate)
       : pkrRate
@@ -247,7 +270,7 @@ function buildCurrencyKit(
   }
 
   return {
-    role, isPK, dualEnabled, country, walletCurrency: walletCode, sym, symLabel, flag, label, rate,
+    role, isPK, dualEnabled, country, displayCurrency: displayCode, walletCurrency: walletCode, sym, symLabel, flag, label, rate,
     convert, fmt, fmtCompact, fmtNative, fmtNativeCompact, fmtNativeDual, fmtWalletAmount, fmtDual, fmtTrade, tickFmt,
   }
 }
@@ -273,7 +296,7 @@ export function useCurrency(): CurrencyKit {
 
   const walletCurrency = String(
     role === "investor"
-      ? meCtx?.currency || "USD"
+      ? meCtx?.walletCurrency || "USD"
       : meCtx?.walletCurrency
         || meCtx?.currency
         || (isPakistanCountry(country) ? "PKR" : "USD"),
@@ -301,6 +324,7 @@ export function useCurrency(): CurrencyKit {
 
   let isPK = false
   let dualEnabled = false
+  let displayCurrency = "USD"
 
   if (role === "supplier") {
     isPK = supplierPkrOn && pakistanUser
@@ -309,11 +333,21 @@ export function useCurrency(): CurrencyKit {
     isPK = buyerPkrOn && pakistanUser
     dualEnabled = false
   } else {
-    isPK = investPkrOn && isPkrDisplayUser({
-      ...(meCtx ?? {}),
-      country: meCtx?.country ?? country,
-      walletCurrency: meCtx?.walletCurrency ?? walletCurrency,
-    })
+    const requestedCurrency = String(
+      meCtx?.displayCurrency ?? meCtx?.currency ?? "USD",
+    ).trim().toUpperCase()
+    const allowedCurrency = ["USD", "PKR", "EUR", "GBP"].includes(requestedCurrency)
+      ? requestedCurrency
+      : "USD"
+    isPK = investPkrOn
+      && allowedCurrency === "PKR"
+      && isPkrDisplayUser({
+        ...(meCtx ?? {}),
+        currency: meCtx?.currency ?? allowedCurrency,
+        country: meCtx?.country ?? country,
+        walletCurrency: meCtx?.walletCurrency ?? walletCurrency,
+      })
+    displayCurrency = isPK || allowedCurrency !== "PKR" ? allowedCurrency : "USD"
     const meDualRaw = (me as any)?.investDualCurrencyEnabled
       ?? (me as any)?.invest_dual_currency_enabled
     dualEnabled = meDualRaw !== undefined && meDualRaw !== null
@@ -321,19 +355,27 @@ export function useCurrency(): CurrencyKit {
       : parsePlatformBool(investDualCurrencyEnabled, false)
   }
 
+  if (role !== "investor") {
+    displayCurrency = isPK ? "PKR" : "USD"
+  }
+
   const [pkrRate, setPkrRate] = useState(getCachedPkrRate)
+  const [, setRateRevision] = useState(0)
 
   useEffect(() => {
-    if (!isSignedIn && !isPK) return
+    if (!isSignedIn && displayCurrency === "USD") return
     let cancelled = false
     fetchExchangeRates().then((rate) => {
-      if (!cancelled) setPkrRate(rate)
+      if (!cancelled) {
+        setPkrRate(rate)
+        setRateRevision(revision => revision + 1)
+      }
     })
     return () => { cancelled = true }
-  }, [isSignedIn, isPK])
+  }, [isSignedIn, displayCurrency])
 
   return useMemo(
-    () => buildCurrencyKit(country, pkrRate, isPK, walletCurrency, dualEnabled, role),
-    [country, pkrRate, isPK, walletCurrency, dualEnabled, role],
+    () => buildCurrencyKit(country, pkrRate, isPK, walletCurrency, displayCurrency, dualEnabled, role),
+    [country, pkrRate, isPK, walletCurrency, displayCurrency, dualEnabled, role],
   )
 }
