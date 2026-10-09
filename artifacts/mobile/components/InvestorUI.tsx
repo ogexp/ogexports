@@ -21,7 +21,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { translateUi } from '@/lib/strings';
 import { MOTION, MotionReveal, motionHaptic, useMotion } from '@/lib/motion';
-import { shouldPlayTransactionChime, type TransactionFeedback } from '@/lib/transaction-sound';
+import {
+  shouldPlayTransactionChime,
+  transactionAudioModeForPlatform,
+  type TransactionFeedback,
+} from '@/lib/transaction-sound';
 
 type IconName = keyof typeof Feather.glyphMap;
 
@@ -452,10 +456,7 @@ export function SuccessFeedback({
     playedSuccessChime.current = true;
     void (async () => {
       try {
-        await setAudioModeAsync({
-          playsInSilentMode: true,
-          interruptionMode: 'mixWithOthers',
-        });
+        await setAudioModeAsync(transactionAudioModeForPlatform(Platform.OS));
         successChime.volume = 0.92;
         await successChime.seekTo(0);
         successChime.play();
