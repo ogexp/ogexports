@@ -24,11 +24,6 @@ class InvestorMarket
         return self::fromCountry($user?->profile?->country);
     }
 
-    public static function currency(?string $country): string
-    {
-        return self::fromCountry($country) === self::PAKISTAN ? 'PKR' : 'USD';
-    }
-
     public static function currencyForUser(?User $user): string
     {
         $user?->loadMissing('profile');
@@ -40,6 +35,7 @@ class InvestorMarket
             return $profileCurrency;
         }
 
-        return self::currency($user?->profile?->country);
+        // Country is location data, not an investor wallet currency choice.
+        return 'USD';
     }
 }

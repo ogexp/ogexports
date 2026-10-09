@@ -79,7 +79,7 @@ For available-balance consistency requests, inspect both the investor mobile app
 
 **How to apply:** Search both `artifacts/mobile` and `artifacts/og-container-admin` for available-balance consumers, preserve pending/breakdown data from their existing endpoints, and verify each surface against the dashboard response.
 
-When reading wallets, use an existing stored `wallet.currency`; infer the country-based currency only for a newly created or currency-missing wallet. A GET must not change an existing wallet's currency because the balance is not converted. Reconcile historical currency changes against financial records before correcting them.
+When reading wallets, use an existing stored `wallet.currency`; for a new or currency-missing investor wallet, use the supported Profile preference and default to USD when it is absent. Country is location only, not an investor wallet currency source. A GET must not change an existing wallet's currency because the balance is not converted.
 
 **Why:** Reassigning currency on a read can make an unchanged numeric balance appear to change value and alter withdrawal terms.
 

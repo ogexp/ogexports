@@ -44,6 +44,20 @@ function pkInvestorForDual(): User
     return $investor->fresh(['profile', 'wallet']);
 }
 
+it('defaults an investor without a stored Profile currency to USD regardless of country', function () {
+    $investor = User::factory()->create(['account_status' => 'active']);
+    $investor->assignRole('investor');
+
+    UserProfile::query()->create([
+        'user_id' => $investor->id,
+        'country' => 'Pakistan',
+        'company_name' => 'USD Default Co',
+        'meta' => [],
+    ]);
+
+    expect(UserDisplayCurrency::currencyForUser($investor))->toBe('USD');
+});
+
 it('formats investment as PKR only when dual currency is disabled', function () {
     PlatformSetting::query()->create([
         'site_name' => 'OG Exports',

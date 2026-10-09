@@ -142,7 +142,7 @@ export function formatUserAmount(
     dualEnabled = parsePlatformBool(settings.investDualCurrencyEnabled, false)
   }
 
-  const displayPkr = pkrDisplayEnabled && isPkrDisplayUser(userCtx)
+  const displayPkr = pkrDisplayEnabled && isPkrDisplayUser(userCtx, role)
 
   if (!displayPkr) {
     const usd = options.usdAmount != null && Number.isFinite(Number(options.usdAmount))

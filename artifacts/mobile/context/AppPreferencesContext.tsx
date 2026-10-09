@@ -115,7 +115,9 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   const profileUserId = first(record(profile.user), ['id']);
   const profileWalletCurrency = first(record(profile.user), ['walletCurrency', 'wallet_currency']).toUpperCase();
   const walletCurrency = walletCurrencyFromDashboard(dashboardQuery.data, profileWalletCurrency);
-  const profileCurrencyPreference = parsePreferences(profile.preferences).currency;
+  const parsedProfilePreferences = parsePreferences(profile.preferences);
+  const profileCurrencyWasStored = Boolean(parsedProfilePreferences.currency);
+  const profileCurrencyPreference: DisplayCurrency = parsedProfilePreferences.currency ?? 'USD';
   const rates = normalizeRates(rateResponse.rates, first(rateResponse, ['base']).toUpperCase());
   const ratesAsOf = first(rateResponse, ['as_of', 'updated_at']);
   const isRTL = preferences.language === 'ur' || preferences.language === 'ar';
@@ -159,9 +161,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     if (!preferencesLoaded || !profileQuery.data) return;
     const serverPreferences = record(profile.preferences);
     const parsed = parsePreferences(serverPreferences);
-    if (!parsed.currency && ['USD', 'PKR', 'EUR', 'GBP'].includes(walletCurrency)) {
-      parsed.currency = walletCurrency as DisplayCurrency;
-    }
+    if (!parsed.currency) parsed.currency = 'USD';
     if (Object.keys(parsed).length) {
       setPreferences(current => ({ ...current, ...parsed }));
       if (userId) {
@@ -180,13 +180,13 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     }
     if (profileUserId && profileUserId !== userId) return;
     if (profileQuery.isFetching || profileQuery.isError || dashboardQuery.isFetching) return;
-    if (!profileCurrencyPreference || !walletCurrency || profileCurrencyPreference === walletCurrency) {
+    if (!walletCurrency || (profileCurrencyWasStored && profileCurrencyPreference === walletCurrency)) {
       currencySyncAttempt.current = { key: '', at: 0 };
       return;
     }
     if (isSaving) return;
 
-    const attemptKey = `${userId}:${profileCurrencyPreference}:${walletCurrency}`;
+    const attemptKey = `${userId}:${profileCurrencyPreference}:${walletCurrency}:${profileCurrencyWasStored ? 'stored' : 'default'}`;
     if (currencySyncAttempt.current.key === attemptKey
       && Date.now() - currencySyncAttempt.current.at < 60_000) return;
     currencySyncAttempt.current = { key: attemptKey, at: Date.now() };
@@ -233,6 +233,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     dashboardQuery.isFetching,
     profile.preferences,
     profileCurrencyPreference,
+    profileCurrencyWasStored,
     profileUserId,
     walletCurrency,
     userId,

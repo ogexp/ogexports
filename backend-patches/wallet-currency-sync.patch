@@ -547,3 +547,142 @@ index c9a003e..d9f2f62 100644
 +    expect($wallet->fresh()->currency)->toBe('USD')
 +        ->and((float) $wallet->fresh()->available_balance)->toBe(0.0);
 +});
+diff --git a/app/Http/Controllers/Api/Admin/UserController.php b/app/Http/Controllers/Api/Admin/UserController.php
+index 9e7445f..0ea760e 100644
+--- a/app/Http/Controllers/Api/Admin/UserController.php
++++ b/app/Http/Controllers/Api/Admin/UserController.php
+@@ -169,6 +169,9 @@ public function store(Request $request): JsonResponse
+             'company_name' => $data['company_name'] ?? null,
+             'dept' => $data['dept'] ?? null,
+             'country' => $data['country'] ?? null,
++            'meta' => $data['role'] === 'investor'
++                ? ['preferences' => ['currency' => 'USD']]
++                : [],
+         ]);
+ 
+         if ($data['role'] === 'investor') {
+diff --git a/app/Http/Controllers/Api/AuthController.php b/app/Http/Controllers/Api/AuthController.php
+index 8203df9..f0ab0b9 100644
+--- a/app/Http/Controllers/Api/AuthController.php
++++ b/app/Http/Controllers/Api/AuthController.php
+@@ -73,6 +73,9 @@ public function register(Request $request): JsonResponse
+             'user_id' => $user->id,
+             'company_name' => $data['company_name'] ?? null,
+             'country' => $data['country'] ?? null,
++            'meta' => $data['account_type'] === 'investor'
++                ? ['preferences' => ['currency' => 'USD']]
++                : [],
+         ]);
+ 
+         if ($data['account_type'] === 'investor') {
+diff --git a/app/Support/InvestorMarket.php b/app/Support/InvestorMarket.php
+index 62f3d49..8846ace 100644
+--- a/app/Support/InvestorMarket.php
++++ b/app/Support/InvestorMarket.php
+@@ -24,15 +24,18 @@ public static function fromUser(?User $user): string
+         return self::fromCountry($user?->profile?->country);
+     }
+ 
+-    public static function currency(?string $country): string
+-    {
+-        return self::fromCountry($country) === self::PAKISTAN ? 'PKR' : 'USD';
+-    }
+-
+     public static function currencyForUser(?User $user): string
+     {
+         $user?->loadMissing('profile');
+ 
+-        return self::currency($user?->profile?->country);
++        $meta = is_array($user?->profile?->meta) ? $user->profile->meta : [];
++        $preferences = is_array($meta['preferences'] ?? null) ? $meta['preferences'] : [];
++        $profileCurrency = strtoupper(trim((string) ($preferences['currency'] ?? '')));
++        if (in_array($profileCurrency, ['USD', 'PKR', 'EUR', 'GBP'], true)) {
++            return $profileCurrency;
++        }
++
++        // Country is location data, not an investor wallet currency choice.
++        return 'USD';
+     }
+ }
+diff --git a/tests/Feature/AuthApiTest.php b/tests/Feature/AuthApiTest.php
+index 92a01ab..29b7b34 100644
+--- a/tests/Feature/AuthApiTest.php
++++ b/tests/Feature/AuthApiTest.php
+@@ -1,6 +1,8 @@
+ <?php
+ 
+ use App\Models\User;
++use App\Models\PlatformSetting;
++use App\Models\Wallet;
+ use Database\Seeders\RoleSeeder;
+ use Illuminate\Foundation\Testing\RefreshDatabase;
+ 
+@@ -62,6 +64,35 @@
+     expect($buyer->profile?->country)->toBe('Pakistan');
+ });
+ 
++it('registers Pakistan-based investors with USD as the initial Profile and wallet currency', function () {
++    PlatformSetting::query()->create([
++        'site_name' => 'OG Exports',
++        'registration_open' => true,
++        'investment_open' => true,
++        'supplier_module_enabled' => true,
++        'investment_module_enabled' => true,
++        'currency' => 'USD',
++    ]);
++
++    $this->postJson('/api/auth/register', [
++        'name' => 'New Investor',
++        'email' => 'new-investor-currency@example.com',
++        'password' => 'Password@123',
++        'password_confirmation' => 'Password@123',
++        'account_type' => 'investor',
++        'country' => 'Pakistan',
++    ])->assertCreated()
++        ->assertJsonPath('requires_verification', true)
++        ->assertJsonPath('email', 'new-investor-currency@example.com');
++
++    $investor = User::query()->where('email', 'new-investor-currency@example.com')->firstOrFail();
++    $preferences = $investor->profile?->meta['preferences'] ?? [];
++    $wallet = Wallet::query()->where('user_id', $investor->id)->firstOrFail();
++
++    expect($preferences['currency'] ?? null)->toBe('USD')
++        ->and($wallet->currency)->toBe('USD');
++});
++
+ it('logs in admin and can access admin dashboard', function () {
+     $admin = User::factory()->create([
+         'email' => 'admin-test@ogexports.com',
+diff --git a/tests/Feature/MobileInvestorWalletTest.php b/tests/Feature/MobileInvestorWalletTest.php
+index d9f2f62..bc6fdbf 100644
+--- a/tests/Feature/MobileInvestorWalletTest.php
++++ b/tests/Feature/MobileInvestorWalletTest.php
+@@ -124,6 +124,28 @@
+         ->assertJsonValidationErrors(['bank_details']);
+ });
+ 
++it('creates a USD wallet for a Pakistan-based investor when Profile currency is unset', function () {
++    Http::fake([
++        '*' => Http::response(['rates' => ['USD' => 1, 'PKR' => 277.2]], 200),
++    ]);
++    ExchangeRateService::clearCache();
++
++    $profile = $this->investor->profile;
++    $meta = is_array($profile->meta) ? $profile->meta : [];
++    unset($meta['preferences']);
++    $profile->update(['country' => 'Pakistan', 'meta' => $meta]);
++    Wallet::query()->where('user_id', $this->investor->id)->delete();
++
++    $token = $this->investor->createToken('wallet_country_default_test')->plainTextToken;
++    $this->withHeader('Authorization', 'Bearer '.$token)
++        ->getJson('/api/investor/wallet')
++        ->assertOk()
++        ->assertJsonPath('data.currency', 'USD')
++        ->assertJsonPath('data.available_balance', 0);
++
++    expect(Wallet::query()->where('user_id', $this->investor->id)->value('currency'))->toBe('USD');
++});
++
+ it('converts the wallet balance and preserves historical transaction currency when Profile currency changes', function () {
+     config(['currency.fallback_rates' => [
+         'USD' => 1,

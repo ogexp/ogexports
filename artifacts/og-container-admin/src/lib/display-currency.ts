@@ -1,7 +1,4 @@
-/**
- * Shared PKR display detection — Pakistan profile investors see dual PKR + ($USD).
- * Wallet currency (PKR vs USD) only affects how amounts are converted, not whether dual display applies.
- */
+/** Shared PKR display detection for API-backed investor and trade amounts. */
 
 export function isPakistanCountry(country?: string | null): boolean {
   return String(country || "").trim().toLowerCase() === "pakistan"
@@ -14,18 +11,29 @@ export interface DisplayCurrencyContext {
   displayPkr?: boolean | null
 }
 
+export type DisplayCurrencyRole = "investor" | "buyer" | "supplier"
+
 /**
- * True when amounts should show as `PKR … ($ …)`.
- * Pakistan profile country is authoritative; API `displayPkr` aligns with that rule.
+ * True when amounts should use PKR display.
+ * Investor amounts use the server wallet/profile currency, never location.
+ * Supplier and buyer amounts may retain the existing country-based rule.
  */
-export function isPkrDisplayUser(ctx?: DisplayCurrencyContext | null): boolean {
+export function isPkrDisplayUser(
+  ctx?: DisplayCurrencyContext | null,
+  role: DisplayCurrencyRole = "investor",
+): boolean {
   if (!ctx) return false
-  if (isPakistanCountry(ctx.country)) return true
+
+  const walletCurrency = String(ctx.walletCurrency || "").trim().toUpperCase()
+  if (walletCurrency) return walletCurrency === "PKR"
+
   if (ctx.displayPkr === true) return true
   if (ctx.displayPkr === false) return false
-  const currency = String(ctx.walletCurrency || ctx.currency || "").toUpperCase()
-  if (currency === "PKR") return true
-  return false
+
+  const currency = String(ctx.currency || "").trim().toUpperCase()
+  if (currency) return currency === "PKR"
+
+  return role !== "investor" && isPakistanCountry(ctx.country)
 }
 
 /** Build context from a `/api/me` (or similar) user payload. */

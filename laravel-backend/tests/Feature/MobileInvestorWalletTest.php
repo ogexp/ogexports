@@ -92,6 +92,28 @@ it('preserves an existing USD wallet when reading it for a Pakistan-based invest
         ->assertJsonPath('data.summary.available_balance', 1150.33);
 });
 
+it('creates a USD wallet for a Pakistan-based investor when Profile currency is unset', function () {
+    Http::fake([
+        '*' => Http::response(['rates' => ['USD' => 1, 'PKR' => 277.2]], 200),
+    ]);
+    ExchangeRateService::clearCache();
+
+    $profile = $this->investor->profile;
+    $meta = is_array($profile->meta) ? $profile->meta : [];
+    unset($meta['preferences']);
+    $profile->update(['country' => 'Pakistan', 'meta' => $meta]);
+    Wallet::query()->where('user_id', $this->investor->id)->delete();
+
+    $token = $this->investor->createToken('wallet_country_default_test')->plainTextToken;
+    $this->withHeader('Authorization', 'Bearer '.$token)
+        ->getJson('/api/investor/wallet')
+        ->assertOk()
+        ->assertJsonPath('data.currency', 'USD')
+        ->assertJsonPath('data.available_balance', 0);
+
+    expect(Wallet::query()->where('user_id', $this->investor->id)->value('currency'))->toBe('USD');
+});
+
 it('converts the wallet balance and preserves historical transaction currency when Profile currency changes', function () {
     config(['currency.fallback_rates' => [
         'USD' => 1,

@@ -169,6 +169,9 @@ class UserController extends Controller
             'company_name' => $data['company_name'] ?? null,
             'dept' => $data['dept'] ?? null,
             'country' => $data['country'] ?? null,
+            'meta' => $data['role'] === 'investor'
+                ? ['preferences' => ['currency' => 'USD']]
+                : [],
         ]);
 
         if ($data['role'] === 'investor') {

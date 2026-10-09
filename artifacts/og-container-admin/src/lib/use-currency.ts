@@ -274,7 +274,9 @@ export function useCurrency(): CurrencyKit {
   const walletCurrency = String(
     meCtx?.walletCurrency
     || meCtx?.currency
-    || (isPakistanCountry(country) ? "PKR" : "USD"),
+    || (role === "investor"
+      ? "USD"
+      : isPakistanCountry(country) ? "PKR" : "USD"),
   ).toUpperCase()
 
   const meInvestPkrRaw = (me as any)?.investPkrDisplayEnabled
