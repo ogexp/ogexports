@@ -604,58 +604,6 @@ index 62f3d49..8846ace 100644
 +        return 'USD';
      }
  }
-diff --git a/app/Support/UserDisplayCurrency.php b/app/Support/UserDisplayCurrency.php
---- a/app/Support/UserDisplayCurrency.php
-+++ b/app/Support/UserDisplayCurrency.php
-@@ -135,1 +135,1 @@
--     * @return array{country: string|null, currency: string, display_pkr: bool, wallet_currency: string|null}
-+     * @return array{country: string|null, currency: string, profile_currency: string, display_pkr: bool, wallet_currency: string|null}
-@@ -142,4 +142,5 @@
-                 'country' => null,
-                 'currency' => 'USD',
-+                'profile_currency' => 'USD',
-                 'display_pkr' => false,
-                 'wallet_currency' => null,
-@@ -150,3 +151,4 @@
-         $currency = self::currencyForUser($user);
-+        $profileCurrency = InvestorMarket::currencyForUser($user);
- 
-         return [
-@@ -154,4 +156,5 @@
-             'country' => $country,
-             'currency' => $currency,
-+            'profile_currency' => $profileCurrency,
-             'display_pkr' => self::shouldDisplayPkr($user),
-             'wallet_currency' => $walletCurrency,
-@@ -176,4 +179,5 @@
-             'email' => $user->email,
-             'country' => $ctx['country'],
-             'currency' => $ctx['currency'],
-+            'profile_currency' => $ctx['profile_currency'],
-             'display_currency' => $ctx['display_pkr'] ? 'PKR' : ($ctx['currency'] === 'PKR' && ! self::pkrDisplayEnabled() ? 'USD' : $ctx['currency']),
-diff --git a/tests/Unit/UserDisplayCurrencyDualTest.php b/tests/Unit/UserDisplayCurrencyDualTest.php
---- a/tests/Unit/UserDisplayCurrencyDualTest.php
-+++ b/tests/Unit/UserDisplayCurrencyDualTest.php
-@@ -121,3 +121,18 @@
-     $ctx = UserDisplayCurrency::contextForUser($investor);
-     expect($ctx['display_pkr'])->toBeFalse();
- });
-+
-+it('exposes the Profile currency separately from the server wallet amount currency', function () {
-+    $investor = pkInvestorForDual();
-+    $profile = $investor->profile;
-+    $meta = is_array($profile->meta) ? $profile->meta : [];
-+    $meta['preferences'] = ['currency' => 'USD'];
-+    $profile->update(['meta' => $meta]);
-+
-+    $investor = $investor->fresh(['profile', 'wallet']);
-+    $context = UserDisplayCurrency::contextForUser($investor);
-+    $payload = UserDisplayCurrency::userPayload($investor);
-+
-+    expect($context['profile_currency'])->toBe('USD')
-+        ->and($context['wallet_currency'])->toBe('PKR')
-+        ->and($payload['profile_currency'])->toBe('USD');
-+});
 diff --git a/tests/Feature/AuthApiTest.php b/tests/Feature/AuthApiTest.php
 index 92a01ab..29b7b34 100644
 --- a/tests/Feature/AuthApiTest.php
