@@ -259,7 +259,7 @@ function IllustrationLayer({ kind, stage, progress }: {
   );
 }
 
-function OnboardingIllustration({ kind, stageA, stageB, stageC, reduceMotion }: {
+function OnboardingIllustration({ kind, stageA, stageB, stageC }: {
   kind: IllustrationKind;
   stageA: Animated.Value;
   stageB: Animated.Value;
