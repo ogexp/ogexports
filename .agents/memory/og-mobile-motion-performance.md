@@ -9,8 +9,8 @@ Keep the OG Exports investor app fast: animations must not delay submission or o
 
 **How to apply:** keep non-startup interactions fast; limit the continuous loops and six-second hold to the splash intro, space three dots evenly around both rings, use the native driver, and stop the loops on route transition.
 
-Play a short, elegant transaction-complete chime with the success popup only when OG Exports reports a deposit credited/completed, a withdrawal transferred/paid/completed, or an investment confirmed/completed. Do not play it for submitted, pending, approved-only, failed, or rejected states.
+Play a short, elegant confirmation chime when an accepted deposit, withdrawal, or investment response opens its confirmation popup, including received/approved/completed states; keep failed or rejected responses silent. The source asset must be normalized to an audible level, and playback must work in iOS silent mode.
 
-**Why:** the user requested a premium notification sound after deposit, withdrawal, and trade investment completion, while financial status wording must continue to distinguish approval from completion.
+**Why:** the user requested sound whenever a successful transaction confirmation popup appears and reported that a too-quiet asset plus completed-only trigger made the first implementation inaudible.
 
-**How to apply:** tie audio to the popup's confirmed-success feedback state, play once per popup opening, and keep the visual confirmation and haptic working if device audio is unavailable.
+**How to apply:** trigger audio once per visible popup for accepted response states, never change the server-reported status text, keep errors/rejections silent, configure the native audio session explicitly, and preserve the visual confirmation and haptic if playback fails.

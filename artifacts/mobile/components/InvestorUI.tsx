@@ -14,13 +14,14 @@ import { LocalizedText as Text, LocalizedTextInput as TextInput } from '@/compon
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSegments } from 'expo-router';
-import { useAudioPlayer } from 'expo-audio';
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useColors } from '@/hooks/useColors';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { translateUi } from '@/lib/strings';
 import { MOTION, MotionReveal, motionHaptic, useMotion } from '@/lib/motion';
+import { shouldPlayTransactionChime, type TransactionFeedback } from '@/lib/transaction-sound';
 
 type IconName = keyof typeof Feather.glyphMap;
 
@@ -435,6 +436,7 @@ export function SuccessFeedback({
   const transition = React.useRef<Animated.CompositeAnimation | null>(null);
   const dismissing = React.useRef(false);
   const successChime = useAudioPlayer(require('../assets/sounds/transaction-complete.mp3'));
+  const successChimeStatus = useAudioPlayerStatus(successChime);
   const playedSuccessChime = React.useRef(false);
 
   React.useEffect(() => {
@@ -442,17 +444,27 @@ export function SuccessFeedback({
       playedSuccessChime.current = false;
       return;
     }
-    if (feedback !== 'success' || playedSuccessChime.current) return;
+    if (
+      !shouldPlayTransactionChime(visible, feedback as TransactionFeedback)
+      || !successChimeStatus.isLoaded
+      || playedSuccessChime.current
+    ) return;
     playedSuccessChime.current = true;
-    successChime.volume = 0.68;
-    try {
-      void successChime.seekTo(0).then(() => successChime.play()).catch(() => {
+    void (async () => {
+      try {
+        await setAudioModeAsync({
+          playsInSilentMode: true,
+          interruptionMode: 'mixWithOthers',
+        });
+        successChime.volume = 0.92;
+        await successChime.seekTo(0);
+        successChime.play();
+      } catch (error) {
+        console.warn('Transaction confirmation chime could not play.', error);
         // Audio feedback is optional; the visual confirmation and haptic remain authoritative.
-      });
-    } catch {
-      // Keep transaction confirmation usable if audio playback is unavailable.
-    }
-  }, [feedback, successChime, visible]);
+      }
+    })();
+  }, [feedback, successChime, successChimeStatus.isLoaded, visible]);
 
   const handleDismiss = React.useCallback(() => {
     if (dismissing.current) return;
