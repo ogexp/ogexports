@@ -14,6 +14,7 @@ import { LocalizedText as Text, LocalizedTextInput as TextInput } from '@/compon
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSegments } from 'expo-router';
+import { useAudioPlayer } from 'expo-audio';
 import { useColors } from '@/hooks/useColors';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { useQueryClient } from '@tanstack/react-query';
@@ -433,6 +434,25 @@ export function SuccessFeedback({
   const scale = React.useRef(new Animated.Value(reduceMotion ? 1 : MOTION.modalScale)).current;
   const transition = React.useRef<Animated.CompositeAnimation | null>(null);
   const dismissing = React.useRef(false);
+  const successChime = useAudioPlayer(require('../assets/sounds/transaction-complete.mp3'));
+  const playedSuccessChime = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!visible) {
+      playedSuccessChime.current = false;
+      return;
+    }
+    if (feedback !== 'success' || playedSuccessChime.current) return;
+    playedSuccessChime.current = true;
+    successChime.volume = 0.68;
+    try {
+      void successChime.seekTo(0).then(() => successChime.play()).catch(() => {
+        // Audio feedback is optional; the visual confirmation and haptic remain authoritative.
+      });
+    } catch {
+      // Keep transaction confirmation usable if audio playback is unavailable.
+    }
+  }, [feedback, successChime, visible]);
 
   const handleDismiss = React.useCallback(() => {
     if (dismissing.current) return;

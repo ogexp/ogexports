@@ -7,6 +7,10 @@ const currentEasConfig = staticConfig.extra?.eas as Record<string, unknown> | un
 
 const config: ExpoConfig = {
   ...staticConfig,
+  plugins: [
+    ...(staticConfig.plugins ?? []),
+    'expo-audio',
+  ],
   extra: {
     ...staticConfig.extra,
     ...(easProjectId

@@ -56,3 +56,10 @@ mtime_ms = 1791490564190
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/2c067f85-9a8d-4aaf-b7c5-429bbb387bfd/5c879cf1-62e4-4d3b-824b-55872ed71174"
 storage_version_token = "1791490598916086"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "VsWyJtXUf3FUr80hJelNy"
+uri = "file://attached_assets/generated_audio/og-transaction-complete-chime.mp3"
+type = "audio"
+title = "OG transaction complete chime"
+description = "Generated sound effect: A short premium mobile banking app transaction-complete notification chime: two warm ascending bell-like notes with a delicate crystal-glass tone, soft rounded attack, subtle …"
