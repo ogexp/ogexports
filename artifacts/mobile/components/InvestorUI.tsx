@@ -112,8 +112,8 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
 export function Card({ children, style, testID }: { children: React.ReactNode; style?: object; testID?: string }) {
   const colors = useColors();
   const cardShadow = Platform.OS === 'web'
-    ? { boxShadow: `0 6px 20px ${colors.shadow}` }
-    : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 };
+    ? { boxShadow: `0 5px 16px ${colors.shadow}` }
+    : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.045, shadowRadius: 10, elevation: 1 };
   return <View testID={testID} style={[s.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }, cardShadow, style]}>{children}</View>;
 }
 
@@ -184,7 +184,7 @@ export function Field({ label, value, onChangeText, placeholder, secureTextEntry
           selectionColor={colors.primary} underlineColorAndroid={colors.input}
           style={[s.input, {
             backgroundColor: colors.card,
-            borderColor: colors.input,
+            borderColor: focused ? colors.primary : colors.border,
             borderWidth: 1,
             color: colors.foreground,
             outlineWidth: 0,
@@ -721,15 +721,15 @@ export function SwipeAction({ children, label, onAction, disabled = false }: {
 
 const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 },
-  title: { fontSize: 26, lineHeight: 32, fontWeight: '600', letterSpacing: -0.35 },
+  title: { fontSize: 25, lineHeight: 31, fontWeight: '600', letterSpacing: -0.3 },
   subtitle: { fontSize: 14, lineHeight: 21, marginTop: 5 },
-  card: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 12 },
+  card: { borderRadius: 12, borderWidth: 1, padding: 16, marginBottom: 12 },
   button: { minHeight: 48, borderRadius: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   buttonText: { fontWeight: '600', fontSize: 14 },
   label: { fontSize: 12, fontWeight: '600' },
-  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13, minHeight: 46, fontSize: 14 },
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13, minHeight: 48, fontSize: 14 },
   section: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11, marginTop: 10 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', letterSpacing: -0.1 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', letterSpacing: -0.15 },
   row: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 11, borderBottomWidth: StyleSheet.hairlineWidth },
   rowIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   rowLabel: { flex: 1, fontSize: 14, fontWeight: '600' },
