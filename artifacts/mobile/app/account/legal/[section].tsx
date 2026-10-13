@@ -1,21 +1,71 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Pressable } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useLocalSearchParams } from 'expo-router';
 import { Card, EmptyState, Screen } from '@/components/InvestorUI';
 import { useColors } from '@/hooks/useColors';
+import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { LEGAL_DOCUMENTS } from '@/lib/legal-content';
+import {
+  getLegalDraftTranslation,
+  legalTranslationMatchesSource,
+} from '@/lib/legal-content-translations';
+import { translateUi } from '@/lib/strings';
 
 export default function LegalContent() {
   const { section: raw } = useLocalSearchParams<{ section: string }>();
   const sectionName = String(raw ?? '').toLowerCase();
-  const document = LEGAL_DOCUMENTS[sectionName];
+  const sourceDocument = LEGAL_DOCUMENTS[sectionName];
+  const { preferences } = useAppPreferences();
+  const language = preferences.language;
+  const translatedDocument = language === 'en'
+    ? undefined
+    : getLegalDraftTranslation(sectionName, language);
+  const translationValid = Boolean(
+    sourceDocument
+    && translatedDocument
+    && legalTranslationMatchesSource(sourceDocument, translatedDocument),
+  );
+  const [showEnglishSource, setShowEnglishSource] = useState(false);
+  useEffect(() => {
+    setShowEnglishSource(false);
+  }, [language, sectionName]);
+  const document = language === 'en' || showEnglishSource
+    ? sourceDocument
+    : translationValid ? translatedDocument : undefined;
   const colors = useColors();
 
-  if (!document) return <Screen title="Policy unavailable"><EmptyState title="Page not found" body="This policy link is not available." /></Screen>;
+  if (!sourceDocument) return <Screen title="Policy unavailable"><EmptyState title="Page not found" body="This policy link is not available." /></Screen>;
+  if (!document) return <Screen title={sourceDocument.title}>
+    <EmptyState
+      title={translateUi('Policy unavailable', language)}
+      body={translateUi('This translation is not available or does not match the source document structure.', language)}
+    />
+  </Screen>;
+
   return <Screen title={document.title} subtitle={document.summary}>
     <Card>
+      {language !== 'en' ? <>
+        <Text style={{ color: colors.accent, fontSize: 12, fontWeight: '700', lineHeight: 19, marginBottom: 10 }}>
+          {translateUi('Translation draft — qualified review pending. The approved English source is available for comparison.', language)}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setShowEnglishSource(value => !value)}
+          style={{ alignSelf: 'flex-start', marginBottom: 14, paddingVertical: 4 }}
+        >
+          <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>
+            {translateUi(
+              showEnglishSource
+                ? language === 'ur' ? 'Show Urdu draft' : 'Show Arabic draft'
+                : 'Show approved English source',
+              language,
+            )}
+          </Text>
+        </Pressable>
+      </> : null}
       <Text style={{ color: colors.accent, fontSize: 12, fontWeight: '700', lineHeight: 19, marginBottom: 14 }}>
-        Important: This information is not individualized investment, legal, tax or accounting advice. Review the signed agreement for your transaction and seek independent professional advice where appropriate.
+        {translateUi('Important: This information is not individualized investment, legal, tax or accounting advice. Review the signed agreement for your transaction and seek independent professional advice where appropriate.', language)}
       </Text>
       {document.sections.map((item, index) => (
         <React.Fragment key={item.heading}>
