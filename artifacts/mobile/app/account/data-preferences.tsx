@@ -17,8 +17,8 @@ const dataRequestCopy = {
     body: 'Please treat this support ticket as a request to have my personal data corrected. I understand OG Exports Support may need to verify my identity and confirm what actions are available.',
   },
   deletion: {
-    subject: 'Personal data deletion request',
-    body: 'Please treat this support ticket as a request to have my personal data deleted. I understand OG Exports Support may need to verify my identity and confirm what actions are available.',
+    subject: 'OG Exports account and data deletion request',
+    body: 'I am requesting deletion of my OG Exports account and associated personal data. Please verify my account ownership and review any active investments and legal or regulatory retention requirements. Please delete or anonymize data that is eligible for removal. I understand this request does not delete my account immediately, and records required for legal or contractual purposes may need to be retained. Please let me know the outcome of your review.',
   },
 } as const;
 
@@ -48,14 +48,32 @@ export default function DataPreferences() {
     </Card>
 
     <Card>
+      <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 1.1, marginBottom: 8 }}>ACCOUNT &amp; DATA</Text>
+      <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700', marginBottom: 7 }}>Request account and data deletion</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 20, marginBottom: 14 }}>
+        This opens an editable Support ticket. OG Exports Support will verify account ownership, review active investments and legal or contractual retention requirements, then delete or anonymize eligible data. Submitting the request does not delete your account immediately.
+      </Text>
+      <View style={{ borderLeftWidth: 2, borderLeftColor: colors.accent, paddingLeft: 12, marginBottom: 16 }}>
+        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>
+          Some investment, transaction, or compliance records may need to be retained. Support will assess what can be removed after review.
+        </Text>
+      </View>
+      <Action
+        title="Request account and data deletion"
+        icon="trash-2"
+        onPress={() => openDataRequest('deletion', preferences.language)}
+        testID="request-account-data-deletion"
+      />
+    </Card>
+
+    <Card>
       <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginBottom: 6 }}>Request help with your data</Text>
       <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>
-        These actions open an editable Support ticket. They do not access, correct, or delete account data automatically; Support will review the request and may verify your identity.
+        Access and correction requests open an editable Support ticket. Support will review each request and may verify your identity.
       </Text>
       <View style={{ gap: 12 }}>
-        <Action title="Request data access" icon="eye" secondary onPress={() => openDataRequest('access', preferences.language)} />
-        <Action title="Request a data correction" icon="edit-2" secondary onPress={() => openDataRequest('correction', preferences.language)} />
-        <Action title="Request data deletion" icon="trash-2" secondary onPress={() => openDataRequest('deletion', preferences.language)} />
+        <Action title="Request data access" icon="eye" secondary onPress={() => openDataRequest('access', preferences.language)} testID="request-data-access" />
+        <Action title="Request a data correction" icon="edit-2" secondary onPress={() => openDataRequest('correction', preferences.language)} testID="request-data-correction" />
       </View>
     </Card>
 

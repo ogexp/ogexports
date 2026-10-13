@@ -219,8 +219,9 @@ export function Footer() {
           style={{ borderTop: "1px solid hsl(var(--border))" }}
         >
           <p>© {new Date().getFullYear()} {t('footerExt.copyright')} {t('footer.rights')}</p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
             <Link href="/privacy" className="hover:text-accent transition-colors">{t('footer.privacy')}</Link>
+            <Link href="/delete-account" className="hover:text-accent transition-colors" data-testid="link-delete-account">Request account deletion</Link>
             <Link href="/terms" className="hover:text-accent transition-colors">{t('footerExt.termsConditions')}</Link>
           </div>
         </div>

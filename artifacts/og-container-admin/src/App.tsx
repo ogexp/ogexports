@@ -33,6 +33,7 @@ const About                = lazy(() => import('@/pages/About'));
 const Contact              = lazy(() => import('@/pages/Contact'));
 const Account              = lazy(() => import('@/pages/Account'));
 const PrivacyPolicy        = lazy(() => import('@/pages/PrivacyPolicy'));
+const DeleteAccount        = lazy(() => import('@/pages/DeleteAccount'));
 const TermsOfService       = lazy(() => import('@/pages/TermsOfService'));
 const Invest               = lazy(() => import('@/pages/Invest'));
 const InvestDetail         = lazy(() => import('@/pages/InvestDetail'));
@@ -397,6 +398,7 @@ const SHARED_ROUTES = (
     <Route path="/contact" component={Contact} />
     <Route path="/news" component={TradeNews} />
     <Route path="/privacy" component={PrivacyPolicy} />
+    <Route path="/delete-account" component={DeleteAccount} />
     <Route path="/terms" component={TermsOfService} />
     <Route path="/export-terms" component={ExportTerms} />
     <Route path="/company-profile" component={CompanyProfile} />

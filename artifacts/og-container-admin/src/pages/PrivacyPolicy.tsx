@@ -295,6 +295,17 @@ export default function PrivacyPolicy() {
             Your privacy is important to us. This Privacy Policy explains how we collect, use, store, protect, and process your personal and business information when you use our website, products, services, and investment platform. By accessing or using our platform, you agree to the practices described in this Privacy Policy.
           </p>
         </div>
+        <div className="mb-12 flex flex-col gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-6 sm:flex-row sm:items-center sm:justify-between" data-testid="notice-account-deletion">
+          <div>
+            <h2 className="font-heading text-lg font-semibold">Want to request account and data deletion?</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+              OG Exports Support will verify account ownership and review active investments and legal retention requirements before deleting or anonymizing eligible data.
+            </p>
+          </div>
+          <Link href="/delete-account" className="inline-flex shrink-0 items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90" data-testid="link-request-account-deletion">
+            Request deletion
+          </Link>
+        </div>
 
         {/* Table of contents */}
         <div className="bg-card border border-border rounded-2xl p-6 mb-12">
