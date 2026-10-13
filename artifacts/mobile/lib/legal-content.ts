@@ -121,6 +121,7 @@ export const LEGAL_DOCUMENTS: Record<string, LegalDocument> = {
       ] },
       { heading: '2. Trade and commodity risk', paragraphs: [
         'Commercial results can change because of commodity prices, supply availability, quality or inspection outcomes, weather, crop conditions, buyer demand, contract performance, working-capital needs, operating costs and market competition. A projected margin or target is an estimate, not a guaranteed result.',
+        'OG Exports arranges insurance for each export and import trade. Insurance may reduce exposure to covered losses, but it does not eliminate risk or guarantee full compensation. Coverage depends on the applicable policy, insured value, limits, exclusions, deductibles, compliance with policy conditions, notice and evidence requirements, and the insurer’s assessment. Losses outside the cover or above its limits may remain unrecovered.',
       ] },
       { heading: '3. Counterparty, logistics and force majeure', paragraphs: [
         'A supplier, buyer, carrier, bank, insurer or other counterparty may fail, dispute performance, delay payment or become insolvent. Port congestion, vessel changes, customs, export/import controls, documentation, insurance exclusions, labor disruption, weather, conflict, public-health events or other events beyond reasonable control can delay, increase costs or prevent a trade.',

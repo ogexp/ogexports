@@ -8,7 +8,7 @@ export function InvestRiskDisclosure({ compact }: { compact?: boolean } = {}) {
         <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-4 opacity-80" />
         <h3 className="font-heading font-semibold text-xl mb-3 text-amber-700 dark:text-amber-500">Risk Disclosure</h3>
         <p className="text-sm text-amber-700/80 dark:text-amber-500/80 leading-relaxed max-w-2xl mx-auto">
-          Capital is not guaranteed. All returns are based on physical trade profit-sharing and subject to market, shipping, and currency risks. Past performance is indicative only. All investments are settled in USD. Please consult a financial advisor before committing capital. OG Exports does not provide financial advice.
+          Investment capital and returns are not guaranteed. OG Exports arranges insurance for every export and import trade, which may reduce exposure to covered losses but does not eliminate risk or guarantee full compensation. Coverage depends on policy terms, insured value, limits, exclusions, deductibles, claim requirements, and the insurer’s assessment. Investments remain exposed to market, counterparty, shipping, currency, and operational risks. Past results do not predict future performance. This is not individualized financial advice.
         </p>
       </Card>
     </div>
