@@ -12,18 +12,23 @@ import { first, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { getInvestorKycStatus } from '@/lib/kyc';
+import { useAppPreferences } from '@/context/AppPreferencesContext';
+import { translateUi } from '@/lib/strings';
+import { openDataRequest } from '@/lib/data-requests';
 
 const pushEnabledKey = (userId: string) => `og-investor-push-enabled:${userId}`;
 const pushTokenKey = (userId: string) => `og-investor-push-token:${userId}`;
 
 export default function Profile() {
   const { token, user, signOut } = useAuth();
+  const { preferences } = useAppPreferences();
   const colors = useColors();
   const queryClient = useQueryClient();
   const logout = useInvestorMobileLogout();
   const revokePushToken = useRevokeInvestorPushToken();
   const userId = first(record(user), ['id']);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [confirmDeleteRequest, setConfirmDeleteRequest] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: !!token, staleTime: 60_000 } });
   const profile = unwrap(profileQuery.data);
@@ -103,6 +108,22 @@ export default function Profile() {
       <Row label="Privacy policy" icon="shield" onPress={() => open('/account/legal/privacy')} />
       <Row label="Risk disclosure" icon="alert-triangle" onPress={() => open('/account/legal/risk')} />
     </Card>
+    <Section title="Account & privacy" />
+    <Card>
+      <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginBottom: 7 }}>
+        {translateUi('Request account deletion', preferences.language)}
+      </Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginBottom: 14 }}>
+        {translateUi('This opens an editable Support ticket. OG Exports Support will verify account ownership, review active investments and legal or contractual retention requirements, then delete or anonymize eligible data. Submitting the request does not delete your account immediately.', preferences.language)}
+      </Text>
+      <Action
+        title="Request account and data deletion"
+        icon="trash-2"
+        secondary
+        onPress={() => setConfirmDeleteRequest(true)}
+        testID="profile-request-account-deletion"
+      />
+    </Card>
     <Section title="Account" />
     <Card style={{ paddingHorizontal: 14 }}>
       <Action
@@ -114,6 +135,19 @@ export default function Profile() {
         onPress={() => setConfirmSignOut(true)}
       />
     </Card>
+    <ConfirmationSheet
+      visible={confirmDeleteRequest}
+      testID="profile-confirm-account-deletion-request"
+      title="Request account and data deletion"
+      body={translateUi('This opens an editable Support ticket. OG Exports Support will verify account ownership, review active investments and legal or contractual retention requirements, then delete or anonymize eligible data. Submitting the request does not delete your account immediately.', preferences.language)}
+      confirmLabel={translateUi('Continue', preferences.language)}
+      loading={false}
+      onCancel={() => setConfirmDeleteRequest(false)}
+      onConfirm={() => {
+        setConfirmDeleteRequest(false);
+        openDataRequest('deletion', preferences.language);
+      }}
+    />
     <ConfirmationSheet
       visible={confirmSignOut}
       testID="profile-confirm-sign-out-sheet"
