@@ -99,14 +99,14 @@ router.post(["/auth/register", "/auth/registers/pre"], async (req, res) => {
 
   if (name.length < 2 || name.length > 120) return validationError(res, "Enter your full name.");
   if (!validEmail(email)) return validationError(res, "Enter a valid email address.");
-  const hasStrongPassword = password.length >= 12
+  const hasStrongPassword = password.length >= 8
     && password.length <= 128
     && /[A-Z]/.test(password)
     && /[a-z]/.test(password)
     && /\d/.test(password)
     && /[^A-Za-z0-9\s]/.test(password);
   if (!hasStrongPassword) {
-    return validationError(res, "Password must be 12-128 characters and include uppercase and lowercase letters, a number, and a symbol.");
+    return validationError(res, "Password must be 8-128 characters and include uppercase and lowercase letters, a number, and a symbol.");
   }
   if (password !== passwordConfirmation) return validationError(res, "The password and confirmation do not match.");
   if (accountType !== "investor") return validationError(res, "Only investor accounts can be created here.");

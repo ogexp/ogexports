@@ -13,10 +13,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
 import { goBackOrReplace } from '@/lib/safe-navigation';
 
-const PASSWORD_POLICY_MESSAGE = 'Use 12–128 characters with uppercase and lowercase letters, a number, and a symbol.';
+const PASSWORD_POLICY_MESSAGE = 'Use 8–128 characters with uppercase and lowercase letters, a number, and a symbol.';
 
 function isStrongPassword(value: string) {
-  return value.length >= 12
+  return value.length >= 8
     && value.length <= 128
     && /[A-Z]/.test(value)
     && /[a-z]/.test(value)
@@ -105,7 +105,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const passwordRequirements = [
-    { label: '12–128 characters', met: password.length >= 12 && password.length <= 128 },
+    { label: '8–128 characters', met: password.length >= 8 && password.length <= 128 },
     { label: 'Uppercase and lowercase letters', met: /[A-Z]/.test(password) && /[a-z]/.test(password) },
     { label: 'At least one number', met: /\d/.test(password) },
     { label: 'At least one symbol', met: /[^A-Za-z0-9\s]/.test(password) },
