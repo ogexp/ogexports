@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { LEGAL_DOCUMENTS } from './legal-content.ts';
+import {
+  LEGAL_DOCUMENTS,
+  legalDocumentFilename,
+  legalDocumentFileContent,
+} from './legal-content.ts';
 import {
   LEGAL_DRAFT_TRANSLATIONS,
   getLegalDocumentForPreference,
@@ -78,14 +82,43 @@ test('Urdu and Arabic screens switch to the English source and back to their dra
   }
 });
 
+test('exports every legal page in the selected language and marks Urdu and Arabic drafts as pending review', () => {
+  for (const [documentId, source] of Object.entries(LEGAL_DOCUMENTS)) {
+    const english = legalDocumentFileContent(source, 'en', false);
+    assert.ok(english.includes(source.title), `${documentId}/en title`);
+    assert.ok(english.includes(source.sections[0].heading), `${documentId}/en section`);
+    assert.ok(english.includes('Approved English source'), `${documentId}/en source label`);
+    assert.ok(!english.includes('qualified review pending'), `${documentId}/en is not a draft`);
+    assert.equal(legalDocumentFilename(documentId, 'en', false), `og-exports-${documentId}-en.txt`);
+
+    for (const language of ['ur', 'ar']) {
+      const draft = LEGAL_DRAFT_TRANSLATIONS[documentId][language];
+      const exported = legalDocumentFileContent(draft, language, true);
+      assert.ok(exported.includes(draft.title), `${documentId}/${language} title`);
+      assert.ok(exported.includes(draft.sections[0].heading), `${documentId}/${language} section`);
+      assert.ok(exported.includes(draft.sections[0].paragraphs[0]), `${documentId}/${language} body`);
+      assert.ok(exported.includes('qualified review pending') || exported.includes('ماہر کا جائزہ باقی ہے') || exported.includes('بانتظار المراجعة المتخصصة'), `${documentId}/${language} pending review notice`);
+      assert.match(legalDocumentFilename(documentId, language, true), new RegExp(`-${language}-draft\\.txt$`));
+
+      const explicitlySelectedEnglish = legalDocumentFileContent(source, 'en', false);
+      assert.ok(explicitlySelectedEnglish.includes(source.title), `${documentId}/${language} can export English source`);
+      assert.ok(!explicitlySelectedEnglish.includes('Translation draft'), `${documentId}/${language} English source is not labeled as a draft`);
+    }
+  }
+});
+
 test('the legal route uses the saved language and renders only the selected document', () => {
   assert.match(legalRoute, /const language = preferences\.language;/);
   assert.match(
     legalRoute,
     /getLegalDocumentForPreference\(sourceDocument,\s*sectionName,\s*language,\s*showEnglishSource\)/,
   );
-  assert.match(legalRoute, /<Text[^>]*>\{document\.title\}<\/Text>|document\.title/);
-  assert.match(legalRoute, /document\.sections\.map/);
+  assert.match(legalRoute, /selectedDocument\.title/);
+  assert.match(legalRoute, /selectedDocument\.sections\.map/);
+  assert.match(legalRoute, /const isPendingDraft = language !== 'en' && !showEnglishSource/);
+  assert.match(legalRoute, /const fileLanguage = isPendingDraft \? language : 'en'/);
+  assert.match(legalRoute, /legalDocumentFileContent\(selectedDocument,\s*fileLanguage,\s*isPendingDraft\)/);
+  assert.match(legalRoute, /testID="legal-save-document"/);
   assert.match(legalRoute, /if \(!document\) return/);
   assert.match(legalRoute, /if \(!document\) return <Screen title=\{translateUi\('Policy unavailable', language\)\}/);
 });

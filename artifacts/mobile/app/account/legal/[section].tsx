@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable } from 'react-native';
+import { Platform, Pressable } from 'react-native';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useLocalSearchParams } from 'expo-router';
-import { Card, EmptyState, Screen } from '@/components/InvestorUI';
+import { Action, Card, EmptyState, Screen } from '@/components/InvestorUI';
 import { useColors } from '@/hooks/useColors';
 import { useAppPreferences } from '@/context/AppPreferencesContext';
-import { LEGAL_DOCUMENTS } from '@/lib/legal-content';
+import { LEGAL_DOCUMENTS, legalDocumentFilename, legalDocumentFileContent } from '@/lib/legal-content';
 import { getLegalDocumentForPreference } from '@/lib/legal-content-translations';
-import { translateUi } from '@/lib/strings';
+import { localizedAlert as Alert, translateUi } from '@/lib/strings';
 
 export default function LegalContent() {
   const { section: raw } = useLocalSearchParams<{ section: string }>();
@@ -16,6 +18,8 @@ export default function LegalContent() {
   const { preferences } = useAppPreferences();
   const language = preferences.language;
   const [showEnglishSource, setShowEnglishSource] = useState(false);
+  const [savingFile, setSavingFile] = useState(false);
+  const [saveError, setSaveError] = useState('');
   useEffect(() => {
     setShowEnglishSource(false);
   }, [language, sectionName]);
@@ -30,7 +34,47 @@ export default function LegalContent() {
     />
   </Screen>;
 
-  return <Screen title={document.title} subtitle={document.summary}>
+  const selectedDocument = document;
+  const isPendingDraft = language !== 'en' && !showEnglishSource;
+  const fileLanguage = isPendingDraft ? language : 'en';
+
+  async function saveDocument() {
+    setSaveError('');
+    setSavingFile(true);
+    try {
+      const filename = legalDocumentFilename(sectionName, fileLanguage, isPendingDraft);
+      const contents = legalDocumentFileContent(selectedDocument, fileLanguage, isPendingDraft);
+      if (Platform.OS === 'web') {
+        const url = URL.createObjectURL(new Blob([contents], { type: 'text/plain;charset=utf-8' }));
+        const link = window.document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        window.document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } else {
+        if (!(await Sharing.isAvailableAsync())) {
+          throw new Error('File sharing is not available on this device.');
+        }
+        const file = new File(Paths.cache, filename);
+        file.create({ overwrite: true });
+        file.write(contents);
+        await Sharing.shareAsync(file.uri, {
+          mimeType: 'text/plain',
+          dialogTitle: selectedDocument.title,
+          UTI: 'public.plain-text',
+        });
+      }
+      Alert.alert('Legal page ready', 'The legal page is ready to save or share.');
+    } catch (error) {
+      setSaveError(translateUi(error instanceof Error ? error.message : 'The legal page could not be saved.', language));
+    } finally {
+      setSavingFile(false);
+    }
+  }
+
+  return <Screen title={selectedDocument.title} subtitle={selectedDocument.summary}>
     <Card>
       {language !== 'en' ? <>
         <Text style={{ color: colors.accent, fontSize: 12, fontWeight: '700', lineHeight: 19, marginBottom: 10 }}>
@@ -54,7 +98,24 @@ export default function LegalContent() {
       <Text style={{ color: colors.accent, fontSize: 12, fontWeight: '700', lineHeight: 19, marginBottom: 14 }}>
         {translateUi('Important: This information is not individualized investment, legal, tax or accounting advice. Review the signed agreement for your transaction and seek independent professional advice where appropriate.', language)}
       </Text>
-      {document.sections.map((item, index) => (
+      <Action
+        title={translateUi(savingFile ? 'Preparing file…' : 'Save / share this page', language)}
+        icon="download"
+        loading={savingFile}
+        disabled={savingFile}
+        testID="legal-save-document"
+        onPress={() => void saveDocument()}
+      />
+      {saveError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginTop: 10 }}>{saveError}</Text> : null}
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 8, marginBottom: 16 }}>
+        {translateUi(
+          isPendingDraft
+            ? 'The saved file will be marked as a translation draft pending qualified review.'
+            : 'The saved file will contain the approved English source.',
+          language,
+        )}
+      </Text>
+      {selectedDocument.sections.map((item, index) => (
         <React.Fragment key={item.heading}>
           <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', lineHeight: 22, marginTop: index ? 20 : 0, marginBottom: 7 }}>
             {item.heading}
