@@ -98,3 +98,17 @@ mtime_ms = 1791551557378
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/79cc42df-e728-4729-9bd0-86df0dfb80ef/4c7638fd-d034-4478-b061-99076127c83d"
 storage_version_token = "1791551605407276"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "W6JzVxdoBZyJM33sVo2Qy"
+uri = "file://artifacts/mobile/preview-temp.jpg"
+type = "image"
+title = "OG Exports Investor Mobile preview"
+description = "Current app screen: investor sign-in. The live Expo artifact is also open in the preview pane."
+logical_id = "ab37c7c6-e394-4900-ae44-156fb3b8bf31"
+content_hash = "sha256:44b568e114d54ce13420a39b1e863202d0f7edcffaca3faf471c392af796c3c6"
+size = 22280
+mtime_ms = 1791911444126
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/ab37c7c6-e394-4900-ae44-156fb3b8bf31/906d1244-2601-4d04-9d5a-2e187c654b42"
+storage_version_token = "1791911457297827"
+content_type = "image/jpeg"
