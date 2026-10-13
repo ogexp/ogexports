@@ -414,19 +414,54 @@ export function getLegalDraftTranslation(
   return LEGAL_DRAFT_TRANSLATIONS[section]?.[language];
 }
 
+export function getLegalDocumentForPreference(
+  source: LegalDocument | undefined,
+  section: string,
+  language: 'en' | 'ur' | 'ar',
+  showEnglishSource = false,
+): LegalDocument | undefined {
+  if (!source) return undefined;
+  if (language === 'en' || showEnglishSource) return source;
+
+  const translation = getLegalDraftTranslation(section, language);
+  return translation && legalTranslationMatchesSource(source, translation)
+    ? translation
+    : undefined;
+}
+
 export function legalTranslationMatchesSource(
   source: LegalDocument,
   translation: LegalDocument,
 ): boolean {
-  if (!translation.title.trim() || !translation.summary.trim()) return false;
-  if (source.sections.length !== translation.sections.length) return false;
+  if (
+    typeof translation.title !== 'string'
+    || !translation.title.trim()
+    || typeof translation.summary !== 'string'
+    || !translation.summary.trim()
+    || !Array.isArray(source.sections)
+    || !Array.isArray(translation.sections)
+    || source.sections.length !== translation.sections.length
+  ) return false;
+  const hasOnlyNonemptyText = (items: unknown): boolean =>
+    items === undefined
+    || (Array.isArray(items) && items.every(
+      text => typeof text === 'string' && text.trim().length > 0,
+    ));
+
   return source.sections.every((sourceSection, index) => {
     const translatedSection = translation.sections[index];
     return Boolean(
       translatedSection
+      && typeof translatedSection.heading === 'string'
       && translatedSection.heading.trim()
+      && Array.isArray(sourceSection.paragraphs ?? [])
+      && Array.isArray(sourceSection.bullets ?? [])
+      && Array.isArray(translatedSection.paragraphs ?? [])
+      && Array.isArray(translatedSection.bullets ?? [])
       && (sourceSection.paragraphs?.length ?? 0) === (translatedSection.paragraphs?.length ?? 0)
-      && (sourceSection.bullets?.length ?? 0) === (translatedSection.bullets?.length ?? 0),
+      && (sourceSection.bullets?.length ?? 0) === (translatedSection.bullets?.length ?? 0)
+      && hasOnlyNonemptyText(translatedSection.paragraphs)
+      && hasOnlyNonemptyText(translatedSection.bullets),
     );
   });
 }

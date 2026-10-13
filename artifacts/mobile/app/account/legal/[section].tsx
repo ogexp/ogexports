@@ -6,10 +6,7 @@ import { Card, EmptyState, Screen } from '@/components/InvestorUI';
 import { useColors } from '@/hooks/useColors';
 import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { LEGAL_DOCUMENTS } from '@/lib/legal-content';
-import {
-  getLegalDraftTranslation,
-  legalTranslationMatchesSource,
-} from '@/lib/legal-content-translations';
+import { getLegalDocumentForPreference } from '@/lib/legal-content-translations';
 import { translateUi } from '@/lib/strings';
 
 export default function LegalContent() {
@@ -18,25 +15,15 @@ export default function LegalContent() {
   const sourceDocument = LEGAL_DOCUMENTS[sectionName];
   const { preferences } = useAppPreferences();
   const language = preferences.language;
-  const translatedDocument = language === 'en'
-    ? undefined
-    : getLegalDraftTranslation(sectionName, language);
-  const translationValid = Boolean(
-    sourceDocument
-    && translatedDocument
-    && legalTranslationMatchesSource(sourceDocument, translatedDocument),
-  );
   const [showEnglishSource, setShowEnglishSource] = useState(false);
   useEffect(() => {
     setShowEnglishSource(false);
   }, [language, sectionName]);
-  const document = language === 'en' || showEnglishSource
-    ? sourceDocument
-    : translationValid ? translatedDocument : undefined;
+  const document = getLegalDocumentForPreference(sourceDocument, sectionName, language, showEnglishSource);
   const colors = useColors();
 
   if (!sourceDocument) return <Screen title="Policy unavailable"><EmptyState title="Page not found" body="This policy link is not available." /></Screen>;
-  if (!document) return <Screen title={sourceDocument.title}>
+  if (!document) return <Screen title={translateUi('Policy unavailable', language)}>
     <EmptyState
       title={translateUi('Policy unavailable', language)}
       body={translateUi('This translation is not available or does not match the source document structure.', language)}
