@@ -13,6 +13,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
 import { goBackOrReplace } from '@/lib/safe-navigation';
 
+const PASSWORD_POLICY_MESSAGE = 'Use 12–128 characters with uppercase and lowercase letters, a number, and a symbol.';
+
+function isStrongPassword(value: string) {
+  return value.length >= 12
+    && value.length <= 128
+    && /[A-Z]/.test(value)
+    && /[a-z]/.test(value)
+    && /\d/.test(value)
+    && /[^A-Za-z0-9\s]/.test(value);
+}
+
 type RegisterFieldProps = {
   label: string;
   value: string;
@@ -90,18 +101,21 @@ export default function Register() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [focusedField, setFocusedField] = useState<'fullName' | 'email' | 'password' | 'confirmPassword' | null>(null);
+  const [focusedField, setFocusedField] = useState<'fullName' | 'email' | 'password' | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
+  const passwordRequirements = [
+    { label: '12–128 characters', met: password.length >= 12 && password.length <= 128 },
+    { label: 'Uppercase and lowercase letters', met: /[A-Z]/.test(password) && /[a-z]/.test(password) },
+    { label: 'At least one number', met: /\d/.test(password) },
+    { label: 'At least one symbol', met: /[^A-Za-z0-9\s]/.test(password) },
+  ];
 
   async function submit() {
     setError('');
     if (!fullName.trim()) { setError('Enter your full name.'); return; }
     if (!email.trim()) { setError('Enter your email address.'); return; }
-    if (password.length < 8) { setError('Use a password with at least 8 characters.'); return; }
-    if (password !== confirmPassword) { setError('The password and confirmation do not match.'); return; }
+    if (!isStrongPassword(password)) { setError(PASSWORD_POLICY_MESSAGE); return; }
     if (!apiOrigin) {
       setError('The investor API server is not configured for this build. Set EXPO_PUBLIC_API_BASE_URL before creating an account.');
       return;
@@ -112,7 +126,7 @@ export default function Register() {
           name: fullName.trim(),
           email: email.trim(),
           password,
-          password_confirmation: confirmPassword,
+          password_confirmation: password,
           account_type: 'investor',
         },
       }));
@@ -207,7 +221,7 @@ export default function Register() {
           label="PASSWORD"
           value={password}
           onChangeText={value => { setPassword(value); setError(''); }}
-          placeholder="Min. 8 characters"
+          placeholder="Create a strong password"
           autoComplete="new-password"
           textContentType="newPassword"
           secureTextEntry={!showPassword}
@@ -226,29 +240,20 @@ export default function Register() {
             </Pressable>
           }
         />
-        <RegisterField
-          label="CONFIRM PASSWORD"
-          value={confirmPassword}
-          onChangeText={value => { setConfirmPassword(value); setError(''); }}
-          placeholder="Re-enter your password"
-          autoComplete="new-password"
-          textContentType="newPassword"
-          secureTextEntry={!showConfirmPassword}
-          focused={focusedField === 'confirmPassword'}
-          onFocus={() => setFocusedField('confirmPassword')}
-          onBlur={() => setFocusedField(null)}
-          trailing={
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={showConfirmPassword ? 'Hide confirmation password' : 'Show confirmation password'}
-              hitSlop={8}
-              onPress={() => setShowConfirmPassword(value => !value)}
-              style={s.visibilityButton}
-            >
-              <Feather name={showConfirmPassword ? 'eye-off' : 'eye'} size={18} color={colors.mutedForeground} />
-            </Pressable>
-          }
-        />
+        <View style={s.passwordRequirements} accessibilityLabel="Password requirements">
+          {passwordRequirements.map(requirement => (
+            <View key={requirement.label} style={s.passwordRequirement}>
+              <Feather
+                name={requirement.met ? 'check-circle' : 'circle'}
+                size={13}
+                color={requirement.met ? colors.primary : colors.mutedForeground}
+              />
+              <Text style={[s.passwordRequirementText, { color: requirement.met ? colors.primary : colors.mutedForeground }]}>
+                {requirement.label}
+              </Text>
+            </View>
+          ))}
+        </View>
         {error ? (
           <View style={s.errorRow}>
             <Feather name="alert-circle" size={16} color={colors.destructive} />
@@ -258,7 +263,7 @@ export default function Register() {
         <Action
           title="Create Account"
           loading={mutation.isPending}
-          disabled={!fullName.trim() || !email.trim() || !password || !confirmPassword}
+          disabled={!fullName.trim() || !email.trim() || !password}
           onPress={() => void submit()}
         />
         </Card>
@@ -294,6 +299,9 @@ const s = StyleSheet.create({
   inputShellFocused: { borderBottomWidth: 1.5 },
   input: { flex: 1, minWidth: 0, paddingVertical: 10, fontSize: 16 },
   visibilityButton: { padding: 5 },
+  passwordRequirements: { gap: 5, marginTop: -7, marginBottom: 12, marginLeft: 2 },
+  passwordRequirement: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  passwordRequirementText: { fontSize: 11, lineHeight: 15 },
   errorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 14 },
   errorText: { flex: 1, fontSize: 12, lineHeight: 18 },
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 25 },
