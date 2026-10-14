@@ -10,7 +10,7 @@
 - [Notification preference migration](investor-notification-preference-migration.md) — category preferences override matching legacy settings without dropping old keys or changing email/push controls.
 - [Expo DevTools runtime](expo-devtools-runtime.md) — a missing libglib can break the optional debugger without blocking Metro or the app preview.
 - [Expo workflow log freshness](expo-workflow-log-freshness.md) — when Metro errors conflict with exports, restart the managed Expo workflow and inspect fresh logs before changing code.
-- [OG Exports Expo and GitHub separation](og-exports-expo-account.md) — use OG Exports' own Expo project and `ogexp/ogexp` repo, never OG Landmark's.
+- [OG Exports Expo and GitHub separation](og-exports-expo-account.md) — use OG Exports' own Expo project and `ogexp/ogexports` repo, never OG Landmark's.
 - [OG Exports platform principles](og-exports-platform-principles.md) — make trade traceability, verified documents/status, simple real-trade data, and financial security visible throughout the investor app.
 - [Account deletion review](account-deletion-review.md) — verify ownership and review investments/legal retention before deleting or anonymizing eligible investor data.
 - [OG Exports phase workflow](og-exports-phase-workflow.md) — implement the investor app one user-provided phase at a time, then verify before moving on.

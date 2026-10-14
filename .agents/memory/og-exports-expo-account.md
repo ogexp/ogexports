@@ -5,11 +5,11 @@ description: Keep OG Exports builds on its own Expo project and GitHub repositor
 
 OG Exports uses a separate Expo account/project from OG Landmark. The existing OG Landmark Expo project is not the OG Exports project; use only the account and project details the user provides for OG Exports.
 
-The OG Exports GitHub repository is `ogexp/ogexp`, which the user says is connected to Replit.
+The user confirmed `ogexp/ogexports` as the GitHub repository for OG Exports.
 
-**Why:** The user stated OG Landmark and OG Exports use different Expo accounts, and identified `ogexp/ogexp` as OG Exports' Replit-connected GitHub repo.
+**Why:** The user selected the repository shown in the Expo connection screen after earlier context identified a different repository.
 
-**How to apply:** Before an OG Exports build or account link, use only its own Expo project and `ogexp/ogexp` repository; never reuse OG Landmark identifiers, credentials, or repository.
+**How to apply:** Before an OG Exports build or account link, use only its own Expo project and `ogexp/ogexports` repository; never reuse OG Landmark identifiers, credentials, or repository.
 
 Verify repository access with a real read before uploading. A Replit GitHub source-control connection may report as active while `git ls-remote` still fails and the GitHub App connection returns 404 for `ogexp/ogexp`.
 
