@@ -155,7 +155,7 @@ export default function Entry() {
   const orbitScale = orbitReveal.interpolate({ inputRange: [0, 1], outputRange: [0.78, 1] });
   const orbitRotation = orbitSpin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const outerOrbitOpacity = outerOrbitReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 0.28] });
-  const outerOrbitScale = outerOrbitReveal.interpolate({ inputRange: [0, 1], outputRange: [0.88, 1] });
+  const outerOrbitScale = outerOrbitReveal.interpolate({ inputRange: [0, 1], outputRange: [0.78, 1] });
   const outerOrbitRotation = outerOrbitSpin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-360deg'] });
   const haloOpacity = haloReveal.interpolate({ inputRange: [0, 0.55, 1], outputRange: [0, 0.13, 0.035] });
   const haloScale = haloReveal.interpolate({ inputRange: [0, 1], outputRange: [0.78, 1.2] });
