@@ -680,7 +680,6 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["English","انگریزی","الإنجليزية"],
   ["Exchange rates are unavailable. Amounts stay in their source currency and are marked as unavailable for conversion.","شرح تبادلہ دستیاب نہیں ہیں۔ رقوم اپنی اصل کرنسی میں رہتی ہیں اور انہیں تبدیلی کے لیے دستیاب نہیں دکھایا جاتا۔","أسعار الصرف غير متاحة. تبقى المبالغ بعملتها الأصلية وتُعرض على أنها غير متاحة للتحويل."],
   ["Explore","دریافت کریں","استكشاف"],
-  ["Explore investment opportunities","سرمایہ کاری کے مواقع دیکھیں","استكشف فرص الاستثمار"],
   ["Home","ہوم","الرئيسية"],
   ["Available balance","دستیاب بیلنس","الرصيد المتاح"],
   ["Available balance is below the minimum payout.","دستیاب بیلنس کم از کم ادائیگی کی رقم سے کم ہے۔","الرصيد المتاح أقل من الحد الأدنى لمبلغ السحب."],

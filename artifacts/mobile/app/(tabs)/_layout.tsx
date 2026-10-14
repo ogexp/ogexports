@@ -23,8 +23,8 @@ function NativeLayout() {
       labelStyle={{ default: { color: colors.mutedForeground }, selected: { color: colors.primary, fontWeight: '600' } }}
       backgroundColor={colors.card}
     >
-      <NativeTabs.Trigger name="index"><NativeTabs.Trigger.Icon sf={{ default: 'house.circle', selected: 'house.circle.fill' }} /><NativeTabs.Trigger.Label>{t('Home')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
-      <NativeTabs.Trigger name="opportunities"><NativeTabs.Trigger.Icon sf={{ default: 'safari', selected: 'safari.fill' }} /><NativeTabs.Trigger.Label>{t('Explore')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
+      <NativeTabs.Trigger name="index"><NativeTabs.Trigger.Icon sf={{ default: 'house.circle', selected: 'house.circle.fill' }} /><NativeTabs.Trigger.Label>{t('Dashboard')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
+      <NativeTabs.Trigger name="opportunities"><NativeTabs.Trigger.Icon sf={{ default: 'safari', selected: 'safari.fill' }} /><NativeTabs.Trigger.Label>{t('Opportunities')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="portfolio"><NativeTabs.Trigger.Icon sf={{ default: 'chart.pie', selected: 'chart.pie.fill' }} /><NativeTabs.Trigger.Label>{t('Portfolio')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="wallet"><NativeTabs.Trigger.Icon sf={{ default: 'wallet.bifold', selected: 'wallet.bifold.fill' }} /><NativeTabs.Trigger.Label>{t('Wallet')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile"><NativeTabs.Trigger.Icon sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }} /><NativeTabs.Trigger.Label>{t('Profile')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
@@ -94,17 +94,14 @@ function ClassicLayout() {
         ),
     }}>
       {([
-        ['index', t('Home'), 'home-outline', 'home', 'house.circle', 'house.circle.fill'],
-        ['opportunities', t('Explore'), 'compass-outline', 'compass', 'safari', 'safari.fill'],
+        ['index', t('Dashboard'), 'home-outline', 'home', 'house.circle', 'house.circle.fill'],
+        ['opportunities', t('Opportunities'), 'compass-outline', 'compass', 'safari', 'safari.fill'],
         ['portfolio', t('Portfolio'), 'pie-chart-outline', 'pie-chart', 'chart.pie', 'chart.pie.fill'],
         ['wallet', t('Wallet'), 'wallet-outline', 'wallet', 'wallet.bifold', 'wallet.bifold.fill'],
         ['profile', t('Profile'), 'person-circle-outline', 'person-circle', 'person.crop.circle', 'person.crop.circle.fill'],
       ] as const).map(([name, title, androidIcon, androidSelectedIcon, iosIcon, iosSelectedIcon]) => (
         <Tabs.Screen key={name} name={name} options={{
           title,
-          tabBarAccessibilityLabel: name === 'opportunities'
-            ? t('Explore investment opportunities')
-            : title,
           tabBarIcon: ({ color, focused }) => <AnimatedTabIcon focused={focused}>
             {Platform.OS === 'ios'
               ? <SymbolView name={focused ? iosSelectedIcon : iosIcon} tintColor={color} size={22} />
