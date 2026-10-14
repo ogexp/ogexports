@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, useMotion } from '@/lib/motion';
 
-const INTRO_MIN_DURATION = 6000;
+const INTRO_MIN_DURATION = 7000;
 const ORBIT_SPIN_DURATION = 2400;
 const OUTER_ORBIT_SPIN_DURATION = 3600;
 const ORBIT_STROKE_WIDTH = 1;
