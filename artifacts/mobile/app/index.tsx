@@ -9,6 +9,7 @@ import { MOTION, useMotion } from '@/lib/motion';
 const INTRO_MIN_DURATION = 6000;
 const ORBIT_SPIN_DURATION = 2400;
 const OUTER_ORBIT_SPIN_DURATION = 3600;
+const ORBIT_STROKE_WIDTH = 1;
 
 export default function Entry() {
   const { ready, token, onboardingComplete, appUnlocked } = useAuth();
@@ -186,7 +187,7 @@ export default function Entry() {
               width: 208,
               height: 208,
               borderRadius: 104,
-              borderWidth: 1,
+              borderWidth: ORBIT_STROKE_WIDTH,
               borderColor: colors.accent,
               opacity: playIntroMotion ? outerOrbitOpacity : showStaticIntro ? 0.28 : 0,
               transform: [
@@ -206,7 +207,7 @@ export default function Entry() {
               width: 176,
               height: 176,
               borderRadius: 88,
-              borderWidth: 1,
+              borderWidth: ORBIT_STROKE_WIDTH,
               borderColor: colors.border,
               opacity: playIntroMotion ? orbitOpacity : showStaticIntro ? 0.48 : 0,
               transform: [
