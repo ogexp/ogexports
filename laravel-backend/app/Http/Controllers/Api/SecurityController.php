@@ -221,7 +221,7 @@ class SecurityController extends Controller
             'two_factor_code_expires_at' => now()->addMinutes(10),
         ])->save();
 
-        $emailSent = $this->sendCodeEmail($user, $code);
+        $emailSent = $this->sendCodeEmail($user, $code, 'setup');
 
         AuthFlowLogger::logOtpGenerated(
             '2fa_enable',
@@ -517,16 +517,75 @@ class SecurityController extends Controller
         ], AuthOtpService::devOtpResponse()));
     }
 
-    private function sendCodeEmail(User $user, string $code): bool
+    private function sendCodeEmail(User $user, string $code, string $purpose = 'login'): bool
     {
+        $isSetup = $purpose === 'setup';
+        $subject = $isSetup
+            ? 'OG Exports | Confirm your sign-in security'
+            : 'OG Exports | Your sign-in code';
+        $heading = $isSetup
+            ? 'Confirm two-factor authentication'
+            : 'Verify your sign-in';
+        $action = $isSetup
+            ? 'Use this secure, one-time code to finish enabling email two-factor authentication for your OG Exports investor account.'
+            : 'Use this secure, one-time code to finish signing in to your OG Exports investor account.';
+        $firstName = trim(explode(' ', trim((string) $user->name))[0] ?? '') ?: 'Investor';
+        $safeCode = e($code);
+        $safeFirstName = e($firstName);
+        $bodyText = "OG EXPORTS | INVESTOR ACCOUNT SECURITY\n\n{$heading}\n\nHello {$firstName},\n\n{$action}\n\n{$code}\n\nThis code expires in 10 minutes. Never share it with anyone. OG Exports will never ask you to disclose it.\n\n".($isSetup
+            ? 'If you did not request this change, ignore this email. Your security settings will not change without this code.'
+            : 'If you did not request this code, you can safely ignore this email. No sign-in will be completed without it.')."\n\nThis is an automated security email from OG Exports. Please do not reply.";
+        $htmlTemplate = <<<'HTML'
+<!doctype html>
+<html lang="en">
+  <body style="margin:0;padding:0;background:#f3f7f5;font-family:Arial,Helvetica,sans-serif;color:#19372f">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0">Your secure OG Exports code expires in 10 minutes.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f7f5;padding:32px 12px">
+      <tr><td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e3ebe7;border-radius:16px;overflow:hidden">
+          <tr><td style="background:#12392f;padding:25px 32px">
+            <div style="font-size:20px;line-height:26px;font-weight:700;letter-spacing:1.2px;color:#ffffff">OG EXPORTS</div>
+            <div style="margin-top:5px;font-size:11px;line-height:16px;letter-spacing:1.6px;color:#b8d6c8">INVESTOR ACCOUNT SECURITY</div>
+          </td></tr>
+          <tr><td style="padding:34px 32px 12px">
+            <div style="font-size:24px;line-height:32px;font-weight:700;color:#17352e">{{heading}}</div>
+            <p style="margin:16px 0 22px;font-size:15px;line-height:24px;color:#52645d">Hello {{first_name}},</p>
+            <p style="margin:0 0 22px;font-size:15px;line-height:24px;color:#52645d">{{action}}</p>
+            <div style="margin:0 0 14px;padding:19px 12px;text-align:center;background:#f4f8f6;border:1px solid #dce9e2;border-radius:12px">
+              <div style="font-size:11px;line-height:16px;font-weight:700;letter-spacing:1.5px;color:#527064">YOUR VERIFICATION CODE</div>
+              <div style="padding-top:8px;font-family:Arial,Helvetica,sans-serif;font-size:34px;line-height:42px;font-weight:700;letter-spacing:9px;color:#087f5b">{{code}}</div>
+            </div>
+            <p style="margin:0 0 24px;text-align:center;font-size:13px;line-height:20px;color:#687a72">This code expires in <strong style="color:#334b41">10 minutes</strong>.</p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#fff8e9;border-left:3px solid #d7a94b;border-radius:4px">
+              <tr><td style="padding:13px 15px;font-size:13px;line-height:20px;color:#675633"><strong>Keep your account secure.</strong> Never share this code with anyone. OG Exports will never ask you to disclose it.</td></tr>
+            </table>
+            <p style="margin:22px 0 0;font-size:13px;line-height:21px;color:#687a72">{{ignore_notice}}</p>
+          </td></tr>
+          <tr><td style="padding:20px 32px;border-top:1px solid #edf1ee;font-size:11px;line-height:18px;color:#87958e">This is an automated security email from OG Exports. Please do not reply.</td></tr>
+        </table>
+        <div style="padding:16px 8px 0;font-size:11px;line-height:17px;color:#87958e">OG Exports · Investor Services</div>
+      </td></tr>
+    </table>
+  </body>
+</html>
+HTML;
+        $html = strtr($htmlTemplate, [
+            '{{heading}}' => e($heading),
+            '{{first_name}}' => $safeFirstName,
+            '{{action}}' => e($action),
+            '{{code}}' => $safeCode,
+            '{{ignore_notice}}' => e($isSetup
+                ? 'If you did not request this change, ignore this email. Your security settings will not change without this code.'
+                : 'If you did not request this code, you can safely ignore this email. No sign-in will be completed without it.'),
+        ]);
+
         try {
-            Mail::raw(
-                "Your OG Exports verification code is: {$code}\n\nThis code expires in 10 minutes.",
-                function ($message) use ($user) {
+            Mail::send([], [], function ($message) use ($user, $subject, $html, $bodyText) {
                     $message->to($user->email)
-                        ->subject('OG Exports — Verification Code');
-                }
-            );
+                        ->subject($subject)
+                        ->html($html)
+                        ->text($bodyText);
+            });
 
             AuthFlowLogger::info('auth.2fa.email_sent', [
                 'email' => $user->email,

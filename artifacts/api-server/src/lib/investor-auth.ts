@@ -18,6 +18,16 @@ import { logger } from "./logger";
 
 const connectors = new ReplitConnectors();
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, character => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character] ?? character);
+}
+
 const scrypt = (
   password: string,
   salt: Buffer,
@@ -144,8 +154,40 @@ export async function issueChallenge(
       action: "sign in to your account",
     },
   }[purpose];
-  const message = `Use ${code} to ${copy.action}. This code expires in 10 minutes. If you did not request it, you can ignore this email.`;
-  const html = `<div style="font-family:Arial,sans-serif;color:#17352e;max-width:520px;margin:0 auto;padding:24px"><p style="font-size:12px;letter-spacing:1.5px;color:#087f5b;font-weight:700">OG EXPORTS · INVESTOR</p><h1 style="font-size:24px">${copy.heading}</h1><p style="color:#52625d">${message.replace(code, `<strong>${code}</strong>`)}</p><p style="font-size:12px;color:#6b7773">The verification code expires in 10 minutes.</p></div>`;
+  const safeCode = escapeHtml(code);
+  const message = `Hello,\n\nUse the secure code below to ${copy.action} for your OG Exports investor account.\n\n${code}\n\nThis code expires in 10 minutes. Never share it with anyone. If you did not request this code, you can ignore this email.`;
+  const html = `<!doctype html>
+<html lang="en">
+  <body style="margin:0;padding:0;background:#f3f7f5;font-family:Arial,Helvetica,sans-serif;color:#19372f">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0">${escapeHtml(copy.heading)}. Your secure code expires in 10 minutes.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f7f5;padding:32px 12px">
+      <tr><td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e3ebe7;border-radius:16px;overflow:hidden">
+          <tr><td style="background:#12392f;padding:25px 32px">
+            <div style="font-size:20px;line-height:26px;font-weight:700;letter-spacing:1.2px;color:#ffffff">OG EXPORTS</div>
+            <div style="margin-top:5px;font-size:11px;line-height:16px;letter-spacing:1.6px;color:#b8d6c8">INVESTOR ACCOUNT SECURITY</div>
+          </td></tr>
+          <tr><td style="padding:34px 32px 12px">
+            <div style="font-size:24px;line-height:32px;font-weight:700;color:#17352e">${escapeHtml(copy.heading)}</div>
+            <p style="margin:16px 0 22px;font-size:15px;line-height:24px;color:#52645d">Hello,</p>
+            <p style="margin:0 0 22px;font-size:15px;line-height:24px;color:#52645d">Use this secure, one-time code to ${escapeHtml(copy.action)} for your OG Exports investor account.</p>
+            <div style="margin:0 0 14px;padding:19px 12px;text-align:center;background:#f4f8f6;border:1px solid #dce9e2;border-radius:12px">
+              <div style="font-size:11px;line-height:16px;font-weight:700;letter-spacing:1.5px;color:#527064">YOUR VERIFICATION CODE</div>
+              <div style="padding-top:8px;font-family:Arial,Helvetica,sans-serif;font-size:34px;line-height:42px;font-weight:700;letter-spacing:9px;color:#087f5b">${safeCode}</div>
+            </div>
+            <p style="margin:0 0 24px;text-align:center;font-size:13px;line-height:20px;color:#687a72">This code expires in <strong style="color:#334b41">10 minutes</strong>.</p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#fff8e9;border-left:3px solid #d7a94b;border-radius:4px">
+              <tr><td style="padding:13px 15px;font-size:13px;line-height:20px;color:#675633"><strong>Keep your account secure.</strong> Never share this code with anyone. OG Exports will never ask you to disclose it.</td></tr>
+            </table>
+            <p style="margin:22px 0 0;font-size:13px;line-height:21px;color:#687a72">If you did not request this code, you can safely ignore this email. No sign-in will be completed without it.</p>
+          </td></tr>
+          <tr><td style="padding:20px 32px;border-top:1px solid #edf1ee;font-size:11px;line-height:18px;color:#87958e">This is an automated security email from OG Exports. Please do not reply.</td></tr>
+        </table>
+        <div style="padding:16px 8px 0;font-size:11px;line-height:17px;color:#87958e">© OG Exports · Investor Services</div>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
 
   try {
     const response = await connectors.proxy("resend", "/emails", {
