@@ -10,3 +10,9 @@ The OG Exports GitHub repository is `ogexp/ogexp`, which the user says is connec
 **Why:** The user stated OG Landmark and OG Exports use different Expo accounts, and identified `ogexp/ogexp` as OG Exports' Replit-connected GitHub repo.
 
 **How to apply:** Before an OG Exports build or account link, use only its own Expo project and `ogexp/ogexp` repository; never reuse OG Landmark identifiers, credentials, or repository.
+
+Verify repository access with a real read before uploading. A Replit GitHub source-control connection may report as active while `git ls-remote` still fails and the GitHub App connection returns 404 for `ogexp/ogexp`.
+
+**Why:** Connecting GitHub in the workspace did not make the OG Exports repository visible to the existing GitHub App or authenticate HTTPS Git in that session.
+
+**How to apply:** If either read fails, stop before writing to any repository and have the user grant/reconnect access for the account that owns `ogexp/ogexp`.
