@@ -15,4 +15,10 @@ Verify repository access with a real read before uploading. A Replit GitHub sour
 
 **Why:** Connecting GitHub in the workspace did not make the OG Exports repository visible to the existing GitHub App or authenticate HTTPS Git in that session.
 
-**How to apply:** If either read fails, stop before writing to any repository and have the user grant/reconnect access for the account that owns `ogexp/ogexp`.
+**How to apply:** If either read fails, stop before writing to any repository and have the user grant/reconnect access for the account that owns `ogexp/ogexports`.
+
+Before pushing, verify the live `origin` URL. Replit's Git settings can leave the workspace pointing at `ogexp/Investor-Suite-Builder`, which is not the selected OG Exports repository. Even after GitHub repo access is granted, a direct HTTPS push may still fail with an invalid-credential error while the Git pane reports GitHub as active.
+
+**Why:** The workspace remote initially targeted the wrong repository, and the shell push was rejected despite read access and the GitHub app showing active.
+
+**How to apply:** Never push until `origin` exactly matches `ogexp/ogexports`; use the Replit Git pane's authenticated flow or resolve its GitHub credential connection if direct push is rejected.
