@@ -9,6 +9,16 @@
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://api.ogexports.co"
       }
+    },
+    "production": {
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle",
+        "image": "latest"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.ogexports.co"
+      }
     }
   }
 }
