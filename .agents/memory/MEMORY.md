@@ -11,6 +11,7 @@
 - [Expo DevTools runtime](expo-devtools-runtime.md) — a missing libglib can break the optional debugger without blocking Metro or the app preview.
 - [Expo workflow log freshness](expo-workflow-log-freshness.md) — when Metro errors conflict with exports, restart the managed Expo workflow and inspect fresh logs before changing code.
 - [OG Exports Expo and GitHub separation](og-exports-expo-account.md) — use OG Exports' own Expo project and `ogexp/ogexports` repo, never OG Landmark's.
+- [Android splash release resource](android-splash-release-resource.md) — the Expo splash plugin needs a valid image path so EAS generates the Android drawable referenced by its splash theme.
 - [OG Exports platform principles](og-exports-platform-principles.md) — make trade traceability, verified documents/status, simple real-trade data, and financial security visible throughout the investor app.
 - [Account deletion review](account-deletion-review.md) — verify ownership and review investments/legal retention before deleting or anonymizing eligible investor data.
 - [OG Exports phase workflow](og-exports-phase-workflow.md) — implement the investor app one user-provided phase at a time, then verify before moving on.
