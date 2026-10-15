@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { Pressable, ScrollView, View, Platform } from 'react-native';
+import { Pressable, View, Platform } from 'react-native';
 import { LocalizedPressable, LocalizedText as Text } from '@/components/LocalizedText';
 import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile } from 'expo-file-system';
@@ -81,8 +81,9 @@ function DepositProgress({ deposit }: { deposit: Record<string, unknown> }) {
 function DetailRow({ label, value }: { label: string; value: string }) {
   const colors = useColors();
   return <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 7 }}>
-    <Text style={{ color: colors.mutedForeground, fontSize: 11, flex: 0.8 }}>{label}</Text>
-    <Text selectable style={{ color: colors.foreground, fontSize: 11, fontWeight: '600', textAlign: 'right', flex: 1.2 }}>{value || '—'}</Text>
+    <Text style={{ color: colors.mutedForeground, fontSize: 12, flex: 0.8 }}>{label}</Text>
+    <Text selectable adjustsFontSizeToFit minimumFontScale={0.85} numberOfLines={1}
+      style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right', flex: 1.2 }}>{value || '—'}</Text>
   </View>;
 }
 
@@ -108,13 +109,10 @@ function CopyableBankDetailRow({ label, value, copied, accessibilityLabel, testI
   const colors = useColors();
   return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.border }}>
     <Text style={{ color: colors.mutedForeground, fontSize: 12, width: 76 }}>{label}</Text>
-    <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator style={{ flex: 1 }}
-      contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-      <Text numberOfLines={1} ellipsizeMode="clip" accessibilityLabel={`${label}: ${value || '—'}`}
-        style={{ color: colors.foreground, fontSize: 14, fontWeight: '600', textAlign: 'right', writingDirection: 'ltr', flexShrink: 0 }}>
-        {value || '—'}
-      </Text>
-    </ScrollView>
+    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} selectable accessibilityLabel={`${label}: ${value || '—'}`}
+      style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right', writingDirection: 'ltr', flex: 1, minWidth: 0 }}>
+      {value || '—'}
+    </Text>
     {value ? <LocalizedPressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityHint="Copies value to clipboard"
       testID={testID} onPress={onCopy} style={{ width: 40, height: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 10 }}>
       <Feather name={copied ? 'check' : 'copy'} size={16} color={colors.primary} />
@@ -545,15 +543,11 @@ export default function Deposit() {
           style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8, borderBottomWidth: index === reviewBankDetails.length - 1 ? 0 : 1, borderBottomColor: colors.border }}
         >
            <Text style={{ color: colors.mutedForeground, fontSize: 12, flex: 0.85 }}>{detail.label}</Text>
-           <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
-             style={{ flex: 1.5 }}
-             contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-             <Text testID={`review-${detail.key}-value`} numberOfLines={1} selectable
-               accessibilityLabel={`${detail.label}: ${detail.value || 'Not provided'}`}
-               style={{ color: detail.value ? colors.foreground : colors.mutedForeground, fontFamily: 'monospace', fontSize: 14, fontWeight: '600', flexShrink: 0, lineHeight: 20, textAlign: 'right', writingDirection: 'ltr' }}>
-               {detail.value || 'Not provided'}
-             </Text>
-           </ScrollView>
+           <Text testID={`review-${detail.key}-value`} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} selectable
+             accessibilityLabel={`${detail.label}: ${detail.value || 'Not provided'}`}
+             style={{ color: detail.value ? colors.foreground : colors.mutedForeground, fontSize: 12, fontWeight: '600', flex: 1.5, minWidth: 0, lineHeight: 20, textAlign: 'right', writingDirection: 'ltr' }}>
+             {detail.value || 'Not provided'}
+           </Text>
         </View>)}
       </View>
       <DetailRow label="Transaction reference" value={reference.trim()} />

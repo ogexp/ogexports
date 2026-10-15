@@ -630,6 +630,7 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
    ["Completed Transactions","مکمل شدہ لین دین","المعاملات المكتملة"],
    ["Available Balance","دستیاب بیلنس","الرصيد المتاح"],
    ["Pending Distributions","زیرِ التوا منافع کی تقسیم","توزيعات الأرباح المعلقة"],
+  ["Distributed returns are confirmed payouts; pending distribution includes pending credits and active-trade estimates.","تقسیم شدہ منافع تصدیق شدہ ادائیگیاں ہیں؛ زیرِ التوا تقسیم میں زیرِ التوا کریڈٹس اور فعال ٹریڈز کے تخمینے شامل ہیں۔","العوائد الموزعة هي مدفوعات مؤكدة؛ وتشمل التوزيعات المعلقة المبالغ المعلقة وتقديرات الصفقات النشطة."],
   ["No admin update yet.","ابھی تک ایڈمن کی کوئی اپ ڈیٹ نہیں۔","لا يوجد تحديث من الإدارة حتى الآن."],
   ["Investment period","سرمایہ کاری کی مدت","فترة الاستثمار"],
   ["Investment period progress is not available.","سرمایہ کاری کی مدت کی پیش رفت دستیاب نہیں ہے۔","تقدم فترة الاستثمار غير متاح."],

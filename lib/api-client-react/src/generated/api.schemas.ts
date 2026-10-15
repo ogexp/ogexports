@@ -666,7 +666,7 @@ export interface InvestorDashboardSummary {
   total_portfolio_value: number;
   /** Confirmed profit amounts from investor distribution records with a distributed_at timestamp. */
   distributed_returns: number;
-  /** Sum of pending credit ledger entries explicitly typed as profit, distribution, or dividend; forecast payouts are excluded. */
+  /** Sum of explicit pending profit credits and estimated profit on pending or active investments using each project's expected return percentage. Estimates are not realized profit and are excluded from total portfolio value. */
   pending_distribution: number;
   /** Currency used for all financial summary amounts, matching the investor wallet currency. */
   display_currency: string;
@@ -746,6 +746,16 @@ export interface InvestorWalletResponse {
   data: InvestorWalletResponseData;
   [key: string]: unknown;
  }
+
+export interface InvestorWalletConversionRequest {
+  confirmed: true;
+  /** @minimum 0 */
+  expected_to_amount: number;
+  /** @exclusiveMinimum 0 */
+  expected_exchange_rate: number;
+  /** @nullable */
+  rates_as_of?: string | null;
+}
 
 export type InvestorWalletTransactionsResponseLinksItem = { [key: string]: unknown };
 

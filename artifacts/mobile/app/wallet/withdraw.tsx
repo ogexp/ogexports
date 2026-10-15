@@ -5,13 +5,15 @@ import { router } from 'expo-router';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  useConvertInvestorWalletToUsd,
   useCreateInvestorWithdrawal,
   useGetInvestorDashboard,
+  useGetInvestorExchangeRates,
   useGetInvestorProfile,
   useGetInvestorWithdrawals,
   useSendInvestorWithdrawalOtp,
 } from '@workspace/api-client-react';
-import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
+import { Action, Card, ConfirmationSheet, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
 import { formatUiStatus } from '@/lib/strings';
 import { TransactionPasswordResetModal } from '@/components/TransactionPasswordResetModal';
 import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, money, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
@@ -150,8 +152,10 @@ export default function Withdraw() {
   const colors = useColors();
   const queryClient = useQueryClient();
   const dashboardQuery = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
+  const exchangeRatesQuery = useGetInvestorExchangeRates({ query: { queryKey: ['investor-exchange-rates'], enabled: Boolean(token), staleTime: 60_000, refetchOnMount: 'always' } });
   const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const historyQuery = useGetInvestorWithdrawals({}, { query: { queryKey: ['investor-withdrawals'], enabled: Boolean(token), refetchOnMount: 'always' } });
+  const convertWallet = useConvertInvestorWalletToUsd();
   const create = useCreateInvestorWithdrawal();
   const sendOtp = useSendInvestorWithdrawalOtp();
   const dashboard = unwrap(dashboardQuery.data);
@@ -220,7 +224,17 @@ export default function Withdraw() {
   const [selectedWithdrawalId, setSelectedWithdrawalId] = useState('');
   const [receiptBusy, setReceiptBusy] = useState(false);
   const [receiptError, setReceiptError] = useState('');
+  const [confirmWalletConversion, setConfirmWalletConversion] = useState(false);
   const withdrawalCurrency = walletCurrency;
+  const exchangeRatesData = unwrap(exchangeRatesQuery.data);
+  const sourceUnitsPerUsd = readAmount(record(exchangeRatesData.rates), [walletCurrency]);
+  const conversionPreviewUsd = walletCurrency && walletCurrency !== 'USD' && availableBalance != null && sourceUnitsPerUsd && sourceUnitsPerUsd > 0
+    ? Number((availableBalance / sourceUnitsPerUsd).toFixed(2))
+    : null;
+  const expectedExchangeRate = sourceUnitsPerUsd && sourceUnitsPerUsd > 0
+    ? Number((1 / sourceUnitsPerUsd).toFixed(8))
+    : null;
+  const exchangeRatesAsOf = first(exchangeRatesData, ['as_of']);
   const maxPayout = maximumWithdrawalPayout(availableBalance, fee);
   const minimumPayoutForValidation = minimumWithdrawalAmount
     ?? (withdrawalCurrency === 'USD' ? minimumWithdrawalUsd : 0.01);
@@ -284,6 +298,36 @@ export default function Withdraw() {
       setStage('security');
     } catch (err) {
       setError(messageOf(err));
+    }
+  }
+
+  async function convertWalletToUsd() {
+    if (conversionPreviewUsd == null || expectedExchangeRate == null) {
+      setError('A current exchange-rate quote is required before converting your wallet.');
+      setConfirmWalletConversion(false);
+      return;
+    }
+    setError('');
+    try {
+      await convertWallet.mutateAsync({
+        data: {
+          confirmed: true,
+          expected_to_amount: conversionPreviewUsd,
+          expected_exchange_rate: expectedExchangeRate,
+          rates_as_of: exchangeRatesAsOf || null,
+        },
+      });
+      setConfirmWalletConversion(false);
+      await queryClient.invalidateQueries({ queryKey: ['investor-dashboard'] });
+      await queryClient.invalidateQueries({ queryKey: ['investor-wallet'] });
+      await queryClient.invalidateQueries({ queryKey: ['investor-wallet-transactions'] });
+      await queryClient.invalidateQueries({ queryKey: ['investor-withdrawals'] });
+      await dashboardQuery.refetch();
+      setNotice('Wallet converted to USD. Your withdrawal amount will now be entered in USD.');
+    } catch (conversionError) {
+      setError(messageOf(conversionError));
+      setConfirmWalletConversion(false);
+      await Promise.all([dashboardQuery.refetch(), exchangeRatesQuery.refetch()]);
     }
   }
 
@@ -408,6 +452,33 @@ export default function Withdraw() {
       ? <ErrorState message="Available balance was not returned by OG Exports." onRetry={() => void dashboardQuery.refetch()} />
       : null}
     {stage === 'overview' ? <>
+      {withdrawalCurrency && withdrawalCurrency !== 'USD' ? <Card testID="withdraw-convert-wallet-card" style={{ borderColor: colors.primary, borderWidth: 1 }}>
+        <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>Convert wallet to USD</Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 6 }}>
+          Your wallet is currently in {withdrawalCurrency}. Review the current conversion estimate before changing the wallet balance and future withdrawal currency to USD.
+        </Text>
+        <DetailRow label={`Current balance (${withdrawalCurrency})`} value={availableBalance == null ? 'Unavailable' : money(availableBalance, withdrawalCurrency)} />
+        <DetailRow label="Estimated USD balance" value={conversionPreviewUsd == null ? 'Rate unavailable' : money(conversionPreviewUsd, 'USD')} />
+        <DetailRow
+          label="Exchange rate"
+          value={expectedExchangeRate == null ? 'Unavailable' : `1 ${withdrawalCurrency} = ${money(expectedExchangeRate, 'USD')}`}
+        />
+        {exchangeRatesQuery.isError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 11, marginTop: 6 }}>Exchange rates could not be loaded. Retry before converting.</Text> : null}
+        {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 11, lineHeight: 16, marginTop: 7 }}>{error}</Text> : null}
+        <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 7 }}>
+          Conversion is recorded by OG Exports at confirmation. Historical transactions keep their original currency. Wallets with reserved or unresolved transactions cannot be converted.
+        </Text>
+        <View style={{ marginTop: 12 }}>
+          <Action
+            title="Review conversion"
+            icon="refresh-cw"
+            loading={convertWallet.isPending}
+            disabled={currencyCheckLoading || exchangeRatesQuery.isLoading || exchangeRatesQuery.isError || conversionPreviewUsd == null || expectedExchangeRate == null || appPreferences.isSaving}
+            onPress={() => setConfirmWalletConversion(true)}
+          />
+        </View>
+      </Card> : null}
+      {notice ? <Text style={{ color: colors.primary, fontSize: 12, lineHeight: 18 }}>{notice}</Text> : null}
       {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the wallet currency…</Text></Card> : null}
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Card style={{ flex: 1, borderTopWidth: 3, borderTopColor: colors.border }}>
@@ -450,13 +521,26 @@ export default function Withdraw() {
         </Text>
       </Card> : null}
       <Card>
+        {withdrawalCurrency !== 'USD' ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginBottom: 9 }}>Convert the wallet to USD before starting a USD withdrawal.</Text> : null}
         <Action
           title="Proceed to Withdraw"
           icon="arrow-right"
-          disabled={currencyCheckLoading || dashboardQuery.isError || !withdrawalCurrency}
+          disabled={currencyCheckLoading || dashboardQuery.isError || !withdrawalCurrency || withdrawalCurrency !== 'USD'}
           onPress={() => { setError(''); setNotice(''); setBankDetailsTouched(false); setStage('form'); }}
         />
       </Card>
+      <ConfirmationSheet
+        visible={confirmWalletConversion}
+        title="Confirm wallet conversion"
+        body={conversionPreviewUsd == null || availableBalance == null
+          ? 'The current conversion quote is unavailable. Refresh exchange rates and try again.'
+          : `Convert ${money(availableBalance, withdrawalCurrency)} to an estimated ${money(conversionPreviewUsd, 'USD')} using the displayed rate? The server will recheck the quote. If it has changed, you will need to review and confirm again.`}
+        confirmLabel="Convert to USD"
+        loading={convertWallet.isPending}
+        onConfirm={() => void convertWalletToUsd()}
+        onCancel={() => setConfirmWalletConversion(false)}
+        testID="confirm-wallet-usd-conversion"
+      />
     </> : null}
 
     {stage === 'form' ? <Card>

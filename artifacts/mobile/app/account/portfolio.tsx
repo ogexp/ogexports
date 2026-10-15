@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LocalizedText as Text } from '@/components/LocalizedText';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import {
   getGetInvestorInvestmentsQueryKey,
   useGetInvestorDashboard,
@@ -70,6 +70,12 @@ export default function Portfolio() {
       staleTime: 30_000,
     },
   });
+  useFocusEffect(React.useCallback(() => {
+    if (token) {
+      void positionsQuery.refetch();
+      void dashboardQuery.refetch();
+    }
+  }, [token, positionsQuery.refetch, dashboardQuery.refetch]));
 
   const rows = list(positionsQuery.data);
   const dashboard = unwrap(dashboardQuery.data);
@@ -318,6 +324,9 @@ export default function Portfolio() {
           </Text>
         </View>)}
       </View>
+      <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
+        Distributed returns are confirmed payouts; pending distribution includes pending credits and active-trade estimates.
+      </Text>
     </Card>
     {dashboardQuery.isError ? <ErrorState message="Portfolio summary could not be loaded." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} /> : null}
 

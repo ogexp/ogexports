@@ -152,10 +152,11 @@ export default function InvestorHome() {
   useFocusEffect(React.useCallback(() => {
     if (token) {
       void dashboard.refetch();
+      void investments.refetch();
       void deposits.refetch();
       void notificationsQuery.refetch();
     }
-  }, [token, dashboard.refetch, deposits.refetch, notificationsQuery.refetch]));
+  }, [token, dashboard.refetch, investments.refetch, deposits.refetch, notificationsQuery.refetch]));
   const data = unwrap(dashboard.data);
   const summary = record(data.summary);
   const wallet = record(data.wallet);
@@ -453,13 +454,22 @@ export default function InvestorHome() {
     {!investments.isLoading && !investments.isError && investmentItems.length === 0 ? <EmptyState title="No investment records" body="Investment details will appear here when supplied by OG Exports." /> : null}
     {investmentItems.map((position, index) => {
       const trade = record(position.trade ?? position.project ?? position.trade_details);
+      const container = record(trade.container);
       const tradeId = first(position, ['trade_id', 'trade_code'], first(trade, ['trade_id', 'trade_code', 'project_code', 'code'], '—'));
       const tradeLabel = tradeId === '—' || /^trade\s*#/i.test(tradeId) ? tradeId : `Trade #${tradeId}`;
       const title = first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(position, ['project_name', 'title', 'name'], '—'));
       const origin = first(position, ['origin', 'origin_country', 'from_country'], first(trade, ['origin', 'origin_country', 'from_country', 'country_of_origin']));
       const destination = first(position, ['destination', 'destination_country', 'to_country'], first(trade, ['destination', 'destination_country', 'to_country', 'destination_market']));
       const route = origin && destination ? `${origin} → ${destination}` : '—';
-      const containerStatus = first(position, ['container_status', 'shipment_status', 'trade_status'], first(trade, ['container_status', 'shipment_status', 'trade_status'], '—'));
+      const containerStatus = first(
+        position,
+        ['container_status', 'shipment_status', 'trade_status'],
+        first(
+          container,
+          ['trade_status', 'status', 'current_status'],
+          first(trade, ['container_status', 'shipment_status', 'trade_status', 'current_project_stage', 'status'], '—'),
+        ),
+      );
       const eta = first(position, ['estimated_arrival', 'eta'], first(trade, ['estimated_arrival', 'eta'], '—'));
       const progress = amount(position, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage'])
         ?? amount(trade, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage']);
@@ -659,7 +669,7 @@ export default function InvestorHome() {
             <Image source={require('../../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 38, height: 38 }} />
             <View>
               <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 }}>OG Exports</Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '600', letterSpacing: 0.8, marginTop: 2 }}>INVESTOR PORTAL</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '600', letterSpacing: 0.8, marginTop: 2 }}>INVESTOR</Text>
             </View>
           </View>
           <Pressable testID="home-menu-close" accessibilityRole="button" accessibilityLabel="Close navigation menu" hitSlop={8} onPress={() => setAccountMenuOpen(false)}

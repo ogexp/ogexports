@@ -31,6 +31,7 @@ type AuthValue = {
 
 const AuthContext = createContext<AuthValue | null>(null);
 const ONBOARDING_KEY = 'og-investor-onboarding-complete';
+const PREVIEW_ONBOARDING_RESET_KEY = 'og-investor-preview-onboarding-reset-v1';
 const LEGACY_BIOMETRIC_KEY = 'og-investor-biometric-login';
 const biometricPreferenceKey = (userId: string) => `og-investor-biometric-login:${userId}`;
 
@@ -48,14 +49,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    Promise.all([
-      loadApiOrigin().catch(() => ''),
-      getSavedToken().catch(() => null),
-      loadSavedUser().catch(() => null),
-      AsyncStorage.getItem(ONBOARDING_KEY).catch(() => null),
-      AsyncStorage.getItem(LEGACY_BIOMETRIC_KEY).catch(() => null),
-      Platform.OS === 'web' ? Promise.resolve(null) : getAppPinOwner(),
-    ]).then(async ([origin, savedToken, savedUser, onboardingFlag, legacyBiometricFlag, pinOwner]) => {
+    const loadStartupState = async () => {
+      if (__DEV__ && Platform.OS === 'web') {
+        const alreadyReset = await AsyncStorage.getItem(PREVIEW_ONBOARDING_RESET_KEY).catch(() => 'done');
+        if (alreadyReset !== 'done') {
+          await AsyncStorage.removeItem(ONBOARDING_KEY).catch(() => undefined);
+          await AsyncStorage.setItem(PREVIEW_ONBOARDING_RESET_KEY, 'done').catch(() => undefined);
+        }
+      }
+      return Promise.all([
+        loadApiOrigin().catch(() => ''),
+        getSavedToken().catch(() => null),
+        loadSavedUser().catch(() => null),
+        AsyncStorage.getItem(ONBOARDING_KEY).catch(() => null),
+        AsyncStorage.getItem(LEGACY_BIOMETRIC_KEY).catch(() => null),
+        Platform.OS === 'web' ? Promise.resolve(null) : getAppPinOwner(),
+      ]);
+    };
+    loadStartupState().then(async ([origin, savedToken, savedUser, onboardingFlag, legacyBiometricFlag, pinOwner]) => {
       if (!mounted) return;
       const savedUserId = first(record(savedUser), ['id'], '');
       let biometricFlag = savedUserId

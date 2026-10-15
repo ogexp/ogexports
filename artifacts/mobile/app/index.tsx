@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, useMotion } from '@/lib/motion';
+import * as SplashScreen from 'expo-splash-screen';
 
 const INTRO_MIN_DURATION = 7000;
 const ORBIT_SPIN_DURATION = 2400;
@@ -26,6 +27,10 @@ export default function Entry() {
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
   const introStartedAt = useRef(Date.now());
   const [introDurationElapsed, setIntroDurationElapsed] = useState(false);
+
+  useEffect(() => {
+    void SplashScreen.hideAsync();
+  }, []);
 
   useEffect(() => {
     if (!motionSettingsReady || reduceMotion) return;
@@ -139,6 +144,10 @@ export default function Entry() {
   }, [introStartedAt, motionSettingsReady, reduceMotion]);
 
   useEffect(() => {
+    if (__DEV__ && Platform.OS === 'web') {
+      router.replace('/onboarding');
+      return;
+    }
     if (!ready || !motionSettingsReady) return;
     if (!reduceMotion && !introDurationElapsed) return;
     const destination = token

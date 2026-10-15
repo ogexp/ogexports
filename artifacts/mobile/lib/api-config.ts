@@ -1,10 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { setAuthTokenGetter, setBaseUrl } from '@workspace/api-client-react';
 
 const ORIGIN_KEY = 'og-investor-api-origin';
 const TOKEN_KEY = 'og-investor-session-token';
 const USER_KEY = 'og-investor-session-user';
+let webSessionToken: string | null = null;
 
 function cleanOrigin(input: string): string {
   return input.trim().replace(/\/+$/, '').replace(/\/api$/i, '');
@@ -45,10 +47,16 @@ export async function saveApiOrigin(input: string): Promise<string> {
 }
 
 export async function getSavedToken(): Promise<string | null> {
+  if (Platform.OS === 'web') return webSessionToken;
   return SecureStore.getItemAsync(TOKEN_KEY);
 }
 
 export async function saveSession(token: string, user: Record<string, unknown>): Promise<void> {
+  if (Platform.OS === 'web') {
+    webSessionToken = token;
+    await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
+    return;
+  }
   await Promise.all([
     SecureStore.setItemAsync(TOKEN_KEY, token),
     AsyncStorage.setItem(USER_KEY, JSON.stringify(user)),
@@ -56,8 +64,12 @@ export async function saveSession(token: string, user: Record<string, unknown>):
 }
 
 export async function clearSession(): Promise<void> {
+  if (Platform.OS === 'web') {
+    webSessionToken = null;
+  } else {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+  }
   await Promise.all([
-    SecureStore.deleteItemAsync(TOKEN_KEY),
     AsyncStorage.removeItem(USER_KEY),
   ]);
 }

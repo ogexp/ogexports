@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, Platform, Pressable, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import * as DocumentPicker from 'expo-document-picker';
@@ -88,13 +88,8 @@ export default function Kyc() {
   const flatStreetAddress = typeof profile.address === 'string' ? profile.address : first(profile, ['street']);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const hasInitializedStep = useRef(false);
-  const [selectedType, setSelectedType] = useState('passport_id');
   const isSupportingDocument = (item: Record<string, unknown>) => /address|utility|bank.?statement|government.?document|tax|certificate|ntn/i.test(first(item, ['doc_type', 'key', 'label']));
   const supportingSteps = steps.filter(isSupportingDocument);
-  const currentDocumentSteps = steps;
-  const selectedDocumentType = currentDocumentSteps.some(item => first(item, ['doc_type', 'key']) === selectedType)
-    ? selectedType
-    : first(record(currentDocumentSteps[0]), ['doc_type', 'key'], 'passport_id');
   const status = query.isLoading ? 'Loading' : getInvestorKycStatus(profile);
   const isVerified = status === 'Verified';
   const isUnderReview = status === 'Under Review';
@@ -145,6 +140,7 @@ export default function Kyc() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [documentPicking, setDocumentPicking] = useState(false);
+  const [uploadingDocumentType, setUploadingDocumentType] = useState<string | null>(null);
 
   useEffect(() => {
     if (!query.data) return;
@@ -204,9 +200,10 @@ export default function Kyc() {
     }
   }
 
-  async function pickAndUpload() {
+  async function pickAndUpload(documentType: string) {
     setError('');
     setDocumentPicking(true);
+    setUploadingDocumentType(documentType);
     try {
       let uploadSource: string | ExpoFile;
       let fileName: string;
@@ -227,11 +224,14 @@ export default function Kyc() {
         mimeType = pickerResult.result.type || 'application/octet-stream';
       }
       const path = await uploadInvestorFile(uploadSource, fileName, mimeType, 'kyc', apiOrigin);
-      const uploadResult = record(await upload.mutateAsync({ data: { doc_type: selectedDocumentType, path, original_name: fileName } }));
+       const uploadResult = record(await upload.mutateAsync({ data: { doc_type: documentType, path, original_name: fileName } }));
       setNotice(first(uploadResult, ['message'], 'Document uploaded. Its review status will be updated by OG Exports.'));
       await query.refetch();
     } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
-    finally { setDocumentPicking(false); }
+    finally {
+      setDocumentPicking(false);
+      setUploadingDocumentType(null);
+    }
   }
 
   async function submitApplication() {
@@ -310,38 +310,73 @@ export default function Kyc() {
     }
   }
 
-  function renderDocumentGroup(requirements: Record<string, unknown>[], title: string, nextTitle: string, nextStep: 2 | 3 | null, includeIdNumber = false) {
+  function renderDocumentGroup(requirements: Record<string, unknown>[], title: string, includeIdNumber = false) {
+    const hasIdentityDocument = requirements.some(item => /passport|national.?id|cnic|driver.?s.?license/i.test(first(item, ['doc_type', 'key', 'label'])));
     return <>
       <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginVertical: 8 }}>{title}</Text>
-      {includeIdNumber && selectedDocumentType === 'passport_id' ? <Field label="Document number" value={idNumber} onChangeText={setIdNumber} placeholder="Passport, national ID or license number" autoCapitalize="characters" /> : null}
+      {includeIdNumber && hasIdentityDocument ? <Field label="Document number" value={idNumber} onChangeText={setIdNumber} placeholder="Passport, national ID or license number" autoCapitalize="characters" /> : null}
       {requirements.map((item, index) => {
         const type = first(item, ['doc_type', 'key'], `document-${index}`);
         const document = record(item.document);
         const status = first(item, ['status'], first(document, ['original_name']) ? 'Uploaded' : 'Not uploaded');
-        const selected = type === selectedDocumentType;
-        return <Pressable key={type} onPress={() => setSelectedType(type)} accessibilityRole="button" accessibilityState={{ selected }}>
-          <Card style={{ borderColor: selected ? colors.primary : colors.border }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontWeight: '700' }}>{first(item, ['label'], documentLabels[type] ?? 'Verification document')}</Text><Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4, lineHeight: 18 }}>{first(item, ['desc'], 'Upload a clear copy of this document.')}</Text></View>
-              <Status value={status} />
+        const label = first(item, ['label'], documentLabels[type] ?? 'Verification document');
+        const uploadedName = first(document, ['original_name']);
+        const isUploading = uploadingDocumentType === type && (documentPicking || upload.isPending);
+        return <Card key={type} style={{ padding: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11 }}>
+            <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' }}>
+              <Feather name="file-text" size={17} color={colors.primary} />
             </View>
-          </Card>
-        </Pressable>;
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ color: colors.foreground, fontWeight: '700' }}>{label}</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4, lineHeight: 18 }}>{first(item, ['desc'], 'Upload a clear copy of this document.')}</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${uploadedName ? 'Replace' : 'Upload'} ${label}`}
+              accessibilityState={{ disabled: documentPicking, busy: isUploading }}
+              disabled={documentPicking}
+              testID={`button-upload-kyc-${type}`}
+              onPress={() => void pickAndUpload(type)}
+              style={({ pressed }) => ({
+                minWidth: 82,
+                minHeight: 40,
+                paddingHorizontal: 10,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.primary,
+                backgroundColor: pressed ? colors.lightGreen : colors.secondary,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                opacity: documentPicking && !isUploading ? 0.55 : 1,
+              })}
+            >
+              {isUploading
+                ? <ActivityIndicator size="small" color={colors.primary} />
+                : <Feather name={uploadedName ? 'refresh-cw' : 'upload'} size={14} color={colors.primary} />}
+              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>{isUploading ? 'Uploading' : uploadedName ? 'Replace' : 'Upload'}</Text>
+            </Pressable>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 11, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
+            <Status value={status} />
+            <Text numberOfLines={1} style={{ flex: 1, color: colors.mutedForeground, fontSize: 11, textAlign: 'right' }}>{uploadedName || 'No file uploaded'}</Text>
+          </View>
+        </Card>;
       })}
       {!query.isLoading && requirements.length === 0 ? <Card><Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>No {title.toLowerCase()} requirements are available from OG Exports right now.</Text></Card> : null}
       <Card>
-        <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginBottom: 6 }}>Upload a document</Text>
-        <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginBottom: 12 }}>{requirements.length ? `Selected: ${first(record(currentDocumentSteps.find(item => first(item, ['doc_type', 'key']) === selectedDocumentType)), ['label'], documentLabels[selectedDocumentType] ?? selectedDocumentType)}. PDF and image files up to 10 MB are supported.` : 'Documents can be uploaded when OG Exports provides a requirement.'}</Text>
-        <Action title="Choose file and upload" icon="upload" loading={upload.isPending || documentPicking} disabled={!requirements.length} onPress={() => void pickAndUpload()} />
+        <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginBottom: 12 }}>Upload a clear copy for every required document. PDF and image files up to 10 MB are supported.</Text>
+        <Action
+          title="Submit for review"
+          icon="send"
+          loading={submitKyc.isPending || updateProfile.isPending}
+          disabled={!savedPersonalDetails || !allRequiredDocumentsUploaded}
+          testID="button-submit-kyc-for-review"
+          onPress={() => void submitApplication()}
+        />
       </Card>
-      {nextStep ? <View style={{ marginBottom: 12 }}><Action title={nextTitle} icon="arrow-right" secondary onPress={() => {
-        setError('');
-        if (nextStep === 3 && (!steps.length || steps.some(item => !first(record(item.document), ['path'])))) {
-          setError('Upload every required KYC document before continuing.');
-          return;
-        }
-        setStep(nextStep);
-      }} /></View> : null}
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginBottom: 12 }}>Uploaded files are attached to the investor application. Their verification status is controlled by OG Exports.</Text>
     </>;
   }
@@ -420,13 +455,15 @@ export default function Kyc() {
       </View>
       <Status value={status} />
     </Card>
-    {isUnderReview ? <Action
-      title="Refresh verification status"
-      secondary
-      icon="refresh-cw"
-      loading={query.isFetching}
-      onPress={() => void query.refetch()}
-    /> : null}
+    {isUnderReview ? <View style={{ marginBottom: 16 }}>
+      <Action
+        title="Refresh verification status"
+        secondary
+        icon="refresh-cw"
+        loading={query.isFetching}
+        onPress={() => void query.refetch()}
+      />
+    </View> : null}
 
     <Card>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -465,7 +502,9 @@ export default function Kyc() {
     {!query.isLoading && !query.isError && isReadOnly ? <>
       {renderApplicationSummary(isVerified ? 'Verified identity details' : 'Submitted application')}
       {renderVerificationChecks()}
-      <Action title="Refresh verification status" secondary icon="refresh-cw" loading={query.isFetching} onPress={() => void query.refetch()} />
+      <View style={{ marginBottom: 16 }}>
+        <Action title="Refresh verification status" secondary icon="refresh-cw" loading={query.isFetching} onPress={() => void query.refetch()} />
+      </View>
     </> : null}
 
     {!query.isLoading && !query.isError && !isReadOnly ? <>
@@ -494,7 +533,7 @@ export default function Kyc() {
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 12 }}>Required fields are saved to your investor profile before document submission. OG Exports remains the source of verification decisions.</Text>
       </Card> : null}
 
-      {step === 2 ? renderDocumentGroup(steps, 'Step 2 · Required documents', 'Continue to verification', 3, true) : null}
+      {step === 2 ? renderDocumentGroup(steps, 'Step 2 · Required documents', true) : null}
 
       {step === 3 ? <>
         <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginVertical: 8 }}>Step 3 · Verification review</Text>
