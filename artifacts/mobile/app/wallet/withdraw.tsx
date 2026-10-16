@@ -427,17 +427,23 @@ export default function Withdraw() {
       : null}
     {stage === 'overview' ? <>
       {!currencyCheckLoading && !dashboardQuery.isError && !usdWalletReady ? <Card testID="withdraw-usd-wallet-pending" style={{ borderColor: colors.primary, borderWidth: 1 }}>
-        <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>USD wallet required</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+          <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
+            <Feather name="shield" size={17} color={colors.primary} />
+          </View>
+          <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', flex: 1 }}>Withdrawals are currently unavailable</Text>
+        </View>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 6 }}>
-          Your wallet must be converted to USD on the server before withdrawal. Your balance is hidden until then.
+          Your wallet must be confirmed in USD before you can submit a withdrawal. Your balance is protected and hidden until the conversion is recorded.
         </Text>
-        <View style={{ marginTop: 12 }}>
-          <Action title="Refresh wallet status" icon="refresh-cw" loading={dashboardQuery.isFetching} onPress={() => void dashboardQuery.refetch()} />
+        <View style={{ flexDirection: 'row', gap: 9, marginTop: 12 }}>
+          <View style={{ flex: 1 }}><Action title="Refresh status" icon="refresh-cw" loading={dashboardQuery.isFetching} onPress={() => void dashboardQuery.refetch()} /></View>
+          <View style={{ flex: 1 }}><Action title="Contact Support" icon="message-circle" secondary onPress={() => router.push('/account/messages' as never)} /></View>
         </View>
       </Card> : null}
       {notice ? <Text style={{ color: colors.primary, fontSize: 12, lineHeight: 18 }}>{notice}</Text> : null}
       {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the wallet currency…</Text></Card> : null}
-      <View style={{ flexDirection: 'row', gap: 10 }}>
+      {usdWalletReady ? <View style={{ flexDirection: 'row', gap: 10 }}>
         <Card style={{ flex: 1, borderTopWidth: 3, borderTopColor: colors.border }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '600' }}>Available balance</Text>
           <Text style={{ color: colors.foreground, fontSize: 19, fontWeight: '700', marginTop: 7 }}>
@@ -450,17 +456,17 @@ export default function Withdraw() {
             {availableBalance == null ? 'Unavailable' : money(availableBalance, 'USD')}
           </Text>
         </Card>
-      </View>
-      <Card>
+      </View> : null}
+      {usdWalletReady ? <Card>
         <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 3 }}>Withdrawal limits</Text>
         <DetailRow label="Minimum withdrawal" value={money(minimumPayoutForValidation, 'USD')} />
-      </Card>
+      </Card> : null}
       {availableBalance != null && minimumWithdrawalAmount != null && availableBalance < minimumWithdrawalAmount
         ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17 }}>
             Available balance is below the minimum payout.
           </Text>
         : null}
-      <Card testID="withdraw-processing-info">
+      {usdWalletReady ? <Card testID="withdraw-processing-info">
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 4 }}>
           <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
             <Feather name="clock" size={15} color={colors.primary} />
@@ -470,24 +476,42 @@ export default function Withdraw() {
         <DetailRow label="Processing time" value={processingTime || 'Not provided'} />
         <DetailRow label="Tax treatment" value={taxTreatment || 'Not specified'} />
         <DetailRow label="Wallet currency" value={currencyCheckLoading ? 'Checking…' : usdWalletReady ? 'USD' : 'USD conversion pending'} />
-      </Card>
+      </Card> : null}
       {pendingBalance != null && pendingBalance > 0 ? <Card>
         <DetailRow label="Pending withdrawals reserved" value={money(pendingBalance, 'USD')} />
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 6 }}>
           Pending requests are reserved funds, not completed wallet movements.
         </Text>
       </Card> : null}
-      <Card>
+      {usdWalletReady ? <Card>
         <Action
           title="Proceed to Withdraw"
           icon="arrow-right"
           disabled={currencyCheckLoading || dashboardQuery.isError || !usdWalletReady}
           onPress={() => { setError(''); setNotice(''); setBankDetailsTouched(false); setStage('form'); }}
         />
-      </Card>
+      </Card> : null}
     </> : null}
 
-    {stage === 'form' ? <Card>
+    {stage === 'form' && !usdWalletReady ? <Card testID="withdraw-form-currency-blocked">
+      <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700' }}>
+        {currencyCheckLoading ? 'Confirming wallet currency' : 'USD wallet required'}
+      </Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 6 }}>
+        {currencyCheckLoading
+          ? 'Please wait while OG Exports confirms your wallet currency.'
+          : 'The withdrawal form is locked until OG Exports confirms and records your wallet conversion.'}
+      </Text>
+      <View style={{ flexDirection: 'row', gap: 9, marginTop: 12 }}>
+        <View style={{ flex: 1 }}><Action title="Back" secondary onPress={() => setStage('overview')} /></View>
+        <View style={{ flex: 1 }}><Action title="Refresh status" icon="refresh-cw" loading={dashboardQuery.isFetching} onPress={() => void dashboardQuery.refetch()} /></View>
+      </View>
+      {!currencyCheckLoading ? <View style={{ marginTop: 9 }}>
+        <Action title="Contact Support" icon="message-circle" secondary onPress={() => router.push('/account/messages' as never)} />
+      </View> : null}
+    </Card> : null}
+
+    {stage === 'form' && usdWalletReady ? <Card>
       <Section title="Bank Details & Amount" />
       {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the wallet currency…</Text></Card> : null}
       {!currencyCheckLoading && !usdWalletReady ? <Card testID="withdraw-usd-wallet-required">

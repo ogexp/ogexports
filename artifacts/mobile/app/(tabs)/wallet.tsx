@@ -38,7 +38,7 @@ function displayDate(value: string) {
 
 function balanceLabel(value: number | null, currency: string, loading: boolean, error: boolean) {
   if (loading) return 'Loading…';
-  if (currency !== 'USD') return currency ? 'USD conversion pending' : 'Unavailable';
+  if (currency !== 'USD') return 'Unavailable';
   if (error && value == null) return 'Unavailable';
   if (value == null) return money(null, 'USD');
   return money(value, 'USD');
@@ -135,27 +135,40 @@ export default function Wallet() {
         <Feather name="credit-card" size={20} color={colors.accent} />
       </View>
       <View style={{ height: 1, width: 34, backgroundColor: colors.accent, opacity: 0.8, marginTop: 25 }} />
-      <Text style={{ color: colors.balanceCardText, fontSize: 11, fontWeight: '600', letterSpacing: 0.8, marginTop: 13, opacity: 0.88 }}>AVAILABLE BALANCE</Text>
-      <MotionReveal key={balanceLabel(available, currency, dashboard.isLoading, dashboard.isError)}>
-      <Text adjustsFontSizeToFit numberOfLines={1} style={{ color: colors.balanceCardText, fontSize: 33, fontWeight: '700', letterSpacing: -0.45, marginTop: 6 }}>
-        {balanceLabel(available, currency, dashboard.isLoading, dashboard.isError)}
-      </Text>
-      </MotionReveal>
-      <Text style={{ color: colors.balanceCardText, fontSize: 11, opacity: 0.82, marginTop: 7 }}>
-        {usdWalletReady ? 'USD account' : currency ? 'USD conversion pending' : 'Wallet currency unavailable'}
-      </Text>
+      {usdWalletReady || dashboard.isLoading || dashboard.isError ? <>
+        <Text style={{ color: colors.balanceCardText, fontSize: 11, fontWeight: '600', letterSpacing: 0.8, marginTop: 13, opacity: 0.88 }}>AVAILABLE BALANCE</Text>
+        <MotionReveal key={balanceLabel(available, currency, dashboard.isLoading, dashboard.isError)}>
+          <Text adjustsFontSizeToFit numberOfLines={1} style={{ color: colors.balanceCardText, fontSize: 33, fontWeight: '700', letterSpacing: -0.45, marginTop: 6 }}>
+            {balanceLabel(available, currency, dashboard.isLoading, dashboard.isError)}
+          </Text>
+        </MotionReveal>
+        <Text style={{ color: colors.balanceCardText, fontSize: 11, opacity: 0.82, marginTop: 7 }}>
+          {usdWalletReady ? 'USD account' : dashboard.isLoading ? 'Checking wallet status' : 'Wallet status unavailable'}
+        </Text>
+      </> : <View style={{ marginTop: 15 }}>
+        <Text style={{ color: colors.balanceCardText, fontSize: 11, fontWeight: '600', letterSpacing: 0.8, opacity: 0.88 }}>WALLET STATUS</Text>
+        <Text style={{ color: colors.balanceCardText, fontSize: 22, fontWeight: '700', marginTop: 7 }}>USD wallet setup required</Text>
+        <Text style={{ color: colors.balanceCardText, fontSize: 11, opacity: 0.82, marginTop: 6 }}>Balance protected until conversion is confirmed</Text>
+      </View>}
     </LinearGradient>
 
     {!dashboard.isLoading && !dashboard.isError && !usdWalletReady ? <Card testID="wallet-usd-conversion-pending">
-      <Text style={{ color: colors.foreground, fontWeight: '700' }}>USD wallet required</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+        <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
+          <Feather name="shield" size={17} color={colors.primary} />
+        </View>
+        <Text style={{ color: colors.foreground, fontWeight: '700', flex: 1 }}>Wallet conversion required</Text>
+      </View>
       <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5 }}>
-        Your existing wallet must be converted to USD by OG Exports before wallet actions can continue. Balances are hidden until then.
+        Your existing wallet is not yet confirmed in USD. Your balance stays protected and hidden until OG Exports completes and records the conversion.
       </Text>
-      <View style={{ marginTop: 10 }}>
-        <Action title="Refresh wallet status" icon="refresh-cw" loading={dashboard.isFetching} onPress={() => void dashboard.refetch()} />
+      <View style={{ flexDirection: 'row', gap: 9, marginTop: 12 }}>
+        <View style={{ flex: 1 }}><Action title="Refresh status" icon="refresh-cw" loading={dashboard.isFetching} onPress={() => void dashboard.refetch()} /></View>
+        <View style={{ flex: 1 }}><Action title="Contact Support" icon="message-circle" secondary onPress={() => router.push('/account/messages' as never)} /></View>
       </View>
     </Card> : null}
 
+    {usdWalletReady ? <>
     <Section title="Balance Breakdown" />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
       {balanceMetrics.map(metric => {
@@ -174,14 +187,17 @@ export default function Wallet() {
         </Card>;
       })}
     </View>
+    </> : null}
     {dashboard.isError ? <ErrorState message="Account balance could not be loaded from OG Exports." error={dashboard.error} onRetry={() => void dashboard.refetch()} /> : null}
     {wallet.isError ? <ErrorState message="Wallet breakdown could not be loaded from OG Exports." error={wallet.error} onRetry={() => void wallet.refetch()} /> : null}
 
+    {usdWalletReady ? <>
     <Section title="Quick Actions" />
     <View style={{ flexDirection: 'row', gap: 10 }}>
       <View style={{ flex: 1 }}><Action title="Add Funds" icon="plus" disabled={!usdWalletReady} onPress={() => router.push('/wallet/deposit')} /></View>
       <View style={{ flex: 1 }}><Action title="Withdraw" icon="arrow-up-right" secondary disabled={!usdWalletReady} onPress={() => router.push('/wallet/withdraw')} /></View>
     </View>
+    </> : null}
 
     <Section title="Transaction History" right={<Pressable
       accessibilityRole="button"

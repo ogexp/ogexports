@@ -1026,6 +1026,19 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Chat with OG Exports Support","تواصل مع دعم OG Exports","تحدث مع دعم OG Exports"],
   ["Open WhatsApp","افتح واتساب","فتح واتساب"],
   ["Could not open WhatsApp. Contact support at +92 303 2569000, or create a ticket.","واٹس ایپ نہیں کھل سکا۔ +92 303 2569000 پر سپورٹ سے رابطہ کریں یا ٹکٹ بنائیں۔","تعذر فتح واتساب. تواصل مع الدعم على الرقم ‎+92 303 2569000 أو أنشئ تذكرة."],
+  ["USD wallet setup required","USD والیٹ کی ترتیب درکار ہے","يلزم إعداد محفظة بالدولار الأمريكي"],
+  ["Balance protected until conversion is confirmed","تبدیلی کی تصدیق تک بیلنس محفوظ رہے گا","الرصيد محمي حتى تأكيد التحويل"],
+  ["Wallet conversion required","والیٹ کی تبدیلی درکار ہے","يلزم تحويل المحفظة"],
+  ["Your existing wallet is not yet confirmed in USD. Your balance stays protected and hidden until OG Exports completes and records the conversion.","آپ کے موجودہ والیٹ کی USD میں تصدیق ابھی نہیں ہوئی۔ OG Exports کی جانب سے تبدیلی مکمل اور ریکارڈ ہونے تک آپ کا بیلنس محفوظ اور پوشیدہ رہے گا۔","لم يتم تأكيد محفظتك الحالية بالدولار الأمريكي بعد. سيظل رصيدك محمياً ومخفياً حتى تُكمل OG Exports التحويل وتسجله."],
+  ["Refresh status","حالت تازہ کریں","تحديث الحالة"],
+  ["Contact Support","سپورٹ سے رابطہ کریں","تواصل مع الدعم"],
+  ["Withdrawals are currently unavailable","رقم نکلوانا فی الحال دستیاب نہیں","عمليات السحب غير متاحة حالياً"],
+  ["Your wallet must be confirmed in USD before you can submit a withdrawal. Your balance is protected and hidden until the conversion is recorded.","رقم نکلوانے کی درخواست سے پہلے آپ کے والیٹ کی USD میں تصدیق ضروری ہے۔ تبدیلی ریکارڈ ہونے تک آپ کا بیلنس محفوظ اور پوشیدہ رہے گا۔","يجب تأكيد محفظتك بالدولار الأمريكي قبل تقديم طلب سحب. سيظل رصيدك محمياً ومخفياً حتى تسجيل التحويل."],
+  ["Confirming wallet currency","والیٹ کی کرنسی کی تصدیق ہو رہی ہے","جارٍ تأكيد عملة المحفظة"],
+  ["Please wait while OG Exports confirms your wallet currency.","OG Exports کی جانب سے والیٹ کی کرنسی کی تصدیق تک انتظار کریں۔","يرجى الانتظار حتى تؤكد OG Exports عملة محفظتك."],
+  ["The withdrawal form is locked until OG Exports confirms and records your wallet conversion.","OG Exports کی جانب سے والیٹ کی تبدیلی کی تصدیق اور ریکارڈ تک رقم نکلوانے کا فارم بند رہے گا۔","سيظل نموذج السحب مقفلاً حتى تؤكد OG Exports تحويل محفظتك وتسجله."],
+  ["Checking wallet status","والیٹ کی حالت چیک ہو رہی ہے","جارٍ التحقق من حالة المحفظة"],
+  ["Wallet status unavailable","والیٹ کی حالت دستیاب نہیں","حالة المحفظة غير متاحة"],
 ];
 
 const translations = new Map<string, Readonly<Record<Exclude<AppLanguage, 'en'>, string>>>(
