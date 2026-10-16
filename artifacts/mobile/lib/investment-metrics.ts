@@ -13,6 +13,18 @@ export function calculateExpectedProfitFromRoi(
   return investedAmount * roiPercent / 100;
 }
 
+export function ensurePortfolioValueIncludesAvailableBalance(
+  totalValue: number | null,
+  availableBalance: number | null,
+  sameCurrency: boolean,
+): number | null {
+  if (!sameCurrency || availableBalance == null || !Number.isFinite(availableBalance)) {
+    return totalValue;
+  }
+  if (totalValue == null || !Number.isFinite(totalValue)) return availableBalance;
+  return Math.max(totalValue, availableBalance);
+}
+
 export function parseRoiPercentageLabel(value: string): number | null {
   const matches = value.match(/-?\d+(?:[.,]\d+)?\s*%/g);
   if (!matches || matches.length !== 1) return null;

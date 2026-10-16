@@ -14,6 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, MotionProgress, MotionReveal } from '@/lib/motion';
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
+import { ensurePortfolioValueIncludesAvailableBalance } from '@/lib/investment-metrics';
 
 type PortfolioTab = 'Active' | 'Pending' | 'Completed';
 
@@ -86,8 +87,16 @@ export default function Portfolio() {
   const walletCurrency = first(wallet, ['currency', 'default_currency'], currency || 'USD');
   const totalPortfolioValue = amount(summary, ['total_portfolio_value']);
   const totalPortfolioValueUsd = amount(summary, ['total_portfolio_value_usd']);
-  const totalValue = totalPortfolioValue ?? totalPortfolioValueUsd;
   const totalValueCurrency = totalPortfolioValue == null && totalPortfolioValueUsd != null ? 'USD' : currency || 'USD';
+  const availableBalance = availableBalanceFromDashboard(dashboardQuery.data);
+  const availableBalanceCurrency = amount(summary, ['available_balance']) == null
+    ? walletCurrency || 'USD'
+    : currency || walletCurrency || 'USD';
+  const totalValue = ensurePortfolioValueIncludesAvailableBalance(
+    totalPortfolioValue ?? totalPortfolioValueUsd,
+    availableBalance,
+    totalValueCurrency.toUpperCase() === availableBalanceCurrency.toUpperCase(),
+  );
   const totalInvestment = amount(summary, ['total_investment']);
   const totalInvestmentUsd = amount(summary, ['total_investment_usd']);
   const invested = totalInvestment ?? totalInvestmentUsd ?? amount(summary, ['invested_capital']);
@@ -100,7 +109,6 @@ export default function Portfolio() {
   const pendingDistributionUsd = amount(summary, ['pending_distribution_usd']);
   const pendingDistribution = reportedPendingDistribution ?? pendingDistributionUsd;
   const pendingDistributionCurrency = reportedPendingDistribution == null && pendingDistributionUsd != null ? 'USD' : currency || 'USD';
-  const availableBalance = availableBalanceFromDashboard(dashboardQuery.data);
   const dashboardInvestments = list(dashboard.my_investments);
   const assignedRows = rows.map((item, index) => {
     const trade = record(item.trade ?? item.project ?? item.trade_details);

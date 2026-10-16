@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   calculateExpectedProfitFromRoi,
+  ensurePortfolioValueIncludesAvailableBalance,
   formatDistributionStatus,
   formatReportedPayoutDate,
   parseRoiPercentageLabel,
@@ -14,6 +15,16 @@ test('calculates expected profit from the invested amount and ROI percentage', (
 test('does not invent expected profit when amount or ROI is missing', () => {
   assert.equal(calculateExpectedProfitFromRoi(null, 4), null);
   assert.equal(calculateExpectedProfitFromRoi(300, null), null);
+});
+
+test('portfolio value is never below its same-currency available wallet balance', () => {
+  assert.equal(ensurePortfolioValueIncludesAvailableBalance(0, 800, true), 800);
+  assert.equal(ensurePortfolioValueIncludesAvailableBalance(1_200, 800, true), 1_200);
+  assert.equal(ensurePortfolioValueIncludesAvailableBalance(null, 800, true), 800);
+});
+
+test('does not compare available balance against portfolio value in a different currency', () => {
+  assert.equal(ensurePortfolioValueIncludesAvailableBalance(1_000, 800, false), 1_000);
 });
 
 test('extracts a single percentage from the API ROI label, not an ambiguous range', () => {

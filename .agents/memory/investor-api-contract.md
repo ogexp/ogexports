@@ -73,6 +73,12 @@ The supplied Laravel source snapshot limits image uploads to 8 MB and permits PD
 
 **How to apply:** Confirm the deployed Laravel limits before claiming the full mobile 10 MB range works; coordinate a server-side limit change rather than silently lowering the mobile limit requested for this app.
 
+Portfolio Total Value is a current-holdings figure and must never be lower than the same-currency available wallet balance. It includes open (pending/active) investment principal, available and reserved wallet balances, and explicit pending distribution credits. Do not add confirmed distributions again when they are already reflected in the wallet. On mobile, preserve the server total when it is higher; if it is lower than the same-currency available balance, display at least the available balance. Never compare mixed currencies.
+
+**Why:** The user confirmed that Total Portfolio Value must include available funds and chose a current total that avoids counting paid-out returns twice.
+
+**How to apply:** Use dashboard-sourced values and their currency metadata. Reconcile only same-currency figures, keep confirmed returns separate when already in the wallet, and cover the available-balance floor with a regression test.
+
 For available-balance consistency requests, inspect both the investor mobile app and web portal. Use the dashboard's `summary.available_balance`, then its `wallet.available_balance` fallback, for investor-facing available-balance displays; do not fall back to the separate wallet endpoint's available-balance field when it disagrees. Keep investment and withdrawal enforcement server-side.
 
 **Why:** A mobile-only balance correction did not resolve the user's web preview, which still showed a different wallet-endpoint amount.

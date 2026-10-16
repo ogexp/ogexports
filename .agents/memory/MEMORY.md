@@ -1,4 +1,4 @@
-- [OG Exports API contract](investor-api-contract.md) — Laravel owns financial data; align available-balance displays across web/mobile and preserve explicit missing-money rules.
+- [OG Exports API contract](investor-api-contract.md) — Laravel owns financial data; align portfolio totals with available funds without counting paid returns twice.
 - [KYC latest-application ordering](kyc-latest-application-ordering.md) — break timestamp ties by descending ID so resubmissions keep status and application details aligned.
 - [Financial transaction IDs](financial-transaction-ids.md) — use the database primary ID itself as the exact 8-digit ID across backend and investor/admin interfaces.
 - [OG Exports mobile visual direction](og-exports-visual-direction.md) — premium light/emerald UI, five investor tabs, default-USD display currency, and source-currency transactions.
