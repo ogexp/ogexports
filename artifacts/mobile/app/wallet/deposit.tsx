@@ -259,6 +259,10 @@ export default function Deposit() {
         : 'Wait for the wallet currency to load before continuing.');
       return false;
     }
+    if (paymentCurrency !== 'USD') {
+      setError('A USD wallet is required before you can add funds.');
+      return false;
+    }
     if (!selectedPaymentMethod) {
       setError('Choose a payment method before continuing.');
       return false;
@@ -355,7 +359,7 @@ export default function Deposit() {
       : 'Your deposit request is under review. Your wallet balance will update when the deposit is credited.';
 
   return <Screen key={stage} title="Add funds" subtitle={selectedPaymentMethod
-    ? `Deposit via ${selectedPaymentMethod.label} · ${currencyCheckLoading ? 'confirming wallet currency' : paymentCurrency || 'wallet currency unavailable'}`
+    ? `Deposit via ${selectedPaymentMethod.label} · ${currencyCheckLoading ? 'confirming wallet currency' : paymentCurrency === 'USD' ? 'USD' : 'USD conversion pending'}`
     : 'Choose a payment method to get started'} refreshable>
     {stage === 'method' ? <>
       <Section title="1 · Payment Method" />
@@ -363,7 +367,16 @@ export default function Deposit() {
         Choose a deposit method. Bank details and amount fields will appear next.
       </Text>
       {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the wallet currency…</Text></Card> : null}
-      {DEPOSIT_PAYMENT_METHODS.map(method => {
+      {!currencyCheckLoading && !dashboardQuery.isError && paymentCurrency !== 'USD' ? <Card testID="deposit-usd-wallet-required">
+        <Text style={{ color: colors.foreground, fontWeight: '700' }}>USD wallet required</Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5 }}>
+          Your existing wallet must be converted to USD by OG Exports before you can add funds.
+        </Text>
+        <View style={{ marginTop: 10 }}>
+          <Action title="Refresh wallet status" icon="refresh-cw" loading={dashboardQuery.isFetching} onPress={() => void dashboardQuery.refetch()} />
+        </View>
+      </Card> : null}
+      {paymentCurrency === 'USD' ? DEPOSIT_PAYMENT_METHODS.map(method => {
         const selected = method.id === paymentMethodId;
         return <Pressable key={method.id} accessibilityRole="button" accessibilityState={{ selected }}
           testID={`deposit-payment-method-${method.id}`} onPress={() => {
@@ -404,7 +417,7 @@ export default function Deposit() {
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 9 }}>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.mutedForeground, fontSize: 9, letterSpacing: 0.6 }}>WALLET CURRENCY</Text>
-                <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700', marginTop: 2 }}>{currencyCheckLoading ? 'Checking…' : paymentCurrency || '—'}</Text>
+                <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '700', marginTop: 2 }}>{currencyCheckLoading ? 'Checking…' : paymentCurrency === 'USD' ? 'USD' : 'USD conversion pending'}</Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.mutedForeground, fontSize: 9, letterSpacing: 0.6 }}>FEES</Text>
@@ -413,7 +426,7 @@ export default function Deposit() {
             </View>
           </Card>
         </Pressable>;
-      })}
+      }) : null}
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 10 }}>{error}</Text> : null}
     </> : null}
 
@@ -421,11 +434,11 @@ export default function Deposit() {
       <Section title="2 · Deposit Details" />
       {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the wallet currency…</Text></Card> : null}
       {dashboardQuery.isError ? <ErrorState message="Wallet currency could not be loaded." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} /> : null}
-      {!dashboardQuery.isError && (paymentCurrency || currencyCheckLoading) ? <>
+      {!dashboardQuery.isError && (paymentCurrency === 'USD' || currencyCheckLoading) ? <>
         <Section title="Amount" />
         <Card>
           <Field
-            label={`Deposit amount (${paymentCurrency || 'checking currency'})`}
+            label="Deposit amount (USD)"
             value={amount}
             onChangeText={setAmount}
             placeholder="0.00"

@@ -161,35 +161,35 @@ export default function Withdraw() {
     dashboardQuery.data,
     first(wallet, ['currency', 'default_currency'], ''),
   ).toUpperCase();
-  const walletCurrencyReady = /^[A-Z]{3}$/.test(walletCurrency);
+  const usdWalletReady = walletCurrency === 'USD';
   const currencyCheckLoading = dashboardQuery.isLoading || dashboardQuery.isFetching;
-  const availableBalance = walletCurrencyReady ? availableBalanceFromDashboard(dashboardQuery.data) : null;
-  const pendingBalance = walletCurrencyReady ? readAmount(wallet, ['pending_balance']) : null;
+  const availableBalance = usdWalletReady ? availableBalanceFromDashboard(dashboardQuery.data) : null;
+  const pendingBalance = usdWalletReady ? readAmount(wallet, ['pending_balance']) : null;
   const savedBankDetails = useMemo(() => savedWithdrawalBank(profile), [profile]);
   const withdrawals = list(historyQuery.data);
   const withdrawalTerms = resolveWithdrawalDisplayTerms({
-    apiFee: walletCurrencyReady
+    apiFee: usdWalletReady
       ? readAmount(dashboard, ['withdrawal_fee', 'transaction_fee', 'fee'])
         ?? readAmount(wallet, ['withdrawal_fee', 'transaction_fee', 'fee'])
       : null,
-    apiFeeUsd: walletCurrencyReady
+    apiFeeUsd: usdWalletReady
       ? readAmount(dashboard, ['withdrawal_fee_usd']) ?? readAmount(wallet, ['withdrawal_fee_usd'])
       : null,
-    apiFeeCurrency: walletCurrencyReady
+    apiFeeCurrency: usdWalletReady
       ? first(dashboard, ['withdrawal_fee_currency'], first(wallet, ['withdrawal_fee_currency']))
-      : '',
+      : 'USD',
     apiProcessingTime: first(dashboard, ['estimated_processing_time', 'processing_time'],
       first(wallet, ['estimated_processing_time', 'processing_time'])),
-    apiMinimumWithdrawal: walletCurrencyReady
+    apiMinimumWithdrawal: usdWalletReady
       ? readAmount(dashboard, ['minimum_withdrawal_amount']) ?? readAmount(wallet, ['minimum_withdrawal_amount'])
       : null,
-    apiMinimumWithdrawalUsd: walletCurrencyReady
+    apiMinimumWithdrawalUsd: usdWalletReady
       ? readAmount(dashboard, ['minimum_withdrawal_usd']) ?? readAmount(wallet, ['minimum_withdrawal_usd'])
       : null,
-    apiMinimumWithdrawalCurrency: walletCurrencyReady
+    apiMinimumWithdrawalCurrency: usdWalletReady
       ? first(dashboard, ['minimum_withdrawal_currency'], first(wallet, ['minimum_withdrawal_currency']))
-      : '',
-    walletCurrency,
+      : 'USD',
+    walletCurrency: 'USD',
   });
   const {
     fee,
@@ -224,9 +224,9 @@ export default function Withdraw() {
   const [selectedWithdrawalId, setSelectedWithdrawalId] = useState('');
   const [receiptBusy, setReceiptBusy] = useState(false);
   const [receiptError, setReceiptError] = useState('');
-  const withdrawalCurrency = walletCurrencyReady ? walletCurrency : '';
+  const withdrawalCurrency = 'USD';
   const maxPayout = maximumWithdrawalPayout(availableBalance, fee);
-  const minimumPayoutForValidation = minimumWithdrawalAmount;
+  const minimumPayoutForValidation = minimumWithdrawalAmount ?? withdrawalTerms.minimumWithdrawalUsd;
   const amountNumber = fee == null || minimumPayoutForValidation == null
     ? null
     : parseWithdrawalAmount(amount, availableBalance, fee, minimumPayoutForValidation);
@@ -274,8 +274,8 @@ export default function Withdraw() {
       setError('Wait for the wallet currency to be confirmed before continuing.');
       return;
     }
-    if (!walletCurrencyReady) {
-      setError('Your wallet currency is not available yet. Refresh your wallet details and try again.');
+    if (!usdWalletReady) {
+      setError('A USD wallet is required before you can request a withdrawal.');
       return;
     }
     try {
@@ -298,8 +298,8 @@ export default function Withdraw() {
       setError('Wait for the wallet currency to be confirmed before continuing.');
       return;
     }
-    if (!walletCurrencyReady) {
-      setError('Your wallet currency is not available yet. Refresh your wallet details and try again.');
+    if (!usdWalletReady) {
+      setError('A USD wallet is required before you can request a withdrawal.');
       return;
     }
     if (dashboardQuery.isError || dashboardQuery.isFetching) {
@@ -340,8 +340,8 @@ export default function Withdraw() {
       setError('Wait for the wallet currency to be confirmed before continuing.');
       return;
     }
-    if (!walletCurrencyReady) {
-      setError('Your wallet currency is not available yet. Refresh your wallet details and try again.');
+    if (!usdWalletReady) {
+      setError('A USD wallet is required before you can request a withdrawal.');
       return;
     }
     if (dashboardQuery.isError || dashboardQuery.isFetching) {
@@ -422,17 +422,17 @@ export default function Withdraw() {
     {dashboardQuery.isError && availableBalance == null
       ? <ErrorState message="Withdrawable balance could not be loaded." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} />
       : null}
-    {!dashboardQuery.isLoading && !dashboardQuery.isError && walletCurrencyReady && availableBalance == null
+    {!dashboardQuery.isLoading && !dashboardQuery.isError && usdWalletReady && availableBalance == null
       ? <ErrorState message="Available balance was not returned by OG Exports." onRetry={() => void dashboardQuery.refetch()} />
       : null}
     {stage === 'overview' ? <>
-      {!currencyCheckLoading && !dashboardQuery.isError && !walletCurrencyReady ? <Card testID="withdraw-wallet-currency-unavailable" style={{ borderColor: colors.primary, borderWidth: 1 }}>
-        <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>Wallet currency unavailable</Text>
+      {!currencyCheckLoading && !dashboardQuery.isError && !usdWalletReady ? <Card testID="withdraw-usd-wallet-pending" style={{ borderColor: colors.primary, borderWidth: 1 }}>
+        <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>USD wallet required</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 6 }}>
-          OG Exports has not returned the currency for your app wallet yet. Refresh the wallet details before continuing.
+          Your wallet must be converted to USD on the server before withdrawal. Your balance is hidden until then.
         </Text>
         <View style={{ marginTop: 12 }}>
-          <Action title="Refresh wallet details" icon="refresh-cw" loading={dashboardQuery.isFetching} onPress={() => void dashboardQuery.refetch()} />
+          <Action title="Refresh wallet status" icon="refresh-cw" loading={dashboardQuery.isFetching} onPress={() => void dashboardQuery.refetch()} />
         </View>
       </Card> : null}
       {notice ? <Text style={{ color: colors.primary, fontSize: 12, lineHeight: 18 }}>{notice}</Text> : null}
@@ -441,19 +441,19 @@ export default function Withdraw() {
         <Card style={{ flex: 1, borderTopWidth: 3, borderTopColor: colors.border }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '600' }}>Available balance</Text>
           <Text style={{ color: colors.foreground, fontSize: 19, fontWeight: '700', marginTop: 7 }}>
-            {availableBalance == null ? 'Unavailable' : money(availableBalance, walletCurrency)}
+            {availableBalance == null ? 'Unavailable' : money(availableBalance, 'USD')}
           </Text>
         </Card>
         <Card style={{ flex: 1, borderTopWidth: 3, borderTopColor: colors.primary }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '600' }}>Withdrawable balance</Text>
           <Text style={{ color: colors.primary, fontSize: 19, fontWeight: '700', marginTop: 7 }}>
-            {availableBalance == null ? 'Unavailable' : money(availableBalance, walletCurrency)}
+            {availableBalance == null ? 'Unavailable' : money(availableBalance, 'USD')}
           </Text>
         </Card>
       </View>
       <Card>
         <Text style={{ color: colors.foreground, fontWeight: '700', marginBottom: 3 }}>Withdrawal limits</Text>
-        <DetailRow label="Minimum withdrawal" value={minimumWithdrawalAmount == null ? 'Unavailable' : money(minimumWithdrawalAmount, walletCurrency)} />
+        <DetailRow label="Minimum withdrawal" value={money(minimumPayoutForValidation, 'USD')} />
       </Card>
       {availableBalance != null && minimumWithdrawalAmount != null && availableBalance < minimumWithdrawalAmount
         ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17 }}>
@@ -469,10 +469,10 @@ export default function Withdraw() {
         </View>
         <DetailRow label="Processing time" value={processingTime || 'Not provided'} />
         <DetailRow label="Tax treatment" value={taxTreatment || 'Not specified'} />
-        <DetailRow label="Wallet currency" value={currencyCheckLoading ? 'Checking…' : walletCurrencyReady ? walletCurrency : 'Not provided'} />
+        <DetailRow label="Wallet currency" value={currencyCheckLoading ? 'Checking…' : usdWalletReady ? 'USD' : 'USD conversion pending'} />
       </Card>
       {pendingBalance != null && pendingBalance > 0 ? <Card>
-        <DetailRow label="Pending withdrawals reserved" value={money(pendingBalance, walletCurrency)} />
+        <DetailRow label="Pending withdrawals reserved" value={money(pendingBalance, 'USD')} />
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 6 }}>
           Pending requests are reserved funds, not completed wallet movements.
         </Text>
@@ -481,7 +481,7 @@ export default function Withdraw() {
         <Action
           title="Proceed to Withdraw"
           icon="arrow-right"
-          disabled={currencyCheckLoading || dashboardQuery.isError || !walletCurrencyReady}
+          disabled={currencyCheckLoading || dashboardQuery.isError || !usdWalletReady}
           onPress={() => { setError(''); setNotice(''); setBankDetailsTouched(false); setStage('form'); }}
         />
       </Card>
@@ -490,10 +490,10 @@ export default function Withdraw() {
     {stage === 'form' ? <Card>
       <Section title="Bank Details & Amount" />
       {currencyCheckLoading ? <Card><Text style={{ color: colors.mutedForeground }}>Confirming the wallet currency…</Text></Card> : null}
-      {!currencyCheckLoading && !walletCurrencyReady ? <Card testID="withdraw-wallet-currency-unavailable">
-        <Text style={{ color: colors.foreground, fontWeight: '700' }}>Wallet currency unavailable</Text>
+      {!currencyCheckLoading && !usdWalletReady ? <Card testID="withdraw-usd-wallet-required">
+        <Text style={{ color: colors.foreground, fontWeight: '700' }}>USD wallet required</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5 }}>
-          Refresh the wallet details to confirm the currency for this withdrawal.
+          This withdrawal cannot continue until your app wallet has been converted to USD.
         </Text>
       </Card> : null}
       {profileQuery.isError ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginBottom: 8 }}>
@@ -520,7 +520,7 @@ export default function Withdraw() {
           }
         }}
       />
-      {!dashboardQuery.isError && walletCurrencyReady ? <Field
+      {!dashboardQuery.isError && usdWalletReady ? <Field
         label="Withdrawal amount"
         value={amount}
         onChangeText={value => { setAmount(value); setError(''); }}
@@ -529,9 +529,9 @@ export default function Withdraw() {
         autoCapitalize="none"
         editable={!currencyCheckLoading && !appPreferences.isSaving}
       /> : null}
-      {!currencyCheckLoading && !dashboardQuery.isError && walletCurrencyReady ? <>
-        <DetailRow label="Wallet currency" value={walletCurrency} />
-        <DetailRow label="Minimum withdrawal" value={minimumWithdrawalAmount == null ? 'Unavailable' : money(minimumWithdrawalAmount, walletCurrency)} />
+      {!currencyCheckLoading && !dashboardQuery.isError && usdWalletReady ? <>
+        <DetailRow label="Wallet currency" value="USD" />
+        <DetailRow label="Minimum withdrawal" value={money(minimumPayoutForValidation, 'USD')} />
         {amount.trim() && amountNumber == null ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 11, lineHeight: 16, marginTop: 3 }}>
           {amountBelowMinimum
             ? 'Payout must meet the minimum withdrawal shown above.'
@@ -539,14 +539,14 @@ export default function Withdraw() {
         </Text> : null}
         <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4, marginBottom: 12 }}>
           <Text>Maximum payout after fee:</Text>
-          <Text> {maxPayout == null ? 'Unavailable' : money(maxPayout, walletCurrency)}</Text>
+          <Text> {maxPayout == null ? 'Unavailable' : money(maxPayout, 'USD')}</Text>
         </Text>
         <DetailRow
           label="Withdrawal fee"
-          value={fee != null ? money(fee, walletCurrency) : 'Unavailable'}
+          value={fee != null ? money(fee, 'USD') : 'Unavailable'}
         />
         {amountNumber != null && fee != null
-          ? <DetailRow label="Total wallet debit" value={money(amountNumber + fee, walletCurrency)} />
+          ? <DetailRow label="Total wallet debit" value={money(amountNumber + fee, 'USD')} />
           : null}
       </> : null}
       <Field label="Bank name *" value={bankName} onChangeText={value => { setBankDetailsTouched(true); setAutoFillBank(false); setBankName(value); setError(''); }} placeholder="Bank name" autoCapitalize="words" maxLength={255} />
@@ -587,7 +587,7 @@ export default function Withdraw() {
             title="Continue to Security"
             icon="arrow-right"
             loading={sendOtp.isPending}
-            disabled={currencyCheckLoading || dashboardQuery.isError || !walletCurrencyReady}
+            disabled={currencyCheckLoading || dashboardQuery.isError || !usdWalletReady}
             onPress={() => void continueToSecurity()}
           />
         </View>
@@ -651,7 +651,7 @@ export default function Withdraw() {
             title="Verify & Continue"
             icon="arrow-right"
             loading={create.isPending}
-            disabled={otp.length !== 6 || !hasTransactionPasswordInput || currencyCheckLoading || !walletCurrencyReady}
+            disabled={otp.length !== 6 || !hasTransactionPasswordInput || currencyCheckLoading || !usdWalletReady}
             onPress={() => void submit()}
           />
         </View>

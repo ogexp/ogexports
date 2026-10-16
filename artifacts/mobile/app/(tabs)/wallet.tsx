@@ -38,9 +38,10 @@ function displayDate(value: string) {
 
 function balanceLabel(value: number | null, currency: string, loading: boolean, error: boolean) {
   if (loading) return 'Loading…';
+  if (currency !== 'USD') return currency ? 'USD conversion pending' : 'Unavailable';
   if (error && value == null) return 'Unavailable';
-  if (value == null) return money(null, currency || 'USD');
-  return money(value, currency || 'USD');
+  if (value == null) return money(null, 'USD');
+  return money(value, 'USD');
 }
 
 export default function Wallet() {
@@ -60,8 +61,9 @@ export default function Wallet() {
   const walletData = record(record(wallet.data).data ?? wallet.data);
   const currency = walletCurrencyFromDashboard(
     dashboard.data,
-    first(walletData, ['currency', 'default_currency'], 'USD'),
+    first(walletData, ['currency', 'default_currency'], ''),
   );
+  const usdWalletReady = currency === 'USD';
   const available = availableBalanceFromDashboard(dashboard.data);
   const allocated = amount(walletData, ['allocated_to_trades', 'allocated_balance']);
   const pending = amount(walletData, ['pending_balance']);
@@ -140,9 +142,19 @@ export default function Wallet() {
       </Text>
       </MotionReveal>
       <Text style={{ color: colors.balanceCardText, fontSize: 11, opacity: 0.82, marginTop: 7 }}>
-        {currency || 'USD'} account
+        {usdWalletReady ? 'USD account' : currency ? 'USD conversion pending' : 'Wallet currency unavailable'}
       </Text>
     </LinearGradient>
+
+    {!dashboard.isLoading && !dashboard.isError && !usdWalletReady ? <Card testID="wallet-usd-conversion-pending">
+      <Text style={{ color: colors.foreground, fontWeight: '700' }}>USD wallet required</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5 }}>
+        Your existing wallet must be converted to USD by OG Exports before wallet actions can continue. Balances are hidden until then.
+      </Text>
+      <View style={{ marginTop: 10 }}>
+        <Action title="Refresh wallet status" icon="refresh-cw" loading={dashboard.isFetching} onPress={() => void dashboard.refetch()} />
+      </View>
+    </Card> : null}
 
     <Section title="Balance Breakdown" />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
@@ -167,8 +179,8 @@ export default function Wallet() {
 
     <Section title="Quick Actions" />
     <View style={{ flexDirection: 'row', gap: 10 }}>
-      <View style={{ flex: 1 }}><Action title="Add Funds" icon="plus" onPress={() => router.push('/wallet/deposit')} /></View>
-      <View style={{ flex: 1 }}><Action title="Withdraw" icon="arrow-up-right" secondary onPress={() => router.push('/wallet/withdraw')} /></View>
+      <View style={{ flex: 1 }}><Action title="Add Funds" icon="plus" disabled={!usdWalletReady} onPress={() => router.push('/wallet/deposit')} /></View>
+      <View style={{ flex: 1 }}><Action title="Withdraw" icon="arrow-up-right" secondary disabled={!usdWalletReady} onPress={() => router.push('/wallet/withdraw')} /></View>
     </View>
 
     <Section title="Transaction History" right={<Pressable
