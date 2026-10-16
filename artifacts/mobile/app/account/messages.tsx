@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useGetPublicInvestorAppSettings, getGetPublicInvestorAppSettingsQueryKey, useGetInvestorAdminConversation, useGetInvestorConversationMessages, useSendInvestorConversationMessage, useMarkInvestorConversationRead, useGetInvestorSupportTickets, useGetInvestorSupportTicket, useMarkInvestorSupportTicketRead, useReplyInvestorSupportTicket, useCreateInvestorSupportTicket } from '@workspace/api-client-react';
+import { useGetPublicInvestorAppSettings, getGetPublicInvestorAppSettingsQueryKey, useGetInvestorAdminConversation, useGetInvestorConversationMessages, useSendInvestorConversationMessage, useGetInvestorSupportTickets, useCreateInvestorSupportTicket } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback } from '@/components/InvestorUI';
 import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
@@ -124,15 +124,13 @@ function TicketStatusProgress({ status }: { status: string }) {
 
 export default function Messages() {
   const params = useLocalSearchParams<{ mode?: string; subject?: string; body?: string }>();
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<SupportMode>('help');
   const [message, setMessage] = useState('');
   const [subject, setSubject] = useState('');
   const [ticketBody, setTicketBody] = useState('');
-  const [ticketReply, setTicketReply] = useState('');
-  const [selectedTicketId, setSelectedTicketId] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [chatSentVisible, setChatSentVisible] = useState(false);
@@ -156,8 +154,7 @@ export default function Messages() {
   const conversationQuery = useGetInvestorAdminConversation({
     query: { queryKey: ['investor-admin-conversation'], enabled: !!token && mode === 'chat' },
   });
-  const conversationResult = unwrap(conversationQuery.data);
-  const conversation = record(conversationResult.conversation ?? conversationResult);
+  const conversation = unwrap(conversationQuery.data);
   const conversationId = first(conversation, ['id', 'conversation_id'], '');
   const messagesQuery = useGetInvestorConversationMessages(conversationId, {
     query: {
@@ -168,44 +165,17 @@ export default function Messages() {
     },
   });
   const send = useSendInvestorConversationMessage();
-  const markConversationRead = useMarkInvestorConversationRead();
   const ticketsQuery = useGetInvestorSupportTickets({
     query: { queryKey: ['investor-support-tickets'], enabled: !!token && mode === 'tickets' },
   });
-  const ticketDetailQuery = useGetInvestorSupportTicket(selectedTicketId, {
-    query: { queryKey: ['investor-support-ticket', selectedTicketId], enabled: !!token && !!selectedTicketId && mode === 'tickets' },
-  });
-  const markTicketRead = useMarkInvestorSupportTicketRead();
-  const replyTicket = useReplyInvestorSupportTicket();
   const createTicket = useCreateInvestorSupportTicket();
   const messages = list(messagesQuery.data);
   const tickets = list(ticketsQuery.data);
-  const selectedTicket = unwrap(ticketDetailQuery.data);
-  const ticketMessages = list(selectedTicket.messages);
   const chatMessages = [...messages].sort((left, right) => {
     const leftTime = Date.parse(first(left, ['created_at', 'date'], ''));
     const rightTime = Date.parse(first(right, ['created_at', 'date'], ''));
     return Number.isFinite(leftTime) && Number.isFinite(rightTime) ? rightTime - leftTime : 0;
   });
-  const userId = first(record(user), ['id'], '');
-  const lastReadTimestamp = useRef(0);
-  const lastTicketReadTimestamps = useRef<Record<string, number>>({});
-
-  useEffect(() => {
-    if (mode !== 'chat' || !conversationId || !messagesQuery.isSuccess) return;
-    if (messagesQuery.dataUpdatedAt <= lastReadTimestamp.current) return;
-    lastReadTimestamp.current = messagesQuery.dataUpdatedAt;
-    void markConversationRead.mutateAsync({ conversation: conversationId }).catch(() => undefined);
-  }, [mode, conversationId, messagesQuery.dataUpdatedAt, messagesQuery.isSuccess]);
-
-  useEffect(() => {
-    if (mode !== 'tickets' || !selectedTicketId || !ticketDetailQuery.isSuccess) return;
-    if (ticketDetailQuery.dataUpdatedAt <= (lastTicketReadTimestamps.current[selectedTicketId] || 0)) return;
-    lastTicketReadTimestamps.current[selectedTicketId] = ticketDetailQuery.dataUpdatedAt;
-    void markTicketRead.mutateAsync({ id: selectedTicketId })
-      .then(() => ticketsQuery.refetch())
-      .catch(() => undefined);
-  }, [mode, selectedTicketId, ticketDetailQuery.dataUpdatedAt, ticketDetailQuery.isSuccess]);
 
   useEffect(() => {
     if (!chatSentVisible) return;
@@ -218,7 +188,7 @@ export default function Messages() {
     setNotice('');
     if (!conversationId || !message.trim()) return;
     try {
-      await send.mutateAsync({ conversation: conversationId, data: { body: message.trim() } });
+      await send.mutateAsync({ conversation: conversationId, data: { message: message.trim() } });
       motionHaptic('success');
       setMessage('');
       setChatSentCount(count => count + 1);
@@ -235,25 +205,13 @@ export default function Messages() {
       return;
     }
     try {
-      await createTicket.mutateAsync({ data: { subject: subject.trim(), body: ticketBody.trim() } });
+      await createTicket.mutateAsync({ data: { subject: subject.trim(), message: ticketBody.trim() } });
       setSubject('');
       setTicketBody('');
       setNotice('Your support ticket was sent. Its latest status will appear in ticket history.');
       setTicketFeedbackVisible(true);
       setMode('tickets');
       void ticketsQuery.refetch();
-    } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
-  }
-
-  async function sendTicketReply() {
-    const body = ticketReply.trim();
-    if (!selectedTicketId || !body) return;
-    setError('');
-    try {
-      await replyTicket.mutateAsync({ id: selectedTicketId, data: { body } });
-      setTicketReply('');
-      motionHaptic('success');
-      await Promise.all([ticketDetailQuery.refetch(), ticketsQuery.refetch()]);
     } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
   }
 
@@ -364,8 +322,7 @@ export default function Messages() {
                 : <EmptyState title="Start a conversation" body="Send a message to investor support. Replies will appear here." />
           }
           renderItem={({ item, index }) => {
-            const senderId = first(item, ['sender_id'], first(record(item.sender), ['id'], ''));
-            const own = senderId === userId;
+            const own = /investor|user/i.test(first(record(item.sender), ['role', 'type'], first(item, ['sender_type', 'role'], '')));
             const messageId = first(item, ['id'], first(item, ['created_at', 'date'], String(index)));
             return <ChatBubbleReveal key={messageId} id={messageId} seenIds={animatedChatMessageIds}>
               <Card style={{ backgroundColor: own ? colors.secondary : colors.card, alignSelf: own ? 'flex-end' : 'stretch', width: own ? '88%' : '100%' }}>
@@ -403,10 +360,8 @@ export default function Messages() {
       {tickets.length === 0 && !ticketsQuery.isLoading && !ticketsQuery.isError ? <EmptyState title="No tickets yet" body="Tickets you create will appear here with their latest status." /> : null}
       {tickets.map((item, index) => {
         const status = first(item, ['status'], '');
-        const id = first(item, ['id'], '');
-        return <MotionReveal key={id || String(index)} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Open support ticket ${first(item, ['subject'], 'Support ticket')}`} onPress={() => { setSelectedTicketId(id); setError(''); }}>
-        <Card style={{ borderColor: selectedTicketId === id ? colors.primary : colors.border }}>
+        return <MotionReveal key={first(item, ['id'], String(index))} delay={Math.min(index * MOTION.revealStagger, MOTION.staggerCap)}>
+        <Card>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
             <Text style={{ color: colors.foreground, fontWeight: '700', flex: 1 }}>{first(item, ['subject', 'title'], 'Support ticket')}</Text>
             <Status value={normalizedTicketStatus(status) || status || '—'} />
@@ -418,32 +373,8 @@ export default function Messages() {
             ? <TicketStatusProgress status={status} />
             : null}
         </Card>
-        </Pressable>
         </MotionReveal>;
       })}
-      {selectedTicketId ? <Card>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 15 }}>
-              {first(selectedTicket, ['subject'], 'Ticket details')}
-            </Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 4 }}>
-              {first(selectedTicket, ['ticket_number'], `Ticket #${selectedTicketId}`)} · {first(selectedTicket, ['status'], 'open')}
-            </Text>
-          </View>
-          <Action title="Close" icon="x" onPress={() => { setSelectedTicketId(''); setTicketReply(''); }} />
-        </View>
-        {ticketDetailQuery.isLoading ? <Text style={{ color: colors.mutedForeground, marginTop: 12 }}>Loading ticket conversation…</Text> : null}
-        {ticketDetailQuery.isError ? <ErrorState message="Ticket details could not be loaded." error={ticketDetailQuery.error} onRetry={() => void ticketDetailQuery.refetch()} /> : null}
-        {ticketMessages.map((item, index) => <View key={first(item, ['id'], String(index))} style={{ paddingVertical: 10, borderTopWidth: 1, borderTopColor: colors.border, marginTop: 10 }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>
-            {first(record(item.user), ['name'], 'Support')} · {first(item, ['created_at'], '')}
-          </Text>
-          <Text style={{ color: colors.foreground, lineHeight: 20, marginTop: 4 }}>{first(item, ['body', 'message'], '')}</Text>
-        </View>)}
-        <Field label="Reply" value={ticketReply} onChangeText={setTicketReply} placeholder="Add information or reply to support…" multiline />
-        <Action title="Send reply" icon="send" loading={replyTicket.isPending} disabled={!ticketReply.trim()} onPress={() => void sendTicketReply()} />
-      </Card> : null}
     </> : null}
 
     <SuccessFeedback

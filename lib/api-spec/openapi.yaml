@@ -439,21 +439,6 @@ paths:
       security: [{ BearerAuth: [] }]
       responses:
         "200": { description: Rates, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
-  /investor/wallet/convert-to-usd:
-    post:
-      operationId: convertInvestorWalletToUsd
-      tags: [investor]
-      summary: Convert the authenticated investor's wallet to USD
-      security: [{ BearerAuth: [] }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/InvestorWalletConversionRequest" }
-      responses:
-        "200": { description: Converted USD wallet, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
-        "409": { description: Exchange quote changed; review and confirm the new quote }
-        "422": { description: Wallet has unresolved financial activity and cannot be converted }
   /investor/deposit-options:
     get:
       operationId: getInvestorDepositOptions
@@ -805,19 +790,9 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/SupportConversationMessageInput" }
+            schema: { $ref: "#/components/schemas/JsonObject" }
       responses:
         "201": { description: Message created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
-  /conversations/{conversation}/read:
-    post:
-      operationId: markInvestorConversationRead
-      tags: [communication]
-      summary: Mark the investor support conversation as read
-      security: [{ BearerAuth: [] }]
-      parameters:
-        - { name: conversation, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { description: Conversation marked as read, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /support/tickets:
     get:
       operationId: getInvestorSupportTickets
@@ -835,44 +810,9 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/SupportTicketInput" }
+            schema: { $ref: "#/components/schemas/JsonObject" }
       responses:
         "201": { description: Ticket created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
-  /support/tickets/{id}:
-    get:
-      operationId: getInvestorSupportTicket
-      tags: [communication]
-      summary: Get a support ticket and its replies
-      security: [{ BearerAuth: [] }]
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { description: Support ticket, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
-  /support/tickets/{id}/read:
-    post:
-      operationId: markInvestorSupportTicketRead
-      tags: [communication]
-      summary: Mark a support ticket as read
-      security: [{ BearerAuth: [] }]
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      responses:
-        "200": { description: Ticket marked as read, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
-  /support/tickets/{id}/reply:
-    post:
-      operationId: replyInvestorSupportTicket
-      tags: [communication]
-      summary: Reply to an investor support ticket
-      security: [{ BearerAuth: [] }]
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/SupportTicketReplyInput" }
-      responses:
-        "201": { description: Reply created, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /auth/login:
     post:
       operationId: adminSessionLogin
@@ -2116,33 +2056,6 @@ components:
       type: object
       properties:
         notes: { type: ["string", "null"], maxLength: 2000 }
-    InvestorWalletConversionRequest:
-      type: object
-      required: [confirmed, expected_to_amount, expected_exchange_rate]
-      properties:
-        confirmed: { type: boolean, enum: [true] }
-        expected_to_amount: { type: number, minimum: 0 }
-        expected_exchange_rate: { type: number, exclusiveMinimum: 0 }
-        rates_as_of: { type: ["string", "null"] }
-    SupportConversationMessageInput:
-      type: object
-      required: [body]
-      properties:
-        body: { type: string, minLength: 1, maxLength: 5000 }
-    SupportTicketInput:
-      type: object
-      required: [subject, body]
-      properties:
-        subject: { type: string, minLength: 1, maxLength: 255 }
-        body: { type: string, minLength: 1, maxLength: 5000 }
-        contact_name: { type: ["string", "null"], maxLength: 255 }
-        contact_email: { type: ["string", "null"], format: email, maxLength: 255 }
-        contact_phone: { type: ["string", "null"], maxLength: 50 }
-    SupportTicketReplyInput:
-      type: object
-      required: [body]
-      properties:
-        body: { type: string, minLength: 1, maxLength: 5000 }
     JsonObject:
       type: object
       additionalProperties: true
