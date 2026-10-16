@@ -67,7 +67,10 @@ import type {
   ProjectStageUpdateResponse,
   ProjectTradeUpdateInput,
   ProjectTradeUpdateList,
-  ProjectTradeUpdateResponse
+  ProjectTradeUpdateResponse,
+  SupportConversationMessageInput,
+  SupportTicketInput,
+  SupportTicketReplyInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -5618,7 +5621,7 @@ export const getSendInvestorConversationMessageUrl = (conversation: string,) => 
  * @summary Send a support conversation message
  */
 export const sendInvestorConversationMessage = async (conversation: string,
-    jsonObject: JsonObject, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+    supportConversationMessageInput: SupportConversationMessageInput, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -5639,7 +5642,7 @@ return customFetch<JsonObject>(getSendInvestorConversationMessageUrl(conversatio
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(jsonObject)
+    body: JSON.stringify(supportConversationMessageInput)
   }
 );}
 
@@ -5677,9 +5680,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type SendInvestorConversationMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendInvestorConversationMessage>>>
-    export type SendInvestorConversationMessageMutationBody = BodyType<JsonObject>
+    export type SendInvestorConversationMessageMutationBody = BodyType<SupportConversationMessageInput>
     export type SendInvestorConversationMessageMutationError = ErrorType<unknown>
-    export type SendInvestorConversationMessageMutationVariables = {conversation: string;data: BodyType<JsonObject>}
+    export type SendInvestorConversationMessageMutationVariables = {conversation: string;data: BodyType<SupportConversationMessageInput>}
 
     /**
  * @summary Send a support conversation message
@@ -5693,6 +5696,80 @@ export const useSendInvestorConversationMessage = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getSendInvestorConversationMessageMutationOptions(options));
+    }
+
+export const getMarkInvestorConversationReadUrl = (conversation: string,) => {
+
+
+
+
+  return `/api/conversations/${conversation}/read`
+}
+
+/**
+ * @summary Mark the investor support conversation as read
+ */
+export const markInvestorConversationRead = async (conversation: string, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getMarkInvestorConversationReadUrl(conversation),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkInvestorConversationReadMutationKey = () => ['markInvestorConversationRead'] as const;
+
+export const getMarkInvestorConversationReadMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markInvestorConversationRead>>, TError,MarkInvestorConversationReadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markInvestorConversationRead>>, TError,MarkInvestorConversationReadMutationVariables, TContext> => {
+
+const mutationKey = getMarkInvestorConversationReadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markInvestorConversationRead>>, MarkInvestorConversationReadMutationVariables> = (props) => {
+          const {conversation} = props ?? {};
+
+          return  markInvestorConversationRead(conversation,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkInvestorConversationReadMutationResult = NonNullable<Awaited<ReturnType<typeof markInvestorConversationRead>>>
+
+    export type MarkInvestorConversationReadMutationError = ErrorType<unknown>
+    export type MarkInvestorConversationReadMutationVariables = {conversation: string}
+
+    /**
+ * @summary Mark the investor support conversation as read
+ */
+export const useMarkInvestorConversationRead = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markInvestorConversationRead>>, TError,MarkInvestorConversationReadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markInvestorConversationRead>>,
+        TError,
+        MarkInvestorConversationReadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMarkInvestorConversationReadMutationOptions(options));
     }
 
 export const getGetInvestorSupportTicketsUrl = () => {
@@ -5783,7 +5860,7 @@ export const getCreateInvestorSupportTicketUrl = () => {
 /**
  * @summary Create a support ticket
  */
-export const createInvestorSupportTicket = async (jsonObject: JsonObject, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+export const createInvestorSupportTicket = async (supportTicketInput: SupportTicketInput, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -5804,7 +5881,7 @@ return customFetch<JsonObject>(getCreateInvestorSupportTicketUrl(),
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(jsonObject)
+    body: JSON.stringify(supportTicketInput)
   }
 );}
 
@@ -5842,9 +5919,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateInvestorSupportTicketMutationResult = NonNullable<Awaited<ReturnType<typeof createInvestorSupportTicket>>>
-    export type CreateInvestorSupportTicketMutationBody = BodyType<JsonObject>
+    export type CreateInvestorSupportTicketMutationBody = BodyType<SupportTicketInput>
     export type CreateInvestorSupportTicketMutationError = ErrorType<unknown>
-    export type CreateInvestorSupportTicketMutationVariables = {data: BodyType<JsonObject>}
+    export type CreateInvestorSupportTicketMutationVariables = {data: BodyType<SupportTicketInput>}
 
     /**
  * @summary Create a support ticket
@@ -5858,6 +5935,246 @@ export const useCreateInvestorSupportTicket = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateInvestorSupportTicketMutationOptions(options));
+    }
+
+export const getGetInvestorSupportTicketUrl = (id: string,) => {
+
+
+
+
+  return `/api/support/tickets/${id}`
+}
+
+/**
+ * @summary Get a support ticket and its replies
+ */
+export const getInvestorSupportTicket = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getGetInvestorSupportTicketUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInvestorSupportTicketQueryKey = (id: string,) => {
+    return [
+    `/api/support/tickets/${id}`
+    ] as const;
+    }
+
+
+export const getGetInvestorSupportTicketQueryOptions = <TData = Awaited<ReturnType<typeof getInvestorSupportTicket>>, TError = ErrorType<unknown>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorSupportTicket>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInvestorSupportTicketQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInvestorSupportTicket>>> = ({ signal }) => getInvestorSupportTicket(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInvestorSupportTicket>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInvestorSupportTicketQueryResult = NonNullable<Awaited<ReturnType<typeof getInvestorSupportTicket>>>
+export type GetInvestorSupportTicketQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a support ticket and its replies
+ */
+
+export function useGetInvestorSupportTicket<TData = Awaited<ReturnType<typeof getInvestorSupportTicket>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorSupportTicket>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInvestorSupportTicketQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getMarkInvestorSupportTicketReadUrl = (id: string,) => {
+
+
+
+
+  return `/api/support/tickets/${id}/read`
+}
+
+/**
+ * @summary Mark a support ticket as read
+ */
+export const markInvestorSupportTicketRead = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getMarkInvestorSupportTicketReadUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkInvestorSupportTicketReadMutationKey = () => ['markInvestorSupportTicketRead'] as const;
+
+export const getMarkInvestorSupportTicketReadMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markInvestorSupportTicketRead>>, TError,MarkInvestorSupportTicketReadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markInvestorSupportTicketRead>>, TError,MarkInvestorSupportTicketReadMutationVariables, TContext> => {
+
+const mutationKey = getMarkInvestorSupportTicketReadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markInvestorSupportTicketRead>>, MarkInvestorSupportTicketReadMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  markInvestorSupportTicketRead(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkInvestorSupportTicketReadMutationResult = NonNullable<Awaited<ReturnType<typeof markInvestorSupportTicketRead>>>
+
+    export type MarkInvestorSupportTicketReadMutationError = ErrorType<unknown>
+    export type MarkInvestorSupportTicketReadMutationVariables = {id: string}
+
+    /**
+ * @summary Mark a support ticket as read
+ */
+export const useMarkInvestorSupportTicketRead = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markInvestorSupportTicketRead>>, TError,MarkInvestorSupportTicketReadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markInvestorSupportTicketRead>>,
+        TError,
+        MarkInvestorSupportTicketReadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMarkInvestorSupportTicketReadMutationOptions(options));
+    }
+
+export const getReplyInvestorSupportTicketUrl = (id: string,) => {
+
+
+
+
+  return `/api/support/tickets/${id}/reply`
+}
+
+/**
+ * @summary Reply to an investor support ticket
+ */
+export const replyInvestorSupportTicket = async (id: string,
+    supportTicketReplyInput: SupportTicketReplyInput, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<JsonObject>(getReplyInvestorSupportTicketUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(supportTicketReplyInput)
+  }
+);}
+
+
+
+
+
+export const getReplyInvestorSupportTicketMutationKey = () => ['replyInvestorSupportTicket'] as const;
+
+export const getReplyInvestorSupportTicketMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replyInvestorSupportTicket>>, TError,ReplyInvestorSupportTicketMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof replyInvestorSupportTicket>>, TError,ReplyInvestorSupportTicketMutationVariables, TContext> => {
+
+const mutationKey = getReplyInvestorSupportTicketMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof replyInvestorSupportTicket>>, ReplyInvestorSupportTicketMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  replyInvestorSupportTicket(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReplyInvestorSupportTicketMutationResult = NonNullable<Awaited<ReturnType<typeof replyInvestorSupportTicket>>>
+    export type ReplyInvestorSupportTicketMutationBody = BodyType<SupportTicketReplyInput>
+    export type ReplyInvestorSupportTicketMutationError = ErrorType<unknown>
+    export type ReplyInvestorSupportTicketMutationVariables = {id: string;data: BodyType<SupportTicketReplyInput>}
+
+    /**
+ * @summary Reply to an investor support ticket
+ */
+export const useReplyInvestorSupportTicket = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replyInvestorSupportTicket>>, TError,ReplyInvestorSupportTicketMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof replyInvestorSupportTicket>>,
+        TError,
+        ReplyInvestorSupportTicketMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReplyInvestorSupportTicketMutationOptions(options));
     }
 
 export const getAdminSessionLoginUrl = () => {

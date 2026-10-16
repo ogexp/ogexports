@@ -1291,6 +1291,25 @@ export const GetInvestorExchangeRatesResponse = zod.record(zod.string(), zod.unk
 
 
 /**
+ * @summary Convert the authenticated investor's wallet to USD
+ */
+export const convertInvestorWalletToUsdBodyExpectedToAmountMin = 0;
+
+export const convertInvestorWalletToUsdBodyExpectedExchangeRateExclusiveMin = 0;
+
+
+
+export const ConvertInvestorWalletToUsdBody = zod.object({
+  "confirmed": zod.literal(true),
+  "expected_to_amount": zod.number().min(convertInvestorWalletToUsdBodyExpectedToAmountMin),
+  "expected_exchange_rate": zod.number().gt(convertInvestorWalletToUsdBodyExpectedExchangeRateExclusiveMin),
+  "rates_as_of": zod.string().nullish()
+})
+
+export const ConvertInvestorWalletToUsdResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary List available deposit methods
  */
 export const GetInvestorDepositOptionsResponse = zod.record(zod.string(), zod.unknown())
@@ -1800,9 +1819,25 @@ export const SendInvestorConversationMessageParams = zod.object({
   "conversation": zod.coerce.string()
 })
 
-export const SendInvestorConversationMessageBody = zod.record(zod.string(), zod.unknown())
+export const sendInvestorConversationMessageBodyBodyMax = 5000;
+
+
+
+export const SendInvestorConversationMessageBody = zod.object({
+  "body": zod.string().min(1).max(sendInvestorConversationMessageBodyBodyMax)
+})
 
 export const SendInvestorConversationMessageResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Mark the investor support conversation as read
+ */
+export const MarkInvestorConversationReadParams = zod.object({
+  "conversation": zod.coerce.string()
+})
+
+export const MarkInvestorConversationReadResponse = zod.record(zod.string(), zod.unknown())
 
 
 /**
@@ -1814,9 +1849,65 @@ export const GetInvestorSupportTicketsResponse = zod.record(zod.string(), zod.un
 /**
  * @summary Create a support ticket
  */
-export const CreateInvestorSupportTicketBody = zod.record(zod.string(), zod.unknown())
+export const createInvestorSupportTicketBodySubjectMax = 255;
+
+export const createInvestorSupportTicketBodyBodyMax = 5000;
+
+export const createInvestorSupportTicketBodyContactNameMax = 255;
+
+export const createInvestorSupportTicketBodyContactEmailMax = 255;
+
+export const createInvestorSupportTicketBodyContactPhoneMax = 50;
+
+
+
+export const CreateInvestorSupportTicketBody = zod.object({
+  "subject": zod.string().min(1).max(createInvestorSupportTicketBodySubjectMax),
+  "body": zod.string().min(1).max(createInvestorSupportTicketBodyBodyMax),
+  "contact_name": zod.string().max(createInvestorSupportTicketBodyContactNameMax).nullish(),
+  "contact_email": zod.string().email().max(createInvestorSupportTicketBodyContactEmailMax).nullish(),
+  "contact_phone": zod.string().max(createInvestorSupportTicketBodyContactPhoneMax).nullish()
+})
 
 export const CreateInvestorSupportTicketResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Get a support ticket and its replies
+ */
+export const GetInvestorSupportTicketParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetInvestorSupportTicketResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Mark a support ticket as read
+ */
+export const MarkInvestorSupportTicketReadParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const MarkInvestorSupportTicketReadResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Reply to an investor support ticket
+ */
+export const ReplyInvestorSupportTicketParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const replyInvestorSupportTicketBodyBodyMax = 5000;
+
+
+
+export const ReplyInvestorSupportTicketBody = zod.object({
+  "body": zod.string().min(1).max(replyInvestorSupportTicketBodyBodyMax)
+})
+
+export const ReplyInvestorSupportTicketResponse = zod.record(zod.string(), zod.unknown())
 
 
 /**

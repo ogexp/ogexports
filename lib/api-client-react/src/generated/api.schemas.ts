@@ -666,7 +666,7 @@ export interface InvestorDashboardSummary {
   total_portfolio_value: number;
   /** Confirmed profit amounts from investor distribution records with a distributed_at timestamp. */
   distributed_returns: number;
-  /** Sum of explicit pending profit credits and estimated profit on pending or active investments using each project's expected return percentage. Estimates are not realized profit and are excluded from total portfolio value. */
+  /** Sum of pending credit ledger entries explicitly typed as profit, distribution, or dividend; forecast payouts are excluded. */
   pending_distribution: number;
   /** Currency used for all financial summary amounts, matching the investor wallet currency. */
   display_currency: string;
@@ -746,16 +746,6 @@ export interface InvestorWalletResponse {
   data: InvestorWalletResponseData;
   [key: string]: unknown;
  }
-
-export interface InvestorWalletConversionRequest {
-  confirmed: true;
-  /** @minimum 0 */
-  expected_to_amount: number;
-  /** @exclusiveMinimum 0 */
-  expected_exchange_rate: number;
-  /** @nullable */
-  rates_as_of?: string | null;
-}
 
 export type InvestorWalletTransactionsResponseLinksItem = { [key: string]: unknown };
 
@@ -1201,6 +1191,60 @@ export interface BankAccountReviewInput {
      * @nullable
      */
   notes?: string | null;
+}
+
+export interface InvestorWalletConversionRequest {
+  confirmed: true;
+  /** @minimum 0 */
+  expected_to_amount: number;
+  /** @exclusiveMinimum 0 */
+  expected_exchange_rate: number;
+  /** @nullable */
+  rates_as_of?: string | null;
+}
+
+export interface SupportConversationMessageInput {
+  /**
+     * @minLength 1
+     * @maxLength 5000
+     */
+  body: string;
+}
+
+export interface SupportTicketInput {
+  /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  subject: string;
+  /**
+     * @minLength 1
+     * @maxLength 5000
+     */
+  body: string;
+  /**
+     * @maxLength 255
+     * @nullable
+     */
+  contact_name?: string | null;
+  /**
+     * @maxLength 255
+     * @nullable
+     */
+  contact_email?: string | null;
+  /**
+     * @maxLength 50
+     * @nullable
+     */
+  contact_phone?: string | null;
+}
+
+export interface SupportTicketReplyInput {
+  /**
+     * @minLength 1
+     * @maxLength 5000
+     */
+  body: string;
 }
 
 export interface JsonObject { [key: string]: unknown }

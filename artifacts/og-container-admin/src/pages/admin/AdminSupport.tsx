@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { AdminLayout } from "@/components/admin/AdminLayout"
+import { Link } from "wouter"
 import { MessageSquare, AlertTriangle, CheckCircle2, Clock, Search, User, ArrowUpRight, Send, X, Loader2 } from "lucide-react"
-import { getTickets, updateTicketStatus, addTicketReply, initAdminData, type AdminTicket } from "@/lib/admin-data"
+import { getTickets, initAdminData, type AdminTicket } from "@/lib/admin-data"
 import { api } from "@/lib/api"
 import { notify } from "@/lib/notify"
 
@@ -41,6 +42,7 @@ export default function AdminSupport() {
   const [reply, setReply] = useState("")
   const [toast, setToast] = useState("")
   const [loadingDetail, setLoadingDetail] = useState(false)
+  const [savingSupportAction, setSavingSupportAction] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   const refresh = useCallback(async () => {
@@ -83,6 +85,23 @@ export default function AdminSupport() {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 3000) }
 
+  const refreshCounts = async () => {
+    try {
+      const res = await api.get<any>("/api/admin/support/tickets", { per_page: 1 })
+      if (res?.counts) {
+        setCounts({
+          open: res.counts.open ?? 0,
+          pending: res.counts.pending ?? 0,
+          escalated: res.counts.escalated ?? 0,
+          resolved: res.counts.resolved ?? 0,
+          total: res.counts.total ?? 0,
+        })
+      }
+    } catch {
+      // Preserve the last known counts if the summary request fails.
+    }
+  }
+
   useEffect(() => {
     refresh()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -124,31 +143,52 @@ export default function AdminSupport() {
     }
   }
 
-  const handleReply = () => {
-    if (!selected || !reply.trim()) return
-    addTicketReply(selected.id, reply.trim())
-    setSelected(prev => prev ? {
-      ...prev,
-      messages: [...(prev.messages || []), {
-        from: "OGSupport",
-        text: reply.trim(),
-        time: new Date().toLocaleString(),
-        isAdmin: true,
-      }],
-      msgs: (prev.msgs || 0) + 1,
-      status: prev.status === "open" ? "pending" : prev.status,
-    } : prev)
-    setReply("")
-    showToast("Reply sent")
-    setTimeout(() => refresh(), 500)
+  const handleReply = async () => {
+    if (!selected || !reply.trim() || savingSupportAction) return
+    const body = reply.trim()
+    setSavingSupportAction(true)
+    try {
+      const response = await api.post<{ data?: any }>(`/api/admin/support/tickets/${selected.id}/reply`, { body })
+      const message = response?.data
+      const sentAt = message?.created_at ? new Date(message.created_at).toLocaleString() : new Date().toLocaleString()
+      setSelected(prev => prev ? {
+        ...prev,
+        messages: [...(prev.messages || []), {
+          from: message?.user?.name || "OGSupport",
+          text: message?.body || body,
+          time: sentAt,
+          isAdmin: true,
+        }],
+        msgs: (prev.msgs || 0) + 1,
+        status: prev.status === "open" ? "pending" : prev.status,
+      } : prev)
+      setTickets(prev => prev.map(ticket => ticket.id === selected.id
+        ? { ...ticket, status: ticket.status === "open" ? "pending" : ticket.status, msgs: (ticket.msgs || 0) + 1, lastReply: sentAt }
+        : ticket))
+      setReply("")
+      showToast("Reply sent")
+      void refreshCounts()
+    } catch (e: any) {
+      notify.error(e?.message || "Failed to send reply")
+    } finally {
+      setSavingSupportAction(false)
+    }
   }
 
-  const handleStatus = (status: AdminTicket["status"]) => {
-    if (!selected) return
-    updateTicketStatus(selected.id, status)
-    setSelected(prev => prev ? { ...prev, status } : prev)
-    showToast(`Ticket ${selected.ticketNumber || selected.id} updated to ${status}`)
-    setTimeout(() => refresh(), 500)
+  const handleStatus = async (status: AdminTicket["status"]) => {
+    if (!selected || savingSupportAction) return
+    setSavingSupportAction(true)
+    try {
+      await api.patch(`/api/admin/support/tickets/${selected.id}/status`, { status })
+      setSelected(prev => prev ? { ...prev, status } : prev)
+      setTickets(prev => prev.map(ticket => ticket.id === selected.id ? { ...ticket, status } : ticket))
+      showToast(`Ticket ${selected.ticketNumber || selected.id} updated to ${status}`)
+      void refreshCounts()
+    } catch (e: any) {
+      notify.error(e?.message || "Failed to update ticket")
+    } finally {
+      setSavingSupportAction(false)
+    }
   }
 
   const filtered = tickets.filter(t => {
@@ -164,6 +204,18 @@ export default function AdminSupport() {
   return (
     <AdminLayout title="Support Center" subtitle="Ticket management, escalations and resolution tracking">
       <div className="p-6 space-y-5">
+        <div className="flex flex-col gap-3 rounded-xl border border-emerald-900/10 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-white p-2 text-emerald-900"><MessageSquare className="h-5 w-5" /></div>
+            <div>
+              <p className="text-sm font-semibold text-emerald-950">Need to help someone right now?</p>
+              <p className="mt-1 text-xs text-emerald-900/70">Open live conversations, reply to investors, and track unread messages.</p>
+            </div>
+          </div>
+          <Link href="/admin/messages" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-950 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-900">
+            <MessageSquare className="h-4 w-4" /> Open live chat
+          </Link>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
             { label: "Open", value: String(counts.open), icon: MessageSquare, color: "#3b82f6" },
@@ -246,18 +298,21 @@ export default function AdminSupport() {
                     <div className="flex gap-1.5 shrink-0 flex-wrap">
                       {(selected.status === "open" || selected.status === "escalated" || selected.status === "pending") && (
                         <button onClick={() => handleStatus("resolved")}
+                          disabled={savingSupportAction}
                           className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-white" style={{ background: GREEN }}>
                           <CheckCircle2 className="w-3 h-3" /> Resolve
                         </button>
                       )}
                       {selected.status === "open" && (
                         <button onClick={() => handleStatus("escalated")}
+                          disabled={savingSupportAction}
                           className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-red-500 text-white">
                           <ArrowUpRight className="w-3 h-3" /> Escalate
                         </button>
                       )}
                       {selected.status === "resolved" && (
                         <button onClick={() => handleStatus("closed")}
+                          disabled={savingSupportAction}
                           className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-gray-600 text-white">
                           <X className="w-3 h-3" /> Close
                         </button>
@@ -303,7 +358,7 @@ export default function AdminSupport() {
                     />
                     <button
                       onClick={handleReply}
-                      disabled={!reply.trim()}
+                      disabled={!reply.trim() || savingSupportAction}
                       className="px-4 rounded-lg text-white disabled:opacity-50 self-end"
                       style={{ background: EMERALD }}
                     >
