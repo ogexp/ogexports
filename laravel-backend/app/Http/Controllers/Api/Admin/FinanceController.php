@@ -203,10 +203,15 @@ class FinanceController extends Controller
         }
 
         DB::transaction(function () use ($deposit, $request) {
-            $deposit->loadMissing('investor.profile');
+            $deposit->loadMissing('investor.profile', 'investor.wallet');
 
             $walletCurrency = UserDisplayCurrency::currencyForUser($deposit->investor);
             $depositCurrency = strtoupper($deposit->currency ?: 'USD');
+            if ($walletCurrency !== 'USD' || $depositCurrency !== 'USD') {
+                throw ValidationException::withMessages([
+                    'currency' => ['Only USD deposits can be credited to a USD investor wallet. Resolve this legacy deposit before converting the wallet.'],
+                ]);
+            }
 
             $conversion = ExchangeRateService::convert(
                 (float) $deposit->amount,

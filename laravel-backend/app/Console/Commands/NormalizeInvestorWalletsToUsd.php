@@ -58,6 +58,19 @@ class NormalizeInvestorWalletsToUsd extends Command
                             if ($fromAmount < 0) {
                                 return ['status' => 'skipped', 'reason' => 'negative available balance'];
                             }
+                            $ledgerBalance = 0.0;
+                            foreach ($lockedWallet->transactions()->lockForUpdate()->where('status', 'completed')->get() as $transaction) {
+                                $transactionAmount = round((float) $transaction->amount, 2);
+                                if ($transactionAmount < 0 || ! in_array($transaction->direction, ['credit', 'debit'], true)) {
+                                    return ['status' => 'skipped', 'reason' => 'wallet ledger contains an invalid posted movement'];
+                                }
+                                $ledgerBalance += $transaction->direction === 'credit'
+                                    ? $transactionAmount
+                                    : -$transactionAmount;
+                            }
+                            if (abs(round($ledgerBalance, 2) - $fromAmount) > 0.01) {
+                                return ['status' => 'skipped', 'reason' => 'posted wallet ledger does not reconcile to available balance'];
+                            }
 
                             $conversion = ExchangeRateService::convert($fromAmount, $sourceCurrency, 'USD');
                             $toAmount = $conversion['amount'];
@@ -68,6 +81,8 @@ class NormalizeInvestorWalletsToUsd extends Command
                                     'from_currency' => $sourceCurrency,
                                     'from_amount' => $fromAmount,
                                     'to_amount' => $toAmount,
+                                    'rate' => $conversion['rate'],
+                                    'as_of' => $conversion['as_of'],
                                 ];
                             }
 
@@ -101,6 +116,8 @@ class NormalizeInvestorWalletsToUsd extends Command
                                 'from_currency' => $sourceCurrency,
                                 'from_amount' => $fromAmount,
                                 'to_amount' => $toAmount,
+                                'rate' => $conversion['rate'],
+                                'as_of' => $conversion['as_of'],
                             ];
                         }, 3);
                     } catch (Throwable $exception) {
@@ -124,6 +141,8 @@ class NormalizeInvestorWalletsToUsd extends Command
                             "Wallet {$wallet->id}: {$result['from_currency']} "
                             .number_format($result['from_amount'], 2, '.', '')
                             .' → USD '.number_format($result['to_amount'], 2, '.', '')
+                            .' at rate '.number_format((float) $result['rate'], 8, '.', '')
+                            .' (as of '.($result['as_of'] ?? 'unknown').')'
                         );
                         continue;
                     }
@@ -133,6 +152,8 @@ class NormalizeInvestorWalletsToUsd extends Command
                         "Wallet {$wallet->id} converted: {$result['from_currency']} "
                         .number_format($result['from_amount'], 2, '.', '')
                         .' → USD '.number_format($result['to_amount'], 2, '.', '')
+                        .' at rate '.number_format((float) $result['rate'], 8, '.', '')
+                        .' (as of '.($result['as_of'] ?? 'unknown').')'
                     );
                 }
             });
@@ -165,9 +186,9 @@ class NormalizeInvestorWalletsToUsd extends Command
 
         if (WalletTransaction::query()
             ->where('wallet_id', $wallet->id)
-            ->whereIn('status', ['pending', 'processing', 'review', 'under_review'])
+            ->whereNotIn('status', ['completed', 'rejected', 'cancelled', 'failed'])
             ->exists()) {
-            return 'wallet transaction is pending';
+            return 'wallet transaction has an unresolved status';
         }
 
         return null;

@@ -119,11 +119,16 @@ class DepositController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $supported = ExchangeRateService::supportedCurrencies();
+        $walletCurrency = UserDisplayCurrency::currencyForUser($request->user());
+        if ($walletCurrency !== 'USD') {
+            throw ValidationException::withMessages([
+                'currency' => ['Deposits are only available once your wallet has been converted to USD.'],
+            ]);
+        }
 
         $data = $request->validate([
             'amount' => ['required', 'numeric', 'min:1'],
-            'currency' => ['nullable', 'string', Rule::in($supported)],
+            'currency' => ['nullable', 'string', Rule::in(['USD'])],
             'method' => ['nullable', 'string', 'max:50'],
             'bank_reference' => ['nullable', 'string', 'max:255'],
             // Legacy clients may still send `reference` as the bank transfer ref.
@@ -135,9 +140,9 @@ class DepositController extends Controller
             'note' => ['nullable', 'string'],
         ]);
 
-        // Mobile clients may omit currency; default to the investor wallet currency.
+        // Mobile clients may omit currency; new investor deposits are USD-only.
         if (empty($data['currency'])) {
-            $data['currency'] = UserDisplayCurrency::currencyForUser($request->user());
+            $data['currency'] = 'USD';
         }
 
         if (! empty($data['bank_account_id'])) {

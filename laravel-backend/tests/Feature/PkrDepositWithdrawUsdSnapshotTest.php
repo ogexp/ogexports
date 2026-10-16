@@ -5,6 +5,7 @@ use App\Models\InvestorBankAccountVerification;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\Wallet;
+use App\Models\WalletTransaction;
 use App\Models\Withdrawal;
 use App\Support\ExchangeRateService;
 use App\Support\InvestorBankAccountPresenter;
@@ -106,7 +107,7 @@ function enableWithdrawalAuth(User $user, array $bankDetails): void
     ]);
 }
 
-it('stores USD amount and PKR-per-USD rate when a Pakistani user deposits PKR', function () {
+it('blocks PKR deposits while the legacy wallet awaits conversion', function () {
     $investor = pkrSnapshotInvestor();
 
     $this->actingAs($investor)
@@ -115,19 +116,14 @@ it('stores USD amount and PKR-per-USD rate when a Pakistani user deposits PKR', 
             'currency' => 'PKR',
             'method' => 'bank_transfer',
         ])
-        ->assertCreated()
-        ->assertJsonPath('data.amount_usd', '100.00')
-        ->assertJsonPath('data.usd_exchange_rate', '278.50000000');
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['currency']);
 
-    $deposit = Deposit::query()->where('investor_id', $investor->id)->firstOrFail();
-
-    expect((float) $deposit->amount)->toBe(27850.0)
-        ->and($deposit->currency)->toBe('PKR')
-        ->and((float) $deposit->amount_usd)->toBe(100.0)
-        ->and((float) $deposit->usd_exchange_rate)->toBe(278.5);
+    expect(Deposit::query()->where('investor_id', $investor->id)->count())->toBe(0)
+        ->and((float) Wallet::query()->where('user_id', $investor->id)->value('available_balance'))->toBe(1_000_000.0);
 });
 
-it('does not store a USD snapshot for a Pakistani user depositing a non-PKR currency', function () {
+it('blocks USD deposits until an existing PKR wallet has been converted', function () {
     $investor = pkrSnapshotInvestor();
 
     $this->actingAs($investor)
@@ -136,12 +132,10 @@ it('does not store a USD snapshot for a Pakistani user depositing a non-PKR curr
             'currency' => 'USD',
             'method' => 'bank_transfer',
         ])
-        ->assertCreated();
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['currency']);
 
-    $deposit = Deposit::query()->where('investor_id', $investor->id)->firstOrFail();
-
-    expect($deposit->amount_usd)->toBeNull()
-        ->and($deposit->usd_exchange_rate)->toBeNull();
+    expect(Deposit::query()->where('investor_id', $investor->id)->count())->toBe(0);
 });
 
 it('does not store a USD snapshot when a non-Pakistani user deposits', function () {
@@ -285,40 +279,32 @@ it('does not store a USD snapshot when a non-Pakistani user withdraws', function
         ->and($withdrawal->exchange_rate)->toBeNull();
 });
 
-it('preserves submission-time USD snapshot when a PKR deposit is approved', function () {
+it('blocks approval of an unresolved legacy PKR deposit before conversion', function () {
     $investor = pkrSnapshotInvestor();
     $admin = User::factory()->create(['account_status' => 'active']);
     $admin->assignRole('admin');
 
-    $this->actingAs($investor)
-        ->postJson('/api/investor/deposits', [
-            'amount' => 27850,
-            'currency' => 'PKR',
-            'method' => 'bank_transfer',
-        ])
-        ->assertCreated();
-
-    $deposit = Deposit::query()->where('investor_id', $investor->id)->firstOrFail();
-    expect((float) $deposit->usd_exchange_rate)->toBe(278.5)
-        ->and((float) $deposit->amount_usd)->toBe(100.0)
-        ->and((float) $deposit->exchange_rate)->toBe(278.5);
-
-    // Change live fallback so approval must not overwrite locked snapshot.
-    config(['currency.fallback_rates.PKR' => 300.0]);
-    ExchangeRateService::clearCache();
+    $deposit = Deposit::query()->create([
+        'investor_id' => $investor->id,
+        'amount' => 27850,
+        'currency' => 'PKR',
+        'method' => 'bank_transfer',
+        'status' => 'pending',
+    ]);
 
     $this->actingAs($admin)
         ->postJson("/api/admin/finance/deposits/{$deposit->id}/approve")
-        ->assertOk();
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['currency']);
 
     $deposit->refresh();
 
-    expect((float) $deposit->usd_exchange_rate)->toBe(278.5)
-        ->and((float) $deposit->amount_usd)->toBe(100.0)
-        ->and($deposit->status)->toBe('approved');
+    expect($deposit->status)->toBe('pending')
+        ->and(WalletTransaction::query()->where('reference', $deposit->reference)->exists())->toBeFalse()
+        ->and((float) Wallet::query()->where('user_id', $investor->id)->value('available_balance'))->toBe(1_000_000.0);
 });
 
-it('backfills USD snapshot on approval when a legacy PKR deposit has none', function () {
+it('keeps a legacy PKR deposit without a USD snapshot blocked for review', function () {
     $investor = pkrSnapshotInvestor();
     $admin = User::factory()->create(['account_status' => 'active']);
     $admin->assignRole('admin');
@@ -335,11 +321,13 @@ it('backfills USD snapshot on approval when a legacy PKR deposit has none', func
 
     $this->actingAs($admin)
         ->postJson("/api/admin/finance/deposits/{$deposit->id}/approve")
-        ->assertOk();
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['currency']);
 
     $deposit->refresh();
 
-    expect((float) $deposit->usd_exchange_rate)->toBe(278.5)
-        ->and((float) $deposit->amount_usd)->toBe(200.0)
-        ->and($deposit->status)->toBe('approved');
+    expect($deposit->usd_exchange_rate)->toBeNull()
+        ->and($deposit->amount_usd)->toBeNull()
+        ->and($deposit->status)->toBe('pending')
+        ->and(WalletTransaction::query()->where('reference', $deposit->reference)->exists())->toBeFalse();
 });

@@ -178,7 +178,7 @@ it('converts a legacy non-USD wallet to USD and preserves its historical transac
     $transaction = WalletTransaction::query()->create([
         'wallet_id' => $wallet->id,
         'type' => 'deposit',
-        'amount' => 500,
+        'amount' => 27_850,
         'direction' => 'credit',
         'reference' => 'OLD-PKR-LEDGER',
         'status' => 'completed',
@@ -215,10 +215,39 @@ it('reports a legacy conversion without changing the wallet unless apply is expl
     Http::fake(['*' => Http::response(null, 500)]);
     $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
     $wallet->update(['currency' => 'PKR', 'available_balance' => 27_850, 'pending_balance' => 0]);
+    WalletTransaction::query()->create([
+        'wallet_id' => $wallet->id,
+        'type' => 'deposit',
+        'amount' => 27_850,
+        'direction' => 'credit',
+        'reference' => 'DRY-RUN-LEDGER',
+        'status' => 'completed',
+    ]);
 
     $this->artisan('wallets:normalize-usd')
         ->assertExitCode(0)
         ->expectsOutputToContain("Wallet {$wallet->id}: PKR 27850.00 → USD 100.00");
+
+    expect($wallet->fresh()->currency)->toBe('PKR')
+        ->and((float) $wallet->fresh()->available_balance)->toBe(27_850.0)
+        ->and(WalletCurrencyConversion::query()->where('wallet_id', $wallet->id)->exists())->toBeFalse();
+});
+
+it('keeps a legacy wallet blocked when its posted ledger does not reconcile', function () {
+    $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
+    $wallet->update(['currency' => 'PKR', 'available_balance' => 27_850, 'pending_balance' => 0]);
+    WalletTransaction::query()->create([
+        'wallet_id' => $wallet->id,
+        'type' => 'deposit',
+        'amount' => 500,
+        'direction' => 'credit',
+        'reference' => 'MISMATCHED-LEDGER',
+        'status' => 'completed',
+    ]);
+
+    $this->artisan('wallets:normalize-usd', ['--apply' => true])
+        ->assertExitCode(1)
+        ->expectsOutputToContain("Wallet {$wallet->id} skipped: posted wallet ledger does not reconcile to available balance.");
 
     expect($wallet->fresh()->currency)->toBe('PKR')
         ->and((float) $wallet->fresh()->available_balance)->toBe(27_850.0)
@@ -237,6 +266,14 @@ it('allows a USD withdrawal after safely converting a legacy wallet on the serve
 
     $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
     $wallet->update(['currency' => 'PKR', 'available_balance' => 28_407, 'pending_balance' => 0]);
+    WalletTransaction::query()->create([
+        'wallet_id' => $wallet->id,
+        'type' => 'deposit',
+        'amount' => 28_407,
+        'direction' => 'credit',
+        'reference' => 'WITHDRAWAL-CONVERSION-LEDGER',
+        'status' => 'completed',
+    ]);
     $this->artisan('wallets:normalize-usd', ['--apply' => true])->assertExitCode(0);
 
     $this->investor->forceFill([

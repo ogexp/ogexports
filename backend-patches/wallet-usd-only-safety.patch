@@ -1,0 +1,106 @@
+diff --git a/app/Http/Controllers/Api/Investor/DepositController.php b/app/Http/Controllers/Api/Investor/DepositController.php
+--- a/app/Http/Controllers/Api/Investor/DepositController.php
++++ b/app/Http/Controllers/Api/Investor/DepositController.php
+@@ -120,8 +120,13 @@ class DepositController extends Controller
+ 
+     public function store(Request $request): JsonResponse
+     {
+-        $supported = ExchangeRateService::supportedCurrencies();
++        $walletCurrency = UserDisplayCurrency::currencyForUser($request->user());
++        if ($walletCurrency !== 'USD') {
++            throw ValidationException::withMessages([
++                'currency' => ['Deposits are only available once your wallet has been converted to USD.'],
++            ]);
++        }
+ 
+         $data = $request->validate([
+             'amount' => ['required', 'numeric', 'min:1'],
+-            'currency' => ['nullable', 'string', Rule::in($supported)],
++            'currency' => ['nullable', 'string', Rule::in(['USD'])],
+@@ -136,8 +141,8 @@ class DepositController extends Controller
+         ]);
+ 
+-        // Mobile clients may omit currency; default to the investor wallet currency.
++        // Mobile clients may omit currency; new investor deposits are USD-only.
+         if (empty($data['currency'])) {
+-            $data['currency'] = UserDisplayCurrency::currencyForUser($request->user());
++            $data['currency'] = 'USD';
+         }
+ 
+         if (! empty($data['bank_account_id'])) {
+diff --git a/app/Http/Controllers/Api/Admin/FinanceController.php b/app/Http/Controllers/Api/Admin/FinanceController.php
+--- a/app/Http/Controllers/Api/Admin/FinanceController.php
++++ b/app/Http/Controllers/Api/Admin/FinanceController.php
+@@ -203,9 +203,14 @@ class FinanceController extends Controller
+ 
+         DB::transaction(function () use ($deposit, $request) {
+-            $deposit->loadMissing('investor.profile');
++            $deposit->loadMissing('investor.profile', 'investor.wallet');
+ 
+             $walletCurrency = UserDisplayCurrency::currencyForUser($deposit->investor);
+             $depositCurrency = strtoupper($deposit->currency ?: 'USD');
++            if ($walletCurrency !== 'USD' || $depositCurrency !== 'USD') {
++                throw ValidationException::withMessages([
++                    'currency' => ['Only USD deposits can be credited to a USD investor wallet. Resolve this legacy deposit before converting the wallet.'],
++                ]);
++            }
+ 
+             $conversion = ExchangeRateService::convert(
+                 (float) $deposit->amount,
+diff --git a/app/Console/Commands/NormalizeInvestorWalletsToUsd.php b/app/Console/Commands/NormalizeInvestorWalletsToUsd.php
+--- a/app/Console/Commands/NormalizeInvestorWalletsToUsd.php
++++ b/app/Console/Commands/NormalizeInvestorWalletsToUsd.php
+@@ -57,5 +57,18 @@ class NormalizeInvestorWalletsToUsd extends Command
+                             if ($fromAmount < 0) {
+                                 return ['status' => 'skipped', 'reason' => 'negative available balance'];
+                             }
++                            $ledgerBalance = 0.0;
++                            foreach ($lockedWallet->transactions()->lockForUpdate()->where('status', 'completed')->get() as $transaction) {
++                                $transactionAmount = round((float) $transaction->amount, 2);
++                                if ($transactionAmount < 0 || ! in_array($transaction->direction, ['credit', 'debit'], true)) {
++                                    return ['status' => 'skipped', 'reason' => 'wallet ledger contains an invalid posted movement'];
++                                }
++                                $ledgerBalance += $transaction->direction === 'credit'
++                                    ? $transactionAmount
++                                    : -$transactionAmount;
++                            }
++                            if (abs(round($ledgerBalance, 2) - $fromAmount) > 0.01) {
++                                return ['status' => 'skipped', 'reason' => 'posted wallet ledger does not reconcile to available balance'];
++                            }
+ 
+                             $conversion = ExchangeRateService::convert($fromAmount, $sourceCurrency, 'USD');
+@@ -166,7 +179,7 @@ class NormalizeInvestorWalletsToUsd extends Command
+ 
+         if (WalletTransaction::query()
+             ->where('wallet_id', $wallet->id)
+-            ->whereIn('status', ['pending', 'processing', 'review', 'under_review'])
++            ->whereNotIn('status', ['completed', 'rejected', 'cancelled', 'failed'])
+             ->exists()) {
+-            return 'wallet transaction is pending';
++            return 'wallet transaction has an unresolved status';
+         }
+@@ -363,4 +376,6 @@ class NormalizeInvestorWalletsToUsd extends Command
+                                     'from_currency' => $sourceCurrency,
+                                     'from_amount' => $fromAmount,
+                                     'to_amount' => $toAmount,
++                                    'rate' => $conversion['rate'],
++                                    'as_of' => $conversion['as_of'],
+                                 ];
+@@ -393,5 +408,7 @@ class NormalizeInvestorWalletsToUsd extends Command
+                                 'status' => 'converted',
+                                 'from_currency' => $sourceCurrency,
+                                 'from_amount' => $fromAmount,
+                                 'to_amount' => $toAmount,
++                                'rate' => $conversion['rate'],
++                                'as_of' => $conversion['as_of'],
+                             ];
+@@ -417,2 +434,4 @@ class NormalizeInvestorWalletsToUsd extends Command
+                             .' → USD '.number_format($result['to_amount'], 2, '.', '')
++                            .' at rate '.number_format((float) $result['rate'], 8, '.', '')
++                            .' (as of '.($result['as_of'] ?? 'unknown').')'
+                         );
+@@ -427,2 +446,4 @@ class NormalizeInvestorWalletsToUsd extends Command
+                         .' → USD '.number_format($result['to_amount'], 2, '.', '')
++                        .' at rate '.number_format((float) $result['rate'], 8, '.', '')
++                        .' (as of '.($result['as_of'] ?? 'unknown').')'
+                     );
