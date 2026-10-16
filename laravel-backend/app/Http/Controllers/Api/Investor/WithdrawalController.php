@@ -143,6 +143,12 @@ class WithdrawalController extends Controller
         $user = $request->user()->fresh();
         $amount = round((float) $data['amount'], 2);
         $walletCurrency = UserDisplayCurrency::currencyForUser($user);
+        if ($walletCurrency !== 'USD') {
+            throw ValidationException::withMessages([
+                'amount' => ['Withdrawals are only available once your wallet has been converted to USD.'],
+            ]);
+        }
+
         $snapshot = ExchangeRateService::toUsdSnapshot($amount, $walletCurrency);
         $amountUsd = $walletCurrency === 'USD' ? null : $snapshot['amount_usd'];
         $exchangeRate = $walletCurrency === 'USD' ? null : $snapshot['exchange_rate'];

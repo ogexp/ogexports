@@ -161,7 +161,7 @@ it('does not store a USD snapshot when a non-Pakistani user deposits', function 
         ->and($deposit->usd_exchange_rate)->toBeNull();
 });
 
-it('stores USD amount and PKR-per-USD rate when a Pakistani user withdraws', function () {
+it('rejects withdrawals from a legacy PKR wallet until the server conversion completes', function () {
     $investor = pkrSnapshotInvestor();
     enableWithdrawalAuth($investor, [
         'bank_name' => 'HBL',
@@ -182,61 +182,15 @@ it('stores USD amount and PKR-per-USD rate when a Pakistani user withdraws', fun
             'otp' => '123456',
             'transaction_password' => '123456',
         ])
-        ->assertCreated()
-        ->assertJsonPath('data.amount_usd', 100)
-        ->assertJsonPath('data.exchange_rate', 278.5)
-        ->assertJsonPath('data.fee', 557)
-        ->assertJsonPath('data.fee_usd', 2)
-        ->assertJsonPath('data.total_debit', 28407)
-        ->assertJsonPath('data.total_debit_usd', 102)
-        ->assertJsonPath('data.payment_method', 'Bank Transfer');
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['amount'])
+        ->assertJsonPath('errors.amount.0', 'Withdrawals are only available once your wallet has been converted to USD.');
 
-    $withdrawal = Withdrawal::query()->where('investor_id', $investor->id)->firstOrFail();
-
-    expect((float) $withdrawal->amount)->toBe(27850.0)
-        ->and((float) $withdrawal->amount_usd)->toBe(100.0)
-        ->and((float) $withdrawal->exchange_rate)->toBe(278.5)
-        ->and((float) $withdrawal->fee)->toBe(557.0)
-        ->and((float) $withdrawal->fee_usd)->toBe(2.0)
-        ->and((float) $withdrawal->total_debit)->toBe(28407.0)
-        ->and((float) $withdrawal->total_debit_usd)->toBe(102.0)
-        ->and($withdrawal->bank_details['payment_method'])->toBe('Bank Transfer');
-
-    $transaction = \App\Models\WalletTransaction::query()
-        ->where('meta->withdrawal_id', $withdrawal->id)
-        ->firstOrFail();
-    expect($transaction->meta['payment_method'])->toBe('Bank Transfer')
-        ->and((float) $transaction->meta['exchange_rate'])->toBe(278.5);
-
-    $this->actingAs($investor)
-        ->getJson("/api/investor/wallet/transactions/{$transaction->id}")
-        ->assertOk()
-        ->assertJsonPath('data.withdrawal_breakdown.payout_amount', 27850)
-        ->assertJsonPath('data.withdrawal_breakdown.payout_amount_usd', 100)
-        ->assertJsonPath('data.withdrawal_breakdown.fee', 557)
-        ->assertJsonPath('data.withdrawal_breakdown.fee_usd', 2)
-        ->assertJsonPath('data.withdrawal_breakdown.total_debit', 28407)
-        ->assertJsonPath('data.withdrawal_breakdown.total_debit_usd', 102)
-        ->assertJsonPath('data.withdrawal_breakdown.currency', 'PKR')
-        ->assertJsonPath('data.withdrawal_breakdown.exchange_rate', 278.5)
-        ->assertJsonPath('data.meta.payment_method', 'Bank Transfer');
-
-    $receiptHtml = view('pdf.withdrawal-receipt', [
-        'withdrawal' => $withdrawal,
-        'withdrawalBreakdown' => \App\Support\InvestorWithdrawalBreakdown::fromWithdrawal($withdrawal, $transaction),
-        'user' => $investor,
-        'generatedAt' => now()->format('d M Y H:i'),
-    ])->render();
-
-    expect($receiptHtml)
-        ->toContain('PKR 27,850.00')
-        ->toContain('USD 100.00')
-        ->toContain('PKR 557.00 (USD 2.00)')
-        ->toContain('PKR 28,407.00 (USD 102.00)')
-        ->toContain('1 USD = 278.50000000 PKR');
+    expect(Withdrawal::query()->where('investor_id', $investor->id)->count())->toBe(0)
+        ->and((float) Wallet::query()->where('user_id', $investor->id)->value('available_balance'))->toBe(1_000_000.0);
 });
 
-it('rejects a PKR payout below the USD 100 minimum at the request rate', function () {
+it('rejects a PKR withdrawal before checking the payout size', function () {
     $investor = pkrSnapshotInvestor();
     enableWithdrawalAuth($investor, [
         'bank_name' => 'HBL',
@@ -259,7 +213,7 @@ it('rejects a PKR payout below the USD 100 minimum at the request rate', functio
         ])
         ->assertStatus(422)
         ->assertJsonValidationErrors(['amount'])
-        ->assertJsonPath('errors.amount.0', 'The payout amount must be at least USD 100.00. The withdrawal fee is added separately.');
+        ->assertJsonPath('errors.amount.0', 'Withdrawals are only available once your wallet has been converted to USD.');
 
     expect(Withdrawal::query()->where('investor_id', $investor->id)->count())->toBe(0);
 });
@@ -275,7 +229,7 @@ it('returns the USD 100 minimum payout in PKR wallet currency', function () {
         ->assertJsonPath('data.minimum_withdrawal_currency', 'PKR');
 });
 
-it('overwrites submitted bank currency with wallet currency for Pakistani withdrawals', function () {
+it('does not let submitted USD bank details bypass the PKR wallet restriction', function () {
     $investor = pkrSnapshotInvestor();
     enableWithdrawalAuth($investor, [
         'bank_name' => 'HBL',
@@ -296,14 +250,10 @@ it('overwrites submitted bank currency with wallet currency for Pakistani withdr
             'otp' => '123456',
             'transaction_password' => '123456',
         ])
-        ->assertCreated();
+        ->assertStatus(422)
+        ->assertJsonPath('errors.amount.0', 'Withdrawals are only available once your wallet has been converted to USD.');
 
-    $withdrawal = Withdrawal::query()->where('investor_id', $investor->id)->firstOrFail();
-    $bankDetails = is_array($withdrawal->bank_details) ? $withdrawal->bank_details : [];
-
-    expect(strtoupper((string) ($bankDetails['currency'] ?? '')))->toBe('PKR')
-        ->and((float) $withdrawal->amount)->toBe(27850.0)
-        ->and((float) $withdrawal->amount_usd)->toBe(100.0);
+    expect(Withdrawal::query()->where('investor_id', $investor->id)->count())->toBe(0);
 });
 
 it('does not store a USD snapshot when a non-Pakistani user withdraws', function () {

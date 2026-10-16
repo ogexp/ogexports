@@ -225,6 +225,44 @@ it('reports a legacy conversion without changing the wallet unless apply is expl
         ->and(WalletCurrencyConversion::query()->where('wallet_id', $wallet->id)->exists())->toBeFalse();
 });
 
+it('allows a USD withdrawal after safely converting a legacy wallet on the server', function () {
+    config(['currency.fallback_rates' => [
+        'USD' => 1,
+        'PKR' => 278.5,
+        'EUR' => 0.92,
+        'GBP' => 0.79,
+    ]]);
+    ExchangeRateService::clearCache();
+    Http::fake(['*' => Http::response(null, 500)]);
+
+    $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
+    $wallet->update(['currency' => 'PKR', 'available_balance' => 28_407, 'pending_balance' => 0]);
+    $this->artisan('wallets:normalize-usd', ['--apply' => true])->assertExitCode(0);
+
+    $this->investor->forceFill([
+        'transaction_password' => bcrypt('123456'),
+        'transaction_password_set_at' => now(),
+        'withdraw_otp_code' => bcrypt('123456'),
+        'withdraw_otp_expires_at' => now()->addMinutes(10),
+    ])->save();
+
+    $this->actingAs($this->investor)
+        ->postJson('/api/investor/withdrawals', [
+            'amount' => 100,
+            'otp' => '123456',
+            'transaction_password' => '123456',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.currency', 'USD')
+        ->assertJsonPath('data.amount', 100)
+        ->assertJsonPath('data.fee', 2)
+        ->assertJsonPath('data.total_debit', 102);
+
+    expect($wallet->fresh()->currency)->toBe('USD')
+        ->and((float) $wallet->fresh()->available_balance)->toBe(0.0)
+        ->and(Withdrawal::query()->where('investor_id', $this->investor->id)->count())->toBe(1);
+});
+
 it('allows changing Profile display currency while a deposit is pending without changing wallet currency', function () {
     Deposit::query()->create([
         'investor_id' => $this->investor->id,
