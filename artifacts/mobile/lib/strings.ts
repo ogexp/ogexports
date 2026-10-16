@@ -1027,6 +1027,7 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Open WhatsApp","افتح واتساب","فتح واتساب"],
   ["Could not open WhatsApp. Contact support at +92 303 2569000, or create a ticket.","واٹس ایپ نہیں کھل سکا۔ +92 303 2569000 پر سپورٹ سے رابطہ کریں یا ٹکٹ بنائیں۔","تعذر فتح واتساب. تواصل مع الدعم على الرقم ‎+92 303 2569000 أو أنشئ تذكرة."],
   ["USD wallet setup required","USD والیٹ کی ترتیب درکار ہے","يلزم إعداد محفظة بالدولار الأمريكي"],
+  ["Withdrawal fee","رقم نکلوانے کی فیس","رسوم السحب"],
   ["Balance protected until conversion is confirmed","تبدیلی کی تصدیق تک بیلنس محفوظ رہے گا","الرصيد محمي حتى تأكيد التحويل"],
   ["Wallet conversion required","والیٹ کی تبدیلی درکار ہے","يلزم تحويل المحفظة"],
   ["Your existing wallet is not yet confirmed in USD. Your balance stays protected and hidden until OG Exports completes and records the conversion.","آپ کے موجودہ والیٹ کی USD میں تصدیق ابھی نہیں ہوئی۔ OG Exports کی جانب سے تبدیلی مکمل اور ریکارڈ ہونے تک آپ کا بیلنس محفوظ اور پوشیدہ رہے گا۔","لم يتم تأكيد محفظتك الحالية بالدولار الأمريكي بعد. سيظل رصيدك محمياً ومخفياً حتى تُكمل OG Exports التحويل وتسجله."],

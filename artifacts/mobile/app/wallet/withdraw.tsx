@@ -474,6 +474,7 @@ export default function Withdraw() {
           <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 14 }}>Processing information</Text>
         </View>
         <DetailRow label="Processing time" value={processingTime || 'Not provided'} />
+        <DetailRow label="Withdrawal fee" value={fee == null ? 'Unavailable' : money(fee, 'USD')} />
         <DetailRow label="Tax treatment" value={taxTreatment || 'Not specified'} />
         <DetailRow label="Wallet currency" value={currencyCheckLoading ? 'Checking…' : usdWalletReady ? 'USD' : 'USD conversion pending'} />
       </Card> : null}

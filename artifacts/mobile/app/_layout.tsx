@@ -78,7 +78,10 @@ function RootLayoutNav() {
   useEffect(() => {
     if (!ready || !token) return;
 
-    const refreshInvestorRecords = () => {
+    const refreshInvestorRecords = (isForegroundRefresh = false) => {
+      // Keep the active withdrawal flow visually stable; its own guarded
+      // refresh button and explicit balance checks still refresh server data.
+      if (pathname === '/wallet/withdraw' && !isForegroundRefresh) return;
       const prefixes = [
         'investor-profile',
         'investor-wallet',
@@ -98,15 +101,15 @@ function RootLayoutNav() {
       });
     };
 
-    const interval = setInterval(refreshInvestorRecords, 30_000);
+    const interval = setInterval(() => refreshInvestorRecords(), 30_000);
     const subscription = AppState.addEventListener('change', state => {
-      if (state === 'active') refreshInvestorRecords();
+      if (state === 'active') refreshInvestorRecords(true);
     });
     return () => {
       clearInterval(interval);
       subscription.remove();
     };
-  }, [ready, token, sessionQueryClient]);
+  }, [ready, token, pathname, sessionQueryClient]);
 
   useEffect(() => {
     if (Platform.OS === 'web' || (Platform.OS === 'android' && isRunningInExpoGo())) return;
