@@ -13,6 +13,12 @@ Use spacious typography, rounded cards with subtle borders and shadows, and ligh
 
 On Home, use the supplied screenshot direction: a full-width emerald gradient hero and a white floating action dock with Deposit Funds, Invest Now, Withdraw Funds, and View Portfolio. Keep the balance API-driven, preserve the privacy toggle, and keep the decorative circles subtle. The white content begins with Account Overview, followed by verification and investment summaries; move Portfolio Performance and Recent Transactions lower.
 
+For Home's My Investments card, limit the admin-status change to its Container Status value. Preserve the existing card layout and Portfolio Performance section; do not change unrelated refresh or dashboard elements.
+
+**Why:** the user explicitly said only the My Investments container status needed updating, and objected to unrelated Home/dashboard changes.
+
+**How to apply:** source the value from the investment/container record and do not substitute a generic trade or project status.
+
 Country selectors in the investor mobile app should share a polished, searchable country list like the website. Keep free-text market filters distinct from actual country fields.
 
 **Why:** the user asked for a professional country list wherever investors need to select a country.

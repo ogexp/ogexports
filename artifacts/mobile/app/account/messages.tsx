@@ -104,6 +104,18 @@ function normalizedTicketStatus(value: string) {
   return ticketStatusSteps.find(status => status.toLowerCase() === normalized) ?? '';
 }
 
+function chatTimestamp(value: string) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 function TicketStatusProgress({ status }: { status: string }) {
   const colors = useColors();
   const current = ticketStatusSteps.indexOf(normalizedTicketStatus(status) as typeof ticketStatusSteps[number]);
@@ -124,7 +136,8 @@ function TicketStatusProgress({ status }: { status: string }) {
 
 export default function Messages() {
   const params = useLocalSearchParams<{ mode?: string; subject?: string; body?: string }>();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const investorId = first(record(user), ['id'], '');
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<SupportMode>('help');
@@ -154,8 +167,13 @@ export default function Messages() {
   const conversationQuery = useGetInvestorAdminConversation({
     query: { queryKey: ['investor-admin-conversation'], enabled: !!token && mode === 'chat' },
   });
-  const conversation = unwrap(conversationQuery.data);
-  const conversationId = first(conversation, ['id', 'conversation_id'], '');
+  const conversationResponse = unwrap(conversationQuery.data);
+  const conversation = record(conversationResponse.conversation);
+  const conversationId = first(
+    conversation,
+    ['id', 'conversation_id'],
+    first(conversationResponse, ['id', 'conversation_id'], ''),
+  );
   const messagesQuery = useGetInvestorConversationMessages(conversationId, {
     query: {
       queryKey: ['investor-conversation-messages', conversationId],
@@ -188,7 +206,7 @@ export default function Messages() {
     setNotice('');
     if (!conversationId || !message.trim()) return;
     try {
-      await send.mutateAsync({ conversation: conversationId, data: { message: message.trim() } });
+      await send.mutateAsync({ conversation: conversationId, data: { body: message.trim() } });
       motionHaptic('success');
       setMessage('');
       setChatSentCount(count => count + 1);
@@ -205,7 +223,7 @@ export default function Messages() {
       return;
     }
     try {
-      await createTicket.mutateAsync({ data: { subject: subject.trim(), message: ticketBody.trim() } });
+      await createTicket.mutateAsync({ data: { subject: subject.trim(), body: ticketBody.trim() } });
       setSubject('');
       setTicketBody('');
       setNotice('Your support ticket was sent. Its latest status will appear in ticket history.');
@@ -322,12 +340,19 @@ export default function Messages() {
                 : <EmptyState title="Start a conversation" body="Send a message to investor support. Replies will appear here." />
           }
           renderItem={({ item, index }) => {
-            const own = /investor|user/i.test(first(record(item.sender), ['role', 'type'], first(item, ['sender_type', 'role'], '')));
+            const sender = record(item.sender);
+            const senderId = first(item, ['sender_id'], first(sender, ['id'], ''));
+            const senderRole = first(sender, ['role', 'type'], first(item, ['sender_type', 'role'], ''));
+            const own = (investorId !== '' && senderId === investorId) || /investor|user/i.test(senderRole);
             const messageId = first(item, ['id'], first(item, ['created_at', 'date'], String(index)));
+            const createdAt = first(item, ['created_at', 'date'], '');
             return <ChatBubbleReveal key={messageId} id={messageId} seenIds={animatedChatMessageIds}>
-              <Card style={{ backgroundColor: own ? colors.secondary : colors.card, alignSelf: own ? 'flex-end' : 'stretch', width: own ? '88%' : '100%' }}>
+              <Card style={{ backgroundColor: own ? colors.secondary : colors.card, alignSelf: own ? 'flex-end' : 'flex-start', width: '88%', borderRadius: 18 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', marginBottom: 5 }}>
+                {own ? 'You' : 'OG Exports Support'}
+              </Text>
               <Text style={{ color: colors.foreground, lineHeight: 20 }}>{first(item, ['message', 'body', 'content'], '')}</Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 7 }}>{first(item, ['created_at', 'date'], '')}</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 7 }}>{chatTimestamp(createdAt)}</Text>
               </Card>
             </ChatBubbleReveal>;
           }}

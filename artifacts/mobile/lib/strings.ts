@@ -465,6 +465,8 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Investments are available only after OG Exports reports your KYC status as Verified. Deposits and withdrawals are not affected by this investment requirement.","سرمایہ کاری تب ہی دستیاب ہوتی ہے جب OG Exports آپ کے KYC اسٹیٹس کو تصدیق شدہ قرار دے۔ ڈپازٹ اور نکالنے کی رقوم اس سرمایہ کاری کی ضرورت سے متاثر نہیں ہوتے۔","تصبح الاستثمارات متاحة فقط بعد أن تؤكد OG Exports حالة KYC الخاصة بك كـ 'مُتحقّق منها'. لا تتأثر عمليات الإيداع والسحب بمتطلبات الاستثمار هذه."],
   ["Investor statements & reports","سرمایہ کار کے بیانات اور رپورٹس","كشوف وتقارير المستثمر"],
   ["Investor support conversation","سرمایہ کار سپورٹ گفتگو","محادثة دعم المستثمر"],
+  ["OG Exports Support","OG Exports سپورٹ","دعم OG Exports"],
+  ["You","آپ","أنت"],
   ["Live carrier tracking is not connected. This record reflects information provided by OG Exports and does not show a live vessel or container position.","لائیو کیریئر ٹریکنگ منسلک نہیں ہے۔ یہ ریکارڈ OG Exports کی طرف سے فراہم کردہ معلومات کی عکاسی کرتا ہے اور جہاز یا کنٹینر کی براہ راست پوزیشن نہیں دکھاتا ہے۔","تتبع الناقل المباشر غير متصل. يعكس هذا السجل المعلومات المقدمة من OG Exports ولا يعرض الموقع المباشر للسفينة أو الحاوية."],
   ["Loading authorized documents…","مجاز دستاویزات لوڈ ہو رہے ہیں...","جارٍ تحميل المستندات المعتمدة..."],
   ["Loading available opportunities…","دستیاب مواقع لوڈ ہو رہے ہیں...","جارٍ تحميل الفرص المتاحة..."],

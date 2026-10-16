@@ -152,11 +152,10 @@ export default function InvestorHome() {
   useFocusEffect(React.useCallback(() => {
     if (token) {
       void dashboard.refetch();
-      void investments.refetch();
       void deposits.refetch();
       void notificationsQuery.refetch();
     }
-  }, [token, dashboard.refetch, investments.refetch, deposits.refetch, notificationsQuery.refetch]));
+  }, [token, dashboard.refetch, deposits.refetch, notificationsQuery.refetch]));
   const data = unwrap(dashboard.data);
   const summary = record(data.summary);
   const wallet = record(data.wallet);
@@ -454,7 +453,7 @@ export default function InvestorHome() {
     {!investments.isLoading && !investments.isError && investmentItems.length === 0 ? <EmptyState title="No investment records" body="Investment details will appear here when supplied by OG Exports." /> : null}
     {investmentItems.map((position, index) => {
       const trade = record(position.trade ?? position.project ?? position.trade_details);
-      const container = record(trade.container);
+      const container = record(position.container ?? position.container_details ?? trade.container ?? trade.container_details);
       const tradeId = first(position, ['trade_id', 'trade_code'], first(trade, ['trade_id', 'trade_code', 'project_code', 'code'], '—'));
       const tradeLabel = tradeId === '—' || /^trade\s*#/i.test(tradeId) ? tradeId : `Trade #${tradeId}`;
       const title = first(trade, ['commodity_name', 'commodity', 'title', 'name'], first(position, ['project_name', 'title', 'name'], '—'));
@@ -463,11 +462,11 @@ export default function InvestorHome() {
       const route = origin && destination ? `${origin} → ${destination}` : '—';
       const containerStatus = first(
         position,
-        ['container_status', 'shipment_status', 'trade_status'],
+        ['container_status'],
         first(
           container,
-          ['trade_status', 'status', 'current_status'],
-          first(trade, ['container_status', 'shipment_status', 'trade_status', 'current_project_stage', 'status'], '—'),
+          ['container_status', 'status', 'current_status', 'shipment_status'],
+          first(trade, ['container_status', 'shipment_status'], first(position, ['shipment_status'], '—')),
         ),
       );
       const eta = first(position, ['estimated_arrival', 'eta'], first(trade, ['estimated_arrival', 'eta'], '—'));
@@ -669,7 +668,7 @@ export default function InvestorHome() {
             <Image source={require('../../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 38, height: 38 }} />
             <View>
               <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 }}>OG Exports</Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '600', letterSpacing: 0.8, marginTop: 2 }}>INVESTOR</Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '600', letterSpacing: 0.8, marginTop: 2 }}>INVESTOR PORTAL</Text>
             </View>
           </View>
           <Pressable testID="home-menu-close" accessibilityRole="button" accessibilityLabel="Close navigation menu" hitSlop={8} onPress={() => setAccountMenuOpen(false)}
