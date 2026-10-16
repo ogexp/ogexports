@@ -714,11 +714,13 @@ export default function Withdraw() {
           paddingHorizontal: 13,
           paddingVertical: 13,
           borderRadius: 12,
-          backgroundColor: colors.primary,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.card,
         }}
       >
-        <Text style={{ color: colors.primaryForeground, fontSize: 13, fontWeight: '700', flex: 1 }}>Total wallet debit</Text>
-        <Text style={{ color: colors.primaryForeground, fontSize: 17, fontWeight: '800', textAlign: 'right' }}>
+        <Text style={{ color: colors.mutedForeground, fontSize: 13, fontWeight: '700', flex: 1 }}>Total wallet debit</Text>
+        <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '800', textAlign: 'right' }}>
           {money(readAmount(confirmation, ['total_debit', 'total_debit_usd']), first(confirmation, ['currency'], withdrawalCurrency || 'USD'))}
         </Text>
       </View>
