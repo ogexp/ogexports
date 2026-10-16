@@ -349,7 +349,7 @@ export default function Messages() {
         {conversationId ? <FlatList
           testID="support-chat-messages"
           data={chatMessages}
-          inverted
+          inverted={chatMessages.length > 0}
           keyExtractor={(item, index) => first(item, ['id'], String(index))}
           keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
