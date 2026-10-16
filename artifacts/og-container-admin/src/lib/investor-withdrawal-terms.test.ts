@@ -10,7 +10,7 @@ const usdTerms = parseInvestorWithdrawalTerms({
     withdrawal_fee: 2,
     withdrawal_fee_usd: 2,
     withdrawal_fee_currency: "USD",
-    estimated_processing_time: "1 to 2 working days",
+    estimated_processing_time: "2 Working days",
   },
 })
 
@@ -18,7 +18,7 @@ assert.deepEqual(usdTerms, {
   fee: 2,
   feeUsd: 2,
   feeCurrency: "USD",
-  processingTime: "1 to 2 working days",
+  processingTime: "2 Working days",
 })
 assert.equal(withdrawalFeeTermsConfirmed(usdTerms, "USD"), true)
 
@@ -28,7 +28,7 @@ const pkrTerms = parseInvestorWithdrawalTerms({
       withdrawal_fee: 557,
       withdrawal_fee_usd: 2,
       withdrawal_fee_currency: "PKR",
-      estimated_processing_time: "1 to 2 working days",
+      estimated_processing_time: "2 Working days",
     },
   },
 })

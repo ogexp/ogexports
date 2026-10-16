@@ -23,13 +23,13 @@ test('shows the confirmed policy as display-only when the API omits withdrawal t
   });
 
   assert.equal(FALLBACK_WITHDRAWAL_FEE_USD, 2);
-  assert.equal(FALLBACK_WITHDRAWAL_PROCESSING_TIME, '1 to 2 working days');
+  assert.equal(FALLBACK_WITHDRAWAL_PROCESSING_TIME, '2 Working days');
   assert.equal(MINIMUM_WITHDRAWAL_USD, 100);
   assert.deepEqual(terms, {
     fee: 2,
     feeUsd: 2,
     feeCurrency: 'USD',
-    processingTime: '1 to 2 working days',
+    processingTime: '2 Working days',
     minimumWithdrawalUsd: 100,
     minimumWithdrawalAmount: 100,
     minimumWithdrawalCurrency: 'USD',
@@ -42,7 +42,7 @@ test('only treats server-returned USD 2 terms as confirmed for a USD wallet', ()
     apiFee: 2,
     apiFeeUsd: 2,
     apiFeeCurrency: 'USD',
-    apiProcessingTime: '1 to 2 working days',
+    apiProcessingTime: '2 Working days',
     apiMinimumWithdrawal: 100,
     apiMinimumWithdrawalUsd: 100,
     apiMinimumWithdrawalCurrency: 'USD',
@@ -52,7 +52,7 @@ test('only treats server-returned USD 2 terms as confirmed for a USD wallet', ()
     apiFee: 0,
     apiFeeUsd: 0,
     apiFeeCurrency: 'USD',
-    apiProcessingTime: '1 to 2 working days',
+    apiProcessingTime: '2 Working days',
     apiMinimumWithdrawal: 0,
     apiMinimumWithdrawalUsd: 0,
     apiMinimumWithdrawalCurrency: 'USD',
@@ -68,7 +68,7 @@ test('uses the server-converted PKR minimum while keeping the policy threshold a
     apiFee: 557,
     apiFeeUsd: 2,
     apiFeeCurrency: 'PKR',
-    apiProcessingTime: '1 to 2 working days',
+    apiProcessingTime: '2 Working days',
     apiMinimumWithdrawal: 27850,
     apiMinimumWithdrawalUsd: 100,
     apiMinimumWithdrawalCurrency: 'PKR',
@@ -88,7 +88,7 @@ test('does not apply USD-denominated terms directly to a PKR wallet', () => {
     apiFee: 2,
     apiFeeUsd: 2,
     apiFeeCurrency: 'USD',
-    apiProcessingTime: '1 to 2 working days',
+    apiProcessingTime: '2 Working days',
     apiMinimumWithdrawal: 100,
     apiMinimumWithdrawalUsd: 100,
     apiMinimumWithdrawalCurrency: 'USD',

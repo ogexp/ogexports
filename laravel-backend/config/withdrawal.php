@@ -3,5 +3,5 @@
 return [
     'fee_usd' => (float) env('WITHDRAWAL_FEE_USD', 2),
     'minimum_usd' => 100.0,
-    'estimated_processing_time' => '1 to 2 working days',
+    'estimated_processing_time' => '2 Working days',
 ];

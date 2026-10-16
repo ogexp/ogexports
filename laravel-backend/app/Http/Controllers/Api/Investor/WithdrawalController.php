@@ -401,7 +401,7 @@ class WithdrawalController extends Controller
             'payment_method' => $this->withdrawalPaymentMethod($bankDetails),
             'withdrawal_fee' => $breakdown['fee'],
             'withdrawal_fee_usd' => $breakdown['fee_usd'],
-            'estimated_processing_time' => (string) config('withdrawal.estimated_processing_time', '1 to 2 working days'),
+            'estimated_processing_time' => (string) config('withdrawal.estimated_processing_time', '2 Working days'),
             'bank_details' => InvestorBankAccountPresenter::maskBankDetails(
                 is_array($withdrawal->bank_details) ? $withdrawal->bank_details : []
             ),

@@ -32,7 +32,7 @@ class WithdrawalTerms
             'minimum_withdrawal_amount' => round($minimumUsd * $rate, 2),
             'minimum_withdrawal_usd' => $minimumUsd,
             'minimum_withdrawal_currency' => $currency,
-            'estimated_processing_time' => (string) config('withdrawal.estimated_processing_time', '1 to 2 working days'),
+            'estimated_processing_time' => (string) config('withdrawal.estimated_processing_time', '2 Working days'),
         ];
     }
 }

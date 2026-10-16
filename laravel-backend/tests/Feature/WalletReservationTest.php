@@ -486,7 +486,7 @@ it('returns withdrawal fee and processing terms from the investor dashboard', fu
         ->assertJsonPath('data.minimum_withdrawal_amount', 100)
         ->assertJsonPath('data.minimum_withdrawal_usd', 100)
         ->assertJsonPath('data.minimum_withdrawal_currency', 'USD')
-        ->assertJsonPath('data.estimated_processing_time', '1 to 2 working days');
+        ->assertJsonPath('data.estimated_processing_time', '2 Working days');
 
     $this->actingAs($this->investor)
         ->getJson('/api/investor/wallet')
@@ -564,7 +564,7 @@ it('reserves the payout and fee on withdrawal request, then clears the full debi
         ->assertJsonPath('data.total_debit_usd', 2502)
         ->assertJsonPath('data.currency', 'USD')
         ->assertJsonPath('data.payment_method', 'Bank Transfer')
-        ->assertJsonPath('data.estimated_processing_time', '1 to 2 working days');
+        ->assertJsonPath('data.estimated_processing_time', '2 Working days');
     $withdrawalId = $response->json('data.id');
 
     $submittedNotification = AppNotification::query()

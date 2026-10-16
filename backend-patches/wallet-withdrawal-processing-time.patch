@@ -1,0 +1,27 @@
+diff --git a/config/withdrawal.php b/config/withdrawal.php
+--- a/config/withdrawal.php
++++ b/config/withdrawal.php
+@@ -6 +6 @@ return [
+-    'estimated_processing_time' => '1 to 2 working days',
++    'estimated_processing_time' => '2 Working days',
+diff --git a/app/Support/WithdrawalTerms.php b/app/Support/WithdrawalTerms.php
+--- a/app/Support/WithdrawalTerms.php
++++ b/app/Support/WithdrawalTerms.php
+@@ -35 +35 @@ class WithdrawalTerms
+-            'estimated_processing_time' => (string) config('withdrawal.estimated_processing_time', '1 to 2 working days'),
++            'estimated_processing_time' => (string) config('withdrawal.estimated_processing_time', '2 Working days'),
+diff --git a/app/Http/Controllers/Api/Investor/WithdrawalController.php b/app/Http/Controllers/Api/Investor/WithdrawalController.php
+--- a/app/Http/Controllers/Api/Investor/WithdrawalController.php
++++ b/app/Http/Controllers/Api/Investor/WithdrawalController.php
+@@ -404 +404 @@ class WithdrawalController extends Controller
+-            'estimated_processing_time' => (string) config('withdrawal.estimated_processing_time', '1 to 2 working days'),
++            'estimated_processing_time' => (string) config('withdrawal.estimated_processing_time', '2 Working days'),
+diff --git a/tests/Feature/WalletReservationTest.php b/tests/Feature/WalletReservationTest.php
+--- a/tests/Feature/WalletReservationTest.php
++++ b/tests/Feature/WalletReservationTest.php
+@@ -489 +489 @@ it('returns withdrawal fee and processing terms from the investor dashboard', function () {
+-        ->assertJsonPath('data.estimated_processing_time', '1 to 2 working days');
++        ->assertJsonPath('data.estimated_processing_time', '2 Working days');
+@@ -567 +567 @@ it('reserves the payout and fee on withdrawal request, then clears the full debit on approval', function () {
+-        ->assertJsonPath('data.estimated_processing_time', '1 to 2 working days');
++        ->assertJsonPath('data.estimated_processing_time', '2 Working days');

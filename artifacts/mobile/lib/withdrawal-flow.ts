@@ -1,5 +1,5 @@
 export const FALLBACK_WITHDRAWAL_FEE_USD = 2;
-export const FALLBACK_WITHDRAWAL_PROCESSING_TIME = '1 to 2 working days';
+export const FALLBACK_WITHDRAWAL_PROCESSING_TIME = '2 Working days';
 export const MINIMUM_WITHDRAWAL_USD = 100;
 
 export function resolveWithdrawalDisplayTerms({

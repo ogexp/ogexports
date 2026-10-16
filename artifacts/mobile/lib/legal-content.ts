@@ -37,7 +37,7 @@ export const LEGAL_DOCUMENTS: Record<string, LegalDocument> = {
       { heading: '5. Payments, wallet and withdrawals', paragraphs: [
         'Use only payment instructions shown in an authenticated OG Exports channel or confirmed in writing by authorized personnel. A deposit is not credited until the applicable records confirm receipt and verification. Never rely on a changed bank instruction received through an unverified message.',
         'The wallet currency follows the currency recorded for your profile and wallet. Where a conversion is authorized, the applicable rate and amount are those recorded for that transaction; later market rates do not rewrite historical entries.',
-        'Current withdrawal terms are a minimum bank payout equivalent to USD 100, a flat USD 2 fee added on top of the requested payout (converted to wallet currency using the request’s recorded rate where applicable), and an estimated processing period of 1–2 working days. These are current operational terms, not a guarantee of timing. The amount, fee, currency and status confirmed for your request control.',
+        'Current withdrawal terms are a minimum bank payout equivalent to USD 100, a flat USD 2 fee added on top of the requested payout (converted to wallet currency using the request’s recorded rate where applicable), and an estimated processing period of 2 working days. These are current operational terms, not a guarantee of timing. The amount, fee, currency and status confirmed for your request control.',
       ] },
       { heading: '6. Acceptable use', bullets: [
         'Use the Platform lawfully and only for its intended business and investor functions.',
@@ -168,7 +168,7 @@ export const LEGAL_DOCUMENTS: Record<string, LegalDocument> = {
       ] },
       { heading: '6. Deposits and withdrawals', paragraphs: [
         'Follow only verified payment instructions shown in your account or confirmed by authorized OG Exports staff. A deposit is recognized only after the official record confirms receipt and any required review.',
-        'Current withdrawal operations are available only from USD wallets, with a USD 100 minimum bank payout and a flat USD 2 fee added to the payout. Legacy wallets must complete a server-recorded conversion before a withdrawal can be requested. The estimated processing time is 1–2 working days. These current operational values may be changed prospectively; confirmed terms on your request control. Processing estimates are not a guarantee.',
+        'Current withdrawal operations are available only from USD wallets, with a USD 100 minimum bank payout and a flat USD 2 fee added to the payout. Legacy wallets must complete a server-recorded conversion before a withdrawal can be requested. The estimated processing time is 2 working days. These current operational values may be changed prospectively; confirmed terms on your request control. Processing estimates are not a guarantee.',
       ] },
       { heading: '7. Records, statements and questions', paragraphs: [
         'Keep copies of your offer, signed agreement, confirmations, receipts and account statements. Report a discrepancy through the in-app Support channel promptly and include the relevant transaction ID or reference. Support review does not itself change a recorded transaction.',
