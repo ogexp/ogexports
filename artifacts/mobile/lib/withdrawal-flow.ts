@@ -24,27 +24,29 @@ export function resolveWithdrawalDisplayTerms({
   const normalizedWalletCurrency = walletCurrency.trim().toUpperCase();
   const normalizedFeeCurrency = apiFeeCurrency.trim().toUpperCase();
   const normalizedMinimumCurrency = apiMinimumWithdrawalCurrency.trim().toUpperCase();
+  const walletFee = normalizedFeeCurrency === normalizedWalletCurrency ? apiFee : null;
+  const walletMinimum = normalizedMinimumCurrency === normalizedWalletCurrency ? apiMinimumWithdrawal : null;
   const normalizedProcessingTime = apiProcessingTime.trim();
   const processingTime = normalizedProcessingTime && normalizedProcessingTime !== '—'
     ? normalizedProcessingTime
     : FALLBACK_WITHDRAWAL_PROCESSING_TIME;
 
   return {
-    fee: apiFee ?? (normalizedWalletCurrency === 'USD' ? FALLBACK_WITHDRAWAL_FEE_USD : null),
+    fee: walletFee ?? (normalizedWalletCurrency === 'USD' ? FALLBACK_WITHDRAWAL_FEE_USD : null),
     feeUsd: apiFeeUsd ?? FALLBACK_WITHDRAWAL_FEE_USD,
     feeCurrency: normalizedFeeCurrency || normalizedWalletCurrency,
     processingTime,
     minimumWithdrawalUsd: MINIMUM_WITHDRAWAL_USD,
     minimumWithdrawalAmount: normalizedWalletCurrency === 'USD'
       ? MINIMUM_WITHDRAWAL_USD
-      : (apiMinimumWithdrawalUsd === MINIMUM_WITHDRAWAL_USD ? apiMinimumWithdrawal : null),
+      : (apiMinimumWithdrawalUsd === MINIMUM_WITHDRAWAL_USD ? walletMinimum : null),
     minimumWithdrawalCurrency: normalizedMinimumCurrency || normalizedWalletCurrency,
     serverConfirmed:
-      apiFee !== null
+      walletFee !== null
       && apiFeeUsd === FALLBACK_WITHDRAWAL_FEE_USD
       && normalizedWalletCurrency !== ''
       && normalizedFeeCurrency === normalizedWalletCurrency
-      && apiMinimumWithdrawal !== null
+      && walletMinimum !== null
       && apiMinimumWithdrawalUsd === MINIMUM_WITHDRAWAL_USD
       && normalizedMinimumCurrency === normalizedWalletCurrency
       && (normalizedWalletCurrency !== 'USD' || apiMinimumWithdrawal === MINIMUM_WITHDRAWAL_USD),

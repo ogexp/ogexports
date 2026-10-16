@@ -83,6 +83,23 @@ test('uses the server-converted PKR minimum while keeping the policy threshold a
   assert.equal(parseWithdrawalAmount('27850', 50000, 557, terms.minimumWithdrawalAmount), 27850);
 });
 
+test('does not apply USD-denominated terms directly to a PKR wallet', () => {
+  const terms = resolveWithdrawalDisplayTerms({
+    apiFee: 2,
+    apiFeeUsd: 2,
+    apiFeeCurrency: 'USD',
+    apiProcessingTime: '1 to 2 working days',
+    apiMinimumWithdrawal: 100,
+    apiMinimumWithdrawalUsd: 100,
+    apiMinimumWithdrawalCurrency: 'USD',
+    walletCurrency: 'PKR',
+  });
+
+  assert.equal(terms.fee, null);
+  assert.equal(terms.minimumWithdrawalAmount, null);
+  assert.equal(terms.serverConfirmed, false);
+});
+
 test('maximum payout is the available wallet balance less the fee', () => {
   assert.equal(maximumWithdrawalPayout(1750.33, 2), 1748.33);
   assert.equal(maximumWithdrawalPayout(1.5, 2), 0);
@@ -152,4 +169,26 @@ test('withdrawal request uses the website bank-details contract and includes pur
       currency: 'EUR',
     },
   });
+});
+
+test('withdrawal request carries the app wallet currency through bank details', () => {
+  const request = buildWithdrawalRequest(
+    27850,
+    '123456',
+    'transaction-password',
+    {
+      bank_name: 'Example Bank',
+      account_holder: 'A. Investor',
+      account_number: '1234567890',
+      iban: '',
+      swift: '',
+      branch: '',
+    },
+    true,
+    '',
+    'pkr',
+  );
+
+  assert.equal(request.amount, 27850);
+  assert.equal(request.bank_details.currency, 'PKR');
 });

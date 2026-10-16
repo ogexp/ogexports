@@ -5,11 +5,11 @@ description: Verified financial and verification limits in the investor API.
 
 Use the Laravel investor-data API as the source of truth for portfolio and account data. Its dashboard provides real portfolio history points derived from investment and profit-distribution records. Withdrawal responses include the requested payout, recorded fee, total wallet debit, status, and reference, and may include a USD conversion/rate. That API has no phone-verification route. Never use sample/demo financial values; follow the scoped Investment Details formula exception below only for that display.
 
-Withdrawals are USD-only. A USD 2 fee is added on top of the bank payout: a USD 100 payout reserves/debits USD 102. Legacy non-USD wallets must be safely converted by the server before withdrawals are enabled; the withdrawal endpoint rejects non-USD wallets. Preserve historical transaction currencies and conversion audit records. The stated processing estimate is “1 to 2 working days.”
+Withdrawals use the investor's existing stored app-wallet currency end to end. The requested payout, fee, total debit, bank payout currency, and wallet reservation must all agree with that currency; do not require USD or relabel a non-USD balance. The minimum payout remains the wallet-currency equivalent of USD 100, and the flat fee remains the wallet-currency equivalent of USD 2, added on top of the payout. Preserve USD conversion snapshots for audit only where the server records them; they do not change the wallet debit currency. The stated processing estimate is “1 to 2 working days.”
 
 **Why:** The user explicitly chose an additional fee rather than deducting it from the payout, so showing a fee without increasing the wallet debit would be misleading.
 
-**How to apply:** Keep the bank payout amount unchanged; validate, reserve, approve, and refund payout plus the USD fee. Laravel remains authoritative for fee, minimum, USD wallet eligibility, balance, conversion, and reservation validation. Never use a later live rate to rewrite a submitted fee or request. For mobile, show only USD wallet amounts in the withdrawal flow, hide the balance until the server confirms the wallet is USD, and disable progression while conversion is pending. Keep the overview balance equal to the available USD balance and show the fee only on the request form. For the web portal, require an API-confirmed USD wallet and fee before enabling withdrawal.
+**How to apply:** Keep the bank payout amount unchanged; validate, reserve, approve, and refund payout plus the fee in the stored wallet currency. Laravel remains authoritative for currency, fee, minimum, balance, and reservation validation. Never use a later live rate to rewrite a submitted fee or request. Mobile must read the currency and balance from the wallet response, show the full available balance in that currency, and show the fee only on the request form. Do not require the currency to be USD.
 
 On mobile, show the full dashboard-reported available wallet balance as the withdrawable balance on the overview. Do not subtract or reveal the withdrawal fee there; show the fee on the request form after the investor proceeds. The fee remains one flat charge per withdrawal, added to the requested payout.
 
@@ -19,11 +19,11 @@ On mobile, show the full dashboard-reported available wallet balance as the with
 
 **Why:** The user requested that mobile investors not see a server-confirmation notice or have Proceed disabled, and that the mobile overview show full available balance with fee details only on the request form. The web portal needs a confirmed wallet fee to show a safe fee-adjusted maximum; Laravel remains financially authoritative.
 
-The minimum bank payout is USD 100, with the USD 2 withdrawal fee charged on top. Non-USD wallets cannot request withdrawals until the server has completed a safe conversion to USD.
+The minimum bank payout remains equivalent to USD 100, and the USD 2-equivalent withdrawal fee is charged on top, but both amounts are expressed and debited in the stored wallet currency.
 
 **Why:** The minimum applies to the amount sent to the bank, while the fee is a separate wallet debit.
 
-**How to apply:** Return USD withdrawal terms from the API. Enforce USD wallet eligibility and the USD minimum on the server. The mobile withdrawal screen must never render legacy non-USD wallet balances as USD.
+**How to apply:** Return the fee and minimum in the exact stored wallet currency, plus USD equivalents if useful for policy/audit. Enforce the currency-native payout, fee, minimum, and total debit on the server. Never render or submit the numeric wallet balance as a different currency.
 
 The mobile app's investor data API is the existing Laravel service. The workspace Express API is a separate supplemental service, not a replacement source for Laravel investor project or investment responses. When Laravel implementation code is outside this workspace, define and generate the contract here, but keep the external server implementation boundary explicit; do not store parallel local shipment data that investors cannot receive.
 
@@ -47,7 +47,7 @@ For display only, render an absent monetary field as zero in Profile's selected 
 
 **Why:** The user requires a visible display-only zero for missing money while keeping Laravel as the sole financial source; all monetary displays follow Profile currency.
 
-**How to apply:** Apply this rule at general UI formatting boundaries using Profile currency, except for the explicitly USD-only withdrawal flow below. Do not derive expected profit outside the scoped Investment Details formula above; never derive total return, elapsed days, or stage progress from other data. Keep chart history, opportunities, transactions, payout dates, fees, currencies, and verification states API-only.
+**How to apply:** Apply this rule at general UI formatting boundaries using Profile currency, except for withdrawal amounts, which use the exact stored app-wallet currency. Do not derive expected profit outside the scoped Investment Details formula above; never derive total return, elapsed days, or stage progress from other data. Keep chart history, opportunities, transactions, payout dates, fees, currencies, and verification states API-only.
 
 Before treating the Laravel implementation as unavailable, inspect `attached_assets` for source archives. If provided, extract the backend into a dedicated project directory without unpacking `.env` files, logs, or uploaded user data.
 
@@ -85,14 +85,14 @@ When reading wallets, use an existing stored `wallet.currency`; for a new or cur
 
 **How to apply:** Keep wallet reads non-mutating for established accounts, and verify dashboard, wallet, and withdrawal responses agree on the stored source currency. Treat any repair of previously relabeled records as a separate, ledger-verified data correction.
 
-For withdrawal requests, the wallet must be USD-denominated. Convert safe legacy wallets on the server using a recorded rate and audit row; do not relabel a numeric balance, mutate on GET, or rewrite historical ledger currencies. Refuse conversion when an outstanding deposit, withdrawal, reservation, or wallet transaction makes the balance ambiguous.
+For withdrawals, use the existing stored wallet currency and debit the same numeric amount from that wallet. Do not require USD, relabel a numeric balance, mutate wallet currency on GET, or rewrite historical ledger currencies. Keep any USD equivalent as a separate server-recorded audit snapshot, not as the payout or ledger currency.
 
-**Why:** The user changed the withdrawal requirement to USD-only; showing or submitting a legacy non-USD balance as USD would misstate the funds.
+**Why:** The user changed the withdrawal requirement from USD-only to using the existing app wallet for the complete flow; a separate USD-only gate prevents valid wallet-native withdrawals.
 
-**How to apply:** Keep the withdrawal form and request USD-only. Use the safe server conversion command for eligible legacy wallets, keep pending or unresolved wallets blocked, preserve bank settlement details separately, and retain conversion rates and historical event currencies.
+**How to apply:** Keep wallet balance, amount input, fee, minimum, bank payout currency, success details, and total debit in the stored wallet currency. Require server-returned currency-native fee/minimum terms for non-USD wallets. Preserve transaction-password and OTP checks and retain any FX snapshot only as audit metadata.
 
-Profile display preference does not override the USD-only withdrawal rule. A non-USD wallet is unavailable for withdrawals until its balance is safely converted on the server.
+Profile display preference does not override the wallet currency used for withdrawal. A display preference must not change the stored wallet currency or alter the amount being reserved.
 
-**Why:** The user requires the withdrawal flow to show and use only a USD wallet balance, while protecting legacy amounts from client-side relabeling.
+**Why:** The user requires withdrawal to use the existing app wallet throughout, while protecting stored balances from client-side relabeling.
 
-**How to apply:** For withdrawals, hide non-USD balances and block progression until the server reports USD. Do not convert or relabel balances in the client; keep the safe conversion and audit trail server-side.
+**How to apply:** Use the wallet endpoint's exact source currency for all withdrawal calculations and submission. Do not convert or relabel balances in the client; let Laravel apply and record any separate USD audit conversion.
