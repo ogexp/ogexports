@@ -64,26 +64,43 @@ function ClassicLayout() {
       headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.mutedForeground,
       tabBarStyle: {
         position: 'absolute', left: 14, right: 14,
-        bottom: isWeb ? 0 : isAndroid ? Math.max(insets.bottom + 14, 18) : Math.max(insets.bottom, 10),
+        bottom: isWeb ? 0 : isAndroid ? Math.max(insets.bottom + 10, 14) : Math.max(insets.bottom, 10),
         height: isWeb ? 84 : isAndroid ? 70 : 70,
         paddingTop: isWeb ? 2 : isAndroid ? 0 : 4,
         paddingBottom: isWeb ? 34 : 0,
         borderRadius: isAndroid ? 35 : 0,
-        backgroundColor: isAndroid ? colors.card : 'transparent',
+        backgroundColor: 'transparent',
         borderWidth: isAndroid ? StyleSheet.hairlineWidth : 0,
         borderColor: colors.border,
-        elevation: isAndroid ? 6 : 0,
+        elevation: isAndroid ? 9 : 0,
+        shadowColor: colors.shadowColor,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: isAndroid ? 0.16 : 0.08,
+        shadowRadius: isAndroid ? 16 : 12,
       },
       tabBarItemStyle: { paddingTop: isWeb ? 2 : 0 },
       tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: 1 },
       tabBarBackground: () => isAndroid
-        ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: colors.card, borderRadius: 35, overflow: 'hidden' }]} />
+        ? (
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: 35, overflow: 'hidden' }]}>
+            <BlurView
+              intensity={36}
+              tint={resolvedAppearance}
+              experimentalBlurMethod="dimezisBlurView"
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.card, opacity: 0.76 }]} />
+            <View style={[StyleSheet.absoluteFill, { borderRadius: 35, borderWidth: 1, borderColor: colors.border }]} />
+            <View style={{ position: 'absolute', top: 1, left: 28, right: 28, height: StyleSheet.hairlineWidth, backgroundColor: colors.background, opacity: 0.75 }} />
+          </View>
+        )
         : (
           <View pointerEvents="none" style={StyleSheet.absoluteFill}>
             {Platform.OS === 'ios' ? <BlurView intensity={85} tint={resolvedAppearance} style={[StyleSheet.absoluteFill, { bottom: isWeb ? 34 : 0 }]} /> : null}
             <View style={{
               position: 'absolute', left: 0, right: 0, top: 0, bottom: isWeb ? 34 : 0,
               backgroundColor: colors.card,
+              opacity: isWeb ? 1 : 0.84,
               borderWidth: 1, borderColor: colors.border, borderRadius: 30,
               ...(isWeb ? { boxShadow: `0 -6px 20px ${colors.shadow}` } : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 12 }),
             }} />

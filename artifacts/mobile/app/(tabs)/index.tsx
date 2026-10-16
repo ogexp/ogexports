@@ -369,7 +369,7 @@ export default function InvestorHome() {
          <Pressable testID="home-toggle-sensitive-values" accessibilityRole="button" accessibilityLabel={balanceHidden ? 'Show account balances' : 'Hide account balances'}
            onPress={() => setBalanceHidden(current => !current)} hitSlop={8}
            style={({ pressed }) => ({ position: 'absolute', top: -2, right: 0, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(248, 251, 248, 0.12)', opacity: pressed ? 0.72 : 1 })}>
-           <Feather name={balanceHidden ? 'eye-off' : 'eye'} size={15} color={colors.balanceCardText} />
+            <Feather name={balanceHidden ? 'lock' : 'unlock'} size={15} color={colors.balanceCardText} />
          </Pressable>
          <Text testID="home-available-balance" numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, fontSize: 40, fontWeight: '700', letterSpacing: -0.9, lineHeight: 45, marginTop: 5, textAlign: 'center' }}>
              {dashboard.isLoading ? '…' : displayMoney(availableBalance, currency)}
