@@ -12,6 +12,7 @@ import { Feather } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { LocalizedText as Text, LocalizedTextInput as TextInput } from '@/components/LocalizedText';
 import { useColors } from '@/hooks/useColors';
+import { GlassPopupSurface } from '@/components/GlassPopupSurface';
 import { COUNTRIES, countryLabelForValue, countrySections, type CountryOption } from '@/lib/countries';
 
 export function CountryPicker({
@@ -106,13 +107,12 @@ export function CountryPicker({
           style={[StyleSheet.absoluteFill, { backgroundColor: colors.shadowColor, opacity: 0.44 }]}
         />
         <KeyboardAvoidingView behavior="padding" style={{ width: '100%', maxHeight: '92%' }}>
-          <View style={{
+          <GlassPopupSurface style={{
             height: Math.min(height * 0.9, 740),
             borderTopLeftRadius: 28,
             borderTopRightRadius: 28,
             paddingTop: 10,
             paddingBottom: Math.max(insets.bottom, 14),
-            backgroundColor: colors.background,
             borderTopWidth: 1,
             borderColor: colors.border,
           }}>
@@ -248,7 +248,7 @@ export function CountryPicker({
                 </Pressable>;
               }}
             />
-          </View>
+          </GlassPopupSurface>
         </KeyboardAvoidingView>
       </View>
     </Modal>

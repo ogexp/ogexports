@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { useOptionalAppPreferences } from '@/context/AppPreferencesContext';
 import { useColors } from '@/hooks/useColors';
+import { GlassPopupSurface } from '@/components/GlassPopupSurface';
 import { translateUi, type AppLanguage } from '@/lib/strings';
 import {
   formatDateOnly,
@@ -196,7 +197,7 @@ export function DateOfBirthPicker({
           onPress={closePicker}
           style={[StyleSheet.absoluteFill, { backgroundColor: colors.shadowColor, opacity: 0.44 }]}
         />
-        <View style={{
+        <GlassPopupSurface style={{
           width: '100%',
           maxWidth: 520,
           height: sheetHeight,
@@ -209,7 +210,6 @@ export function DateOfBirthPicker({
           borderWidth: 1,
           borderBottomWidth: 0,
           borderColor: colors.border,
-          backgroundColor: colors.background,
           shadowColor: colors.shadowColor,
           shadowOffset: { width: 0, height: -6 },
           shadowOpacity: 0.12,
@@ -467,7 +467,7 @@ export function DateOfBirthPicker({
               <Text style={{ color: colors.primaryForeground, fontSize: 13, fontWeight: '700' }}>Use this date</Text>
             </Pressable>
           </View>
-        </View>
+        </GlassPopupSurface>
       </View>
     </Modal>
   </>;

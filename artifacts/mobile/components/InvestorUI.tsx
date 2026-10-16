@@ -20,6 +20,7 @@ import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollV
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { translateUi } from '@/lib/strings';
+import { GlassPopupSurface } from '@/components/GlassPopupSurface';
 import { MOTION, MotionReveal, motionHaptic, useMotion } from '@/lib/motion';
 import {
   shouldPlayTransactionChime,
@@ -500,12 +501,6 @@ export function SuccessFeedback({
         style={{
           width: '100%',
           maxWidth: 390,
-          padding: 23,
-          borderRadius: 24,
-          borderWidth: 1,
-          borderColor: colors.border,
-          backgroundColor: colors.card,
-          alignItems: 'center',
           shadowColor: colors.shadowColor,
           shadowOpacity: 0.16,
           shadowRadius: 28,
@@ -513,6 +508,13 @@ export function SuccessFeedback({
           elevation: 14,
         }}
       >
+        <GlassPopupSurface style={{
+          padding: 23,
+          borderRadius: 24,
+          borderWidth: 1,
+          borderColor: colors.border,
+          alignItems: 'center',
+        }}>
         <SuccessMark feedback={feedback} />
         <Text style={{ color: colors.foreground, fontSize: 19, fontWeight: '700', textAlign: 'center', marginTop: 15 }}>
           {title}
@@ -583,6 +585,7 @@ export function SuccessFeedback({
         >
           <Text style={{ color: colors.primaryForeground, fontSize: 14, fontWeight: '700' }}>Continue</Text>
         </Pressable>
+        </GlassPopupSurface>
       </Animated.View>
     </Animated.View> : null}
   </Modal>;
@@ -628,11 +631,10 @@ export function ConfirmationSheet({
         onPress={loading ? undefined : onCancel}
         style={StyleSheet.absoluteFill}
       />
-      <View style={{
+      <GlassPopupSurface style={{
         alignSelf: 'center',
         width: '100%',
         maxWidth: 560,
-        backgroundColor: colors.card,
         borderColor: colors.border,
         borderWidth: 1,
         borderBottomWidth: 0,
@@ -653,7 +655,7 @@ export function ConfirmationSheet({
             <Action title={confirmLabel} icon={destructive ? 'log-out' : 'check'} destructive={destructive} loading={loading} onPress={onConfirm} testID={testID ? `${testID}-confirm` : undefined} />
           </View>
         </View>
-      </View>
+      </GlassPopupSurface>
     </View>
   </Modal>;
 }

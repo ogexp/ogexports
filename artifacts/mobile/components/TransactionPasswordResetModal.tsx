@@ -11,6 +11,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { messageOf, unwrap } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
+import { GlassPopupSurface } from '@/components/GlassPopupSurface';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TransactionPasswordForm = {
@@ -73,7 +74,7 @@ export function TransactionPasswordResetModal({ visible, onClose, onSuccess }: P
   >
     <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 18, backgroundColor: 'rgba(8, 18, 13, 0.48)' }}>
       <Pressable accessible={false} importantForAccessibility="no" onPress={close} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
-      <View style={{
+      <GlassPopupSurface style={{
         alignSelf: 'center',
         width: '100%',
         maxWidth: 480,
@@ -81,7 +82,6 @@ export function TransactionPasswordResetModal({ visible, onClose, onSuccess }: P
         borderRadius: 22,
         borderWidth: 1,
         borderColor: colors.border,
-        backgroundColor: colors.card,
         padding: 20,
         paddingBottom: Math.max(insets.bottom, 16) + 10,
       }}>
@@ -93,7 +93,7 @@ export function TransactionPasswordResetModal({ visible, onClose, onSuccess }: P
           onCancel={close}
           onSave={save}
         />
-      </View>
+      </GlassPopupSurface>
     </View>
   </Modal>;
 }

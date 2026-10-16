@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { reloadAppAsync } from 'expo';
+import { GlassPopupSurface } from '@/components/GlassPopupSurface';
 
 export type ErrorFallbackProps = {
   error: Error;
@@ -103,10 +104,10 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
           onRequestClose={() => setIsModalVisible(false)}
         >
           <View style={styles.modalOverlay}>
-            <View
+            <GlassPopupSurface
               style={[
                 styles.modalContainer,
-                { backgroundColor: colors.background },
+                { borderTopWidth: 1, borderColor: colors.border },
               ]}
             >
               <View
@@ -159,7 +160,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
                   </Text>
                 </View>
               </ScrollView>
-            </View>
+            </GlassPopupSurface>
           </View>
         </Modal>
       ) : null}

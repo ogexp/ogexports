@@ -22,6 +22,7 @@ import { latestRecords } from '@/lib/latest-records';
 import { isInvestorNotificationUnread } from '@/lib/notification-utils';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { GlassPopupSurface } from '@/components/GlassPopupSurface';
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
 import {
   DashboardMetric,
@@ -646,10 +647,9 @@ export default function InvestorHome() {
     onRequestClose={() => setAccountMenuOpen(false)}
   >
     <View style={{ flex: 1, flexDirection: 'row', backgroundColor: 'rgba(10, 22, 16, 0.36)' }}>
-      <View accessibilityViewIsModal style={{
+      <GlassPopupSurface accessibilityViewIsModal style={{
         width: '84%',
         maxWidth: 340,
-        backgroundColor: colors.card,
         borderColor: colors.border,
         borderRightWidth: 1,
         borderTopRightRadius: 26,
@@ -716,7 +716,7 @@ export default function InvestorHome() {
             </View>
           ))}
         </ScrollView>
-      </View>
+      </GlassPopupSurface>
       <Pressable accessibilityRole="button" accessibilityLabel="Close navigation menu" onPress={() => setAccountMenuOpen(false)} style={{ flex: 1 }} />
     </View>
   </Modal>

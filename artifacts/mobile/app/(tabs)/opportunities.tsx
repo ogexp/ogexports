@@ -11,6 +11,7 @@ import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollV
 import { amount, convertAmountToCurrency, first, list } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { GlassPopupSurface } from '@/components/GlassPopupSurface';
 import { createOpportunityPressHandler, matchesOpportunityStatus, tradeStatus, type OpportunityStatusFilter } from '@/lib/opportunities';
 import { MOTION, MotionReveal, motionHaptic, useMotion } from '@/lib/motion';
 
@@ -216,7 +217,7 @@ export default function Opportunities() {
     <Modal visible={filtersOpen} transparent animationType={reduceMotion ? 'none' : 'slide'} onRequestClose={() => setFiltersOpen(false)}>
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(10,20,16,0.38)' }}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close filters" onPress={() => setFiltersOpen(false)} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
-        <View style={{ maxHeight: '90%', borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: 20, paddingTop: 18, paddingBottom: Math.max(insets.bottom, 18), backgroundColor: colors.background }}>
+        <GlassPopupSurface style={{ maxHeight: '90%', borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: 20, paddingTop: 18, paddingBottom: Math.max(insets.bottom, 18), borderWidth: 1, borderColor: colors.border }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <Text style={{ color: colors.foreground, fontSize: 19, fontWeight: '700' }}>Filter opportunities</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Close filters" onPress={() => setFiltersOpen(false)}><Feather name="x" size={22} color={colors.mutedForeground} /></Pressable>
@@ -256,7 +257,7 @@ export default function Opportunities() {
               <Text style={{ color: colors.primaryForeground, fontSize: 12, fontWeight: '700' }}>Apply filters</Text>
             </Pressable>
           </View>
-        </View>
+        </GlassPopupSurface>
       </View>
     </Modal>
   </Screen>;
