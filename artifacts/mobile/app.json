@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "com.ogexports.investor",
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/images/og-logo.png"
@@ -34,7 +34,12 @@
           "backgroundColor": "#F7F6F2",
           "image": "./assets/images/og-logo.png",
           "imageWidth": 220,
-          "resizeMode": "contain"
+          "resizeMode": "contain",
+          "android": {
+            "drawable": {
+              "icon": "./assets/images/splash-transparent.xml"
+            }
+          }
         }
       ],
       "expo-audio",

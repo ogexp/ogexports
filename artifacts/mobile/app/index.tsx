@@ -251,7 +251,14 @@ export default function Entry() {
           opacity: playIntroMotion ? wordmarkOpacity : showStaticIntro ? 1 : 0,
           transform: [{ translateY: playIntroMotion ? wordmarkLift : 0 }],
         }}>
-          <Text style={{ color: colors.primary, fontSize: 27, fontWeight: '700' }}>OG Exports</Text>
+          <Animated.Text
+            accessibilityRole="header"
+            allowFontScaling={false}
+            numberOfLines={1}
+            style={{ color: colors.primary, width: 240, fontSize: 27, fontWeight: '700', textAlign: 'center' }}
+          >
+            OG Exports
+          </Animated.Text>
           <Animated.Text style={{
             color: colors.mutedForeground,
             fontSize: 14,
