@@ -105,6 +105,58 @@ it('includes the available wallet balance in portfolio value when there are no i
         ->assertJsonPath('data.summary.display_currency', 'USD');
 });
 
+it('does not add confirmed distributed returns twice when they are already in the wallet', function () {
+    $wallet = Wallet::query()->create([
+        'user_id' => $this->investorA->id,
+        'currency' => 'USD',
+        'available_balance' => 20,
+        'pending_balance' => 0,
+    ]);
+    $project = InvestmentProject::query()->create([
+        'title' => 'Distributed return balance',
+        'type' => 'container',
+        'status' => 'settled',
+        'target_amount' => 100,
+        'raised_amount' => 100,
+        'investors_count' => 1,
+        'expected_return_pct' => 20,
+        'min_investment' => 100,
+        'investment_period_days' => 30,
+    ]);
+    $investment = Investment::query()->create([
+        'project_id' => $project->id,
+        'investor_id' => $this->investorA->id,
+        'amount' => 100,
+        'status' => 'completed',
+        'invested_at' => now()->subDays(30),
+    ]);
+    InvestmentProfitDistribution::query()->create([
+        'investment_id' => $investment->id,
+        'project_id' => $project->id,
+        'investor_id' => $this->investorA->id,
+        'project_type' => 'container',
+        'invested_amount' => 100,
+        'profit_amount' => 20,
+        'total_return' => 120,
+        'roi_pct' => 20,
+        'distributed_at' => now()->subDay(),
+    ]);
+    WalletTransaction::query()->create([
+        'wallet_id' => $wallet->id,
+        'type' => 'distribution',
+        'amount' => 20,
+        'direction' => 'credit',
+        'status' => 'completed',
+    ]);
+
+    $this->actingAs($this->investorA)
+        ->getJson('/api/investor/dashboard')
+        ->assertOk()
+        ->assertJsonPath('data.summary.available_balance', 20)
+        ->assertJsonPath('data.summary.distributed_returns', 20)
+        ->assertJsonPath('data.summary.total_portfolio_value', 20);
+});
+
 it('returns scoped dashboard totals lists and analytics for the logged in investor', function () {
     $walletA = Wallet::query()->create([
         'user_id' => $this->investorA->id,

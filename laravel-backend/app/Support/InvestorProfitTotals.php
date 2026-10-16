@@ -74,8 +74,9 @@ class InvestorProfitTotals
     }
 
     /**
-     * Build current portfolio values using only held investments, wallet balances,
-     * confirmed distribution rows, and explicitly pending distribution credits.
+     * Build current portfolio value from open investment principal, wallet balances,
+     * and explicitly pending distribution credits. Do not add confirmed distributions
+     * separately because payouts already reflected in the wallet would be double-counted.
      *
      * @param  Collection<int, Investment>  $investments
      * @return array{
