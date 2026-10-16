@@ -242,6 +242,15 @@ export default function Messages() {
     }
   }
 
+  async function whatsappSupport() {
+    setError('');
+    try {
+      await Linking.openURL('https://wa.me/923032569000');
+    } catch {
+      setError('Could not open WhatsApp. Contact support at +92 303 2569000, or create a ticket.');
+    }
+  }
+
   return <Screen title="Support" subtitle="Help Center, live chat, and support tickets" scrollable={mode !== 'chat'}>
     <View accessibilityRole="tablist" style={{ flexDirection: 'row', gap: 7, marginBottom: 14 }}>
       {([
@@ -309,6 +318,19 @@ export default function Messages() {
           {settingsQuery.isError ? ' · Showing the published default support address.' : ''}
         </Text>
         <Action title="Email support" icon="mail" onPress={() => void emailSupport()} />
+      </Card>
+      <Section title="WhatsApp support" />
+      <Card testID="support-whatsapp-card">
+        <Text style={{ color: colors.foreground, fontWeight: '700' }}>Chat with OG Exports Support</Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 5, marginBottom: 12 }}>
+          +92 303 2569000
+        </Text>
+        <Action
+          title="Open WhatsApp"
+          icon="message-circle"
+          testID="support-whatsapp-button"
+          onPress={() => void whatsappSupport()}
+        />
       </Card>
     </> : null}
 
