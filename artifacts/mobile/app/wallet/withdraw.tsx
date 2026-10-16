@@ -18,7 +18,7 @@ import { amount as readAmount, availableBalanceFromDashboard, first, list, messa
 import { useAuth } from '@/context/AuthContext';
 import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { useColors } from '@/hooks/useColors';
-import { buildWithdrawalRequest, maximumWithdrawalPayout, parseWithdrawalAmount, resolveWithdrawalDisplayTerms } from '@/lib/withdrawal-flow';
+import { buildWithdrawalRequest, maximumWithdrawalPayout, parseWithdrawalAmount, resolveWithdrawalDisplayTerms, withSubmittedWithdrawalBreakdown } from '@/lib/withdrawal-flow';
 import { motionHaptic } from '@/lib/motion';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
 
@@ -378,7 +378,7 @@ export default function Withdraw() {
           branch,
         }, saveBankDetails, purpose, withdrawalCurrency),
       }));
-      const withdrawal = record(response.data);
+      const withdrawal = withSubmittedWithdrawalBreakdown(record(response.data), validAmount, fee);
       setConfirmation(withdrawal);
       setSuccessFeedbackVisible(true);
       setSelectedWithdrawalId(first(withdrawal, ['id', 'reference', 'withdraw_id']));
@@ -703,10 +703,25 @@ export default function Withdraw() {
             ? money(readAmount(confirmation, ['fee_usd', 'withdrawal_fee_usd']), 'USD')
             : 'Unavailable'}
       />
-      <DetailRow
-        label="Total wallet debit"
-        value={money(readAmount(confirmation, ['total_debit']), first(confirmation, ['currency'], withdrawalCurrency || 'USD'))}
-      />
+      <View
+        testID="withdraw-total-debit"
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          marginTop: 10,
+          paddingHorizontal: 13,
+          paddingVertical: 13,
+          borderRadius: 12,
+          backgroundColor: colors.primary,
+        }}
+      >
+        <Text style={{ color: colors.primaryForeground, fontSize: 13, fontWeight: '700', flex: 1 }}>Total wallet debit</Text>
+        <Text style={{ color: colors.primaryForeground, fontSize: 17, fontWeight: '800', textAlign: 'right' }}>
+          {money(readAmount(confirmation, ['total_debit', 'total_debit_usd']), first(confirmation, ['currency'], withdrawalCurrency || 'USD'))}
+        </Text>
+      </View>
       <DetailRow label="Processing time" value={first(confirmation, ['estimated_processing_time'], processingTime || 'Not provided')} />
       <WithdrawalProgress withdrawal={confirmation} />
       {notice ? <Text style={{ color: colors.primary, lineHeight: 19, marginTop: 10 }}>{notice}</Text> : null}

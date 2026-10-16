@@ -53,6 +53,49 @@ export function resolveWithdrawalDisplayTerms({
   };
 }
 
+export function withSubmittedWithdrawalBreakdown(
+  confirmation: Record<string, unknown>,
+  requestedPayout: number,
+  expectedFee: number,
+): Record<string, unknown> {
+  const nested = confirmation.withdrawal_breakdown;
+  const breakdown = nested && typeof nested === 'object' && !Array.isArray(nested)
+    ? nested as Record<string, unknown>
+    : {};
+  const sources = [confirmation, breakdown];
+  const readAmount = (keys: string[]) => {
+    for (const source of sources) {
+      for (const key of keys) {
+        const value = source[key];
+        if (typeof value === 'number' && Number.isFinite(value)) return value;
+        if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) return Number(value);
+      }
+    }
+    return null;
+  };
+  const payout = readAmount(['amount', 'payout_amount']) ?? requestedPayout;
+  const fee = readAmount(['fee', 'withdrawal_fee'])
+    ?? readAmount(['fee_usd', 'withdrawal_fee_usd'])
+    ?? expectedFee;
+  const totalDebit = readAmount(['total_debit', 'total_wallet_debit'])
+    ?? readAmount(['total_debit_usd', 'total_wallet_debit_usd'])
+    ?? Math.round((payout + fee) * 100) / 100;
+  const currencyValue = confirmation.currency ?? confirmation.wallet_currency ?? breakdown.currency;
+  const currency = typeof currencyValue === 'string' && /^[A-Za-z]{3}$/.test(currencyValue.trim())
+    ? currencyValue.trim().toUpperCase()
+    : 'USD';
+
+  return {
+    ...confirmation,
+    amount: payout,
+    currency,
+    fee,
+    fee_usd: readAmount(['fee_usd', 'withdrawal_fee_usd']) ?? fee,
+    total_debit: totalDebit,
+    total_debit_usd: readAmount(['total_debit_usd', 'total_wallet_debit_usd']) ?? totalDebit,
+  };
+}
+
 export function maximumWithdrawalPayout(
   availableBalance: number | null,
   withdrawalFee: number | null,

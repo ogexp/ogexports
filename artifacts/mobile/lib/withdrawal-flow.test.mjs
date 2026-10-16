@@ -8,6 +8,7 @@ import {
   MINIMUM_WITHDRAWAL_USD,
   parseWithdrawalAmount,
   resolveWithdrawalDisplayTerms,
+  withSubmittedWithdrawalBreakdown,
 } from './withdrawal-flow.ts';
 
 test('shows the confirmed policy as display-only when the API omits withdrawal terms', () => {
@@ -61,6 +62,44 @@ test('only treats server-returned USD 2 terms as confirmed for a USD wallet', ()
 
   assert.equal(terms.serverConfirmed, true);
   assert.equal(staleTerms.serverConfirmed, false);
+});
+
+test('fills omitted fee and wallet debit on a newly submitted withdrawal confirmation', () => {
+  const confirmation = withSubmittedWithdrawalBreakdown(
+    { amount: '200.00', status: 'pending', reference: 'OGWITH-INV-012' },
+    200,
+    2,
+  );
+
+  assert.equal(confirmation.amount, 200);
+  assert.equal(confirmation.fee, 2);
+  assert.equal(confirmation.fee_usd, 2);
+  assert.equal(confirmation.total_debit, 202);
+  assert.equal(confirmation.total_debit_usd, 202);
+  assert.equal(confirmation.currency, 'USD');
+});
+
+test('preserves the server-recorded breakdown when it is present', () => {
+  const confirmation = withSubmittedWithdrawalBreakdown(
+    { amount: 200, fee: 2, total_debit: 202, currency: 'USD', status: 'pending' },
+    100,
+    9,
+  );
+
+  assert.equal(confirmation.amount, 200);
+  assert.equal(confirmation.fee, 2);
+  assert.equal(confirmation.total_debit, 202);
+});
+
+test('reads nested breakdown fields without estimating historical withdrawals', () => {
+  const confirmation = withSubmittedWithdrawalBreakdown(
+    { amount: 200, withdrawal_breakdown: { fee: 2, total_debit: 202, currency: 'USD' } },
+    200,
+    2,
+  );
+
+  assert.equal(confirmation.fee, 2);
+  assert.equal(confirmation.total_debit, 202);
 });
 
 test('uses the server-converted PKR minimum while keeping the policy threshold at USD 100', () => {
