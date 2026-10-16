@@ -14,14 +14,16 @@ type Props = {
   periodProgress?: Json | null;
   showPeriod?: boolean;
   title?: string;
+  variant?: 'default' | 'opportunity';
 };
 
-function eventDate(value: string): string {
+function eventDate(value: string, includeTime = true): string {
   if (!value) return '';
   const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  if (Number.isNaN(date.getTime())) return value;
+  return includeTime
+    ? date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+    : date.toLocaleDateString(undefined, { dateStyle: 'medium' });
 }
 
 export function TradeProgressCard({
@@ -30,8 +32,17 @@ export function TradeProgressCard({
   periodProgress,
   showPeriod = true,
   title = 'Trade Progress',
+  variant = 'default',
 }: Props) {
   const colors = useColors();
+  const opportunityStageColors = {
+    funding: colors.allocationProfits,
+    investment_confirmed: colors.allocationBalance,
+    cargo_loaded: colors.allocationInvestments,
+    in_transit: colors.allocationWithdrawals,
+    custom_clearance: colors.balanceCardStart,
+    settled: colors.statusSuccess,
+  };
   const stageRecords = stageUpdates.map(rawUpdate => {
     const update = record(rawUpdate);
     return {
@@ -73,8 +84,15 @@ export function TradeProgressCard({
           const completed = update?.status === 'completed';
           const inProgress = update?.status === 'in_progress';
           const notStarted = update?.status === 'not_started';
-          const markerColor = completed ? colors.statusSuccess : inProgress ? colors.primary : colors.border;
+          const stageColor = opportunityStageColors[stage.key];
+          const completedColor = variant === 'opportunity' ? stageColor : colors.statusSuccess;
+          const inProgressColor = variant === 'opportunity' ? stageColor : colors.primary;
+          const markerColor = completed ? completedColor : inProgress ? inProgressColor : colors.border;
           const statusLabel = update?.statusLabel ?? 'No admin update yet.';
+          const updateDate = update?.occurredAt
+            ? eventDate(update.occurredAt, variant !== 'opportunity')
+            : '';
+          const rowStatusColor = completed ? completedColor : inProgress ? inProgressColor : colors.mutedForeground;
 
           return <MotionReveal key={`${stage.key}-${statusLabel}`} style={{ flexDirection: 'row', gap: 12, minHeight: index === TRADE_STAGES.length - 1 ? 58 : 75 }}>
             <View style={{ width: 25, alignItems: 'center' }}>
@@ -86,13 +104,13 @@ export function TradeProgressCard({
                 justifyContent: 'center',
                 borderWidth: completed || inProgress ? 0 : 1.5,
                 borderColor: markerColor,
-                backgroundColor: completed ? colors.statusSuccess : inProgress ? colors.primary : colors.secondary,
+                 backgroundColor: completed || inProgress ? markerColor : colors.secondary,
               }}>
                 {completed ? <Feather name="check" size={13} color={colors.primaryForeground} /> : null}
                 {inProgress ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primaryForeground }} /> : null}
               </View>
               {index < TRADE_STAGES.length - 1
-                ? <View style={{ width: 1, flex: 1, marginTop: 4, backgroundColor: colors.border }} />
+                ? <View style={{ width: 1.5, flex: 1, marginTop: 4, backgroundColor: completed ? completedColor : colors.border }} />
                 : null}
             </View>
             <View style={{ flex: 1, paddingBottom: 13 }}>
@@ -100,19 +118,30 @@ export function TradeProgressCard({
                 <Text style={{ flex: 1, color: colors.foreground, fontSize: 12, fontWeight: '700' }}>
                   {stage.label}
                 </Text>
-                <Text testID={`stage-status-${stage.key}`} style={{
-                  flexShrink: 1,
-                  color: completed ? colors.statusSuccess : inProgress ? colors.primary : colors.mutedForeground,
-                  fontSize: 10,
-                  fontWeight: completed || inProgress || notStarted ? '700' : '400',
-                  textAlign: 'right',
-                }}>
-                  {statusLabel}
-                </Text>
+                {variant === 'opportunity' && updateDate ? (
+                  <View style={{ flexShrink: 1, alignItems: 'flex-end' }}>
+                    <Text testID={`stage-status-${stage.key}`} style={{ color: rowStatusColor, fontSize: 10, fontWeight: '700', textAlign: 'right' }}>
+                      {statusLabel}
+                    </Text>
+                    <Text testID={`stage-date-${stage.key}`} style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 2, textAlign: 'right' }}>
+                      {updateDate}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text testID={`stage-status-${stage.key}`} style={{
+                    flexShrink: 1,
+                    color: variant === 'opportunity' ? colors.mutedForeground : rowStatusColor,
+                    fontSize: 10,
+                    fontWeight: completed || inProgress || notStarted ? '700' : '400',
+                    textAlign: 'right',
+                  }}>
+                    {statusLabel}
+                  </Text>
+                )}
               </View>
-              {update?.occurredAt
+              {variant !== 'opportunity' && updateDate
                 ? <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 3 }}>
-                    {eventDate(update.occurredAt)}
+                    {updateDate}
                   </Text>
                 : null}
               {update?.description

@@ -275,7 +275,7 @@ export function OpportunityDetailOverview({
       ]} />
     </Card>
 
-    <TradeProgressCard title="Project timeline" stageUpdates={stageUpdates} showPeriod={false} />
+    <TradeProgressCard title="Project timeline" stageUpdates={stageUpdates} showPeriod={false} variant="opportunity" />
 
     <Section title="Documents" />
     <Card>

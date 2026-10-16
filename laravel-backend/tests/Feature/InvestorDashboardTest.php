@@ -67,7 +67,7 @@ it('returns zeroed empty dashboard for investor with no records', function () {
         ->assertJsonPath('data.summary.total_portfolio_value', 0)
         ->assertJsonPath('data.summary.distributed_returns', 0)
         ->assertJsonPath('data.summary.pending_distribution', 0)
-        ->assertJsonPath('data.summary.display_currency', 'PKR')
+        ->assertJsonPath('data.summary.display_currency', 'USD')
         ->assertJsonPath('data.summary.available_balance', 0)
         ->assertJsonPath('data.summary.total_profit_earned', 0)
         ->assertJsonPath('data.summary.monthly_profit', 0)
@@ -75,7 +75,7 @@ it('returns zeroed empty dashboard for investor with no records', function () {
         ->assertJsonPath('data.summary.pending_deposits_count', 0)
         ->assertJsonPath('data.summary.pending_withdrawals_count', 0)
         ->assertJsonPath('data.summary.completed_transactions', 0)
-        ->assertJsonPath('data.wallet.currency', 'PKR')
+        ->assertJsonPath('data.wallet.currency', 'USD')
         ->assertJsonPath('data.benchmark_available', false)
         ->assertJsonPath('data.next_distribution_available', false);
 
@@ -85,6 +85,24 @@ it('returns zeroed empty dashboard for investor with no records', function () {
         ->and($response->json('data.profit_monthly'))->toBe([])
         ->and($response->json('data.allocation'))->toBe([])
         ->and($response->json('data.portfolio_series.points'))->toBe([]);
+});
+
+it('includes the available wallet balance in portfolio value when there are no investments or distributions', function () {
+    Wallet::query()->create([
+        'user_id' => $this->investorA->id,
+        'currency' => 'USD',
+        'available_balance' => 800,
+        'pending_balance' => 0,
+    ]);
+
+    $this->actingAs($this->investorA)
+        ->getJson('/api/investor/dashboard')
+        ->assertOk()
+        ->assertJsonPath('data.summary.total_portfolio_value', 800)
+        ->assertJsonPath('data.summary.available_balance', 800)
+        ->assertJsonPath('data.summary.distributed_returns', 0)
+        ->assertJsonPath('data.summary.pending_distribution', 0)
+        ->assertJsonPath('data.summary.display_currency', 'USD');
 });
 
 it('returns scoped dashboard totals lists and analytics for the logged in investor', function () {
