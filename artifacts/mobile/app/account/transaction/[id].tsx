@@ -198,7 +198,7 @@ export default function TransactionDetails() {
   const breakdownCurrency = first(
     withdrawalBreakdown,
     ['currency', 'wallet_currency', 'fee_currency', 'total_debit_currency'],
-    currency,
+    first(bankDetails, ['currency'], currency),
   );
   const reportedAmount = amount(transaction, ['amount'])
     ?? (kind === 'withdrawal' ? amount(withdrawalBreakdown, ['payout_amount']) : null);
