@@ -201,10 +201,21 @@ export default function InvestorHome() {
   const unreadNotificationCount = notificationSource.filter(isInvestorNotificationUnread).length;
   const recentAlerts = (dashboardAlerts.length ? dashboardAlerts : notificationFeed).slice(0, 3);
   const monthlyProfitHistory = list(data.profit_monthly);
-  const allocation: AllocationSlice[] = list(data.allocation).flatMap(item => {
-    const value = amount(item, ['value', 'percentage', 'share']);
-    return [{ name: first(item, ['name', 'label', 'category'], '—'), value: value ?? 0 }];
-  });
+  const allocation: AllocationSlice[] = [
+    { name: 'Available Balance', value: availableBalance, color: colors.allocationBalance },
+    {
+      name: 'Withdrawals',
+      value: amount(summary, ['total_withdrawals', 'total_withdrawals_usd']),
+      color: colors.allocationWithdrawals,
+    },
+    { name: 'Active Investments', value: activeInvestment, color: colors.allocationInvestments },
+    { name: 'Profits', value: netReturns, color: colors.allocationProfits },
+    {
+      name: 'Pending payout',
+      value: amount(summary, ['pending_withdrawals_amount', 'pending_withdrawals_amount_usd']),
+      color: colors.allocationPending,
+    },
+  ];
   const benchmarkSeries = record(data.benchmark_series);
   const benchmarkAvailable = data.benchmark_available === true;
   const displayMoney = (value: number | null, unit = currency) =>
@@ -619,10 +630,11 @@ export default function InvestorHome() {
     <ProfitAnalyticsCard points={monthlyProfitHistory} currency={currency} loading={dashboard.isLoading} hideValues={balanceHidden} />
     <AllocationDonut
       title="Allocation"
-      subtitle="Portfolio distribution"
+      subtitle="Share of reported financial figures"
       data={allocation}
       currency={currency}
-      valueMode="percentage"
+      valueMode="amount"
+      displayMode="financial"
     />
 
     <HomeSection title="Upcoming payouts" />

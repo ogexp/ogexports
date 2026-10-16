@@ -8,7 +8,8 @@ import { useColors } from '@/hooks/useColors';
 
 export type AllocationSlice = {
   name: string;
-  value: number;
+  value: number | null;
+  color?: string;
 };
 
 type Props = {
@@ -20,6 +21,7 @@ type Props = {
   valueMode?: 'amount' | 'percentage';
   missingAmounts?: number;
   note?: string;
+  displayMode?: 'standard' | 'financial';
 };
 
 const size = 184;
@@ -51,47 +53,73 @@ function arcPath(startAngle: number, endAngle: number) {
   ].join(' ');
 }
 
-export function AllocationDonut({ title, subtitle, data, currency, targetCurrency, valueMode = 'amount', note }: Props) {
+export function AllocationDonut({
+  title,
+  subtitle,
+  data,
+  currency,
+  targetCurrency,
+  valueMode = 'amount',
+  note,
+  displayMode = 'standard',
+}: Props) {
   const colors = useColors();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const palette = [colors.primary, colors.accent, colors.statusPending, colors.secondaryForeground, colors.mutedForeground];
-  const slices = data.filter(item => Number.isFinite(item.value) && item.value > 0);
-  const total = slices.reduce((sum, item) => sum + item.value, 0);
-  const selected = slices[Math.min(selectedIndex, Math.max(0, slices.length - 1))];
+  const slices = data.flatMap((item, index) =>
+    item.value != null && Number.isFinite(item.value) && item.value > 0
+      ? [{ item, index }]
+      : [],
+  );
+  const total = slices.reduce((sum, slice) => sum + (slice.item.value ?? 0), 0);
+  const selected = data[Math.min(selectedIndex, Math.max(0, data.length - 1))];
+  const chartSize = displayMode === 'financial' ? 132 : 154;
   let angle = 0;
 
   return <Card>
     <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700' }}>{title}</Text>
     <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 4 }}>{subtitle}</Text>
-    {slices.length ? <>
+    {data.length ? <>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 13 }}>
-        <View style={{ width: 154, height: 154, alignItems: 'center', justifyContent: 'center' }}>
-          <Svg width={154} height={154} viewBox={`0 0 ${size} ${size}`} accessibilityLabel={`${title}, interactive allocation chart`}>
+        <View style={{ width: chartSize, height: chartSize, alignItems: 'center', justifyContent: 'center' }}>
+          <Svg width={chartSize} height={chartSize} viewBox={`0 0 ${size} ${size}`} accessibilityLabel={`${title}, interactive allocation chart`}>
+            {!slices.length ? <Circle
+              cx={center}
+              cy={center}
+              r={(outerRadius + innerRadius) / 2}
+              fill="none"
+              stroke={colors.border}
+              strokeWidth={outerRadius - innerRadius}
+            /> : null}
             {slices.length === 1 ? <Circle
               cx={center}
               cy={center}
               r={(outerRadius + innerRadius) / 2}
               fill="none"
-              stroke={palette[0]}
+              stroke={slices[0].item.color ?? palette[slices[0].index % palette.length]}
               strokeWidth={outerRadius - innerRadius}
-              onPress={() => setSelectedIndex(0)}
+              onPress={() => setSelectedIndex(slices[0].index)}
             /> : slices.map((slice, index) => {
               const start = angle;
-              angle += slice.value / total * 360;
+              angle += (slice.item.value ?? 0) / total * 360;
               return <Path
-                key={slice.name}
+                key={slice.item.name}
                 d={arcPath(start, angle)}
-                fill={palette[index % palette.length]}
+                fill={slice.item.color ?? palette[slice.index % palette.length]}
                 stroke={colors.card}
                 strokeWidth={2}
-                onPress={() => setSelectedIndex(index)}
+                onPress={() => setSelectedIndex(slice.index)}
               />;
             })}
             <Circle cx={center} cy={center} r={innerRadius - 2} fill={colors.card} pointerEvents="none" />
           </Svg>
           <View pointerEvents="none" style={{ position: 'absolute', width: 82, alignItems: 'center' }}>
             <Text style={{ color: colors.primary, fontSize: 18, fontWeight: '700' }}>
-              {selected ? valueMode === 'percentage' ? `${selected.value.toFixed(1)}%` : `${(selected.value / total * 100).toFixed(1)}%` : '—'}
+              {selected?.value == null || total <= 0
+                ? '—'
+                : valueMode === 'percentage'
+                  ? `${selected.value.toFixed(1)}%`
+                  : `${(selected.value / total * 100).toFixed(1)}%`}
             </Text>
             <Text numberOfLines={2} style={{ color: colors.mutedForeground, fontSize: 10, textAlign: 'center', marginTop: 3 }}>
               {selected?.name ?? 'No allocation data'}
@@ -99,28 +127,38 @@ export function AllocationDonut({ title, subtitle, data, currency, targetCurrenc
           </View>
         </View>
         <View style={{ flex: 1, gap: 5 }}>
-          {slices.map((slice, index) => {
-            const share = slice.value / total * 100;
-            const formattedValue = money(slice.value, currency, targetCurrency ? { targetCurrency } : {});
-            const rawValueLabel = valueMode === 'percentage' ? `${slice.value.toFixed(1)}%` : formattedValue;
+          {data.map((slice, index) => {
+            const share = slice.value != null && total > 0 ? (slice.value / total) * 100 : null;
+            const formattedValue = slice.value == null
+              ? 'Not reported'
+              : money(slice.value, currency, targetCurrency ? { targetCurrency } : {});
+            const rawValueLabel = slice.value == null
+              ? 'Not reported'
+              : valueMode === 'percentage'
+                ? `${slice.value.toFixed(1)}%`
+                : formattedValue;
             const selectedSlice = selectedIndex === index;
             return <Pressable
               key={slice.name}
               accessibilityRole="button"
-              accessibilityLabel={valueMode === 'percentage'
-                ? `${slice.name}, ${slice.value.toFixed(1)} percent`
-                : `${slice.name}, ${share.toFixed(1)} percent, ${formattedValue}`}
+              accessibilityLabel={`${slice.name}, ${share == null ? 'percentage not reported' : `${share.toFixed(1)} percent`}, ${formattedValue}`}
               accessibilityState={{ selected: selectedSlice }}
               testID={`allocation-slice-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`}
               onPress={() => setSelectedIndex(index)}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 4, opacity: selectedSlice ? 1 : 0.74 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: displayMode === 'financial' ? 3 : 4, opacity: selectedSlice ? 1 : 0.74 }}
             >
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: palette[index % palette.length] }} />
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: slice.color ?? palette[index % palette.length] }} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 10, fontWeight: selectedSlice ? '700' : '500' }}>{slice.name}</Text>
-                <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 9, marginTop: 2 }}>{rawValueLabel}</Text>
+                <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 9, marginTop: 2 }}>
+                  {displayMode === 'financial'
+                    ? share == null ? '—' : `${share.toFixed(1)}%`
+                    : rawValueLabel}
+                </Text>
               </View>
-              <Text style={{ color: colors.foreground, fontSize: 10, fontWeight: '700' }}>{share.toFixed(1)}%</Text>
+              {displayMode === 'financial'
+                ? <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 10, fontWeight: '700', textAlign: 'right' }}>{formattedValue}</Text>
+                : <Text style={{ color: colors.foreground, fontSize: 10, fontWeight: '700' }}>{share == null ? '—' : `${share.toFixed(1)}%`}</Text>}
             </Pressable>;
           })}
         </View>
