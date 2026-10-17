@@ -12,7 +12,7 @@ import {
   CreditCard, Target, FileCheck, ScrollText, Layout, Search, Image,
   MessageSquare, BarChart2, Lock, Settings, Menu, X, ChevronDown,
   ChevronRight, Globe, LogOut, Layers, Newspaper, Landmark, Megaphone, MessagesSquare, Banknote, DollarSign,
-   Sprout, TrendingUp, Zap,
+    Sprout, TrendingUp,
   CalendarClock,
 } from "lucide-react"
 
@@ -42,7 +42,6 @@ const NAV = [
       { label: "Quotations & FOB Prices", icon: CreditCard, href: "/admin/quotations" },
       { label: "Shipments", icon: Ship, href: "/admin/shipments" },
       { label: "Products", icon: Package, href: "/admin/products" },
-      { label: "Auto-invest Mobile", icon: Zap, href: "/admin/auto-invest-products" },
     ],
   },
   {

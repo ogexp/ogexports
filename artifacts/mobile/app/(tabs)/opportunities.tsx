@@ -173,7 +173,6 @@ export default function Opportunities() {
     setAppliedFilters(emptyFilters);
   };
   return <Screen title="Explore Trade Opportunities" subtitle="Import and export opportunities reported by OG Exports" refreshable>
-    <Action title="Configure Auto-invest" icon="repeat" secondary onPress={() => router.push('/account/auto-invest' as never)} />
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <View style={{ flex: 1 }}><Field label="Search" value={search} onChangeText={setSearch} placeholder="Trade ID, commodity or destination" /></View>
       <Pressable testID="marketplace-open-filters" accessibilityRole="button" accessibilityLabel="Open opportunity filters" onPress={() => setFiltersOpen(true)}
