@@ -17,6 +17,7 @@ use App\Support\InvestmentCapacity;
 use App\Support\FinancialTransactionIdResolver;
 use App\Support\InvestmentReviewService;
 use App\Support\InvestorNotificationTypes;
+use App\Support\InvestorAutoInvestService;
 use App\Support\MediaStorage;
 use App\Support\MediaPath;
 use App\Support\NotifiesUsers;
@@ -142,6 +143,9 @@ class InvestmentController extends Controller
         ]);
 
         ProjectReferenceGenerator::assign($project);
+        if (strtolower((string) $project->status) === 'funding') {
+            app(InvestorAutoInvestService::class)->processNewFundingProject($project->id);
+        }
 
         AuditsActions::log('investment_project.created', 'investments', $request->user(), [
             'project_id' => $project->id,
@@ -343,6 +347,10 @@ class InvestmentController extends Controller
 
         $project->update($data);
         $project->refresh();
+        if (strtolower((string) ($previous['status'] ?? '')) !== 'funding'
+            && strtolower((string) $project->status) === 'funding') {
+            app(InvestorAutoInvestService::class)->processNewFundingProject($project->id);
+        }
 
         $settlement = null;
         $previousStatus = (string) ($previous['status'] ?? '');

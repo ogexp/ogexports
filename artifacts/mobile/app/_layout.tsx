@@ -219,6 +219,7 @@ function RootLayoutNav() {
         <Stack.Screen name="account/notifications" options={{ title: t('Notifications') }} />
         <Stack.Screen name="account/messages" options={{ title: t('Support') }} />
         <Stack.Screen name="account/settings" options={{ title: t('Settings') }} />
+        <Stack.Screen name="account/auto-invest" options={{ title: 'Auto-invest' }} />
         <Stack.Screen name="account/analytics" options={{ title: t('Trade Analytics') }} />
       </Stack>
     </>

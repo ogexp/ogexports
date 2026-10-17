@@ -518,6 +518,33 @@ export const GetInvestorProjectsResponse = zod.object({
 
 
 /**
+ * @summary Get the signed-in investor's automatic investment rule
+ */
+export const GetInvestorAutoInvestSettingsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Save or disable automatic investment settings
+ */
+export const updateInvestorAutoInvestSettingsBodyAmountMax = 10000000;
+
+export const updateInvestorAutoInvestSettingsBodyCommodityMax = 120;
+
+export const updateInvestorAutoInvestSettingsBodyContainerTypeMax = 80;
+
+
+
+export const UpdateInvestorAutoInvestSettingsBody = zod.object({
+  "enabled": zod.boolean(),
+  "amount": zod.number().min(1).max(updateInvestorAutoInvestSettingsBodyAmountMax),
+  "commodity": zod.string().min(1).max(updateInvestorAutoInvestSettingsBodyCommodityMax),
+  "container_type": zod.string().min(1).max(updateInvestorAutoInvestSettingsBodyContainerTypeMax)
+})
+
+export const UpdateInvestorAutoInvestSettingsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary Get an investment opportunity
  */
 export const GetInvestorProjectParams = zod.object({

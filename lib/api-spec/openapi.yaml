@@ -300,6 +300,26 @@ paths:
         - { name: per_page, in: query, schema: { type: integer } }
       responses:
         "200": { description: Opportunity list, content: { application/json: { schema: { $ref: "#/components/schemas/InvestorProjectListResponse" } } } }
+  /investor/auto-invest:
+    get:
+      operationId: getInvestorAutoInvestSettings
+      tags: [investor]
+      summary: Get the signed-in investor's automatic investment rule
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Auto-invest settings, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+    put:
+      operationId: updateInvestorAutoInvestSettings
+      tags: [investor]
+      summary: Save or disable automatic investment settings
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvestorAutoInvestSettings" }
+      responses:
+        "200": { description: Saved auto-invest settings, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /investor/projects/{id}:
     get:
       operationId: getInvestorProject
@@ -1453,6 +1473,15 @@ components:
           type: number
           minimum: 1
           description: Investment amount in the opportunity's reported investment currency.
+    InvestorAutoInvestSettings:
+      type: object
+      additionalProperties: false
+      required: [enabled, amount, commodity, container_type]
+      properties:
+        enabled: { type: boolean }
+        amount: { type: number, minimum: 1, maximum: 10000000 }
+        commodity: { type: string, minLength: 1, maxLength: 120 }
+        container_type: { type: string, minLength: 1, maxLength: 80 }
     InvestorProjectInvestmentResponse:
       type: object
       additionalProperties: true

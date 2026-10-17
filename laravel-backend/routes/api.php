@@ -289,6 +289,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/wallet/transactions/{id}/pdf', [InvestorWalletController::class, 'transactionPdf'])->whereNumber('id');
 
         Route::get('/projects', [InvestorProjectController::class, 'index']);
+        Route::get('/auto-invest', [\App\Http\Controllers\Api\Investor\AutoInvestController::class, 'show']);
+        Route::put('/auto-invest', [\App\Http\Controllers\Api\Investor\AutoInvestController::class, 'update'])->middleware('throttle:10,1');
         Route::get('/facility-content/{type}', [InvestorFacilityContentController::class, 'show']);
         Route::get('/projects/{id}', [InvestorProjectController::class, 'show']);
         Route::get('/projects/{id}/documents/{documentId}/download', [InvestorProjectController::class, 'downloadDocument']);

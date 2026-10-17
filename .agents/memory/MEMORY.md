@@ -28,3 +28,4 @@
 - [ZIP delivery preference](zip-delivery-preference.md) — create or refresh an app ZIP only when the user explicitly asks for one.
 - [Local Android SDK quota](local-android-sdk-quota.md) — account for quota limits, `/dev/shm` noexec, and tmpfs memory when staging the NDK.
 - [Mobile popup glass treatment](mobile-popup-glass.md) — use blur where supported and a translucent fallback on Android unless a valid modal blur target is available.
+- [Investor auto-invest timing](investor-auto-invest.md) — only opportunities entering funding after rule activation qualify; never backfill current listings.

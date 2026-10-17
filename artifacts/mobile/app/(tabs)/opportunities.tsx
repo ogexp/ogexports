@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGetInvestorProjects } from '@workspace/api-client-react';
-import { Card, EmptyState, ErrorState, Field, LoadingCard, Screen } from '@/components/InvestorUI';
+import { Action, Card, EmptyState, ErrorState, Field, LoadingCard, Screen } from '@/components/InvestorUI';
 import { OpportunityCard } from '@/components/OpportunityCard';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { amount, convertAmountToCurrency, first, list } from '@/lib/data';
@@ -173,6 +173,7 @@ export default function Opportunities() {
     setAppliedFilters(emptyFilters);
   };
   return <Screen title="Explore Trade Opportunities" subtitle="Import and export opportunities reported by OG Exports" refreshable>
+    <Action title="Configure Auto-invest" icon="repeat" secondary onPress={() => router.push('/account/auto-invest' as never)} />
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <View style={{ flex: 1 }}><Field label="Search" value={search} onChangeText={setSearch} placeholder="Trade ID, commodity or destination" /></View>
       <Pressable testID="marketplace-open-filters" accessibilityRole="button" accessibilityLabel="Open opportunity filters" onPress={() => setFiltersOpen(true)}

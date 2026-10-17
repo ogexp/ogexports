@@ -38,6 +38,7 @@ export * from './getInvestorWithdrawalsParams';
 export * from './investmentPayoutProgressUpdate';
 export * from './investmentPayoutProgressUpdateStatus';
 export * from './investmentPeriodProgress';
+export * from './investorAutoInvestSettings';
 export * from './investorBankAccount';
 export * from './investorBankAccountInput';
 export * from './investorBankAccountsResponse';

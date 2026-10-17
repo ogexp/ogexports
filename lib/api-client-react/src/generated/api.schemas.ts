@@ -453,6 +453,25 @@ export interface InvestorProjectInvestmentRequest {
   amount: number;
 }
 
+export interface InvestorAutoInvestSettings {
+  enabled: boolean;
+  /**
+     * @minimum 1
+     * @maximum 10000000
+     */
+  amount: number;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  commodity: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  container_type: string;
+}
+
 export type InvestorProjectInvestmentResponseData = {
   id: number;
   amount: number;

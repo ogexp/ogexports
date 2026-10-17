@@ -40,6 +40,7 @@ import type {
   GetInvestorWalletTransactionsParams,
   GetInvestorWithdrawalsParams,
   InvestmentPayoutProgressUpdate,
+  InvestorAutoInvestSettings,
   InvestorBankAccountInput,
   InvestorBankAccountsResponse,
   InvestorDashboardResponse,
@@ -2261,6 +2262,171 @@ export function useGetInvestorProjects<TData = Awaited<ReturnType<typeof getInve
 
 
 
+
+export const getGetInvestorAutoInvestSettingsUrl = () => {
+
+
+
+
+  return `/api/investor/auto-invest`
+}
+
+/**
+ * @summary Get the signed-in investor's automatic investment rule
+ */
+export const getInvestorAutoInvestSettings = async ( options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getGetInvestorAutoInvestSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInvestorAutoInvestSettingsQueryKey = () => {
+    return [
+    `/api/investor/auto-invest`
+    ] as const;
+    }
+
+
+export const getGetInvestorAutoInvestSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getInvestorAutoInvestSettings>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorAutoInvestSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInvestorAutoInvestSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInvestorAutoInvestSettings>>> = ({ signal }) => getInvestorAutoInvestSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInvestorAutoInvestSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInvestorAutoInvestSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getInvestorAutoInvestSettings>>>
+export type GetInvestorAutoInvestSettingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the signed-in investor's automatic investment rule
+ */
+
+export function useGetInvestorAutoInvestSettings<TData = Awaited<ReturnType<typeof getInvestorAutoInvestSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorAutoInvestSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInvestorAutoInvestSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateInvestorAutoInvestSettingsUrl = () => {
+
+
+
+
+  return `/api/investor/auto-invest`
+}
+
+/**
+ * @summary Save or disable automatic investment settings
+ */
+export const updateInvestorAutoInvestSettings = async (investorAutoInvestSettings: InvestorAutoInvestSettings, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<JsonObject>(getUpdateInvestorAutoInvestSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(investorAutoInvestSettings)
+  }
+);}
+
+
+
+
+
+export const getUpdateInvestorAutoInvestSettingsMutationKey = () => ['updateInvestorAutoInvestSettings'] as const;
+
+export const getUpdateInvestorAutoInvestSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateInvestorAutoInvestSettings>>, TError,UpdateInvestorAutoInvestSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateInvestorAutoInvestSettings>>, TError,UpdateInvestorAutoInvestSettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateInvestorAutoInvestSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateInvestorAutoInvestSettings>>, UpdateInvestorAutoInvestSettingsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateInvestorAutoInvestSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateInvestorAutoInvestSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateInvestorAutoInvestSettings>>>
+    export type UpdateInvestorAutoInvestSettingsMutationBody = BodyType<InvestorAutoInvestSettings>
+    export type UpdateInvestorAutoInvestSettingsMutationError = ErrorType<unknown>
+    export type UpdateInvestorAutoInvestSettingsMutationVariables = {data: BodyType<InvestorAutoInvestSettings>}
+
+    /**
+ * @summary Save or disable automatic investment settings
+ */
+export const useUpdateInvestorAutoInvestSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateInvestorAutoInvestSettings>>, TError,UpdateInvestorAutoInvestSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateInvestorAutoInvestSettings>>,
+        TError,
+        UpdateInvestorAutoInvestSettingsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateInvestorAutoInvestSettingsMutationOptions(options));
+    }
 
 export const getGetInvestorProjectUrl = (id: string,) => {
 
