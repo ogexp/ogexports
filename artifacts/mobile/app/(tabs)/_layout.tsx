@@ -11,9 +11,11 @@ import { useColors } from '@/hooks/useColors';
 import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { translateUi } from '@/lib/strings';
 import { MOTION, useMotion } from '@/lib/motion';
+import { TabBarBehaviorProvider, useTabBarBehavior } from '@/context/TabBarBehaviorContext';
 
 function NativeLayout() {
   const colors = useColors();
+  const { visible } = useTabBarBehavior();
   const { preferences, resolvedAppearance } = useAppPreferences();
   const t = (value: string) => translateUi(value, preferences.language);
   return (
@@ -22,6 +24,8 @@ function NativeLayout() {
       iconColor={{ default: colors.mutedForeground, selected: colors.primary }}
       labelStyle={{ default: { color: colors.mutedForeground }, selected: { color: colors.primary, fontWeight: '600' } }}
       backgroundColor={colors.card}
+      hidden={!visible}
+      minimizeBehavior="onScrollDown"
     >
       <NativeTabs.Trigger name="index"><NativeTabs.Trigger.Icon sf={{ default: 'house.circle', selected: 'house.circle.fill' }} /><NativeTabs.Trigger.Label>{t('Dashboard')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="opportunities"><NativeTabs.Trigger.Icon sf={{ default: 'safari', selected: 'safari.fill' }} /><NativeTabs.Trigger.Label>{t('Opportunities')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
@@ -59,6 +63,29 @@ function ClassicLayout() {
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === 'web';
   const isAndroid = Platform.OS === 'android';
+  const { visible } = useTabBarBehavior();
+  const { reduceMotion } = useMotion();
+  const tabBarTranslateY = React.useRef(new Animated.Value(0)).current;
+  const tabBarOpacity = React.useRef(new Animated.Value(1)).current;
+  React.useEffect(() => {
+    if (reduceMotion) {
+      tabBarTranslateY.setValue(visible ? 0 : 112);
+      tabBarOpacity.setValue(visible ? 1 : 0);
+      return;
+    }
+    Animated.parallel([
+      Animated.timing(tabBarTranslateY, {
+        toValue: visible ? 0 : 112,
+        duration: visible ? 240 : 190,
+        useNativeDriver: true,
+      }),
+      Animated.timing(tabBarOpacity, {
+        toValue: visible ? 1 : 0,
+        duration: visible ? 200 : 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [reduceMotion, tabBarOpacity, tabBarTranslateY, visible]);
   return (
     <Tabs screenOptions={{
       headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.mutedForeground,
@@ -77,6 +104,8 @@ function ClassicLayout() {
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: isAndroid ? 0.16 : 0.08,
         shadowRadius: isAndroid ? 16 : 12,
+        opacity: tabBarOpacity,
+        transform: [{ translateY: tabBarTranslateY }],
       },
       tabBarItemStyle: { paddingTop: isWeb ? 2 : 0 },
       tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: 1 },
@@ -133,5 +162,9 @@ function ClassicLayout() {
 }
 
 export default function TabLayout() {
-  return isLiquidGlassAvailable() ? <NativeLayout /> : <ClassicLayout />;
+  return (
+    <TabBarBehaviorProvider>
+      {isLiquidGlassAvailable() ? <NativeLayout /> : <ClassicLayout />}
+    </TabBarBehaviorProvider>
+  );
 }

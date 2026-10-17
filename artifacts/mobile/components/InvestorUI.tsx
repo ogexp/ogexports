@@ -17,6 +17,7 @@ import { useSegments } from 'expo-router';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useColors } from '@/hooks/useColors';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
+import { useTabBarBehavior } from '@/context/TabBarBehaviorContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { translateUi } from '@/lib/strings';
@@ -47,6 +48,7 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
   refreshable?: boolean;
 }) {
   const colors = useColors();
+  const tabBarBehavior = useTabBarBehavior();
   const insets = useSafeAreaInsets();
   const segments = useSegments();
   const isHeaderlessTabRoute = segments[0] === '(tabs)';
@@ -86,7 +88,7 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
         paddingTop: topPadding,
         paddingBottom: Platform.OS === 'web' ? 34 : 0,
         paddingHorizontal: 20,
-      }}>
+      }} onTouchStart={tabBarBehavior.reveal}>
         {header}
         <MotionReveal delay={35} style={{ flex: 1 }} testID="screen-content-reveal">{children}</MotionReveal>
       </View>
@@ -95,6 +97,11 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
   return (
     <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: colors.background }} contentInsetAdjustmentBehavior={Platform.OS === 'ios' ? 'never' : 'automatic'}
       keyboardShouldPersistTaps="handled" bottomOffset={24}
+      onTouchStart={tabBarBehavior.reveal}
+      onScroll={tabBarBehavior.onScroll}
+      onScrollEndDrag={tabBarBehavior.onScrollSettled}
+      onMomentumScrollEnd={tabBarBehavior.onScrollSettled}
+      scrollEventThrottle={16}
       refreshControl={refreshable ? <RefreshControl
         testID="screen-pull-to-refresh"
         refreshing={refreshing}

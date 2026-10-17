@@ -22,6 +22,7 @@ import { latestRecords } from '@/lib/latest-records';
 import { isInvestorNotificationUnread } from '@/lib/notification-utils';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { useTabBarBehavior } from '@/context/TabBarBehaviorContext';
 import { GlassPopupSurface } from '@/components/GlassPopupSurface';
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
 import {
@@ -142,6 +143,7 @@ function HomeSection({ title, right }: { title: string; right?: React.ReactNode 
 }
 
 export default function InvestorHome() {
+  const tabBarBehavior = useTabBarBehavior();
   const { token, user } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -303,6 +305,11 @@ export default function InvestorHome() {
   return <View style={{ flex:  1, backgroundColor: colors.background }}>
   <ScrollView
     contentInsetAdjustmentBehavior="never"
+    onTouchStart={tabBarBehavior.reveal}
+    onScroll={tabBarBehavior.onScroll}
+    onScrollEndDrag={tabBarBehavior.onScrollSettled}
+    onMomentumScrollEnd={tabBarBehavior.onScrollSettled}
+    scrollEventThrottle={16}
     refreshControl={<RefreshControl
       testID="home-pull-to-refresh"
       refreshing={refreshing}
