@@ -9,8 +9,8 @@ Auto-invest rules must never backfill opportunities already open when the invest
 
 **How to apply:** Saving or enabling a rule must not scan current funding projects. Only a newly created opportunity or a later transition into funding may trigger a matching rule.
 
-Investor-facing commodity choices must come only from products currently approved for public display on the website. Selecting one product and entering an amount should save and activate the rule in one action; it matches that commodity across container sizes. Stop matching if the product is no longer publicly approved.
+Investor-facing commodity choices must come only from products currently approved for public display on the website. The investor enters an amount, selects a product, then explicitly taps the enable button to save and activate the rule; it matches that commodity across container sizes. Stop matching if the product is no longer publicly approved.
 
-**Why:** The user specified on 17 October 2026 that investors must select only names admins published publicly and wanted a one-tap save flow without container-type selection.
+**Why:** The user specified on 17 October 2026 that investors must select only names admins published publicly and wanted a simple amount → product → enable flow without container-type selection.
 
-**How to apply:** Read options from the same approved product catalog used by the public website, validate approval again when saving and processing, and treat the container type as unrestricted for these rules.
+**How to apply:** Read options from the same approved product catalog used by the public website, save only when the user taps the enable button, validate approval again when saving and processing, and treat the container type as unrestricted for these rules.
