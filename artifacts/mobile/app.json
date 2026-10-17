@@ -2,7 +2,7 @@
   "expo": {
     "name": "OG Exports",
     "slug": "og-exports-50",
-    "version": "1.1.4",
+    "version": "2.1.5",
     "orientation": "portrait",
     "icon": "./assets/images/og-logo.png",
     "scheme": "mobile",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "com.ogexports.investor",
-      "versionCode": 4
+      "versionCode": 5
     },
     "web": {
       "favicon": "./assets/images/og-logo.png"
