@@ -2,11 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { useGetInvestorAutoInvestCommodities, useGetInvestorAutoInvestSettings, useUpdateInvestorAutoInvestSettings } from '@workspace/api-client-react';
 import { Action, Card, Field, Screen } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
+import { getUiLanguage, translateUi } from '@/lib/strings';
 
 export default function AutoInvest() {
   const { token } = useAuth();
@@ -15,6 +17,8 @@ export default function AutoInvest() {
   const commoditiesQuery = useGetInvestorAutoInvestCommodities({ query: { queryKey: ['investor-auto-invest-commodities'], enabled: !!token, staleTime: 60_000 } });
   const saveSettings = useUpdateInvestorAutoInvestSettings();
   const settings = record(unwrap(settingsQuery.data));
+  const savedAmount = settings.amount == null ? '' : String(settings.amount);
+  const savedCommodity = first(settings, ['commodity']);
   const loadError = settingsQuery.isError ? messageOf(settingsQuery.error) : '';
   const [enabled, setEnabled] = useState(false);
   const [amount, setAmount] = useState('');
@@ -32,10 +36,24 @@ export default function AutoInvest() {
   const commodities = useMemo(() => Array.from(new Set(list(commoditiesQuery.data)
     .map(item => first(item, ['name']).trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b)), [commoditiesQuery.data]);
 
-  async function save(nextCommodity = commodity, nextEnabled = true) {
+  const parsedAmount = Number(amount.replace(/,/g, '').trim());
+  const hasValidRule = Number.isFinite(parsedAmount) && parsedAmount > 0
+    && !!commodity.trim()
+    && !commoditiesQuery.isLoading
+    && !commoditiesQuery.isError
+    && commodities.some(name => name.toLowerCase() === commodity.trim().toLowerCase());
+  const statusUnavailable = settingsQuery.isLoading || settingsQuery.isError;
+  const statusLabel = settingsQuery.isLoading
+    ? 'Checking auto-invest status…'
+    : settingsQuery.isError
+      ? 'Auto-invest status unavailable'
+      : enabled ? 'Auto-invest is on' : 'Auto-invest is off';
+  const switchDisabled = statusUnavailable || saveSettings.isPending || (!enabled && !hasValidRule);
+
+  async function save(nextCommodity = commodity, nextEnabled = true, nextAmount = amount) {
     setError('');
-    const parsedAmount = Number(amount.replace(/,/g, '').trim());
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    const amountToSave = Number(nextAmount.replace(/,/g, '').trim());
+    if (!Number.isFinite(amountToSave) || amountToSave <= 0) {
       setError('Enter a valid amount greater than zero.');
       return;
     }
@@ -46,7 +64,7 @@ export default function AutoInvest() {
     try {
       await saveSettings.mutateAsync({ data: {
         enabled: nextEnabled,
-        amount: parsedAmount,
+        amount: amountToSave,
         commodity: nextCommodity.trim(),
       } });
       setEnabled(nextEnabled);
@@ -55,6 +73,22 @@ export default function AutoInvest() {
     } catch (saveError) {
       setError(messageOf(saveError));
     }
+  }
+
+  function toggleAutoInvest() {
+    if (enabled) {
+      if (!savedCommodity || !savedAmount) {
+        setError('Your saved rule could not be loaded. Refresh before changing auto-invest.');
+        return;
+      }
+      void save(savedCommodity, false, savedAmount);
+      return;
+    }
+    if (!hasValidRule) {
+      setError('Enter an amount and select an approved product before enabling auto-invest.');
+      return;
+    }
+    void save(commodity, true, amount);
   }
 
   return <Screen title="Auto-invest" subtitle="Set one clear rule for new container opportunities" refreshable>
@@ -74,6 +108,64 @@ export default function AutoInvest() {
       {loadError ? <Text accessibilityRole="alert" style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16 }}>{loadError}</Text> : null}
       <Action title="Retry loading rule" icon="refresh-cw" secondary onPress={() => void settingsQuery.refetch()} />
     </Card> : null}
+    <Card testID="auto-invest-status-card" style={{ gap: 13, padding: 16 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{
+          width: 42,
+          height: 42,
+          borderRadius: 21,
+          backgroundColor: enabled ? colors.lightGreen : colors.muted,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <Feather
+            name={statusUnavailable ? 'activity' : enabled ? 'zap' : 'pause'}
+            size={18}
+            color={enabled ? colors.primary : colors.mutedForeground}
+          />
+        </View>
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>Auto-invest status</Text>
+          <Text style={{ color: enabled ? colors.primary : colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>{statusLabel}</Text>
+        </View>
+        <Pressable
+          testID="auto-invest-enable-toggle"
+          accessibilityRole="switch"
+          accessibilityLabel={translateUi(enabled ? 'Pause auto-invest' : 'Enable auto-invest', getUiLanguage())}
+          accessibilityState={{ checked: enabled, disabled: switchDisabled, busy: saveSettings.isPending }}
+          disabled={switchDisabled}
+          onPress={toggleAutoInvest}
+          style={{
+            width: 50,
+            height: 30,
+            borderRadius: 16,
+            padding: 3,
+            justifyContent: 'center',
+            backgroundColor: enabled ? colors.primary : colors.border,
+            opacity: switchDisabled ? 0.5 : 1,
+          }}
+        >
+          {saveSettings.isPending
+            ? <ActivityIndicator size="small" color={colors.card} />
+            : <View style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: colors.card,
+              alignSelf: enabled ? 'flex-end' : 'flex-start',
+            }} />}
+        </Pressable>
+      </View>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>
+        {statusUnavailable
+          ? 'Refresh to confirm your saved rule before changing its status.'
+          : enabled
+            ? 'Your saved amount may be invested from your USD wallet when a new matching opportunity opens.'
+            : savedAmount && savedCommodity
+              ? 'Your rule is saved. Turn it on to invest in future matching opportunities.'
+              : 'Add an amount and choose an approved product below to enable auto-invest.'}
+      </Text>
+    </Card>
       <Card testID="auto-invest-rule-form" style={{ gap: 9 }}>
         <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Set your amount, then tap a product</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>Only product names approved for the public website are listed. Tapping a name saves and activates your rule immediately. It matches new container opportunities with that commodity, any container size.</Text>
@@ -109,7 +201,6 @@ export default function AutoInvest() {
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>The investment is skipped if KYC is not approved, your wallet is not USD-denominated or lacks funds, or the amount does not meet project minimums or available capacity. Existing opportunities are never auto-invested.</Text>
       </Card>
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18 }}>{error}</Text> : null}
-      {enabled ? <Action testID="auto-invest-pause-rule" title="Pause auto-invest" icon="pause" secondary loading={saveSettings.isPending} disabled={settingsQuery.isLoading || settingsQuery.isError || !commodity} onPress={() => void save(commodity, false)} /> : null}
       {list(settings.recent_activity).length ? <Card style={{ gap: 6 }}>
         <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>Recent auto-invest activity</Text>
         {list(settings.recent_activity).map((entry, index) => {
