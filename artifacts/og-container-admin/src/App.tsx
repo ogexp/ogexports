@@ -110,6 +110,7 @@ const AdminOrders          = lazy(() => import('@/pages/admin/AdminOrders'));
 const AdminShipments       = lazy(() => import('@/pages/admin/AdminShipments'));
 const AdminPaidPayments    = lazy(() => import('@/pages/admin/AdminPaidPayments'));
 const AdminProducts        = lazy(() => import('@/pages/admin/AdminProducts'));
+const AdminAutoInvestProducts = lazy(() => import('@/pages/admin/AdminAutoInvestProducts'));
 const AdminCRM             = lazy(() => import('@/pages/admin/AdminCRM'));
 const AdminCompliance      = lazy(() => import('@/pages/admin/AdminCompliance'));
 const AdminSupport         = lazy(() => import('@/pages/admin/AdminSupport'));
@@ -377,6 +378,7 @@ const SHARED_ROUTES = (
     <Route path="/admin/shipments">{() => <Guarded roles={['admin']} Page={AdminShipments} />}</Route>
     <Route path="/admin/paid-payments">{() => <Guarded roles={['admin']} Page={AdminPaidPayments} />}</Route>
     <Route path="/admin/products">{() => <Guarded roles={['admin']} Page={AdminProducts} />}</Route>
+    <Route path="/admin/auto-invest-products">{() => <Guarded roles={['admin']} Page={AdminAutoInvestProducts} />}</Route>
     <Route path="/admin/crm">{() => <Guarded roles={['admin']} Page={AdminCRM} />}</Route>
     <Route path="/admin/compliance">{() => <Guarded roles={['admin']} Page={AdminCompliance} />}</Route>
     <Route path="/admin/audit">{() => <Redirect to="/admin/compliance?tab=audit" />}</Route>

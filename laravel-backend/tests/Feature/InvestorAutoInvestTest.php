@@ -3,6 +3,7 @@
 use App\Models\Investment;
 use App\Models\InvestmentProject;
 use App\Models\InvestorAutoInvestExecution;
+use App\Models\InvestorAutoInvestCommodity;
 use App\Models\InvestorAutoInvestSetting;
 use App\Models\KycApplication;
 use App\Models\PlatformSetting;
@@ -61,14 +62,39 @@ it('saves only the signed-in investor auto-invest rule', function () {
         ->assertJsonPath('data.container_type', null);
 });
 
-it('only lists products approved for the public website as auto-invest choices', function () {
-    Product::query()->create(['name' => 'Basmati Rice', 'slug' => 'basmati-rice', 'status' => 'approved']);
-    Product::query()->create(['name' => 'Draft Mango', 'slug' => 'draft-mango', 'status' => 'draft']);
+it('lists only administrator-enabled mobile auto-invest choices', function () {
+    InvestorAutoInvestCommodity::query()->where('name', 'Potatoes')->update(['enabled' => false]);
 
     $this->actingAs($this->investor)->getJson('/api/investor/auto-invest/commodities')
         ->assertOk()
-        ->assertJsonPath('data.0.name', 'Basmati Rice')
-        ->assertJsonCount(1, 'data');
+        ->assertJsonPath('data.0.name', 'Rice')
+        ->assertJsonPath('data.1.name', 'Corn (Maize)')
+        ->assertJsonPath('data.2.name', 'Sesame seeds')
+        ->assertJsonCount(3, 'data');
+});
+
+it('lets admins maintain the mobile auto-invest choices', function () {
+    $admin = User::factory()->create(['account_status' => 'active']);
+    $admin->assignRole('admin');
+
+    $this->actingAs($admin)->getJson('/api/admin/auto-invest-commodities')
+        ->assertOk()
+        ->assertJsonCount(4, 'data');
+
+    $created = $this->actingAs($admin)->postJson('/api/admin/auto-invest-commodities', [
+        'name' => 'Quinoa',
+    ])->assertCreated()->assertJsonPath('data.enabled', true);
+    $id = $created->json('data.id');
+
+    $this->actingAs($admin)->putJson("/api/admin/auto-invest-commodities/{$id}", [
+        'enabled' => false,
+    ])->assertOk()->assertJsonPath('data.enabled', false);
+
+    $this->actingAs($this->investor)->getJson('/api/investor/auto-invest/commodities')
+        ->assertOk()
+        ->assertJsonMissing(['name' => 'Quinoa']);
+
+    $this->actingAs($admin)->deleteJson("/api/admin/auto-invest-commodities/{$id}")->assertOk();
 });
 
 it('places one wallet investment for a newly matching funding container and does not duplicate it', function () {
@@ -178,8 +204,12 @@ it('rejects incomplete auto-invest rules without saving them', function () {
     expect(InvestorAutoInvestSetting::query()->where('user_id', $this->investor->id)->exists())->toBeFalse();
 });
 
-it('rejects a rule for a product that is not publicly approved', function () {
-    Product::query()->create(['name' => 'Hidden Rice', 'slug' => 'hidden-rice', 'status' => 'draft']);
+it('rejects a rule for a commodity that an admin has not enabled', function () {
+    InvestorAutoInvestCommodity::query()->create([
+        'name' => 'Hidden Rice',
+        'enabled' => false,
+        'sort_order' => 10,
+    ]);
 
     $this->actingAs($this->investor)->putJson('/api/investor/auto-invest', [
         'enabled' => true,
@@ -191,8 +221,7 @@ it('rejects a rule for a product that is not publicly approved', function () {
     expect(InvestorAutoInvestSetting::query()->where('user_id', $this->investor->id)->exists())->toBeFalse();
 });
 
-it('does not execute a saved rule after its product is no longer publicly approved', function () {
-    $product = Product::query()->create(['name' => 'Rice', 'slug' => 'rice', 'status' => 'approved']);
+it('does not execute a saved rule after an admin disables its commodity', function () {
     InvestorAutoInvestSetting::query()->create([
         'user_id' => $this->investor->id,
         'enabled' => true,
@@ -212,7 +241,7 @@ it('does not execute a saved rule after its product is no longer publicly approv
         'min_investment' => 100,
         'max_investment' => 300,
     ]);
-    $product->update(['status' => 'archived']);
+    InvestorAutoInvestCommodity::query()->where('name', 'Rice')->update(['enabled' => false]);
 
     app(InvestorAutoInvestService::class)->processNewFundingProject($project->id);
 

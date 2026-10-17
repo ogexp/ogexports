@@ -9,8 +9,8 @@ Auto-invest rules must never backfill opportunities already open when the invest
 
 **How to apply:** Saving or enabling a rule must not scan current funding projects. Only a newly created opportunity or a later transition into funding may trigger a matching rule.
 
-Investor-facing commodity choices must come only from products currently approved for public display on the website. The investor enters an amount, selects a product, then explicitly taps the enable button to save and activate the rule; it matches that commodity across container sizes. Stop matching if the product is no longer publicly approved.
+Investor-facing Auto-invest choices come from a dedicated administrator-managed mobile catalog, initialized with Rice, Corn (Maize), Potatoes, and Sesame seeds. Its enabled state is the approval gate for choosing, saving, and processing a rule; disabling or removing an entry stops future matches. This catalog is independent of the public website product list because the mobile options are broad commodities.
 
-**Why:** The user specified on 17 October 2026 that investors must select only names admins published publicly and wanted a simple amount → product → enable flow without container-type selection.
+**Why:** The user asked admins to control which broad commodities appear in mobile Auto-invest, including entries that do not exactly match public product titles, while keeping activation explicit.
 
-**How to apply:** Read options from the same approved product catalog used by the public website, save only when the user taps the enable button, validate approval again when saving and processing, and treat the container type as unrestricted for these rules.
+**How to apply:** Read enabled options from the mobile Auto-invest catalog, save only when the user taps the enable button, validate catalog membership again when saving and processing, and treat the container type as unrestricted for these rules.

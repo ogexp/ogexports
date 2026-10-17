@@ -21,7 +21,7 @@ export default function AutoInvest() {
   const [amount, setAmount] = useState('');
   const [commodity, setCommodity] = useState('');
   const [error, setError] = useState('');
-  const formLocked = settingsQuery.isLoading || settingsQuery.isError || commoditiesQuery.isLoading || commoditiesQuery.isError || saveSettings.isPending;
+  const formLocked = settingsQuery.isLoading || commoditiesQuery.isLoading || commoditiesQuery.isError || saveSettings.isPending;
 
   useEffect(() => {
     if (!settingsQuery.data) return;
@@ -31,7 +31,7 @@ export default function AutoInvest() {
   }, [settingsQuery.data]);
 
   const commodities = useMemo(() => Array.from(new Set(list(commoditiesQuery.data)
-    .map(item => first(item, ['name']).trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b)), [commoditiesQuery.data]);
+    .map(item => first(item, ['name']).trim()).filter(Boolean))), [commoditiesQuery.data]);
 
   const parsedAmount = Number(amount.replace(/,/g, '').trim());
   const hasValidRule = Number.isFinite(parsedAmount) && parsedAmount > 0
@@ -48,7 +48,7 @@ export default function AutoInvest() {
       return;
     }
     if (!nextCommodity.trim()) {
-      setError('Choose an approved product name.');
+      setError('Choose an Auto-invest product.');
       return;
     }
     try {
@@ -67,7 +67,7 @@ export default function AutoInvest() {
 
   function enableAutoInvest() {
     if (!hasValidRule) {
-      setError('Enter a valid amount and select an approved website product first.');
+      setError('Enter a valid amount and select an Auto-invest product first.');
       return;
     }
     void save(commodity, true, amount);
@@ -84,22 +84,28 @@ export default function AutoInvest() {
         <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Retry</Text>
       </Pressable>
     </Card> : null}
+      {settingsQuery.isError ? <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 2 }}>
+        <Text style={{ flex: 1, color: colors.mutedForeground, fontSize: 11, lineHeight: 16 }}>Your saved rule could not be verified. Retry before enabling changes.</Text>
+        <Pressable accessibilityRole="button" onPress={() => void settingsQuery.refetch()} style={{ paddingVertical: 8, paddingHorizontal: 6 }}>
+          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Retry</Text>
+        </Pressable>
+      </View> : null}
       <Card testID="auto-invest-rule-form" style={{ gap: 9 }}>
         <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Enter an amount, choose a product, then enable Auto-invest</Text>
-        <Field label="Amount per opportunity (USD)" value={amount} onChangeText={setAmount} placeholder="e.g. 500" keyboardType="decimal-pad" editable={!settingsQuery.isLoading && !settingsQuery.isError && !saveSettings.isPending} />
+        <Field label="Amount per opportunity (USD)" value={amount} onChangeText={setAmount} placeholder="e.g. 500" keyboardType="decimal-pad" editable={!settingsQuery.isLoading && !saveSettings.isPending} />
         <View style={{ gap: 3, marginTop: 2, marginBottom: 2 }}>
-          <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700' }}>Website-approved products</Text>
+          <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700' }}>Auto-invest products</Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 17 }}>Choose one product. It will apply to future opportunities of any container size.</Text>
         </View>
         {commoditiesQuery.isLoading ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 12 }}>
           <ActivityIndicator color={colors.primary} />
-          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Loading public products…</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Loading products…</Text>
         </View> : null}
         {commoditiesQuery.isError ? <View style={{ gap: 8 }}>
-          <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12 }}>Public product names could not be loaded.</Text>
+          <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12 }}>Auto-invest products could not be loaded.</Text>
           <Action title="Retry products" icon="refresh-cw" secondary onPress={() => void commoditiesQuery.refetch()} />
         </View> : null}
-        {!commoditiesQuery.isLoading && !commoditiesQuery.isError && !commodities.length ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>No approved public products are available. Ask an admin to publish a product first.</Text> : null}
+        {!commoditiesQuery.isLoading && !commoditiesQuery.isError && !commodities.length ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>No Auto-invest products are available. Ask an admin to add one to the mobile list.</Text> : null}
         {commodities.map((name, index) => {
           const selected = commodity.toLowerCase() === name.toLowerCase();
           return <Pressable key={`${name}-${index}`} testID={`auto-invest-product-${index}`} accessibilityRole="button" accessibilityLabel={`Select ${name}`} accessibilityState={{ selected, disabled: formLocked }}
@@ -112,13 +118,13 @@ export default function AutoInvest() {
         <Action
           title={enabled ? 'Update Auto-invest' : 'Enable auto-invest'}
           icon="zap"
-          disabled={formLocked || !hasValidRule}
+          disabled={formLocked || settingsQuery.isError || !settingsQuery.data || !hasValidRule}
           loading={saveSettings.isPending}
           testID="auto-invest-enable-button"
           onPress={enableAutoInvest}
         />
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, textAlign: 'center' }}>
-          Auto-invest only applies to opportunities published after it is enabled. Wallet, KYC, and project limits still apply.
+           Auto-invest only applies to opportunities published after it is enabled. Wallet, KYC, and project limits still apply.
         </Text>
       </Card>
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18 }}>{error}</Text> : null}

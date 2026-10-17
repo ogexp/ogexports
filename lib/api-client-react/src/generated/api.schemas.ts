@@ -481,6 +481,57 @@ export interface InvestorAutoInvestCommoditiesResponse {
   data: InvestorAutoInvestCommoditiesResponseDataItem[];
 }
 
+export interface AdminAutoInvestCommodity {
+  id: number;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  enabled: boolean;
+  /**
+     * @minimum 0
+     * @maximum 10000
+     */
+  sort_order: number;
+}
+
+export interface AdminAutoInvestCommodityInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  enabled?: boolean;
+  /**
+     * @minimum 0
+     * @maximum 10000
+     */
+  sort_order?: number;
+}
+
+export interface AdminAutoInvestCommodityUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name?: string;
+  enabled?: boolean;
+  /**
+     * @minimum 0
+     * @maximum 10000
+     */
+  sort_order?: number;
+}
+
+export interface AdminAutoInvestCommodityListResponse {
+  data: AdminAutoInvestCommodity[];
+}
+
+export interface AdminAutoInvestCommodityResponse {
+  data: AdminAutoInvestCommodity;
+}
+
 export type InvestorProjectInvestmentResponseData = {
   id: number;
   amount: number;

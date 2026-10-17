@@ -545,13 +545,114 @@ export const UpdateInvestorAutoInvestSettingsResponse = zod.record(zod.string(),
 
 
 /**
- * @summary List publicly approved product names for auto-invest rules
+ * @summary List administrator-enabled commodities for auto-invest rules
  */
 export const GetInvestorAutoInvestCommoditiesResponse = zod.object({
   "data": zod.array(zod.object({
   "name": zod.string()
 }))
 })
+
+
+/**
+ * @summary List commodities configured for investor mobile Auto-invest
+ */
+export const getAdminAutoInvestCommoditiesResponseDataItemNameMax = 120;
+
+export const getAdminAutoInvestCommoditiesResponseDataItemSortOrderMin = 0;
+export const getAdminAutoInvestCommoditiesResponseDataItemSortOrderMax = 10000;
+
+
+
+export const GetAdminAutoInvestCommoditiesResponse = zod.object({
+  "data": zod.array(zod.object({
+  "id": zod.number().int(),
+  "name": zod.string().min(1).max(getAdminAutoInvestCommoditiesResponseDataItemNameMax),
+  "enabled": zod.boolean(),
+  "sort_order": zod.number().int().min(getAdminAutoInvestCommoditiesResponseDataItemSortOrderMin).max(getAdminAutoInvestCommoditiesResponseDataItemSortOrderMax)
+}))
+})
+
+
+/**
+ * @summary Add a commodity to investor mobile Auto-invest
+ */
+export const createAdminAutoInvestCommodityBodyNameMax = 120;
+
+export const createAdminAutoInvestCommodityBodyEnabledDefault = true;
+export const createAdminAutoInvestCommodityBodySortOrderMin = 0;
+export const createAdminAutoInvestCommodityBodySortOrderMax = 10000;
+
+
+
+export const CreateAdminAutoInvestCommodityBody = zod.object({
+  "name": zod.string().min(1).max(createAdminAutoInvestCommodityBodyNameMax),
+  "enabled": zod.boolean().default(createAdminAutoInvestCommodityBodyEnabledDefault),
+  "sort_order": zod.number().int().min(createAdminAutoInvestCommodityBodySortOrderMin).max(createAdminAutoInvestCommodityBodySortOrderMax).optional()
+})
+
+export const createAdminAutoInvestCommodityResponseDataNameMax = 120;
+
+export const createAdminAutoInvestCommodityResponseDataSortOrderMin = 0;
+export const createAdminAutoInvestCommodityResponseDataSortOrderMax = 10000;
+
+
+
+export const CreateAdminAutoInvestCommodityResponse = zod.object({
+  "data": zod.object({
+  "id": zod.number().int(),
+  "name": zod.string().min(1).max(createAdminAutoInvestCommodityResponseDataNameMax),
+  "enabled": zod.boolean(),
+  "sort_order": zod.number().int().min(createAdminAutoInvestCommodityResponseDataSortOrderMin).max(createAdminAutoInvestCommodityResponseDataSortOrderMax)
+})
+})
+
+
+/**
+ * @summary Rename or enable a mobile Auto-invest commodity
+ */
+export const UpdateAdminAutoInvestCommodityParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const updateAdminAutoInvestCommodityBodyNameMax = 120;
+
+export const updateAdminAutoInvestCommodityBodySortOrderMin = 0;
+export const updateAdminAutoInvestCommodityBodySortOrderMax = 10000;
+
+
+
+export const UpdateAdminAutoInvestCommodityBody = zod.object({
+  "name": zod.string().min(1).max(updateAdminAutoInvestCommodityBodyNameMax).optional(),
+  "enabled": zod.boolean().optional(),
+  "sort_order": zod.number().int().min(updateAdminAutoInvestCommodityBodySortOrderMin).max(updateAdminAutoInvestCommodityBodySortOrderMax).optional()
+})
+
+export const updateAdminAutoInvestCommodityResponseDataNameMax = 120;
+
+export const updateAdminAutoInvestCommodityResponseDataSortOrderMin = 0;
+export const updateAdminAutoInvestCommodityResponseDataSortOrderMax = 10000;
+
+
+
+export const UpdateAdminAutoInvestCommodityResponse = zod.object({
+  "data": zod.object({
+  "id": zod.number().int(),
+  "name": zod.string().min(1).max(updateAdminAutoInvestCommodityResponseDataNameMax),
+  "enabled": zod.boolean(),
+  "sort_order": zod.number().int().min(updateAdminAutoInvestCommodityResponseDataSortOrderMin).max(updateAdminAutoInvestCommodityResponseDataSortOrderMax)
+})
+})
+
+
+/**
+ * @summary Remove a commodity from investor mobile Auto-invest
+ */
+export const DeleteAdminAutoInvestCommodityParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteAdminAutoInvestCommodityResponse = zod.record(zod.string(), zod.unknown())
 
 
 /**

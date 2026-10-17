@@ -30,9 +30,9 @@ final class InvestorAutoInvestService
                     ->orWhereRaw('LOWER(container_type) = ?', [mb_strtolower(trim((string) $project->container_type))]);
             })
             ->whereExists(fn ($query) => $query->selectRaw('1')
-                ->from('products')
-                ->where('products.status', 'approved')
-                ->whereRaw('LOWER(TRIM(products.name)) = LOWER(TRIM(investor_auto_invest_settings.commodity))'))
+                ->from('investor_auto_invest_commodities')
+                ->where('investor_auto_invest_commodities.enabled', true)
+                ->whereRaw('LOWER(TRIM(investor_auto_invest_commodities.name)) = LOWER(TRIM(investor_auto_invest_settings.commodity))'))
             ->get();
 
         foreach ($settings as $setting) {

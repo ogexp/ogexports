@@ -324,7 +324,7 @@ paths:
     get:
       operationId: getInvestorAutoInvestCommodities
       tags: [investor]
-      summary: List publicly approved product names for auto-invest rules
+      summary: List administrator-enabled commodities for auto-invest rules
       security: [{ BearerAuth: [] }]
       responses:
         "200":
@@ -332,6 +332,50 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/InvestorAutoInvestCommoditiesResponse" }
+  /admin/auto-invest-commodities:
+    get:
+      operationId: getAdminAutoInvestCommodities
+      tags: [admin]
+      summary: List commodities configured for investor mobile Auto-invest
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Admin mobile Auto-invest catalog, content: { application/json: { schema: { $ref: "#/components/schemas/AdminAutoInvestCommodityListResponse" } } } }
+    post:
+      operationId: createAdminAutoInvestCommodity
+      tags: [admin]
+      summary: Add a commodity to investor mobile Auto-invest
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminAutoInvestCommodityInput" }
+      responses:
+        "201": { description: Created mobile Auto-invest commodity, content: { application/json: { schema: { $ref: "#/components/schemas/AdminAutoInvestCommodityResponse" } } } }
+  /admin/auto-invest-commodities/{id}:
+    put:
+      operationId: updateAdminAutoInvestCommodity
+      tags: [admin]
+      summary: Rename or enable a mobile Auto-invest commodity
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminAutoInvestCommodityUpdate" }
+      responses:
+        "200": { description: Updated mobile Auto-invest commodity, content: { application/json: { schema: { $ref: "#/components/schemas/AdminAutoInvestCommodityResponse" } } } }
+    delete:
+      operationId: deleteAdminAutoInvestCommodity
+      tags: [admin]
+      summary: Remove a commodity from investor mobile Auto-invest
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200": { description: Commodity removed, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /investor/projects/{id}:
     get:
       operationId: getInvestorProject
@@ -1507,6 +1551,45 @@ components:
             required: [name]
             properties:
               name: { type: string }
+    AdminAutoInvestCommodity:
+      type: object
+      additionalProperties: false
+      required: [id, name, enabled, sort_order]
+      properties:
+        id: { type: integer }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        enabled: { type: boolean }
+        sort_order: { type: integer, minimum: 0, maximum: 10000 }
+    AdminAutoInvestCommodityInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        enabled: { type: boolean, default: true }
+        sort_order: { type: integer, minimum: 0, maximum: 10000 }
+    AdminAutoInvestCommodityUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        enabled: { type: boolean }
+        sort_order: { type: integer, minimum: 0, maximum: 10000 }
+    AdminAutoInvestCommodityListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/AdminAutoInvestCommodity" }
+    AdminAutoInvestCommodityResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/AdminAutoInvestCommodity" }
     InvestorProjectInvestmentResponse:
       type: object
       additionalProperties: true

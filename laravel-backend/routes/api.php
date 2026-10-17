@@ -333,6 +333,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/dashboard', AdminDashboardController::class);
         Route::get('/reports', ReportController::class);
+        Route::get('/auto-invest-commodities', [\App\Http\Controllers\Api\Admin\InvestorAutoInvestCommodityController::class, 'index']);
+        Route::post('/auto-invest-commodities', [\App\Http\Controllers\Api\Admin\InvestorAutoInvestCommodityController::class, 'store']);
+        Route::put('/auto-invest-commodities/{id}', [\App\Http\Controllers\Api\Admin\InvestorAutoInvestCommodityController::class, 'update'])->whereNumber('id');
+        Route::delete('/auto-invest-commodities/{id}', [\App\Http\Controllers\Api\Admin\InvestorAutoInvestCommodityController::class, 'destroy'])->whereNumber('id');
 
         Route::get('/module-counts', [ModuleCountController::class, 'index']);
         Route::post('/module-views/{module}', [ModuleCountController::class, 'markViewed']);

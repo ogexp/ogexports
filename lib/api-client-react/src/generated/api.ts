@@ -20,6 +20,10 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminAutoInvestCommodityInput,
+  AdminAutoInvestCommodityListResponse,
+  AdminAutoInvestCommodityResponse,
+  AdminAutoInvestCommodityUpdate,
   AdminInvestmentPayoutProgressPage,
   AdminLoginCredentials,
   AdminProjectListResponse,
@@ -2438,7 +2442,7 @@ export const getGetInvestorAutoInvestCommoditiesUrl = () => {
 }
 
 /**
- * @summary List publicly approved product names for auto-invest rules
+ * @summary List administrator-enabled commodities for auto-invest rules
  */
 export const getInvestorAutoInvestCommodities = async ( options?: Parameters<typeof customFetch>[1]): Promise<InvestorAutoInvestCommoditiesResponse> => {
 
@@ -2485,7 +2489,7 @@ export type GetInvestorAutoInvestCommoditiesQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List publicly approved product names for auto-invest rules
+ * @summary List administrator-enabled commodities for auto-invest rules
  */
 
 export function useGetInvestorAutoInvestCommodities<TData = Awaited<ReturnType<typeof getInvestorAutoInvestCommodities>>, TError = ErrorType<unknown>>(
@@ -2505,6 +2509,334 @@ export function useGetInvestorAutoInvestCommodities<TData = Awaited<ReturnType<t
 
 
 
+
+export const getGetAdminAutoInvestCommoditiesUrl = () => {
+
+
+
+
+  return `/api/admin/auto-invest-commodities`
+}
+
+/**
+ * @summary List commodities configured for investor mobile Auto-invest
+ */
+export const getAdminAutoInvestCommodities = async ( options?: Parameters<typeof customFetch>[1]): Promise<AdminAutoInvestCommodityListResponse> => {
+
+  return customFetch<AdminAutoInvestCommodityListResponse>(getGetAdminAutoInvestCommoditiesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminAutoInvestCommoditiesQueryKey = () => {
+    return [
+    `/api/admin/auto-invest-commodities`
+    ] as const;
+    }
+
+
+export const getGetAdminAutoInvestCommoditiesQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAutoInvestCommodities>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAutoInvestCommodities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminAutoInvestCommoditiesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminAutoInvestCommodities>>> = ({ signal }) => getAdminAutoInvestCommodities({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminAutoInvestCommodities>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminAutoInvestCommoditiesQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminAutoInvestCommodities>>>
+export type GetAdminAutoInvestCommoditiesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List commodities configured for investor mobile Auto-invest
+ */
+
+export function useGetAdminAutoInvestCommodities<TData = Awaited<ReturnType<typeof getAdminAutoInvestCommodities>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminAutoInvestCommodities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminAutoInvestCommoditiesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAdminAutoInvestCommodityUrl = () => {
+
+
+
+
+  return `/api/admin/auto-invest-commodities`
+}
+
+/**
+ * @summary Add a commodity to investor mobile Auto-invest
+ */
+export const createAdminAutoInvestCommodity = async (adminAutoInvestCommodityInput: AdminAutoInvestCommodityInput, options?: Parameters<typeof customFetch>[1]): Promise<AdminAutoInvestCommodityResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AdminAutoInvestCommodityResponse>(getCreateAdminAutoInvestCommodityUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminAutoInvestCommodityInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminAutoInvestCommodityMutationKey = () => ['createAdminAutoInvestCommodity'] as const;
+
+export const getCreateAdminAutoInvestCommodityMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAutoInvestCommodity>>, TError,CreateAdminAutoInvestCommodityMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminAutoInvestCommodity>>, TError,CreateAdminAutoInvestCommodityMutationVariables, TContext> => {
+
+const mutationKey = getCreateAdminAutoInvestCommodityMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminAutoInvestCommodity>>, CreateAdminAutoInvestCommodityMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminAutoInvestCommodity(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminAutoInvestCommodityMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminAutoInvestCommodity>>>
+    export type CreateAdminAutoInvestCommodityMutationBody = BodyType<AdminAutoInvestCommodityInput>
+    export type CreateAdminAutoInvestCommodityMutationError = ErrorType<unknown>
+    export type CreateAdminAutoInvestCommodityMutationVariables = {data: BodyType<AdminAutoInvestCommodityInput>}
+
+    /**
+ * @summary Add a commodity to investor mobile Auto-invest
+ */
+export const useCreateAdminAutoInvestCommodity = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAutoInvestCommodity>>, TError,CreateAdminAutoInvestCommodityMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminAutoInvestCommodity>>,
+        TError,
+        CreateAdminAutoInvestCommodityMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateAdminAutoInvestCommodityMutationOptions(options));
+    }
+
+export const getUpdateAdminAutoInvestCommodityUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/auto-invest-commodities/${id}`
+}
+
+/**
+ * @summary Rename or enable a mobile Auto-invest commodity
+ */
+export const updateAdminAutoInvestCommodity = async (id: number,
+    adminAutoInvestCommodityUpdate: AdminAutoInvestCommodityUpdate, options?: Parameters<typeof customFetch>[1]): Promise<AdminAutoInvestCommodityResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AdminAutoInvestCommodityResponse>(getUpdateAdminAutoInvestCommodityUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminAutoInvestCommodityUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminAutoInvestCommodityMutationKey = () => ['updateAdminAutoInvestCommodity'] as const;
+
+export const getUpdateAdminAutoInvestCommodityMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminAutoInvestCommodity>>, TError,UpdateAdminAutoInvestCommodityMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminAutoInvestCommodity>>, TError,UpdateAdminAutoInvestCommodityMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAdminAutoInvestCommodityMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminAutoInvestCommodity>>, UpdateAdminAutoInvestCommodityMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminAutoInvestCommodity(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminAutoInvestCommodityMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminAutoInvestCommodity>>>
+    export type UpdateAdminAutoInvestCommodityMutationBody = BodyType<AdminAutoInvestCommodityUpdate>
+    export type UpdateAdminAutoInvestCommodityMutationError = ErrorType<unknown>
+    export type UpdateAdminAutoInvestCommodityMutationVariables = {id: number;data: BodyType<AdminAutoInvestCommodityUpdate>}
+
+    /**
+ * @summary Rename or enable a mobile Auto-invest commodity
+ */
+export const useUpdateAdminAutoInvestCommodity = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminAutoInvestCommodity>>, TError,UpdateAdminAutoInvestCommodityMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminAutoInvestCommodity>>,
+        TError,
+        UpdateAdminAutoInvestCommodityMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAdminAutoInvestCommodityMutationOptions(options));
+    }
+
+export const getDeleteAdminAutoInvestCommodityUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/auto-invest-commodities/${id}`
+}
+
+/**
+ * @summary Remove a commodity from investor mobile Auto-invest
+ */
+export const deleteAdminAutoInvestCommodity = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+  return customFetch<JsonObject>(getDeleteAdminAutoInvestCommodityUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAdminAutoInvestCommodityMutationKey = () => ['deleteAdminAutoInvestCommodity'] as const;
+
+export const getDeleteAdminAutoInvestCommodityMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminAutoInvestCommodity>>, TError,DeleteAdminAutoInvestCommodityMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAdminAutoInvestCommodity>>, TError,DeleteAdminAutoInvestCommodityMutationVariables, TContext> => {
+
+const mutationKey = getDeleteAdminAutoInvestCommodityMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAdminAutoInvestCommodity>>, DeleteAdminAutoInvestCommodityMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteAdminAutoInvestCommodity(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAdminAutoInvestCommodityMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAdminAutoInvestCommodity>>>
+
+    export type DeleteAdminAutoInvestCommodityMutationError = ErrorType<unknown>
+    export type DeleteAdminAutoInvestCommodityMutationVariables = {id: number}
+
+    /**
+ * @summary Remove a commodity from investor mobile Auto-invest
+ */
+export const useDeleteAdminAutoInvestCommodity = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminAutoInvestCommodity>>, TError,DeleteAdminAutoInvestCommodityMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAdminAutoInvestCommodity>>,
+        TError,
+        DeleteAdminAutoInvestCommodityMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteAdminAutoInvestCommodityMutationOptions(options));
+    }
 
 export const getGetInvestorProjectUrl = (id: string,) => {
 

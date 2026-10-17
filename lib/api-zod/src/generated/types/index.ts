@@ -6,6 +6,11 @@
  * OpenAPI spec version: 1.0.0
  */
 
+export * from './adminAutoInvestCommodity';
+export * from './adminAutoInvestCommodityInput';
+export * from './adminAutoInvestCommodityListResponse';
+export * from './adminAutoInvestCommodityResponse';
+export * from './adminAutoInvestCommodityUpdate';
 export * from './adminInvestmentPayoutProgress';
 export * from './adminInvestmentPayoutProgressPage';
 export * from './adminInvestmentPayoutProgressPayoutStatus';

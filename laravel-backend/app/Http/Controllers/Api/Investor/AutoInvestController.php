@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\Investor;
 
 use App\Http\Controllers\Controller;
+use App\Models\InvestorAutoInvestCommodity;
 use App\Models\InvestorAutoInvestSetting;
-use App\Models\Product;
 use App\Support\KycGate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,17 +14,12 @@ class AutoInvestController extends Controller
 {
     public function commodities(): JsonResponse
     {
-        $names = Product::query()
-            ->where('status', 'approved')
-            ->whereNotNull('name')
-            ->where('name', '<>', '')
+        $names = InvestorAutoInvestCommodity::query()
+            ->where('enabled', true)
+            ->orderBy('sort_order')
             ->orderBy('name')
-            ->pluck('name')
-            ->map(fn ($name) => trim((string) $name))
-            ->filter()
-            ->unique(fn ($name) => mb_strtolower(trim((string) $name)))
-            ->values()
-            ->map(fn ($name) => ['name' => $name]);
+            ->get(['name'])
+            ->map(fn ($item) => ['name' => $item->name]);
 
         return response()->json(['data' => $names]);
     }
@@ -66,11 +61,11 @@ class AutoInvestController extends Controller
             'container_type' => ['sometimes', 'nullable', 'string', 'max:80'],
         ]);
         $data['commodity'] = trim($data['commodity']);
-        if ($data['enabled'] && ! Product::query()->where('status', 'approved')
+        if ($data['enabled'] && ! InvestorAutoInvestCommodity::query()->where('enabled', true)
             ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($data['commodity'])])
             ->exists()) {
             throw ValidationException::withMessages([
-                'commodity' => ['Choose a product currently approved for public display.'],
+                'commodity' => ['Choose an auto-invest product enabled by an administrator.'],
             ]);
         }
         if ($data['enabled']) KycGate::ensureApproved($request->user());
