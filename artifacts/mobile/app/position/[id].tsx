@@ -21,6 +21,8 @@ import {
 } from '@/lib/financial-reference';
 import {
   calculateExpectedProfitFromRoi,
+  estimateDistributionDateFromInvestment,
+  formatContainerStatus,
   formatDistributionStatus,
   formatReportedPayoutDate,
   parseRoiPercentageLabel,
@@ -149,8 +151,16 @@ export default function PositionDetail() {
     [row, project, trade, rowMeta, projectMeta, tradeMeta],
     ['target_distribution_date', 'estimated_distribution_date', 'expected_distribution_date', 'expected_payout_date', 'distribution_date', 'profit_payout_date'],
   );
-  const payoutDateValue = plannedPayoutDate || reportedPayoutDate || estimatedPayoutDate;
-  const payoutDateIsEstimated = !plannedPayoutDate && !reportedPayoutDate && Boolean(estimatedPayoutDate);
+  const cycleDays = amount(investmentPeriodProgress, ['total_days'])
+    ?? amount(row, ['investment_period_days', 'trade_cycle_days', 'duration_days'])
+    ?? amount(project, ['investment_period_days', 'trade_cycle_days', 'duration_days'])
+    ?? amount(trade, ['investment_period_days', 'trade_cycle_days', 'duration_days']);
+  const cycleBasedPayoutDate = estimateDistributionDateFromInvestment(
+    cycleDays,
+    firstAvailable([row], ['invested_at', 'invest_date', 'investment_date', 'created_at']),
+  ) ?? '';
+  const payoutDateValue = plannedPayoutDate || reportedPayoutDate || estimatedPayoutDate || cycleBasedPayoutDate;
+  const payoutDateIsEstimated = !plannedPayoutDate && !reportedPayoutDate && Boolean(estimatedPayoutDate || cycleBasedPayoutDate);
   const payoutDateText = formatReportedPayoutDate(payoutDateValue) ?? 'Date not announced';
   const payoutDateLabel = plannedPayoutDate
     ? 'Planned payout date'
@@ -379,7 +389,11 @@ export default function PositionDetail() {
         </View>) : <Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>Shipment tracking details have not been provided by OG Exports yet.</Text>}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 11 }}>
           <Text style={{ color: colors.foreground, fontWeight: '700' }}>Container status</Text>
-          <Status value={first(row, ['container_status', 'shipment_status'], first(container, ['status', 'current_status'], notProvided))} />
+          <Status value={formatContainerStatus(first(
+            container,
+            ['trade_status', 'container_status', 'status', 'current_status', 'shipment_status'],
+            first(row, ['container_status', 'shipment_status', 'trade_status'], first(trade, ['container_status', 'shipment_status', 'trade_status'], notProvided)),
+          ))} />
         </View>
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 10 }}>Only reported shipment details are shown; no live carrier position is inferred.</Text>
         <Pressable testID="position-open-container-record" accessibilityRole="button" onPress={() => router.push({ pathname: '/tracking/[id]', params: { id, source: 'position' } })} style={({ pressed }) => ({ minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 13, borderRadius: 12, backgroundColor: colors.primary, opacity: pressed ? 0.82 : 1 })}>

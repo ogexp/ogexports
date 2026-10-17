@@ -2,7 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { Feather } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   useGetInvestorInvestment,
   useGetInvestorProject,
@@ -14,6 +14,7 @@ import { TradeProgressCard } from '@/components/TradeProgressCard';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, MotionReveal } from '@/lib/motion';
+import { formatContainerStatus } from '@/lib/investment-metrics';
 
 type JourneyStep = {
   label: string;
@@ -76,6 +77,9 @@ export default function ContainerTracking() {
   const projectQuery = useGetInvestorProject(id, { query: { queryKey: ['investor-project', id], enabled: Boolean(id && token && isProject) } });
   const positionQuery = useGetInvestorInvestment(id, { query: { queryKey: ['investor-position', id], enabled: Boolean(id && token && !isProject) } });
   const query = isProject ? projectQuery : positionQuery;
+  useFocusEffect(React.useCallback(() => {
+    if (id && token) void query.refetch();
+  }, [id, token, query.refetch]));
   const project = record(projectQuery.data?.data);
   const position = record(record(positionQuery.data).data);
   const positionProject = record(position.project);
@@ -92,7 +96,7 @@ export default function ContainerTracking() {
   const etd = read(container?.etd);
   const eta = read(container?.eta);
   const latestUpdate = read(container?.latest_tracking_update);
-  const tradeStatus = read(container?.trade_status);
+  const tradeStatus = formatContainerStatus(read(container?.trade_status));
   const lastUpdated = read(container?.tracking_updated_at);
   const journey = getJourney(container);
 
@@ -125,7 +129,7 @@ export default function ContainerTracking() {
           <Text style={{ color: colors.primaryForeground, fontSize: 23, lineHeight: 29, fontWeight: '700', marginTop: 19 }}>{containerNumber}</Text>
           <Text style={{ color: colors.primaryForeground, opacity: 0.78, fontSize: 12, marginTop: 4 }}>Container number</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 17, paddingTop: 13, borderTopWidth: 1, borderTopColor: colors.accent }}>
-            <Text style={{ color: colors.primaryForeground, opacity: 0.8, fontSize: 12 }}>Current trade status</Text>
+            <Text style={{ color: colors.primaryForeground, opacity: 0.8, fontSize: 12 }}>Container status</Text>
             <Status value={tradeStatus} />
           </View>
         </View>

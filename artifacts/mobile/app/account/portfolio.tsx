@@ -17,6 +17,8 @@ import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
 import {
   calculateExpectedProfitFromRoi,
   calculatePortfolioValueWithEstimates,
+  estimateDistributionDateFromInvestment,
+  formatContainerStatus,
   parseRoiPercentageLabel,
   pendingDistributionWithEstimates,
 } from '@/lib/investment-metrics';
@@ -219,10 +221,10 @@ export default function Portfolio() {
       ? `${loadingPort} → ${dischargePort}`
       : origin || destination ? `${origin || '—'} → ${destination || '—'}` : 'Not reported';
     const tradeStatus = first(item, ['trade_status', 'shipment_status'], first(trade, ['trade_status', 'shipment_status', 'status']));
-    const containerStatus = first(item, ['container_status'], first(
+    const containerStatus = formatContainerStatus(first(
       container,
-      ['status', 'current_status', 'shipment_status', 'trade_status'],
-      first(trade, ['container_status', 'shipment_status'], first(item, ['shipment_status'])),
+      ['trade_status', 'container_status', 'status', 'current_status', 'shipment_status'],
+      first(item, ['container_status', 'shipment_status', 'trade_status'], first(trade, ['container_status', 'shipment_status', 'trade_status'])),
     ));
     const periodProgress = record(item.investment_period_progress);
     const daysElapsed = amount(periodProgress, ['days_elapsed']) ?? amount(dashboardInvestment, ['days_elapsed']);
@@ -245,8 +247,24 @@ export default function Portfolio() {
       ?? amount(trade, ['expected_return_pct']);
     const roiLabel = first(trade, ['roi_label'], first(item, ['roi_label']));
     const roiText = roi != null ? `${roi.toFixed(2)}%` : supplied(roiLabel, 'Not reported');
-    const payoutDate = first(item, ['next_payout_date', 'payout_date', 'next_distribution_date'], first(trade, ['next_payout_date', 'payout_date', 'next_distribution_date']));
     const distribution = record(item.profit_distribution ?? item.distribution);
+    const payoutCandidates = [
+      first(distribution, ['planned_distribution_date'], ''),
+      first(item, ['planned_distribution_date', 'next_payout_date', 'payout_date', 'next_distribution_date'], ''),
+      first(trade, ['next_payout_date', 'payout_date', 'next_distribution_date'], ''),
+    ];
+    const reportedPayoutDate = payoutCandidates.find(value => value && value !== '—') ?? '';
+    const payoutCycleDays = amount(periodProgress, ['total_days'])
+      ?? amount(item, ['investment_period_days', 'trade_cycle_days', 'duration_days'])
+      ?? amount(trade, ['investment_period_days', 'trade_cycle_days', 'duration_days']);
+    const payoutDateEstimate = !reportedPayoutDate
+      ? estimateDistributionDateFromInvestment(
+          payoutCycleDays,
+          first(item, ['invested_at', 'invest_date', 'investment_date', 'created_at'], first(dashboardInvestment, ['invest_date'])),
+        )
+      : null;
+    const payoutDateValue = reportedPayoutDate || payoutDateEstimate;
+    const payoutDateLabel = payoutDateEstimate ? 'Next payout · estimated' : 'Next payout date';
     const totalReturn = amount(item, ['total_return', 'total_return_amount'])
       ?? amount(distribution, ['total_return']);
   const payoutCurrency = first(trade, ['currency', 'investment_currency'], investmentCurrency || 'USD');
@@ -331,7 +349,7 @@ export default function Portfolio() {
           <InvestmentMetric label="Expected profit" value={reportedMoney(expectedProfit, 'USD')} color={colors.primary} />
           <InvestmentMetric label="ROI" value={roiText} color={colors.foreground} />
           <InvestmentMetric label="Days remaining" value={daysRemaining != null ? `${daysRemaining} days` : 'Not reported'} color={colors.foreground} />
-          <InvestmentMetric label="Next payout date" value={reportedDate(payoutDate)} color={colors.foreground} />
+          <InvestmentMetric label={payoutDateLabel} value={payoutDateValue ? reportedDate(payoutDateValue) : 'Not announced'} color={colors.foreground} />
           <InvestmentMetric label="Total return recorded" value={reportedMoney(totalReturn, payoutCurrency)} color={colors.foreground} />
         </View>
 
@@ -342,7 +360,9 @@ export default function Portfolio() {
           </View>
           <View style={{ flex: 1, alignItems: 'flex-end' }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 10, letterSpacing: 0.35 }}>CONTAINER STATUS</Text>
-            <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: '600', textAlign: 'right', marginTop: 4 }}>{supplied(containerStatus, 'Not reported')}</Text>
+            <View style={{ marginTop: 4 }}>
+              <Status value={containerStatus} />
+            </View>
           </View>
         </View>
       </View>

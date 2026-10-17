@@ -33,6 +33,11 @@ import {
 } from '@/components/DashboardWidgets';
 import { MOTION, MotionProgress, MotionReveal, motionHaptic } from '@/lib/motion';
 import { dashboardHistoryParams, type DashboardHistoryScope } from '@/lib/dashboard-history';
+import {
+  estimateDistributionDateFromInvestment,
+  formatContainerStatus,
+  formatReportedPayoutDate,
+} from '@/lib/investment-metrics';
 
 const accountMenuSections = [
   {
@@ -153,10 +158,11 @@ export default function InvestorHome() {
   useFocusEffect(React.useCallback(() => {
     if (token) {
       void dashboard.refetch();
+      void investments.refetch();
       void deposits.refetch();
       void notificationsQuery.refetch();
     }
-  }, [token, dashboard.refetch, deposits.refetch, notificationsQuery.refetch]));
+  }, [token, dashboard.refetch, investments.refetch, deposits.refetch, notificationsQuery.refetch]));
   const data = unwrap(dashboard.data);
   const summary = record(data.summary);
   const wallet = record(data.wallet);
@@ -473,14 +479,29 @@ export default function InvestorHome() {
       const destination = first(position, ['destination', 'destination_country', 'to_country'], first(trade, ['destination', 'destination_country', 'to_country', 'destination_market']));
       const route = origin && destination ? `${origin} → ${destination}` : '—';
       const containerStatus = first(
-        position,
-        ['container_status'],
+        container,
+        ['trade_status', 'container_status', 'status', 'current_status', 'shipment_status'],
         first(
-          container,
-          ['container_status', 'status', 'current_status', 'shipment_status'],
-          first(trade, ['container_status', 'shipment_status'], first(position, ['shipment_status'], '—')),
+          position,
+          ['container_status', 'shipment_status', 'trade_status'],
+          first(trade, ['container_status', 'shipment_status', 'trade_status'], '—'),
         ),
       );
+      const payoutProgress = record(position.profit_distribution ?? position.distribution);
+      const payoutCandidates = [
+        first(payoutProgress, ['planned_distribution_date'], ''),
+        first(position, ['planned_distribution_date', 'next_payout_date', 'next_distribution_date', 'payout_date'], ''),
+        first(trade, ['next_payout_date', 'next_distribution_date', 'payout_date'], ''),
+      ];
+      const reportedPayout = payoutCandidates.find(value => value && value !== '—') ?? '';
+      const period = record(position.investment_period_progress);
+      const cycleDays = amount(period, ['total_days'])
+        ?? amount(position, ['investment_period_days', 'trade_cycle_days', 'duration_days'])
+        ?? amount(trade, ['investment_period_days', 'trade_cycle_days', 'duration_days']);
+      const estimatedPayout = !reportedPayout
+        ? estimateDistributionDateFromInvestment(cycleDays, first(position, investmentDateFields, ''))
+        : null;
+      const payoutDate = reportedPayout || estimatedPayout;
       const eta = first(position, ['estimated_arrival', 'eta'], first(trade, ['estimated_arrival', 'eta'], '—'));
       const progress = amount(position, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage'])
         ?? amount(trade, ['trade_progress_percent', 'trade_progress_pct', 'progress_percentage']);
@@ -501,7 +522,7 @@ export default function InvestorHome() {
           </View>
           <View style={{ alignItems: 'flex-end', gap: 5 }}>
             <Text style={{ color: colors.mutedForeground, fontSize: 8, fontWeight: '700', letterSpacing: 0.5 }}>CONTAINER STATUS</Text>
-            <Status value={containerStatus} />
+            <Status value={formatContainerStatus(containerStatus)} />
           </View>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 15, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
@@ -521,6 +542,9 @@ export default function InvestorHome() {
           </View>
           <MotionProgress value={boundedProgress} height={6} color={colors.primary} trackColor={colors.secondary} accessibilityLabel="Trade cycle progress" />
         </View> : <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 12 }}>Trade cycle progress has not been provided.</Text>}
+        <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 9 }}>
+          Next payout{estimatedPayout ? ' · estimated' : ''}: {formatReportedPayoutDate(payoutDate ?? '') ?? 'Not announced'}
+        </Text>
         <Pressable testID={`home-track-trade-${index}`} accessibilityRole="button" accessibilityLabel={`Track ${title}`} disabled={!positionId} onPress={() => router.push({ pathname: '/position/[id]', params: { id: positionId } })}
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 42, borderRadius: 12, backgroundColor: positionId ? colors.primary : colors.secondary, marginTop: 14, opacity: pressed ? 0.82 : 1 })}>
           <Text style={{ color: positionId ? colors.primaryForeground : colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>Track Trade</Text>

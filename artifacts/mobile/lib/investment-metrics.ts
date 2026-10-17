@@ -64,6 +64,14 @@ export function parseRoiPercentageLabel(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+export function formatContainerStatus(value: string): string {
+  const normalized = value.trim().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ');
+  if (!normalized || normalized === '—') return 'Not reported';
+  return normalized.split(' ')
+    .map(word => `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`)
+    .join(' ');
+}
+
 export function formatReportedPayoutDate(value: string): string | null {
   const raw = value.trim();
   if (!raw || raw === '—') return null;
@@ -108,6 +116,22 @@ export function estimateDistributionDateIso(
   const month = String(estimated.getMonth() + 1).padStart(2, '0');
   const day = String(estimated.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+export function estimateDistributionDateFromInvestment(
+  cycleDays: number | null,
+  investedAt: string,
+): string | null {
+  const raw = investedAt.trim();
+  if (!raw) return null;
+
+  const dateParts = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+  const date = dateParts
+    ? new Date(Number(dateParts[1]), Number(dateParts[2]) - 1, Number(dateParts[3]), 12)
+    : new Date(raw);
+  if (!Number.isFinite(date.getTime())) return null;
+
+  return estimateDistributionDateIso(cycleDays, date);
 }
 
 export function formatEstimatedDistributionDate(

@@ -226,7 +226,11 @@ class ProjectController extends Controller
     {
         $query = Investment::query()
             ->where('investor_id', $request->user()->id)
-            ->with('project.containerTracking');
+            ->with([
+                'project.containerTracking',
+                'project.stageUpdates' => fn ($query) => $query->orderBy('created_at')->orderBy('id'),
+                'payoutProgress',
+            ]);
 
         if ($projectType = $request->input('project_type')) {
             $query->whereHas('project', fn ($q) => $q->where('type', $projectType));

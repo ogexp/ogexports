@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {
   calculateExpectedProfitFromRoi,
   calculatePortfolioValueWithEstimates,
+  estimateDistributionDateFromInvestment,
+  formatContainerStatus,
   ensurePortfolioValueIncludesAvailableBalance,
   estimateDistributionDateIso,
   formatEstimatedDistributionDate,
@@ -62,6 +64,13 @@ test('estimates a target distribution date from the selected cycle days', () => 
   assert.equal(estimateDistributionDateIso(1, new Date(2026, 11, 31)), '2027-01-01');
   assert.equal(estimateDistributionDateIso(0, new Date(2026, 9, 17)), null);
   assert.equal(estimateDistributionDateIso(null, new Date(2026, 9, 17)), null);
+});
+
+test('estimates payout from the investment date and formats container statuses for display', () => {
+  assert.equal(estimateDistributionDateFromInvestment(45, '2026-10-17T12:00:00Z'), '2026-12-01');
+  assert.equal(estimateDistributionDateFromInvestment(null, '2026-10-17'), null);
+  assert.equal(formatContainerStatus('in_transit'), 'In Transit');
+  assert.equal(formatContainerStatus('—'), 'Not reported');
 });
 
 test('keeps a server-reported target date ahead of the cycle-based estimate', () => {
