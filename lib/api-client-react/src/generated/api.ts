@@ -40,6 +40,7 @@ import type {
   GetInvestorWalletTransactionsParams,
   GetInvestorWithdrawalsParams,
   InvestmentPayoutProgressUpdate,
+  InvestorAutoInvestCommoditiesResponse,
   InvestorAutoInvestSettings,
   InvestorBankAccountInput,
   InvestorBankAccountsResponse,
@@ -2427,6 +2428,83 @@ export const useUpdateInvestorAutoInvestSettings = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getUpdateInvestorAutoInvestSettingsMutationOptions(options));
     }
+
+export const getGetInvestorAutoInvestCommoditiesUrl = () => {
+
+
+
+
+  return `/api/investor/auto-invest/commodities`
+}
+
+/**
+ * @summary List publicly approved product names for auto-invest rules
+ */
+export const getInvestorAutoInvestCommodities = async ( options?: Parameters<typeof customFetch>[1]): Promise<InvestorAutoInvestCommoditiesResponse> => {
+
+  return customFetch<InvestorAutoInvestCommoditiesResponse>(getGetInvestorAutoInvestCommoditiesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInvestorAutoInvestCommoditiesQueryKey = () => {
+    return [
+    `/api/investor/auto-invest/commodities`
+    ] as const;
+    }
+
+
+export const getGetInvestorAutoInvestCommoditiesQueryOptions = <TData = Awaited<ReturnType<typeof getInvestorAutoInvestCommodities>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorAutoInvestCommodities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInvestorAutoInvestCommoditiesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInvestorAutoInvestCommodities>>> = ({ signal }) => getInvestorAutoInvestCommodities({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInvestorAutoInvestCommodities>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInvestorAutoInvestCommoditiesQueryResult = NonNullable<Awaited<ReturnType<typeof getInvestorAutoInvestCommodities>>>
+export type GetInvestorAutoInvestCommoditiesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List publicly approved product names for auto-invest rules
+ */
+
+export function useGetInvestorAutoInvestCommodities<TData = Awaited<ReturnType<typeof getInvestorAutoInvestCommodities>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInvestorAutoInvestCommodities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInvestorAutoInvestCommoditiesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetInvestorProjectUrl = (id: string,) => {
 

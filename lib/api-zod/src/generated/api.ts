@@ -538,10 +538,20 @@ export const UpdateInvestorAutoInvestSettingsBody = zod.object({
   "enabled": zod.boolean(),
   "amount": zod.number().min(1).max(updateInvestorAutoInvestSettingsBodyAmountMax),
   "commodity": zod.string().min(1).max(updateInvestorAutoInvestSettingsBodyCommodityMax),
-  "container_type": zod.string().min(1).max(updateInvestorAutoInvestSettingsBodyContainerTypeMax)
+  "container_type": zod.string().max(updateInvestorAutoInvestSettingsBodyContainerTypeMax).nullish().describe('Omit to match any container size.')
 })
 
 export const UpdateInvestorAutoInvestSettingsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary List publicly approved product names for auto-invest rules
+ */
+export const GetInvestorAutoInvestCommoditiesResponse = zod.object({
+  "data": zod.array(zod.object({
+  "name": zod.string()
+}))
+})
 
 
 /**

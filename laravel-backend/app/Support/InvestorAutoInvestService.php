@@ -24,8 +24,15 @@ final class InvestorAutoInvestService
         $settings = InvestorAutoInvestSetting::query()
             ->with('user.profile')
             ->where('enabled', true)
-            ->whereRaw('LOWER(commodity) = ?', [mb_strtolower(trim((string) $project->commodity))])
-            ->whereRaw('LOWER(container_type) = ?', [mb_strtolower(trim((string) $project->container_type))])
+            ->whereRaw('LOWER(TRIM(commodity)) = ?', [mb_strtolower(trim((string) $project->commodity))])
+            ->where(function ($query) use ($project) {
+                $query->where('container_type', 'ANY')
+                    ->orWhereRaw('LOWER(container_type) = ?', [mb_strtolower(trim((string) $project->container_type))]);
+            })
+            ->whereExists(fn ($query) => $query->selectRaw('1')
+                ->from('products')
+                ->where('products.status', 'approved')
+                ->whereRaw('LOWER(TRIM(products.name)) = LOWER(TRIM(investor_auto_invest_settings.commodity))'))
             ->get();
 
         foreach ($settings as $setting) {

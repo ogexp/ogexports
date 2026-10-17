@@ -19,8 +19,9 @@ export interface InvestorAutoInvestSettings {
      */
   commodity: string;
   /**
-     * @minLength 1
+     * Omit to match any container size.
      * @maxLength 80
+     * @nullable
      */
-  container_type: string;
+  container_type?: string | null;
 }
