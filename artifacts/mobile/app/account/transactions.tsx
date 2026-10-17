@@ -24,6 +24,7 @@ import {
 } from '@/lib/withdrawal-history';
 import { resolveTransactionDisplayId } from '@/lib/transaction-id';
 import { createTransactionReceipt, saveTransactionReceipt, type TransactionReceipt } from '@/lib/transaction-receipt';
+import { rememberFinancialDetail } from '@/lib/financial-detail-cache';
 import { resolveTransactionPaymentMethod } from '@/lib/transaction-payment-method';
 
 type Filter = 'All' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
@@ -46,6 +47,7 @@ type TransactionRow = {
   reference: string;
   paymentReference: string;
   receipt: TransactionReceipt;
+  sourceRecord?: Json;
   searchText: string;
   withdrawalBreakdown?: {
     payout: string;
@@ -188,7 +190,8 @@ function DetailLine({ label, value }: { label: string; value: string }) {
 }
 
 export default function Transactions() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const investorId = first(record(user), ['id']);
   const colors = useColors();
   const params = useLocalSearchParams<{
     search?: string;
@@ -391,6 +394,7 @@ export default function Transactions() {
       displayTransactionId,
       detailKind: 'deposit',
       detailId: id || first(deposit, ['deposit_id', 'depositId']),
+      sourceRecord: deposit,
       investmentId: '',
       tradeId: '',
       amount: readAmount(deposit, ['amount']),
@@ -502,6 +506,7 @@ export default function Transactions() {
       displayTransactionId,
       detailKind: 'withdrawal',
       detailId: id || first(withdrawal, ['withdrawal_id', 'withdraw_id']),
+      sourceRecord: withdrawal,
       investmentId: '',
       tradeId: '',
       amount: payout,
@@ -959,6 +964,7 @@ export default function Transactions() {
           return;
         }
         if ((row.detailKind === 'deposit' || row.detailKind === 'withdrawal') && /^\d+$/.test(row.detailId)) {
+          rememberFinancialDetail(investorId, row.detailKind, row.detailId, row.sourceRecord ?? {});
           router.push({ pathname: '/account/transaction/[id]', params: { id: row.detailId, kind: row.detailKind, page: String(page) } });
           return;
         }

@@ -19,7 +19,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
 import { findFinancialDetailRecord } from '@/lib/financial-detail-record';
-import { loadFinancialDetail, saveFinancialDetail } from '@/lib/financial-detail-cache';
+import { getRememberedFinancialDetail, loadFinancialDetail, saveFinancialDetail } from '@/lib/financial-detail-cache';
 import { resolveTransactionPaymentMethod } from '@/lib/transaction-payment-method';
 import { preferRecordedPositiveAmount, savedUsdEquivalentForRecordedAmount } from '@/lib/withdrawal-history';
 import {
@@ -164,7 +164,7 @@ export default function TransactionDetails() {
     ? walletTransaction ?? {}
     : Object.keys(directTransaction).length
       ? directTransaction
-      : historyRecord ?? cachedHistoryRecord ?? savedTransaction;
+        : historyRecord ?? cachedHistoryRecord ?? getRememberedFinancialDetail(userId, kind, id) ?? savedTransaction;
   const hasRecord = Object.keys(transaction).length > 0;
   const detailIsLoading = !hasRecord && (
     query.isLoading

@@ -22,6 +22,7 @@ import { useColors } from '@/hooks/useColors';
 import { buildWithdrawalRequest, maximumWithdrawalPayout, parseWithdrawalAmount, resolveWithdrawalDisplayTerms, withSubmittedWithdrawalBreakdown } from '@/lib/withdrawal-flow';
 import { motionHaptic } from '@/lib/motion';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
+import { rememberFinancialDetail } from '@/lib/financial-detail-cache';
 
 const withdrawalPurposes = ['Profit Withdrawal', 'Principal Return', 'Business Expense', 'Personal Use'] as const;
 
@@ -146,7 +147,7 @@ function TransactionPasswordEntryField({ onValueChange }: { onValueChange: (valu
 }
 
 export default function Withdraw() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const appPreferences = useAppPreferences();
   const colors = useColors();
   const queryClient = useQueryClient();
@@ -770,6 +771,7 @@ export default function Withdraw() {
       const selected = id === selectedWithdrawalId;
       return <Pressable key={id} accessibilityRole="button" accessibilityLabel="Open withdrawal details" accessibilityState={{ selected }} onPress={() => {
         if (/^\d+$/.test(detailId)) {
+          rememberFinancialDetail(first(record(user), ['id']), 'withdrawal', detailId, item);
           router.push({ pathname: '/account/transaction/[id]', params: { id: detailId, kind: 'withdrawal', page: '1' } });
           return;
         }

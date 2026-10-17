@@ -26,6 +26,7 @@ import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { useColors } from '@/hooks/useColors';
 import { motionHaptic } from '@/lib/motion';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
+import { rememberFinancialDetail } from '@/lib/financial-detail-cache';
 
 const depositStages = ['Submitted', 'Under Review', 'Verified', 'Credited'] as const;
 const verificationStatuses = new Set(['approved', 'verified']);
@@ -122,7 +123,7 @@ function CopyableBankDetailRow({ label, value, copied, accessibilityLabel, testI
 }
 
 export default function Deposit() {
-  const { token, apiOrigin, beginExternalFilePicker, endExternalFilePicker } = useAuth();
+  const { token, user, apiOrigin, beginExternalFilePicker, endExternalFilePicker } = useAuth();
   const appPreferences = useAppPreferences();
   const colors = useColors();
   const queryClient = useQueryClient();
@@ -624,6 +625,7 @@ export default function Deposit() {
       const selected = selectedDepositId === id;
       return <Pressable key={id} accessibilityRole="button" accessibilityLabel="Open deposit details" accessibilityState={{ selected }} onPress={() => {
         if (/^\d+$/.test(detailId)) {
+          rememberFinancialDetail(first(record(user), ['id']), 'deposit', detailId, item);
           router.push({ pathname: '/account/transaction/[id]', params: { id: detailId, kind: 'deposit', page: '1' } });
           return;
         }

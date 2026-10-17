@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 
 export type FinancialDetailKind = 'deposit' | 'withdrawal';
+const rememberedDetails = new Map<string, Record<string, unknown>>();
 
 const fields = [
   'id', 'transaction_id', 'deposit_id', 'depositId', 'withdrawal_id', 'withdraw_id',
@@ -52,13 +53,50 @@ function cacheKey(userId: string, kind: FinancialDetailKind, id: string): string
   return `og-financial-detail:${account}:${kind}:${recordId}`;
 }
 
+function createSnapshot(source: Record<string, unknown>): Record<string, unknown> {
+  const snapshot: Record<string, unknown> = compactFields(source, fields);
+  for (const [key, allowed] of Object.entries(nestedFields)) {
+    const nested = compactFields(source[key], allowed);
+    if (Object.keys(nested).length) snapshot[key] = nested;
+  }
+  return snapshot;
+}
+
+export function rememberFinancialDetail(
+  userId: string,
+  kind: FinancialDetailKind,
+  id: string,
+  source: Record<string, unknown>,
+): void {
+  try {
+    rememberedDetails.set(cacheKey(userId, kind, id), createSnapshot(source));
+  } catch {
+    // The detail screen can still fetch the server record if no local scope is available.
+  }
+}
+
+export function getRememberedFinancialDetail(
+  userId: string,
+  kind: FinancialDetailKind,
+  id: string,
+): Record<string, unknown> | null {
+  try {
+    return rememberedDetails.get(cacheKey(userId, kind, id)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function loadFinancialDetail(
   userId: string,
   kind: FinancialDetailKind,
   id: string,
 ): Promise<Record<string, unknown> | null> {
   try {
-    const saved = await SecureStore.getItemAsync(cacheKey(userId, kind, id));
+    const key = cacheKey(userId, kind, id);
+    const remembered = rememberedDetails.get(key);
+    if (remembered) return remembered;
+    const saved = await SecureStore.getItemAsync(key);
     if (!saved) return null;
     const parsed: unknown = JSON.parse(saved);
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
@@ -75,13 +113,11 @@ export async function saveFinancialDetail(
   id: string,
   source: Record<string, unknown>,
 ): Promise<void> {
-  const snapshot: Record<string, unknown> = compactFields(source, fields);
-  for (const [key, allowed] of Object.entries(nestedFields)) {
-    const nested = compactFields(source[key], allowed);
-    if (Object.keys(nested).length) snapshot[key] = nested;
-  }
+  const key = cacheKey(userId, kind, id);
+  const snapshot = createSnapshot(source);
   const serialized = JSON.stringify(snapshot);
   // Keep this a compact, encrypted keychain snapshot (never cache bank account or proof data).
   if (serialized.length > 1800) throw new Error('The transaction record is too large to save securely.');
-  await SecureStore.setItemAsync(cacheKey(userId, kind, id), serialized);
+  rememberedDetails.set(key, snapshot);
+  await SecureStore.setItemAsync(key, serialized);
 }
