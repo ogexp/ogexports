@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { Feather } from '@expo/vector-icons';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -19,6 +19,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
 import { findFinancialDetailRecord } from '@/lib/financial-detail-record';
+import { loadFinancialDetail, saveFinancialDetail } from '@/lib/financial-detail-cache';
 import { resolveTransactionPaymentMethod } from '@/lib/transaction-payment-method';
 import { savedUsdEquivalentForRecordedAmount } from '@/lib/withdrawal-history';
 import {
@@ -54,17 +55,42 @@ function DetailLine({ label, value }: { label: string; value: string }) {
 }
 
 export default function TransactionDetails() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const colors = useColors();
   const queryClient = useQueryClient();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string; kind?: string; page?: string }>();
+  const userId = first(record(user), ['id']);
   const id = typeof params.id === 'string' && /^\d+$/.test(params.id) ? params.id : '';
   const sourcePage = typeof params.page === 'string' && /^\d+$/.test(params.page)
     ? Math.max(1, Number(params.page))
     : 1;
   const requestedKind = typeof params.kind === 'string' ? params.kind : 'wallet';
   const kind = requestedKind === 'deposit' || requestedKind === 'withdrawal' ? requestedKind : 'wallet';
+  const savedCacheKey = userId && id && (kind === 'deposit' || kind === 'withdrawal')
+    ? `${userId}:${kind}:${id}`
+    : 'not-applicable';
+  const [savedCacheState, setSavedCacheState] = useState<{
+    key: string;
+    loaded: boolean;
+    record: Record<string, unknown>;
+  }>({ key: '', loaded: false, record: {} });
+  const savedTransaction = savedCacheState.key === savedCacheKey ? savedCacheState.record : {};
+  const savedTransactionLoaded = savedCacheState.key === savedCacheKey && savedCacheState.loaded;
+
+  useEffect(() => {
+    let active = true;
+    if (Platform.OS === 'web' || !userId || !id || (kind !== 'deposit' && kind !== 'withdrawal')) {
+      setSavedCacheState({ key: savedCacheKey, loaded: true, record: {} });
+      return () => { active = false; };
+    }
+    setSavedCacheState({ key: savedCacheKey, loaded: false, record: {} });
+    void loadFinancialDetail(userId, kind, id).then(saved => {
+      if (!active) return;
+      setSavedCacheState({ key: savedCacheKey, loaded: true, record: saved ?? {} });
+    });
+    return () => { active = false; };
+  }, [userId, id, kind, savedCacheKey]);
   const queryOptions = (sourceKind: 'deposit' | 'withdrawal', enabled: boolean) => ({
     query: {
       queryKey: ['investor-transaction-detail', sourceKind, id],
@@ -138,10 +164,17 @@ export default function TransactionDetails() {
     ? walletTransaction ?? {}
     : Object.keys(directTransaction).length
       ? directTransaction
-      : historyRecord ?? cachedHistoryRecord ?? {};
+      : historyRecord ?? cachedHistoryRecord ?? savedTransaction;
   const hasRecord = Object.keys(transaction).length > 0;
-  const detailIsLoading = !hasRecord && (query.isLoading || Boolean(historyQuery?.isLoading));
-  const detailIsError = !hasRecord && query.isError && (historyQuery?.isError ?? true);
+  const detailIsLoading = !hasRecord && (
+    query.isLoading
+    || Boolean(historyQuery?.isLoading)
+    || (Platform.OS !== 'web' && !savedTransactionLoaded)
+  );
+  const detailIsError = !hasRecord
+    && query.isError
+    && (historyQuery?.isError ?? true)
+    && (Platform.OS === 'web' || savedTransactionLoaded);
   const meta = record(transaction.meta);
   const bankDetails = record(transaction.bank_details);
   const walletType = first(transaction, ['type', 'transaction_type']).toLowerCase();
@@ -234,6 +267,16 @@ export default function TransactionDetails() {
     ['transaction_id', 'reference', 'transaction_reference', 'deposit_reference', 'withdraw_id'],
   );
   const transactionId = resolveCanonicalFinancialId(transaction, ['id', 'transaction_id']) || unavailable;
+  useEffect(() => {
+    if (
+      Platform.OS === 'web'
+      || !userId
+      || !id
+      || (kind !== 'deposit' && kind !== 'withdrawal')
+      || !hasRecord
+    ) return;
+    void saveFinancialDetail(userId, kind, id, transaction).catch(() => undefined);
+  }, [userId, id, kind, hasRecord, transaction]);
   const title = kind === 'deposit'
     ? 'Deposit'
     : kind === 'withdrawal'
