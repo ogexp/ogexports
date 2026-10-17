@@ -1,15 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import { useGetInvestorAutoInvestSettings, useGetInvestorProjects, useUpdateInvestorAutoInvestSettings } from '@workspace/api-client-react';
-import { Action, Card, ErrorState, Field, LoadingCard, Screen } from '@/components/InvestorUI';
+import { Action, Card, Field, Screen } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
 
 function ChoiceChips({ label, values, value, onChange }: {
-  label: string; values: string[]; value: string; onChange: (value: string) => void;
+  label: string; values: string[]; value: string; onChange: (value: string) => void; disabled?: boolean;
 }) {
   const colors = useColors();
   return <View style={{ gap: 8, marginBottom: 14 }}>
@@ -30,10 +30,11 @@ function ChoiceChips({ label, values, value, onChange }: {
 export default function AutoInvest() {
   const { token } = useAuth();
   const colors = useColors();
-  const settingsQuery = useGetInvestorAutoInvestSettings({ query: { queryKey: ['investor-auto-invest-settings'], enabled: !!token } });
+  const settingsQuery = useGetInvestorAutoInvestSettings({ query: { queryKey: ['investor-auto-invest-settings'], enabled: !!token, retry: 1 } });
   const projectsQuery = useGetInvestorProjects({ per_page: 100 }, { query: { queryKey: ['investor-projects', 100], enabled: !!token, staleTime: 60_000 } });
   const saveSettings = useUpdateInvestorAutoInvestSettings();
   const settings = record(unwrap(settingsQuery.data));
+  const loadError = settingsQuery.isError ? messageOf(settingsQuery.error) : '';
   const [enabled, setEnabled] = useState(false);
   const [amount, setAmount] = useState('');
   const [commodity, setCommodity] = useState('');
@@ -79,18 +80,31 @@ export default function AutoInvest() {
     }
   }
 
-  return <Screen title="Auto-invest" subtitle="Set one clear rule for new container opportunities">
-    {settingsQuery.isLoading ? <LoadingCard label="Loading your auto-invest rule…" /> : null}
-    {settingsQuery.isError ? <ErrorState message="Auto-invest settings could not be loaded." error={settingsQuery.error} onRetry={() => void settingsQuery.refetch()} /> : null}
-    {!settingsQuery.isLoading && !settingsQuery.isError ? <>
+  return <Screen title="Auto-invest" subtitle="Set one clear rule for new container opportunities" refreshable>
+    {settingsQuery.isLoading ? <Card testID="auto-invest-loading" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 }}>
+      <ActivityIndicator color={colors.primary} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700' }}>Checking your saved rule</Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 3 }}>The form and investment safeguards are shown below while settings load.</Text>
+      </View>
+      <Pressable accessibilityRole="button" onPress={() => void settingsQuery.refetch()} style={{ paddingVertical: 10, paddingHorizontal: 8 }}>
+        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>Retry</Text>
+      </Pressable>
+    </Card> : null}
+    {settingsQuery.isError ? <Card testID="auto-invest-load-error" style={{ gap: 8 }}>
+      <Text style={{ color: colors.destructive, fontSize: 13, fontWeight: '700' }}>Saved settings could not be loaded</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 17 }}>Your existing rule has not been changed. Retry before editing or saving so it is not accidentally overwritten.</Text>
+      {loadError ? <Text accessibilityRole="alert" style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16 }}>{loadError}</Text> : null}
+      <Action title="Retry loading rule" icon="refresh-cw" secondary onPress={() => void settingsQuery.refetch()} />
+    </Card> : null}
       <Card style={{ gap: 9 }}>
         <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Your investment rule</Text>
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>Choose the amount to invest in each matching container, plus the exact commodity and container type. Settings only apply to opportunities published after you enable the rule.</Text>
-        <Field label="Amount per opportunity (USD)" value={amount} onChangeText={setAmount} placeholder="e.g. 500" keyboardType="decimal-pad" />
-        <ChoiceChips label="Commodity" values={commodities} value={commodity} onChange={setCommodity} />
-        {!commodities.length ? <Field label="Exact commodity name" value={commodity} onChangeText={setCommodity} placeholder="Match the commodity shown in Opportunities" maxLength={120} /> : null}
-        <ChoiceChips label="Container type" values={containerTypes} value={containerType} onChange={setContainerType} />
-        {!containerTypes.length ? <Field label="Exact container type" value={containerType} onChangeText={setContainerType} placeholder="e.g. 20FT" maxLength={80} /> : null}
+        <Field label="Amount per opportunity (USD)" value={amount} onChangeText={setAmount} placeholder="e.g. 500" keyboardType="decimal-pad" editable={!settingsQuery.isLoading && !settingsQuery.isError} />
+        <ChoiceChips label="Commodity" values={commodities} value={commodity} onChange={setCommodity} disabled={settingsQuery.isLoading || settingsQuery.isError} />
+        {!commodities.length ? <Field label="Exact commodity name" value={commodity} onChangeText={setCommodity} placeholder="Match the commodity shown in Opportunities" maxLength={120} editable={!settingsQuery.isLoading && !settingsQuery.isError} /> : null}
+        <ChoiceChips label="Container type" values={containerTypes} value={containerType} onChange={setContainerType} disabled={settingsQuery.isLoading || settingsQuery.isError} />
+        {!containerTypes.length ? <Field label="Exact container type" value={containerType} onChangeText={setContainerType} placeholder="e.g. 20FT" maxLength={80} editable={!settingsQuery.isLoading && !settingsQuery.isError} /> : null}
       </Card>
       <Card style={{ gap: 7 }}>
         <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700' }}>Automatic investment safeguards</Text>
@@ -98,7 +112,7 @@ export default function AutoInvest() {
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>The investment is skipped if KYC is not approved, your wallet is not USD-denominated or lacks funds, or the amount does not meet project minimums or available capacity. Existing opportunities are never auto-invested.</Text>
       </Card>
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18 }}>{error}</Text> : null}
-      <Pressable accessibilityRole="switch" accessibilityLabel="Auto-invest enabled" accessibilityState={{ checked: enabled }} onPress={() => setEnabled(current => !current)}
+      <Pressable accessibilityRole="switch" accessibilityLabel="Auto-invest enabled" accessibilityState={{ checked: enabled, disabled: settingsQuery.isLoading || settingsQuery.isError }} disabled={settingsQuery.isLoading || settingsQuery.isError} onPress={() => setEnabled(current => !current)}
         style={{ minHeight: 56, borderRadius: 16, borderWidth: 1, borderColor: enabled ? colors.primary : colors.border, backgroundColor: enabled ? colors.lightGreen : colors.card, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flex: 1, paddingRight: 12 }}>
           <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700' }}>{enabled ? 'Auto-invest is on' : 'Auto-invest is off'}</Text>
@@ -123,6 +137,5 @@ export default function AutoInvest() {
           </View>;
         })}
       </Card> : null}
-    </> : null}
   </Screen>;
 }
