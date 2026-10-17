@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {
   calculateExpectedProfitFromRoi,
   ensurePortfolioValueIncludesAvailableBalance,
+  estimateDistributionDateIso,
+  formatEstimatedDistributionDate,
   formatDistributionStatus,
   formatReportedPayoutDate,
   parseRoiPercentageLabel,
@@ -36,6 +38,20 @@ test('extracts a single percentage from the API ROI label, not an ambiguous rang
 test('formats ISO payout dates without shifting date-only values', () => {
   assert.match(formatReportedPayoutDate('2026-10-06') ?? '', /2026/);
   assert.equal(formatReportedPayoutDate('2026-02-30'), null);
+});
+
+test('estimates a target distribution date from the selected cycle days', () => {
+  assert.equal(estimateDistributionDateIso(45, new Date(2026, 9, 17)), '2026-12-01');
+  assert.equal(estimateDistributionDateIso(1, new Date(2026, 11, 31)), '2027-01-01');
+  assert.equal(estimateDistributionDateIso(0, new Date(2026, 9, 17)), null);
+  assert.equal(estimateDistributionDateIso(null, new Date(2026, 9, 17)), null);
+});
+
+test('keeps a server-reported target date ahead of the cycle-based estimate', () => {
+  const expected = formatReportedPayoutDate('2026-11-20');
+  assert.equal(formatEstimatedDistributionDate('2026-11-20', 45, new Date(2026, 9, 17)), expected);
+  assert.equal(formatEstimatedDistributionDate('', 45, new Date(2026, 9, 17)), formatReportedPayoutDate('2026-12-01'));
+  assert.equal(formatEstimatedDistributionDate('', null, new Date(2026, 9, 17)), '—');
 });
 
 test('humanizes server distribution status and shows a clear fallback when it is absent', () => {

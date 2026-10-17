@@ -31,32 +31,13 @@ import { verifyAppPin } from '@/lib/app-pin';
 import { motionHaptic } from '@/lib/motion';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
 import { goBackOrReplace } from '@/lib/safe-navigation';
+import { formatEstimatedDistributionDate } from '@/lib/investment-metrics';
 
-function formatEstimatedDistributionDate(value: string): string {
-  const raw = value.trim();
-  if (!raw) return '—';
-
-  const dateParts = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
-  let date: Date;
-  if (dateParts) {
-    const [, year, month, day] = dateParts;
-    date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
-    if (
-      date.getUTCFullYear() !== Number(year)
-      || date.getUTCMonth() !== Number(month) - 1
-      || date.getUTCDate() !== Number(day)
-    ) return '—';
-  } else {
-    date = new Date(raw);
-    if (!Number.isFinite(date.getTime())) return '—';
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  }).format(date);
+function parseCycleDays(value: string): number | null {
+  const match = /\b(\d{1,5})\s*-?\s*(?:days?|d)\b/i.exec(value);
+  if (!match) return null;
+  const days = Number(match[1]);
+  return Number.isSafeInteger(days) && days > 0 ? days : null;
 }
 
 export default function OpportunityDetail() {
@@ -141,8 +122,17 @@ export default function OpportunityDetail() {
   const reportedReturn = first(project, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi']);
   const returnRate = amount(project, ['expected_return_pct']);
   const projectedReturn = reportedReturn || (returnRate != null ? `${returnRate}%` : '');
-  const projectedDistribution = first(project, ['target_distribution', 'projected_distribution', 'estimated_distribution']);
-  const projectedCycle = first(project, ['projected_cycle', 'expected_timeline'], amount(project, ['investment_period_days']) == null ? '' : `${amount(project, ['investment_period_days'])} days`);
+  const cycleDaysFromApi = [
+    amount(project, ['investment_period_days', 'trade_cycle_days', 'duration_days', 'trade_duration_days', 'cycle_days']),
+    amount(projectMeta, ['investment_period_days', 'trade_cycle_days', 'duration_days', 'trade_duration_days', 'cycle_days']),
+    amount(tradeData, ['investment_period_days', 'trade_cycle_days', 'duration_days', 'trade_duration_days', 'cycle_days']),
+    amount(tradeMeta, ['investment_period_days', 'trade_cycle_days', 'duration_days', 'trade_duration_days', 'cycle_days']),
+  ].find(days => days != null && Number.isSafeInteger(days) && days > 0) ?? null;
+  const projectedCycle = first(
+    project,
+    ['projected_cycle', 'expected_timeline'],
+    cycleDaysFromApi == null ? '' : `${cycleDaysFromApi} days`,
+  );
   const investmentStatus = [
     'trade_status',
     'project_status',
@@ -176,6 +166,7 @@ export default function OpportunityDetail() {
   const formatTradeMoney = (value: number | null) => money(value, tradeCurrency || currency || 'USD');
   const feeValue = first(project, ['investment_fee', 'investor_fee', 'fee', 'fees', 'transaction_fee', 'platform_fee']);
   const cycleValue = first(project, ['estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], projectedCycle || '—');
+  const cycleDays = cycleDaysFromApi ?? parseCycleDays(cycleValue);
   const distributionDateKeys = [
     'target_distribution_date',
     'estimated_distribution_date',
@@ -183,13 +174,16 @@ export default function OpportunityDetail() {
     'expected_payout_date',
     'distribution_date',
     'profit_payout_date',
+    'target_distribution',
+    'projected_distribution',
+    'estimated_distribution',
   ];
   const distributionDateRaw = first(
     project,
     distributionDateKeys,
     first(projectMeta, distributionDateKeys, first(tradeData, distributionDateKeys, first(tradeMeta, distributionDateKeys))),
   );
-  const distributionDate = formatEstimatedDistributionDate(distributionDateRaw);
+  const distributionDate = formatEstimatedDistributionDate(distributionDateRaw, cycleDays);
   const projectTradeAssociation = first(project, ['trade_id', 'trade_code', 'code', 'reference'], '—');
   const tradeLabel = projectTradeAssociation !== '—'
     ? `Trade #${projectTradeAssociation}`

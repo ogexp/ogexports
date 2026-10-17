@@ -59,6 +59,37 @@ export function formatReportedPayoutDate(value: string): string | null {
   }).format(date);
 }
 
+export function estimateDistributionDateIso(
+  cycleDays: number | null,
+  fromDate = new Date(),
+): string | null {
+  if (
+    cycleDays == null
+    || !Number.isSafeInteger(cycleDays)
+    || cycleDays <= 0
+    || !Number.isFinite(fromDate.getTime())
+  ) return null;
+
+  const estimated = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+  estimated.setDate(estimated.getDate() + cycleDays);
+  const year = estimated.getFullYear();
+  const month = String(estimated.getMonth() + 1).padStart(2, '0');
+  const day = String(estimated.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function formatEstimatedDistributionDate(
+  reportedDate: string,
+  cycleDays: number | null,
+  fromDate = new Date(),
+): string {
+  const reported = formatReportedPayoutDate(reportedDate);
+  if (reported) return reported;
+
+  const estimate = estimateDistributionDateIso(cycleDays, fromDate);
+  return formatReportedPayoutDate(estimate ?? '') ?? '—';
+}
+
 export function formatDistributionStatus(value: string, distributedAt = ''): string {
   const normalized = value.trim().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ');
   if (distributedAt.trim()) return 'Distributed';

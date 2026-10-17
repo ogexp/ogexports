@@ -59,6 +59,39 @@ it('defaults an investor without a stored Profile currency to USD regardless of 
     expect(UserDisplayCurrency::currencyForUser($investor))->toBe('USD');
 });
 
+it('keeps a USD wallet balance independent of profile country', function () {
+    PlatformSetting::query()->create([
+        'site_name' => 'OG Exports',
+        'invest_pkr_display_enabled' => true,
+        'invest_dual_currency_enabled' => false,
+        'currency' => 'USD',
+    ]);
+
+    $investor = User::factory()->create(['account_status' => 'active']);
+    $investor->assignRole('investor');
+    $profile = UserProfile::query()->create([
+        'user_id' => $investor->id,
+        'country' => 'United Arab Emirates',
+        'company_name' => 'Country Independent Wallet Co',
+        'meta' => [],
+    ]);
+    Wallet::query()->create([
+        'user_id' => $investor->id,
+        'currency' => 'USD',
+        'available_balance' => 5000,
+        'pending_balance' => 0,
+    ]);
+
+    foreach (['Pakistan', 'United Arab Emirates'] as $country) {
+        $profile->update(['country' => $country]);
+        $investor = $investor->fresh(['profile', 'wallet']);
+
+        expect(UserDisplayCurrency::currencyForUser($investor))->toBe('USD')
+            ->and((float) $investor->wallet->available_balance)->toBe(5000.0)
+            ->and(UserDisplayCurrency::formatWalletDual($investor, 5000.0))->toBe('$5,000.00');
+    }
+});
+
 it('formats investment as PKR only when dual currency is disabled', function () {
     PlatformSetting::query()->create([
         'site_name' => 'OG Exports',
