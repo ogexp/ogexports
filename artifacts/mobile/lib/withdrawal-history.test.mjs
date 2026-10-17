@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   savedUsdEquivalentForRecordedAmount,
+  preferRecordedPositiveAmount,
   withdrawalPaymentMethod,
 } from './withdrawal-history.ts';
 
@@ -16,6 +17,12 @@ test('uses only the saved PKR exchange-rate snapshot for a USD equivalent', () =
 
 test('does not expose a USD equivalent when the recorded amount is missing', () => {
   assert.equal(savedUsdEquivalentForRecordedAmount(null, 'PKR', 2, 278.5), null);
+});
+
+test('does not let a stale zero fee hide a positive fee recorded on the withdrawal ledger', () => {
+  assert.equal(preferRecordedPositiveAmount(0, 2, null), 2);
+  assert.equal(preferRecordedPositiveAmount(0, null), 0);
+  assert.equal(preferRecordedPositiveAmount(null, null), null);
 });
 
 test('uses a recorded withdrawal payment method and ignores placeholder values', () => {

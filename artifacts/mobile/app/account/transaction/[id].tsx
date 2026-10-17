@@ -21,7 +21,7 @@ import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transact
 import { findFinancialDetailRecord } from '@/lib/financial-detail-record';
 import { loadFinancialDetail, saveFinancialDetail } from '@/lib/financial-detail-cache';
 import { resolveTransactionPaymentMethod } from '@/lib/transaction-payment-method';
-import { savedUsdEquivalentForRecordedAmount } from '@/lib/withdrawal-history';
+import { preferRecordedPositiveAmount, savedUsdEquivalentForRecordedAmount } from '@/lib/withdrawal-history';
 import {
   copyFinancialReference,
   resolveCanonicalFinancialId,
@@ -226,12 +226,40 @@ export default function TransactionDetails() {
       payout_amount_usd: amount(primaryWithdrawalBreakdown, ['payout_amount_usd', 'amount_usd'])
         ?? amount(withdrawalLedgerMetaBreakdown, ['payout_amount_usd', 'amount_usd'])
         ?? amount(withdrawalLedgerMeta, ['payout_amount_usd', 'amount_usd']),
-      fee: amount(primaryWithdrawalBreakdown, ['fee', 'withdrawal_fee'])
-        ?? amount(withdrawalLedgerMetaBreakdown, ['fee', 'withdrawal_fee'])
-        ?? amount(withdrawalLedgerMeta, ['fee', 'withdrawal_fee']),
-      fee_usd: amount(primaryWithdrawalBreakdown, ['fee_usd', 'withdrawal_fee_usd'])
-        ?? amount(withdrawalLedgerMetaBreakdown, ['fee_usd', 'withdrawal_fee_usd'])
-        ?? amount(withdrawalLedgerMeta, ['fee_usd', 'withdrawal_fee_usd']),
+      fee: preferRecordedPositiveAmount(
+        amount(primaryWithdrawalBreakdown, ['fee']),
+        amount(primaryWithdrawalBreakdown, ['withdrawal_fee']),
+        amount(record(transaction.withdrawal_breakdown), ['fee']),
+        amount(record(transaction.withdrawal_breakdown), ['withdrawal_fee']),
+        amount(transaction, ['fee']),
+        amount(transaction, ['withdrawal_fee']),
+        amount(record(meta.withdrawal_breakdown), ['fee']),
+        amount(record(meta.withdrawal_breakdown), ['withdrawal_fee']),
+        amount(meta, ['fee']),
+        amount(meta, ['withdrawal_fee']),
+        amount(withdrawalLedgerBreakdown, ['fee']),
+        amount(withdrawalLedgerBreakdown, ['withdrawal_fee']),
+        amount(withdrawalLedgerMetaBreakdown, ['fee']),
+        amount(withdrawalLedgerMetaBreakdown, ['withdrawal_fee']),
+        amount(withdrawalLedgerMeta, ['fee']),
+        amount(withdrawalLedgerMeta, ['withdrawal_fee']),
+      ),
+      fee_usd: preferRecordedPositiveAmount(
+        amount(record(transaction.withdrawal_breakdown), ['fee_usd']),
+        amount(record(transaction.withdrawal_breakdown), ['withdrawal_fee_usd']),
+        amount(transaction, ['fee_usd']),
+        amount(transaction, ['withdrawal_fee_usd']),
+        amount(record(meta.withdrawal_breakdown), ['fee_usd']),
+        amount(record(meta.withdrawal_breakdown), ['withdrawal_fee_usd']),
+        amount(meta, ['fee_usd']),
+        amount(meta, ['withdrawal_fee_usd']),
+        amount(withdrawalLedgerBreakdown, ['fee_usd']),
+        amount(withdrawalLedgerBreakdown, ['withdrawal_fee_usd']),
+        amount(withdrawalLedgerMetaBreakdown, ['fee_usd']),
+        amount(withdrawalLedgerMetaBreakdown, ['withdrawal_fee_usd']),
+        amount(withdrawalLedgerMeta, ['fee_usd']),
+        amount(withdrawalLedgerMeta, ['withdrawal_fee_usd']),
+      ),
       total_debit: amount(primaryWithdrawalBreakdown, ['total_debit'])
         ?? amount(withdrawalLedgerMetaBreakdown, ['total_debit'])
         ?? amount(withdrawalLedgerMeta, ['total_debit'])
@@ -244,7 +272,7 @@ export default function TransactionDetails() {
         ?? amount(withdrawalLedgerMeta, ['exchange_rate']),
       currency: first(
         primaryWithdrawalBreakdown,
-        ['wallet_currency', 'currency', 'fee_currency', 'total_debit_currency'],
+        ['wallet_currency', 'currency', 'fee_currency', 'withdrawal_fee_currency', 'total_debit_currency'],
         first(
           withdrawalLedgerMetaBreakdown,
           ['wallet_currency', 'currency'],

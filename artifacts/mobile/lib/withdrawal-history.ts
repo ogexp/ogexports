@@ -12,6 +12,11 @@ export function savedUsdEquivalentForRecordedAmount(
   return Math.round((recordedAmount / exchangeRate) * 100) / 100;
 }
 
+export function preferRecordedPositiveAmount(...values: Array<number | null>): number | null {
+  const recorded = values.filter((value): value is number => value !== null && Number.isFinite(value));
+  return recorded.find(value => value > 0) ?? recorded[0] ?? null;
+}
+
 export function withdrawalPaymentMethod(...values: unknown[]): string {
   for (const value of values) {
     if (typeof value !== 'string' && typeof value !== 'number') continue;
