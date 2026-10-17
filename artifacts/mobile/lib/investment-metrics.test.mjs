@@ -2,12 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   calculateExpectedProfitFromRoi,
+  calculatePortfolioValueWithEstimates,
   ensurePortfolioValueIncludesAvailableBalance,
   estimateDistributionDateIso,
   formatEstimatedDistributionDate,
   formatDistributionStatus,
   formatReportedPayoutDate,
   parseRoiPercentageLabel,
+  pendingDistributionWithEstimates,
 } from './investment-metrics.ts';
 
 test('calculates expected profit from the invested amount and ROI percentage', () => {
@@ -27,6 +29,21 @@ test('portfolio value is never below its same-currency available wallet balance'
 
 test('does not compare available balance against portfolio value in a different currency', () => {
   assert.equal(ensurePortfolioValueIncludesAvailableBalance(1_000, 800, false), 1_000);
+});
+
+test('adds active investment profit estimates to pending distributions and portfolio value', () => {
+  const estimatedProfit = calculateExpectedProfitFromRoi(2_500, 5);
+  assert.equal(estimatedProfit, 125);
+  assert.equal(pendingDistributionWithEstimates(0, estimatedProfit, true), 125);
+  assert.equal(calculatePortfolioValueWithEstimates(2_500, 2_500, 2_500, 0, estimatedProfit, true), 5_125);
+});
+
+test('counts reported pending credits once and avoids estimates across currencies', () => {
+  assert.equal(calculatePortfolioValueWithEstimates(5_050, 2_500, 2_500, 50, 125, true), 5_175);
+  assert.equal(calculatePortfolioValueWithEstimates(5_175, 2_500, 2_500, 50, 125, true), 5_175);
+  assert.equal(pendingDistributionWithEstimates(50, 125, true), 175);
+  assert.equal(calculatePortfolioValueWithEstimates(2_500, 2_500, 2_500, 0, 125, false), 2_500);
+  assert.equal(pendingDistributionWithEstimates(0, 125, false), 0);
 });
 
 test('extracts a single percentage from the API ROI label, not an ambiguous range', () => {

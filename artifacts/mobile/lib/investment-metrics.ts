@@ -25,6 +25,38 @@ export function ensurePortfolioValueIncludesAvailableBalance(
   return Math.max(totalValue, availableBalance);
 }
 
+export function calculatePortfolioValueWithEstimates(
+  reportedTotal: number | null,
+  availableBalance: number | null,
+  openInvestmentValue: number,
+  pendingCredits: number | null,
+  activeTradeProfit: number,
+  sameCurrency: boolean,
+): number | null {
+  if (!sameCurrency) return reportedTotal;
+
+  const safeAmount = (value: number | null) =>
+    value != null && Number.isFinite(value) ? Math.max(0, value) : 0;
+  const capitalAndCredits = safeAmount(availableBalance)
+    + safeAmount(openInvestmentValue)
+    + safeAmount(pendingCredits);
+
+  const estimatedTotal = capitalAndCredits + safeAmount(activeTradeProfit);
+  return Math.max(safeAmount(reportedTotal), estimatedTotal);
+}
+
+export function pendingDistributionWithEstimates(
+  pendingCredits: number | null,
+  activeTradeProfit: number,
+  sameCurrency: boolean,
+): number | null {
+  if (!sameCurrency) return pendingCredits;
+
+  const safeAmount = (value: number | null) =>
+    value != null && Number.isFinite(value) ? Math.max(0, value) : 0;
+  return safeAmount(pendingCredits) + safeAmount(activeTradeProfit);
+}
+
 export function parseRoiPercentageLabel(value: string): number | null {
   const matches = value.match(/-?\d+(?:[.,]\d+)?\s*%/g);
   if (!matches || matches.length !== 1) return null;

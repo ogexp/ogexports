@@ -14,7 +14,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, MotionProgress, MotionReveal } from '@/lib/motion';
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
-import { ensurePortfolioValueIncludesAvailableBalance } from '@/lib/investment-metrics';
+import {
+  calculateExpectedProfitFromRoi,
+  calculatePortfolioValueWithEstimates,
+  parseRoiPercentageLabel,
+  pendingDistributionWithEstimates,
+} from '@/lib/investment-metrics';
 
 type PortfolioTab = 'Active' | 'Pending' | 'Completed';
 
@@ -92,11 +97,6 @@ export default function Portfolio() {
   const availableBalanceCurrency = amount(summary, ['available_balance']) == null
     ? walletCurrency || 'USD'
     : currency || walletCurrency || 'USD';
-  const totalValue = ensurePortfolioValueIncludesAvailableBalance(
-    totalPortfolioValue ?? totalPortfolioValueUsd,
-    availableBalance,
-    totalValueCurrency.toUpperCase() === availableBalanceCurrency.toUpperCase(),
-  );
   const totalInvestment = amount(summary, ['total_investment']);
   const totalInvestmentUsd = amount(summary, ['total_investment_usd']);
   const invested = totalInvestment ?? totalInvestmentUsd ?? amount(summary, ['invested_capital']);
@@ -107,7 +107,7 @@ export default function Portfolio() {
   const distributedCurrency = distributedReturns == null && distributedReturnsUsd != null ? 'USD' : currency || 'USD';
   const reportedPendingDistribution = amount(summary, ['pending_distribution']);
   const pendingDistributionUsd = amount(summary, ['pending_distribution_usd']);
-  const pendingDistribution = reportedPendingDistribution ?? pendingDistributionUsd;
+  const pendingCredits = reportedPendingDistribution ?? pendingDistributionUsd;
   const pendingDistributionCurrency = reportedPendingDistribution == null && pendingDistributionUsd != null ? 'USD' : currency || 'USD';
   const dashboardInvestments = list(dashboard.my_investments);
   const assignedRows = rows.map((item, index) => {
@@ -117,6 +117,44 @@ export default function Portfolio() {
     const dashboardInvestment = record(dashboardInvestments.find(
       investment => first(investment, ['id']) === first(item, ['investment_id', 'id']),
     ));
+    const investmentCurrency = first(
+      item,
+      ['amount_currency', 'currency'],
+      first(
+        dashboardInvestment,
+        ['amount_currency', 'currency'],
+        first(trade, ['currency', 'investment_currency'], currency || walletCurrency || 'USD'),
+      ),
+    ).toUpperCase();
+    const investedAmount = amount(item, ['amount', 'investment_amount', 'principal'])
+      ?? amount(dashboardInvestment, ['amount', 'investment_amount', 'principal']);
+    const roi = amount(dashboardInvestment, [
+      'roi',
+      'expected_return_pct',
+      'projected_return_pct',
+      'estimated_return_percentage',
+      'target_return_percentage',
+    ])
+      ?? amount(item, [
+        'roi',
+        'expected_return_pct',
+        'projected_return_pct',
+        'estimated_return_percentage',
+        'target_return_percentage',
+      ])
+      ?? amount(trade, [
+        'roi',
+        'expected_return_pct',
+        'projected_return_pct',
+        'estimated_return_percentage',
+        'target_return_percentage',
+      ]);
+    const roiLabel = first(item, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate'])
+      || first(dashboardInvestment, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate'])
+      || first(trade, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate']);
+    const roiPercentage = roi ?? parseRoiPercentageLabel(roiLabel);
+    const reportedExpectedProfit = amount(item, ['expected_profit']) ?? amount(dashboardInvestment, ['expected_profit']);
+    const estimatedProfit = calculateExpectedProfitFromRoi(investedAmount, roiPercentage) ?? reportedExpectedProfit;
     return {
       item,
       trade,
@@ -124,9 +162,34 @@ export default function Portfolio() {
       dashboardInvestment,
       investmentStatus,
       category: categorizeInvestmentStatus(investmentStatus),
+      investmentCurrency,
+      investedAmount,
+      estimatedProfit,
       key: first(item, ['investment_id', 'id'], `investment-${index}`),
     };
   });
+  const openRows = assignedRows.filter(row => row.category === 'Active' || row.category === 'Pending');
+  const valuationCurrency = totalValueCurrency.toUpperCase();
+  const valuationCurrencyMatches = valuationCurrency === availableBalanceCurrency.toUpperCase()
+    && openRows.every(row => row.investedAmount != null && row.investmentCurrency === valuationCurrency)
+    && (pendingCredits == null || pendingDistributionCurrency.toUpperCase() === valuationCurrency);
+  const openInvestmentValue = openRows.reduce((total, row) => total + (row.investedAmount ?? 0), 0);
+  const activeTradeProfit = assignedRows
+    .filter(row => row.category === 'Active' && row.investmentCurrency === valuationCurrency)
+    .reduce((total, row) => total + (row.estimatedProfit ?? 0), 0);
+  const pendingDistribution = pendingDistributionWithEstimates(
+    pendingCredits,
+    activeTradeProfit,
+    valuationCurrencyMatches,
+  );
+  const totalValue = calculatePortfolioValueWithEstimates(
+    totalPortfolioValue ?? totalPortfolioValueUsd,
+    availableBalance,
+    openInvestmentValue,
+    pendingCredits,
+    activeTradeProfit,
+    valuationCurrencyMatches,
+  );
   const visibleRows = assignedRows.filter(row => row.category === selectedTab);
   const uncategorizedRows = assignedRows.filter(row => row.category == null);
 
@@ -333,7 +396,7 @@ export default function Portfolio() {
         </View>)}
       </View>
       <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
-        Distributed returns are confirmed payouts; pending distribution includes pending credits and active-trade estimates.
+        Distributed returns are confirmed payouts; pending distribution includes pending credits and estimated, non-guaranteed profit from each active investment's reported target return.
       </Text>
     </Card>
     {dashboardQuery.isError ? <ErrorState message="Portfolio summary could not be loaded." error={dashboardQuery.error} onRetry={() => void dashboardQuery.refetch()} /> : null}
