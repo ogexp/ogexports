@@ -9,6 +9,7 @@ import {
   moneyInSourceCurrency,
   moneyToCurrency,
   walletCurrencyFromDashboard,
+  walletCurrencyFromSources,
 } from './data.ts';
 
 test('prefers dashboard summary available balance with wallet summary as fallback', () => {
@@ -78,6 +79,21 @@ test('wallet currency never falls back to the dashboard display-currency prefere
   assert.equal(walletCurrencyFromDashboard({
     data: { summary: { display_currency: 'PKR' } },
   }, ''), '');
+});
+
+test('wallet endpoint currency takes precedence over dashboard wallet currency', () => {
+  const dashboard = {
+    data: {
+      wallet: { currency: 'PKR' },
+      wallet_currency: 'PKR',
+      summary: { display_currency: 'PKR', available_balance: 5200 },
+    },
+  };
+
+  assert.equal(walletCurrencyFromSources({ currency: 'USD' }, dashboard), 'USD');
+  assert.equal(walletCurrencyFromSources({ currency: 'PKR' }, {
+    data: { wallet: { currency: 'USD' } },
+  }), 'PKR');
 });
 
 test('missing monetary values use a display-only zero in the selected currency', () => {

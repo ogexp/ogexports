@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGetInvestorDashboard, useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap, walletCurrencyFromDashboard, type Json } from '@/lib/data';
+import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap, walletCurrencyFromSources, type Json } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MotionReveal } from '@/lib/motion';
@@ -57,13 +57,18 @@ export default function Wallet() {
   const transactions = useGetInvestorWalletTransactions({ page: 1, per_page: pageSize }, {
     query: { queryKey: ['investor-wallet-transactions', 1, pageSize], enabled: Boolean(token), staleTime: 30_000 },
   });
+  useFocusEffect(React.useCallback(() => {
+    if (token) {
+      void wallet.refetch();
+      void dashboard.refetch();
+    }
+  }, [token, wallet.refetch, dashboard.refetch]));
 
   const walletData = record(record(wallet.data).data ?? wallet.data);
-  const currency = walletCurrencyFromDashboard(
-    dashboard.data,
-    first(walletData, ['currency', 'default_currency'], ''),
-  );
-  const usdWalletReady = currency === 'USD';
+  const currency = walletCurrencyFromSources(walletData, dashboard.data);
+  const walletCurrencyLoading = (wallet.isLoading || wallet.isFetching)
+    && !first(walletData, ['currency', 'default_currency']);
+  const usdWalletReady = currency === 'USD' && !walletCurrencyLoading;
   const available = availableBalanceFromDashboard(dashboard.data);
   const allocated = amount(walletData, ['allocated_to_trades', 'allocated_balance']);
   const pending = amount(walletData, ['pending_balance']);
@@ -135,15 +140,15 @@ export default function Wallet() {
         <Feather name="credit-card" size={20} color={colors.accent} />
       </View>
       <View style={{ height: 1, width: 34, backgroundColor: colors.accent, opacity: 0.8, marginTop: 25 }} />
-      {usdWalletReady || dashboard.isLoading || dashboard.isError ? <>
+      {usdWalletReady || dashboard.isLoading || dashboard.isError || walletCurrencyLoading ? <>
         <Text style={{ color: colors.balanceCardText, fontSize: 11, fontWeight: '600', letterSpacing: 0.8, marginTop: 13, opacity: 0.88 }}>AVAILABLE BALANCE</Text>
         <MotionReveal key={balanceLabel(available, currency, dashboard.isLoading, dashboard.isError)}>
           <Text adjustsFontSizeToFit numberOfLines={1} style={{ color: colors.balanceCardText, fontSize: 33, fontWeight: '700', letterSpacing: -0.45, marginTop: 6 }}>
-            {balanceLabel(available, currency, dashboard.isLoading, dashboard.isError)}
+            {balanceLabel(available, currency, dashboard.isLoading || walletCurrencyLoading, dashboard.isError)}
           </Text>
         </MotionReveal>
         <Text style={{ color: colors.balanceCardText, fontSize: 11, opacity: 0.82, marginTop: 7 }}>
-          {usdWalletReady ? 'USD account' : dashboard.isLoading ? 'Checking wallet status' : 'Wallet status unavailable'}
+          {usdWalletReady ? 'USD account' : dashboard.isLoading || walletCurrencyLoading ? 'Checking wallet status' : 'Wallet status unavailable'}
         </Text>
       </> : <View style={{ marginTop: 15 }}>
         <Text style={{ color: colors.balanceCardText, fontSize: 11, fontWeight: '600', letterSpacing: 0.8, opacity: 0.88 }}>WALLET STATUS</Text>
@@ -152,7 +157,7 @@ export default function Wallet() {
       </View>}
     </LinearGradient>
 
-    {!dashboard.isLoading && !dashboard.isError && !usdWalletReady ? <Card testID="wallet-usd-conversion-pending">
+    {!dashboard.isLoading && !dashboard.isError && !walletCurrencyLoading && !usdWalletReady ? <Card testID="wallet-usd-conversion-pending">
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
         <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
           <Feather name="shield" size={17} color={colors.primary} />

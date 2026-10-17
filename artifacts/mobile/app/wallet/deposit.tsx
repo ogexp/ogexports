@@ -13,10 +13,11 @@ import {
   useGetInvestorDeposits,
   useGetInvestorPaymentBankAccounts,
   useGetInvestorDashboard,
+  useGetInvestorWallet,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
 import { formatUiStatus } from '@/lib/strings';
-import { amount as readAmount, first, list, messageOf, money, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
+import { amount as readAmount, first, list, messageOf, money, record, unwrap, walletCurrencyFromSources } from '@/lib/data';
 import { DEPOSIT_PAYMENT_METHODS, type DepositPaymentMethodId } from '@/lib/deposit-methods';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
@@ -126,6 +127,7 @@ export default function Deposit() {
   const colors = useColors();
   const queryClient = useQueryClient();
   const dashboardQuery = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
+  const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
   const optionsQuery = useGetInvestorDepositOptions({ query: { queryKey: ['investor-deposit-options'], enabled: Boolean(token) } });
   const banksQuery = useGetInvestorPaymentBankAccounts({ query: { queryKey: ['investor-payment-bank-accounts'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const depositsQuery = useGetInvestorDeposits({ per_page: 5 }, { query: { queryKey: ['investor-deposits'], enabled: Boolean(token) } });
@@ -135,11 +137,11 @@ export default function Deposit() {
   const deposits = list(depositsQuery.data);
   const dashboard = unwrap(dashboardQuery.data);
   const wallet = record(dashboard.wallet);
-  const walletCurrency = walletCurrencyFromDashboard(
-    dashboardQuery.data,
-    first(wallet, ['currency', 'default_currency'], ''),
-  );
-  const currencyCheckLoading = dashboardQuery.isLoading || dashboardQuery.isFetching;
+  const walletEndpoint = record(record(walletQuery.data).data ?? walletQuery.data);
+  const walletCurrency = walletCurrencyFromSources(walletEndpoint, dashboardQuery.data);
+  const walletCurrencyLoading = (walletQuery.isLoading || walletQuery.isFetching)
+    && !first(walletEndpoint, ['currency', 'default_currency']);
+  const currencyCheckLoading = dashboardQuery.isLoading || dashboardQuery.isFetching || walletCurrencyLoading;
   const [amount, setAmount] = useState('');
   const [bankId, setBankId] = useState('');
   const [projectId, setProjectId] = useState('');

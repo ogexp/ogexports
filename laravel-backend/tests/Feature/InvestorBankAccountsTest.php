@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Models\InvestorBankAccountVerification;
 use App\Models\PlatformSetting;
 use App\Models\UserProfile;
+use App\Models\Wallet;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -57,6 +58,30 @@ it('returns migrated bank_accounts from legacy withdraw_bank on profile show', f
         ->assertJsonPath('data.bank_accounts.0.account_number', '12345678')
         ->assertJsonPath('data.bank_accounts.0.is_default', true)
         ->assertJsonPath('data.default_bank_account.bank_name', 'HBL');
+});
+
+it('keeps the stored USD wallet and balance when profile country changes', function () {
+    UserProfile::query()->create([
+        'user_id' => $this->investor->id,
+        'country' => 'United Arab Emirates',
+        'meta' => [],
+    ]);
+    Wallet::query()->create([
+        'user_id' => $this->investor->id,
+        'currency' => 'USD',
+        'available_balance' => 1250,
+        'pending_balance' => 50,
+    ]);
+
+    $this->actingAs($this->investor)
+        ->putJson('/api/investor/profile', ['country' => 'Pakistan'])
+        ->assertOk()
+        ->assertJsonPath('data.address.country', 'Pakistan');
+
+    $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
+    expect($wallet->currency)->toBe('USD')
+        ->and((float) $wallet->available_balance)->toBe(1250.0)
+        ->and((float) $wallet->pending_balance)->toBe(50.0);
 });
 
 it('saves multiple bank_accounts and keeps a single default', function () {

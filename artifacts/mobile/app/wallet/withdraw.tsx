@@ -9,12 +9,13 @@ import {
   useGetInvestorDashboard,
   useGetInvestorProfile,
   useGetInvestorWithdrawals,
+  useGetInvestorWallet,
   useSendInvestorWithdrawalOtp,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
 import { formatUiStatus } from '@/lib/strings';
 import { TransactionPasswordResetModal } from '@/components/TransactionPasswordResetModal';
-import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, money, record, unwrap, walletCurrencyFromDashboard } from '@/lib/data';
+import { amount as readAmount, availableBalanceFromDashboard, first, list, messageOf, money, record, unwrap, walletCurrencyFromSources } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { useColors } from '@/hooks/useColors';
@@ -150,6 +151,7 @@ export default function Withdraw() {
   const colors = useColors();
   const queryClient = useQueryClient();
   const dashboardQuery = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
+  const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
   const profileQuery = useGetInvestorProfile({ query: { queryKey: ['investor-profile'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const historyQuery = useGetInvestorWithdrawals({}, { query: { queryKey: ['investor-withdrawals'], enabled: Boolean(token), refetchOnMount: 'always' } });
   const create = useCreateInvestorWithdrawal();
@@ -157,12 +159,12 @@ export default function Withdraw() {
   const dashboard = unwrap(dashboardQuery.data);
   const wallet = record(dashboard.wallet);
   const profile = unwrap(profileQuery.data);
-  const walletCurrency = walletCurrencyFromDashboard(
-    dashboardQuery.data,
-    first(wallet, ['currency', 'default_currency'], ''),
-  ).toUpperCase();
+  const walletEndpoint = record(record(walletQuery.data).data ?? walletQuery.data);
+  const walletCurrency = walletCurrencyFromSources(walletEndpoint, dashboardQuery.data).toUpperCase();
   const usdWalletReady = walletCurrency === 'USD';
-  const currencyCheckLoading = dashboardQuery.isLoading || dashboardQuery.isFetching;
+  const walletCurrencyLoading = (walletQuery.isLoading || walletQuery.isFetching)
+    && !first(walletEndpoint, ['currency', 'default_currency']);
+  const currencyCheckLoading = dashboardQuery.isLoading || dashboardQuery.isFetching || walletCurrencyLoading;
   const availableBalance = usdWalletReady ? availableBalanceFromDashboard(dashboardQuery.data) : null;
   const pendingBalance = usdWalletReady ? readAmount(wallet, ['pending_balance']) : null;
   const savedBankDetails = useMemo(() => savedWithdrawalBank(profile), [profile]);

@@ -59,7 +59,7 @@ it('refuses to delete another admin user', function () {
     $this->assertDatabaseHas('users', ['id' => $other->id]);
 });
 
-it('creates an investor with country and a wallet in the matching currency', function () {
+it('creates an investor wallet in USD regardless of profile country', function () {
     $this->actingAs($this->admin)
         ->postJson('/api/admin/users', [
             'name' => 'Karachi Investor',
@@ -85,5 +85,5 @@ it('creates an investor with country and a wallet in the matching currency', fun
 
     $wallet = Wallet::query()->where('user_id', $user->id)->first();
     expect($wallet)->not->toBeNull()
-        ->and($wallet->currency)->toBe('PKR');
+        ->and($wallet->currency)->toBe('USD');
 });
