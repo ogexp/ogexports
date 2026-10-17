@@ -32,14 +32,9 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#F8F7F3",
-          "image": "./assets/images/splash-blank.svg",
+          "image": "./assets/images/og-logo.png",
           "imageWidth": 220,
-          "resizeMode": "contain",
-          "android": {
-            "drawable": {
-              "icon": "./assets/images/splash-transparent.xml"
-            }
-          }
+          "resizeMode": "contain"
         }
       ],
       "expo-audio",
