@@ -126,3 +126,17 @@ mtime_ms = 1792255784990
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/dc2939f0-8ad2-4ea0-9178-eb47a2a18cdf/de676c81-24dc-4db3-aa89-ac0ba4703286"
 storage_version_token = "1792255802783922"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "DpP87IskgU9H5BT0lYU4q"
+uri = "file://generated-artifacts/OG%20Investor%2017-10-26.zip"
+type = "unspecified"
+title = "OG Investor 17-10-26"
+description = "OG Investor mobile app source for version 2.1.6, shared API client, workspace manifests, and the reference AAB. Private signing keys and secrets are excluded."
+logical_id = "47f99d00-7a35-49f5-8bfe-021fd1c8b549"
+content_hash = "sha256:4ee0222b90fe53cb541960c506f50fcc31ba1da26ea660a716c17f4394e09e99"
+size = 99737149
+mtime_ms = 1792257050379
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/47f99d00-7a35-49f5-8bfe-021fd1c8b549/4c648f69-1622-4dbf-bbd6-7c537906729c"
+storage_version_token = "1792257063279503"
+content_type = "application/octet-stream"
