@@ -64,7 +64,7 @@ function ClassicLayout() {
       headerShown: false, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.mutedForeground,
       tabBarStyle: {
         position: 'absolute', left: 14, right: 14,
-        bottom: isWeb ? 0 : isAndroid ? Math.max(insets.bottom + 2, 8) : Math.max(insets.bottom, 10),
+        bottom: isWeb ? 0 : isAndroid ? Math.max(insets.bottom - 4, 8) : Math.max(insets.bottom, 10),
         height: isWeb ? 84 : isAndroid ? 70 : 70,
         paddingTop: isWeb ? 2 : isAndroid ? 0 : 4,
         paddingBottom: isWeb ? 34 : 0,
