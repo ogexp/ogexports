@@ -59,13 +59,12 @@ it('saves only the signed-in investor auto-invest rule', function () {
 });
 
 it('places one wallet investment for a newly matching funding container and does not duplicate it', function () {
-    InvestorAutoInvestSetting::query()->create([
-        'user_id' => $this->investor->id,
+    $this->actingAs($this->investor)->putJson('/api/investor/auto-invest', [
         'enabled' => true,
         'amount' => 200,
-        'commodity' => 'rice',
-        'container_type' => '20ft',
-    ]);
+        'commodity' => 'Rice',
+        'container_type' => '20FT',
+    ])->assertOk();
     $project = InvestmentProject::query()->create([
         'title' => 'New rice container',
         'type' => 'container',
@@ -86,4 +85,75 @@ it('places one wallet investment for a newly matching funding container and does
     expect(Investment::query()->where('investor_id', $this->investor->id)->where('project_id', $project->id)->count())->toBe(1)
         ->and((float) Wallet::query()->where('user_id', $this->investor->id)->value('available_balance'))->toBe(300.0)
         ->and(InvestorAutoInvestExecution::query()->where('user_id', $this->investor->id)->where('project_id', $project->id)->value('status'))->toBe('invested');
+
+    $this->actingAs($this->investor)->getJson('/api/investor/auto-invest')
+        ->assertOk()
+        ->assertJsonPath('data.recent_activity.0.status', 'invested')
+        ->assertJsonPath('data.recent_activity.0.project_id', $project->id);
+});
+
+it('does not backfill an opportunity that was already funding when the rule was enabled', function () {
+    $project = InvestmentProject::query()->create([
+        'title' => 'Already open rice container',
+        'type' => 'container',
+        'status' => 'funding',
+        'commodity' => 'Rice',
+        'container_type' => '20FT',
+        'target_amount' => 1000,
+        'raised_amount' => 0,
+        'investors_count' => 0,
+        'min_investment' => 100,
+        'max_investment' => 300,
+    ]);
+
+    $this->actingAs($this->investor)->putJson('/api/investor/auto-invest', [
+        'enabled' => true,
+        'amount' => 200,
+        'commodity' => 'Rice',
+        'container_type' => '20FT',
+    ])->assertOk();
+
+    expect(InvestorAutoInvestExecution::query()->where('project_id', $project->id)->exists())->toBeFalse()
+        ->and(Investment::query()->where('project_id', $project->id)->exists())->toBeFalse()
+        ->and((float) Wallet::query()->where('user_id', $this->investor->id)->value('available_balance'))->toBe(500.0);
+});
+
+it('does not place an investment for a disabled matching rule', function () {
+    InvestorAutoInvestSetting::query()->create([
+        'user_id' => $this->investor->id,
+        'enabled' => false,
+        'amount' => 200,
+        'commodity' => 'Rice',
+        'container_type' => '20FT',
+    ]);
+    $project = InvestmentProject::query()->create([
+        'title' => 'Rice container',
+        'type' => 'container',
+        'status' => 'funding',
+        'commodity' => 'Rice',
+        'container_type' => '20FT',
+        'target_amount' => 1000,
+        'raised_amount' => 0,
+        'investors_count' => 0,
+        'min_investment' => 100,
+        'max_investment' => 300,
+    ]);
+
+    app(InvestorAutoInvestService::class)->processNewFundingProject($project->id);
+
+    expect(InvestorAutoInvestExecution::query()->where('project_id', $project->id)->exists())->toBeFalse()
+        ->and(Investment::query()->where('project_id', $project->id)->exists())->toBeFalse()
+        ->and((float) Wallet::query()->where('user_id', $this->investor->id)->value('available_balance'))->toBe(500.0);
+});
+
+it('rejects incomplete auto-invest rules without saving them', function () {
+    $this->actingAs($this->investor)->putJson('/api/investor/auto-invest', [
+        'enabled' => true,
+        'amount' => 200,
+        'commodity' => '',
+        'container_type' => '20FT',
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['commodity']);
+
+    expect(InvestorAutoInvestSetting::query()->where('user_id', $this->investor->id)->exists())->toBeFalse();
 });

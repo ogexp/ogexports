@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
 
-function ChoiceChips({ label, values, value, onChange }: {
+function ChoiceChips({ label, values, value, onChange, disabled = false }: {
   label: string; values: string[]; value: string; onChange: (value: string) => void; disabled?: boolean;
 }) {
   const colors = useColors();
@@ -17,12 +17,12 @@ function ChoiceChips({ label, values, value, onChange }: {
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
       {values.map(option => {
         const selected = value.toLowerCase() === option.toLowerCase();
-        return <Pressable key={option} accessibilityRole="radio" accessibilityState={{ checked: selected }} onPress={() => onChange(option)}
-          style={{ borderRadius: 18, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? colors.lightGreen : colors.card, paddingHorizontal: 13, paddingVertical: 9 }}>
+        return <Pressable key={option} testID={`auto-invest-option-${label.toLowerCase().replace(/\s+/g, '-')}-${option}`} accessibilityRole="radio" accessibilityState={{ checked: selected, disabled }} disabled={disabled} onPress={() => onChange(option)}
+          style={{ opacity: disabled ? 0.55 : 1, borderRadius: 18, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? colors.lightGreen : colors.card, paddingHorizontal: 13, paddingVertical: 9 }}>
           <Text style={{ color: selected ? colors.primary : colors.foreground, fontSize: 12, fontWeight: selected ? '700' : '500' }}>{option}</Text>
         </Pressable>;
       })}
-      {!values.length ? <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>No container opportunities are listed yet. Enter the exact commodity and container type below.</Text> : null}
+        {!values.length ? <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>No listed matches. Search or enter the exact value for a future opportunity.</Text> : null}
     </View>
   </View>;
 }
@@ -31,7 +31,7 @@ export default function AutoInvest() {
   const { token } = useAuth();
   const colors = useColors();
   const settingsQuery = useGetInvestorAutoInvestSettings({ query: { queryKey: ['investor-auto-invest-settings'], enabled: !!token, retry: 1 } });
-  const projectsQuery = useGetInvestorProjects({ per_page: 100 }, { query: { queryKey: ['investor-projects', 100], enabled: !!token, staleTime: 60_000 } });
+  const projectsQuery = useGetInvestorProjects({ type: 'container', per_page: 100 }, { query: { queryKey: ['investor-projects', 'container', 100], enabled: !!token, staleTime: 60_000 } });
   const saveSettings = useUpdateInvestorAutoInvestSettings();
   const settings = record(unwrap(settingsQuery.data));
   const loadError = settingsQuery.isError ? messageOf(settingsQuery.error) : '';
@@ -39,7 +39,10 @@ export default function AutoInvest() {
   const [amount, setAmount] = useState('');
   const [commodity, setCommodity] = useState('');
   const [containerType, setContainerType] = useState('');
+  const [commoditySearch, setCommoditySearch] = useState('');
+  const [containerTypeSearch, setContainerTypeSearch] = useState('');
   const [error, setError] = useState('');
+  const formLocked = settingsQuery.isLoading || settingsQuery.isError || saveSettings.isPending;
 
   useEffect(() => {
     if (!settingsQuery.data) return;
@@ -53,7 +56,12 @@ export default function AutoInvest() {
     first(project, ['type']).toLowerCase() === 'container'
   ), [projectsQuery.data]);
   const commodities = useMemo(() => Array.from(new Set(containerProjects.map(project => first(project, ['commodity', 'commodity_name']).trim()).filter(Boolean))).sort(), [containerProjects]);
-  const containerTypes = useMemo(() => Array.from(new Set(containerProjects.map(project => first(project, ['container_type']).trim()).filter(Boolean))).sort(), [containerProjects]);
+  const compatibleProjects = useMemo(() => containerProjects.filter(project =>
+    !commodity || first(project, ['commodity', 'commodity_name']).trim().toLowerCase() === commodity.trim().toLowerCase()
+  ), [containerProjects, commodity]);
+  const containerTypes = useMemo(() => Array.from(new Set(compatibleProjects.map(project => first(project, ['container_type']).trim()).filter(Boolean))).sort(), [compatibleProjects]);
+  const filteredCommodities = useMemo(() => commodities.filter(option => option.toLowerCase().includes(commoditySearch.trim().toLowerCase())), [commodities, commoditySearch]);
+  const filteredContainerTypes = useMemo(() => containerTypes.filter(option => option.toLowerCase().includes(containerTypeSearch.trim().toLowerCase())), [containerTypes, containerTypeSearch]);
 
   async function save(nextEnabled = enabled) {
     setError('');
@@ -97,14 +105,32 @@ export default function AutoInvest() {
       {loadError ? <Text accessibilityRole="alert" style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16 }}>{loadError}</Text> : null}
       <Action title="Retry loading rule" icon="refresh-cw" secondary onPress={() => void settingsQuery.refetch()} />
     </Card> : null}
-      <Card style={{ gap: 9 }}>
-        <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Your investment rule</Text>
-        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>Choose the amount to invest in each matching container, plus the exact commodity and container type. Settings only apply to opportunities published after you enable the rule.</Text>
-        <Field label="Amount per opportunity (USD)" value={amount} onChangeText={setAmount} placeholder="e.g. 500" keyboardType="decimal-pad" editable={!settingsQuery.isLoading && !settingsQuery.isError} />
-        <ChoiceChips label="Commodity" values={commodities} value={commodity} onChange={setCommodity} disabled={settingsQuery.isLoading || settingsQuery.isError} />
-        {!commodities.length ? <Field label="Exact commodity name" value={commodity} onChangeText={setCommodity} placeholder="Match the commodity shown in Opportunities" maxLength={120} editable={!settingsQuery.isLoading && !settingsQuery.isError} /> : null}
-        <ChoiceChips label="Container type" values={containerTypes} value={containerType} onChange={setContainerType} disabled={settingsQuery.isLoading || settingsQuery.isError} />
-        {!containerTypes.length ? <Field label="Exact container type" value={containerType} onChangeText={setContainerType} placeholder="e.g. 20FT" maxLength={80} editable={!settingsQuery.isLoading && !settingsQuery.isError} /> : null}
+      <Card testID="auto-invest-rule-form" style={{ gap: 9 }}>
+        <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '700' }}>Build your investment rule</Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>Pick the exact commodity and container format. Suggestions come from container listings; search them or enter a custom value for future listings.</Text>
+        <Field label="Amount per opportunity (USD)" value={amount} onChangeText={setAmount} placeholder="e.g. 500" keyboardType="decimal-pad" editable={!formLocked} />
+        {projectsQuery.isError ? <Text accessibilityRole="alert" style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16 }}>Could not load listing suggestions. You can still enter exact commodity and container names.</Text> : null}
+        <Field label="Search commodities" value={commoditySearch} onChangeText={setCommoditySearch} placeholder={commodities.length ? 'Search all listed container commodities' : 'Type an exact commodity name'} maxLength={120} editable={!formLocked} autoCapitalize="words" />
+        {commoditySearch.trim() && !commodities.some(option => option.toLowerCase() === commoditySearch.trim().toLowerCase()) ? <Pressable testID="auto-invest-use-custom-commodity" accessibilityRole="button" accessibilityState={{ disabled: formLocked }} disabled={formLocked} onPress={() => { setCommodity(commoditySearch.trim()); setCommoditySearch(''); setContainerType(''); setContainerTypeSearch(''); }}
+          style={{ alignSelf: 'flex-start', borderRadius: 16, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.lightGreen, paddingHorizontal: 13, paddingVertical: 9 }}>
+          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}><Text>Use custom:</Text> {commoditySearch.trim()}</Text>
+        </Pressable> : null}
+        <ChoiceChips label="Commodity suggestions" values={filteredCommodities} value={commodity} onChange={value => { setCommodity(value); setCommoditySearch(''); setContainerType(''); setContainerTypeSearch(''); }} disabled={formLocked} />
+        {!commodities.length ? <Field label="Exact commodity name" value={commodity} onChangeText={value => { setCommodity(value); setContainerType(''); }} placeholder="e.g. Rice" maxLength={120} editable={!formLocked} autoCapitalize="words" /> : null}
+        <Field label="Container types" value={containerTypeSearch} onChangeText={setContainerTypeSearch} placeholder={commodity ? 'Search formats for this commodity' : 'Choose a commodity first'} maxLength={80} editable={!formLocked} autoCapitalize="characters" />
+        {containerTypeSearch.trim() && !containerTypes.some(option => option.toLowerCase() === containerTypeSearch.trim().toLowerCase()) ? <Pressable testID="auto-invest-use-custom-container-type" accessibilityRole="button" accessibilityState={{ disabled: formLocked }} disabled={formLocked} onPress={() => { setContainerType(containerTypeSearch.trim()); setContainerTypeSearch(''); }}
+          style={{ alignSelf: 'flex-start', borderRadius: 16, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.lightGreen, paddingHorizontal: 13, paddingVertical: 9 }}>
+          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}><Text>Use custom:</Text> {containerTypeSearch.trim()}</Text>
+        </Pressable> : null}
+        <ChoiceChips label="Compatible container types" values={filteredContainerTypes} value={containerType} onChange={value => { setContainerType(value); setContainerTypeSearch(''); }} disabled={formLocked} />
+        {!containerTypes.length ? <Field label="Exact container type" value={containerType} onChangeText={setContainerType} placeholder="e.g. 20FT" maxLength={80} editable={!formLocked} autoCapitalize="characters" /> : null}
+        <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12, gap: 4 }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>RULE PREVIEW</Text>
+          <Text testID="auto-invest-rule-preview" style={{ color: colors.foreground, fontSize: 13, lineHeight: 19, fontWeight: '600' }}>
+            {amount.trim() ? `$${amount.trim()} USD` : 'Amount not set'} per new {containerType || 'container type'} of {commodity || 'commodity not selected'}
+          </Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Suggestions include up to 100 currently listed container opportunities. Exact custom matches can target future listings too.</Text>
+        </View>
       </Card>
       <Card style={{ gap: 7 }}>
         <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700' }}>Automatic investment safeguards</Text>
@@ -112,7 +138,7 @@ export default function AutoInvest() {
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>The investment is skipped if KYC is not approved, your wallet is not USD-denominated or lacks funds, or the amount does not meet project minimums or available capacity. Existing opportunities are never auto-invested.</Text>
       </Card>
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18 }}>{error}</Text> : null}
-      <Pressable accessibilityRole="switch" accessibilityLabel="Auto-invest enabled" accessibilityState={{ checked: enabled, disabled: settingsQuery.isLoading || settingsQuery.isError }} disabled={settingsQuery.isLoading || settingsQuery.isError} onPress={() => setEnabled(current => !current)}
+      <Pressable testID="auto-invest-enabled-switch" accessibilityRole="switch" accessibilityLabel="Auto-invest enabled" accessibilityState={{ checked: enabled, disabled: formLocked || settingsQuery.isError }} disabled={formLocked || settingsQuery.isError} onPress={() => setEnabled(current => !current)}
         style={{ minHeight: 56, borderRadius: 16, borderWidth: 1, borderColor: enabled ? colors.primary : colors.border, backgroundColor: enabled ? colors.lightGreen : colors.card, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flex: 1, paddingRight: 12 }}>
           <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700' }}>{enabled ? 'Auto-invest is on' : 'Auto-invest is off'}</Text>
@@ -120,7 +146,7 @@ export default function AutoInvest() {
         </View>
         <Text style={{ color: enabled ? colors.primary : colors.mutedForeground, fontWeight: '700' }}>{enabled ? 'ON' : 'OFF'}</Text>
       </Pressable>
-      <Action title="Save rule" icon="save" loading={saveSettings.isPending} disabled={settingsQuery.isLoading || settingsQuery.isError} onPress={() => void save(enabled)} />
+      <Action testID="auto-invest-save-rule" title="Save rule" icon="save" loading={saveSettings.isPending} disabled={settingsQuery.isLoading || settingsQuery.isError} onPress={() => void save(enabled)} />
       {list(settings.recent_activity).length ? <Card style={{ gap: 6 }}>
         <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700' }}>Recent auto-invest activity</Text>
         {list(settings.recent_activity).map((entry, index) => {
