@@ -107,6 +107,7 @@ export default function PositionDetail() {
   const timeline = list(project.trade_updates);
   const stageUpdates = list(project.stage_updates);
   const projectStatus = first(project, ['status', 'project_status', 'current_status']);
+  const currentProjectStage = first(project, ['current_project_stage']);
   const investmentPeriodProgress = record(row.investment_period_progress);
   const documents = list(project.documents ?? row.documents ?? trade.documents);
   const investedAmount = amount(row, ['amount', 'investment_amount', 'principal']);
@@ -359,6 +360,7 @@ export default function PositionDetail() {
       <TradeProgressCard
         stageUpdates={stageUpdates}
         projectStatus={projectStatus}
+        currentStage={currentProjectStage}
         periodProgress={investmentPeriodProgress}
       />
 

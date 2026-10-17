@@ -83,8 +83,11 @@ export default function ContainerTracking() {
   const project = record(projectQuery.data?.data);
   const position = record(record(positionQuery.data).data);
   const positionProject = record(position.project);
-  const container = record(isProject ? project.container : positionProject.container);
-  const stageUpdates = list(isProject ? project.stage_updates : positionProject.stage_updates);
+  const trackedProject = isProject ? project : positionProject;
+  const container = record(trackedProject.container);
+  const stageUpdates = list(trackedProject.stage_updates);
+  const projectStatus = first(trackedProject, ['status', 'project_status', 'current_status']);
+  const currentProjectStage = first(trackedProject, ['current_project_stage']);
   const investmentPeriodProgress = record(position.investment_period_progress);
   const read = (value: unknown) => typeof value === 'string' ? value.trim() || 'Unavailable' : typeof value === 'number' ? String(value) : 'Unavailable';
 
@@ -148,6 +151,8 @@ export default function ContainerTracking() {
 
       <TradeProgressCard
         stageUpdates={stageUpdates}
+        projectStatus={projectStatus}
+        currentStage={currentProjectStage}
         periodProgress={investmentPeriodProgress}
         showPeriod={!isProject}
       />

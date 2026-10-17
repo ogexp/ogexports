@@ -13,11 +13,11 @@ The OG Exports investor app must communicate:
 
 Use server-provided trade identifiers, shipment details, documents, and statuses as the source of truth. Do not invent missing values or imply live logistics tracking. Make an investment's trade/container association easy to find, and state clearly when OG Exports has not supplied information.
 
-The six container milestones use explicit, append-only per-stage admin records, separate from the trade-update feed and container journey. Show each stage from its latest saved record. Scoped exception requested on 2026-10-06: when the server's project status is `settled` and no explicit Settled milestone exists, show only the final Settled milestone as completed; do not infer earlier milestones or event details.
+The six container milestones use explicit, append-only per-stage admin records, separate from the trade-update feed and container journey. Show each stage from its latest saved record. If the server supplies `current_project_stage` and no explicit record exists for that stage, highlight only that reported stage as current/in progress; never infer earlier completed stages. Scoped exception requested on 2026-10-06: when the server's project status is `settled` and no explicit Settled milestone exists, show only the final Settled milestone as completed; do not infer earlier milestones or event details.
 
 **Why:** per-stage records preserve milestone history. The user additionally reported that an admin-updated project status of Settled must appear in the investor detail timeline.
 
-**How to apply:** prefer each stage's latest saved admin record. Only use `project.status === settled` as a fallback for the final Settled milestone when no explicit record exists; never invent its date or description, and leave all other missing stages unavailable.
+**How to apply:** prefer each stage's latest saved admin record. Use `current_project_stage` only as a single active-stage highlight when that stage has no saved record; do not invent dates/descriptions or completed earlier stages. Only use `project.status === settled` as a fallback for the final Settled milestone when no explicit record exists, and suppress the current-stage fallback in that case.
 
 Project/trade update feeds are separate append-only event records, not reconstructions of the standard journey stages. Each event's status, description, event time, and optional attachment must be explicitly supplied by OG Exports; leave the feed empty until an update is published. Require admins to enter the event time instead of defaulting it from the device clock.
 

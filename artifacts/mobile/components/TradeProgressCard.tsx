@@ -11,6 +11,7 @@ import { MotionProgress, MotionReveal } from '@/lib/motion';
 type Props = {
   stageUpdates: Json[];
   projectStatus?: string;
+  currentStage?: string;
   periodProgress?: Json | null;
   showPeriod?: boolean;
   title?: string;
@@ -29,6 +30,7 @@ function eventDate(value: string, includeTime = true): string {
 export function TradeProgressCard({
   stageUpdates,
   projectStatus = '',
+  currentStage = '',
   periodProgress,
   showPeriod = true,
   title = 'Trade Progress',
@@ -53,7 +55,7 @@ export function TradeProgressCard({
       created_at: first(update, ['created_at']),
     };
   });
-  const { latestByStage, completedCount } = resolveTradeProgress(stageRecords, projectStatus);
+  const { latestByStage, completedCount } = resolveTradeProgress(stageRecords, projectStatus, currentStage);
   const progress = record(periodProgress);
   const elapsedDays = amount(progress, ['days_elapsed']);
   const totalDays = amount(progress, ['total_days']);

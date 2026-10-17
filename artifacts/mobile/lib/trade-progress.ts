@@ -23,7 +23,7 @@ export type TradeStageEntry = {
   statusLabel: string;
   description: string;
   occurredAt: string;
-  source: 'stage_update' | 'project_status';
+  source: 'stage_update' | 'project_status' | 'current_project_stage';
 };
 
 function text(value: unknown): string {
@@ -77,7 +77,7 @@ function statusInfo(value: unknown, stage: TradeStageKey): Pick<TradeStageEntry,
   };
 }
 
-export function resolveTradeProgress(stageUpdates: TradeStageRecord[], projectStatus = ''): {
+export function resolveTradeProgress(stageUpdates: TradeStageRecord[], projectStatus = '', currentStage = ''): {
   latestByStage: Map<TradeStageKey, TradeStageEntry>;
   completedCount: number;
 } {
@@ -117,6 +117,23 @@ export function resolveTradeProgress(stageUpdates: TradeStageRecord[], projectSt
       description: '',
       occurredAt: '',
       source: 'project_status',
+    });
+  }
+
+  // The server-reported current stage can highlight one active milestone, but
+  // must not imply that any earlier stages were completed.
+  const currentStageKey = stageKey(currentStage);
+  if (
+    stageKey(projectStatus) !== 'settled'
+    && currentStageKey
+    && !latestByStage.has(currentStageKey)
+  ) {
+    latestByStage.set(currentStageKey, {
+      status: 'in_progress',
+      statusLabel: 'Current milestone',
+      description: '',
+      occurredAt: '',
+      source: 'current_project_stage',
     });
   }
 

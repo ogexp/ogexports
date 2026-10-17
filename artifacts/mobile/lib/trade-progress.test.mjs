@@ -36,3 +36,24 @@ test('normalizes human-readable milestone labels and counts every milestone', ()
   assert.equal(progress.latestByStage.get('in_transit')?.status, 'in_progress');
   assert.equal(progress.completedCount, 2);
 });
+
+test('highlights the server-reported current milestone without marking earlier milestones complete', () => {
+  const progress = resolveTradeProgress([], '', 'Funding');
+
+  assert.equal(progress.latestByStage.get('funding')?.status, 'in_progress');
+  assert.equal(progress.latestByStage.get('funding')?.statusLabel, 'Current milestone');
+  assert.equal(progress.latestByStage.get('funding')?.source, 'current_project_stage');
+  assert.equal(progress.latestByStage.has('investment_confirmed'), false);
+  assert.equal(progress.completedCount, 0);
+});
+
+test('keeps explicit stage records and a settled project status ahead of current-stage fallback', () => {
+  const explicit = resolveTradeProgress([
+    { stage: 'Funding', status: 'not_started' },
+  ], '', 'Funding');
+  const settled = resolveTradeProgress([], 'Settled', 'Funding');
+
+  assert.equal(explicit.latestByStage.get('funding')?.status, 'not_started');
+  assert.equal(settled.latestByStage.get('settled')?.status, 'completed');
+  assert.equal(settled.latestByStage.has('funding'), false);
+});
