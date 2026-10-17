@@ -3,11 +3,14 @@ import * as Clipboard from 'expo-clipboard';
 import { Feather } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetInvestorDeposit,
+  useGetInvestorDeposits,
   useGetInvestorWalletTransaction,
   useGetInvestorWalletTransactions,
   useGetInvestorWithdrawal,
+  useGetInvestorWithdrawals,
 } from '@workspace/api-client-react';
 import { Card, ErrorState, Screen, Section, Status } from '@/components/InvestorUI';
 import { LocalizedPressable, LocalizedText as Text } from '@/components/LocalizedText';
@@ -15,6 +18,7 @@ import { amount, displayCurrencyCode, first, list, messageOf, money, record, unw
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
+import { findFinancialDetailRecord } from '@/lib/financial-detail-record';
 import { resolveTransactionPaymentMethod } from '@/lib/transaction-payment-method';
 import { savedUsdEquivalentForRecordedAmount } from '@/lib/withdrawal-history';
 import {
@@ -52,6 +56,7 @@ function DetailLine({ label, value }: { label: string; value: string }) {
 export default function TransactionDetails() {
   const { token } = useAuth();
   const colors = useColors();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string; kind?: string; page?: string }>();
   const id = typeof params.id === 'string' && /^\d+$/.test(params.id) ? params.id : '';
@@ -83,16 +88,60 @@ export default function TransactionDetails() {
   });
   const depositQuery = useGetInvestorDeposit(Number(id), queryOptions('deposit', kind === 'deposit'));
   const withdrawalQuery = useGetInvestorWithdrawal(Number(id), queryOptions('withdrawal', kind === 'withdrawal'));
+  const depositHistoryQuery = useGetInvestorDeposits({ page: sourcePage, per_page: 100 }, {
+    query: {
+      queryKey: ['investor-deposits', sourcePage, 100, 'transaction-detail'],
+      enabled: Boolean(token && id && kind === 'deposit'),
+      staleTime: 20_000,
+    },
+  });
+  const withdrawalHistoryQuery = useGetInvestorWithdrawals({ page: sourcePage, per_page: 100 }, {
+    query: {
+      queryKey: ['investor-withdrawals', sourcePage, 100, 'transaction-detail'],
+      enabled: Boolean(token && id && kind === 'withdrawal'),
+      staleTime: 20_000,
+    },
+  });
   const query = kind === 'deposit'
     ? depositQuery
     : kind === 'withdrawal'
       ? withdrawalQuery
       : walletTransactionQuery;
+  const historyQuery = kind === 'deposit'
+    ? depositHistoryQuery
+    : kind === 'withdrawal'
+      ? withdrawalHistoryQuery
+      : undefined;
+  const directTransaction = record(unwrap(query.data));
+  const historyRecord = kind === 'deposit'
+    ? findFinancialDetailRecord(list(depositHistoryQuery.data), id, ['id', 'deposit_id', 'depositId'])
+    : kind === 'withdrawal'
+      ? findFinancialDetailRecord(list(withdrawalHistoryQuery.data), id, ['id', 'withdrawal_id', 'withdraw_id'])
+      : undefined;
+  const cachedHistoryRecord = kind === 'deposit'
+    ? findFinancialDetailRecord(
+      queryClient.getQueriesData({ queryKey: ['investor-deposits'] }).flatMap(([, data]) => list(data)),
+      id,
+      ['id', 'deposit_id', 'depositId'],
+    )
+    : kind === 'withdrawal'
+      ? findFinancialDetailRecord(
+        queryClient.getQueriesData({ queryKey: ['investor-withdrawals'] }).flatMap(([, data]) => list(data)),
+        id,
+        ['id', 'withdrawal_id', 'withdraw_id'],
+      )
+      : undefined;
   const walletTransaction = kind === 'wallet'
     ? record(unwrap(walletTransactionQuery.data))
     : undefined;
-  const transaction = kind === 'wallet' ? walletTransaction ?? {} : record(unwrap(query.data));
+  const transaction = kind === 'wallet'
+    ? walletTransaction ?? {}
+    : Object.keys(directTransaction).length
+      ? directTransaction
+      : historyRecord ?? cachedHistoryRecord ?? {};
   const hasRecord = Object.keys(transaction).length > 0;
+  const detailIsLoading = !hasRecord && (query.isLoading || Boolean(historyQuery?.isLoading));
+  const detailIsError = !hasRecord && query.isError && (historyQuery?.isError ?? true);
   const meta = record(transaction.meta);
   const bankDetails = record(transaction.bank_details);
   const walletType = first(transaction, ['type', 'transaction_type']).toLowerCase();
@@ -273,12 +322,19 @@ export default function TransactionDetails() {
   }
 
   return <Screen title="Transaction details" subtitle="Transaction information reported by OG Exports">
-    {query.isLoading ? <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
+    {detailIsLoading ? <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
       <ActivityIndicator color={colors.primary} />
       <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 10 }}>Loading transaction details…</Text>
     </Card> : null}
-    {query.isError ? <ErrorState message="Transaction details could not be loaded." error={query.error} onRetry={() => void query.refetch()} /> : null}
-    {!query.isLoading && !query.isError && hasRecord && transactionId ? <>
+    {detailIsError ? <ErrorState
+      message="Transaction details are temporarily unavailable."
+      error={query.error}
+      onRetry={() => {
+        void query.refetch();
+        if (historyQuery) void historyQuery.refetch();
+      }}
+    /> : null}
+    {!detailIsLoading && !detailIsError && hasRecord && transactionId ? <>
       <Card style={{ padding: 18 }}>
         <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700' }}>{title}</Text>
         <Text selectable style={{ color: colors.primary, fontSize: 24, fontWeight: '700', marginTop: 10 }}>{amountLabel}</Text>
@@ -361,9 +417,8 @@ export default function TransactionDetails() {
         </Text>
       </Pressable>
     </> : null}
-    {!query.isLoading && !query.isError && !id ? <ErrorState message="This transaction link is invalid." /> : null}
-    {!query.isLoading && !query.isError && Boolean(id) && !hasRecord ? <ErrorState message="This transaction was not found in your account." /> : null}
-    {!query.isLoading && query.isError && query.error && String(query.error).includes('404') ? <Text accessibilityRole="alert" style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8 }}>This transaction was not found in your account.</Text> : null}
+    {!detailIsLoading && !detailIsError && !id ? <ErrorState message="This transaction link is invalid." /> : null}
+    {!detailIsLoading && !detailIsError && Boolean(id) && !hasRecord ? <ErrorState message="This transaction was not found in your account." /> : null}
     <Pressable accessibilityRole="button" onPress={() => router.replace('/account/transactions')} style={{ alignSelf: 'flex-start', paddingVertical: 14 }}>
       <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>Open transaction history</Text>
     </Pressable>

@@ -959,7 +959,7 @@ export default function Transactions() {
           return;
         }
         if ((row.detailKind === 'deposit' || row.detailKind === 'withdrawal') && /^\d+$/.test(row.detailId)) {
-          router.push({ pathname: '/account/transaction/[id]', params: { id: row.detailId, kind: row.detailKind } });
+          router.push({ pathname: '/account/transaction/[id]', params: { id: row.detailId, kind: row.detailKind, page: String(page) } });
           return;
         }
         if (/^\d+$/.test(row.transactionId)) {

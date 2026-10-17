@@ -624,7 +624,7 @@ export default function Deposit() {
       const selected = selectedDepositId === id;
       return <Pressable key={id} accessibilityRole="button" accessibilityLabel="Open deposit details" accessibilityState={{ selected }} onPress={() => {
         if (/^\d+$/.test(detailId)) {
-          router.push({ pathname: '/account/transaction/[id]', params: { id: detailId, kind: 'deposit' } });
+          router.push({ pathname: '/account/transaction/[id]', params: { id: detailId, kind: 'deposit', page: '1' } });
           return;
         }
         setSelectedDepositId(selected ? '' : id);

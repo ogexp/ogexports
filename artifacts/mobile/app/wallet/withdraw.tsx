@@ -770,7 +770,7 @@ export default function Withdraw() {
       const selected = id === selectedWithdrawalId;
       return <Pressable key={id} accessibilityRole="button" accessibilityLabel="Open withdrawal details" accessibilityState={{ selected }} onPress={() => {
         if (/^\d+$/.test(detailId)) {
-          router.push({ pathname: '/account/transaction/[id]', params: { id: detailId, kind: 'withdrawal' } });
+          router.push({ pathname: '/account/transaction/[id]', params: { id: detailId, kind: 'withdrawal', page: '1' } });
           return;
         }
         setSelectedWithdrawalId(selected ? '' : id);
