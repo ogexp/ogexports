@@ -129,6 +129,23 @@ function RootLayoutNav() {
     };
     void import('expo-notifications').then(notificationsApi => {
       if (!active) return;
+      notificationsApi.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+        }),
+      });
+      if (Platform.OS === 'android') {
+        void notificationsApi.setNotificationChannelAsync('investor-updates', {
+          name: 'Investor updates',
+          importance: notificationsApi.AndroidImportance.HIGH,
+          sound: 'default',
+          vibrationPattern: [0, 250, 250, 250],
+          lockscreenVisibility: notificationsApi.AndroidNotificationVisibility.PUBLIC,
+        }).catch(() => undefined);
+      }
       subscription = notificationsApi.addNotificationResponseReceivedListener(response => handleResponse(notificationsApi, response));
       return notificationsApi.getLastNotificationResponseAsync().then(response => {
         if (response) handleResponse(notificationsApi, response);

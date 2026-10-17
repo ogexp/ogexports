@@ -121,9 +121,12 @@ export default function Settings() {
     try {
       const notifications = await import('expo-notifications');
       if (Platform.OS === 'android') {
-        await notifications.setNotificationChannelAsync('default', {
-          name: 'Default',
-          importance: notifications.AndroidImportance.DEFAULT,
+        await notifications.setNotificationChannelAsync('investor-updates', {
+          name: 'Investor updates',
+          importance: notifications.AndroidImportance.HIGH,
+          sound: 'default',
+          vibrationPattern: [0, 250, 250, 250],
+          lockscreenVisibility: notifications.AndroidNotificationVisibility.PUBLIC,
         });
       }
 
@@ -461,8 +464,8 @@ export default function Settings() {
         {pushEnabled === null
           ? 'Checking this device…'
           : pushEnabled
-            ? 'This device is registered for investor updates. Turning this off revokes its server registration.'
-            : 'Optional investor updates. Device permission is requested only after you choose to enable them.'}
+            ? 'This device can show investor updates on the lock screen and in Notification Centre. Your device notification and Focus settings still apply.'
+            : 'Get wallet, investment, verification and account updates on this device, including while the app is closed. Permission is requested only after you choose to enable them.'}
       </Text>
       {!expoProjectId && !pushEnabled
         ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>Push setup is waiting for this app’s Expo project ID. Permission will not be requested until that is configured.</Text>

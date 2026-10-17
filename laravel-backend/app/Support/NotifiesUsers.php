@@ -6,6 +6,7 @@ use App\Models\AppNotification;
 use App\Models\User;
 use App\Services\NotificationMailer;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class NotifiesUsers
 {
@@ -15,7 +16,7 @@ class NotifiesUsers
             return null;
         }
 
-        return AppNotification::create([
+        $notification = AppNotification::create([
             'user_id' => $user->id,
             'type' => $type,
             'title' => $title,
@@ -23,6 +24,14 @@ class NotifiesUsers
             'data' => $data,
             'created_at' => now(),
         ]);
+
+        if ($user->hasRole('investor') && $type !== InvestorNotificationTypes::PAYOUT_PROGRESS) {
+            DB::afterCommit(static function () use ($user, $notification): void {
+                InvestorPushBridge::sendNotification($user, $notification);
+            });
+        }
+
+        return $notification;
     }
 
     /**

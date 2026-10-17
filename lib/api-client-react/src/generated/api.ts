@@ -45,6 +45,7 @@ import type {
   InvestorDashboardResponse,
   InvestorInvestmentDetailResponse,
   InvestorMonthlyStatementResponse,
+  InvestorNotificationPushEvent,
   InvestorNotificationResponse,
   InvestorNotificationsResponse,
   InvestorProfileUpdate,
@@ -54,7 +55,6 @@ import type {
   InvestorProjectListResponse,
   InvestorPushTokenRegistration,
   InvestorPushTokenRevocation,
-  InvestorWalletConversionRequest,
   InvestorWalletResponse,
   InvestorWalletTransactionResponse,
   InvestorWalletTransactionsResponse,
@@ -3077,94 +3077,6 @@ export function useGetInvestorExchangeRates<TData = Awaited<ReturnType<typeof ge
 
 
 
-export const getConvertInvestorWalletToUsdUrl = () => {
-
-
-
-
-  return `/api/investor/wallet/convert-to-usd`
-}
-
-/**
- * @summary Convert the authenticated investor's wallet to USD
- */
-export const convertInvestorWalletToUsd = async (investorWalletConversionRequest: InvestorWalletConversionRequest, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customFetch<JsonObject>(getConvertInvestorWalletToUsdUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(investorWalletConversionRequest)
-  }
-);}
-
-
-
-
-
-export const getConvertInvestorWalletToUsdMutationKey = () => ['convertInvestorWalletToUsd'] as const;
-
-export const getConvertInvestorWalletToUsdMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof convertInvestorWalletToUsd>>, TError,ConvertInvestorWalletToUsdMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof convertInvestorWalletToUsd>>, TError,ConvertInvestorWalletToUsdMutationVariables, TContext> => {
-
-const mutationKey = getConvertInvestorWalletToUsdMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof convertInvestorWalletToUsd>>, ConvertInvestorWalletToUsdMutationVariables> = (props) => {
-          const {data} = props ?? {};
-
-          return  convertInvestorWalletToUsd(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type ConvertInvestorWalletToUsdMutationResult = NonNullable<Awaited<ReturnType<typeof convertInvestorWalletToUsd>>>
-    export type ConvertInvestorWalletToUsdMutationBody = BodyType<InvestorWalletConversionRequest>
-    export type ConvertInvestorWalletToUsdMutationError = ErrorType<void>
-    export type ConvertInvestorWalletToUsdMutationVariables = {data: BodyType<InvestorWalletConversionRequest>}
-
-    /**
- * @summary Convert the authenticated investor's wallet to USD
- */
-export const useConvertInvestorWalletToUsd = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof convertInvestorWalletToUsd>>, TError,ConvertInvestorWalletToUsdMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof convertInvestorWalletToUsd>>,
-        TError,
-        ConvertInvestorWalletToUsdMutationVariables,
-        TContext
-      > => {
-      return useMutation(getConvertInvestorWalletToUsdMutationOptions(options));
-    }
-
 export const getGetInvestorDepositOptionsUrl = () => {
 
 
@@ -5225,6 +5137,95 @@ export const useReceiveInternalInvestorPayoutProgress = <TError = ErrorType<Json
         TContext
       > => {
       return useMutation(getReceiveInternalInvestorPayoutProgressMutationOptions(options));
+    }
+
+export const getReceiveInternalInvestorNotificationPushUrl = () => {
+
+
+
+
+  return `/api/internal/investor-notification`
+}
+
+/**
+ * Internal Laravel-to-API-Server bridge. Requests require a timestamped HMAC signature.
+ * @summary Deliver an in-app notification to opted-in investor devices
+ */
+export const receiveInternalInvestorNotificationPush = async (investorNotificationPushEvent: InvestorNotificationPushEvent, options?: Parameters<typeof customFetch>[1]): Promise<JsonObject> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<JsonObject>(getReceiveInternalInvestorNotificationPushUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(investorNotificationPushEvent)
+  }
+);}
+
+
+
+
+
+export const getReceiveInternalInvestorNotificationPushMutationKey = () => ['receiveInternalInvestorNotificationPush'] as const;
+
+export const getReceiveInternalInvestorNotificationPushMutationOptions = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveInternalInvestorNotificationPush>>, TError,ReceiveInternalInvestorNotificationPushMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof receiveInternalInvestorNotificationPush>>, TError,ReceiveInternalInvestorNotificationPushMutationVariables, TContext> => {
+
+const mutationKey = getReceiveInternalInvestorNotificationPushMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof receiveInternalInvestorNotificationPush>>, ReceiveInternalInvestorNotificationPushMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  receiveInternalInvestorNotificationPush(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReceiveInternalInvestorNotificationPushMutationResult = NonNullable<Awaited<ReturnType<typeof receiveInternalInvestorNotificationPush>>>
+    export type ReceiveInternalInvestorNotificationPushMutationBody = BodyType<InvestorNotificationPushEvent>
+    export type ReceiveInternalInvestorNotificationPushMutationError = ErrorType<JsonObject>
+    export type ReceiveInternalInvestorNotificationPushMutationVariables = {data: BodyType<InvestorNotificationPushEvent>}
+
+    /**
+ * @summary Deliver an in-app notification to opted-in investor devices
+ */
+export const useReceiveInternalInvestorNotificationPush = <TError = ErrorType<JsonObject>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveInternalInvestorNotificationPush>>, TError,ReceiveInternalInvestorNotificationPushMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof receiveInternalInvestorNotificationPush>>,
+        TError,
+        ReceiveInternalInvestorNotificationPushMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReceiveInternalInvestorNotificationPushMutationOptions(options));
     }
 
 export const getGetInvestorUnreadNotificationCountUrl = () => {

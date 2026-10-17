@@ -57,6 +57,7 @@ export * from './investorMonthlyStatementResponseDataTransactionsItemWithdrawalB
 export * from './investorNotification';
 export * from './investorNotificationCategory';
 export * from './investorNotificationData';
+export * from './investorNotificationPushEvent';
 export * from './investorNotificationResponse';
 export * from './investorNotificationsResponse';
 export * from './investorNotificationsResponseLinksItem';

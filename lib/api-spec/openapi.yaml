@@ -735,6 +735,33 @@ paths:
         "401": { description: "Missing, invalid, or expired request signature", content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
         "422": { description: Invalid payout event, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
         "502": { description: Push delivery failed and may be retried with the same event id, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+  /internal/investor-notification:
+    post:
+      operationId: receiveInternalInvestorNotificationPush
+      tags: [communication]
+      summary: Deliver an in-app notification to opted-in investor devices
+      description: Internal Laravel-to-API-Server bridge. Requests require a timestamped HMAC signature.
+      x-internal: true
+      parameters:
+        - name: X-OG-Notification-Timestamp
+          in: header
+          required: true
+          schema: { type: string, pattern: "^[0-9]{10}$" }
+        - name: X-OG-Notification-Signature
+          in: header
+          required: true
+          schema: { type: string, pattern: "^sha256=[a-f0-9]{64}$" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvestorNotificationPushEvent" }
+      responses:
+        "200": { description: Event recorded and push delivery attempted, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "202": { description: The same event is already being delivered, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "401": { description: "Missing, invalid, or expired request signature", content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "422": { description: Invalid notification event, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
+        "502": { description: Push delivery failed and may be retried with the same event id, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /investor/notifications/unread-count:
     get:
       operationId: getInvestorUnreadNotificationCount
@@ -1958,6 +1985,17 @@ components:
         project_name: { type: string, minLength: 1, maxLength: 200 }
         status: { type: string, enum: [scheduled, processing] }
         planned_date: { type: string, format: date, nullable: true }
+    InvestorNotificationPushEvent:
+      type: object
+      required: [event_id, investor_email, notification_id, type, title, body, href]
+      properties:
+        event_id: { type: string, format: uuid }
+        investor_email: { type: string, format: email, maxLength: 255 }
+        notification_id: { type: string, minLength: 1, maxLength: 64 }
+        type: { type: string, minLength: 1, maxLength: 100 }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        body: { type: string, minLength: 1, maxLength: 1500 }
+        href: { type: string, minLength: 1, maxLength: 500 }
     InvestorProfileUpdate:
       type: object
       properties:

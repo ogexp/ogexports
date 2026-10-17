@@ -1745,6 +1745,46 @@ export const ReceiveInternalInvestorPayoutProgressResponse = zod.record(zod.stri
 
 
 /**
+ * Internal Laravel-to-API-Server bridge. Requests require a timestamped HMAC signature.
+ * @summary Deliver an in-app notification to opted-in investor devices
+ */
+export const receiveInternalInvestorNotificationPushHeaderXOGNotificationTimestampRegExp = new RegExp('^[0-9]{10}$');
+export const receiveInternalInvestorNotificationPushHeaderXOGNotificationSignatureRegExp = new RegExp('^sha256=[a-f0-9]{64}$');
+
+
+export const ReceiveInternalInvestorNotificationPushHeader = zod.object({
+  "X-OG-Notification-Timestamp": zod.string().regex(receiveInternalInvestorNotificationPushHeaderXOGNotificationTimestampRegExp),
+  "X-OG-Notification-Signature": zod.string().regex(receiveInternalInvestorNotificationPushHeaderXOGNotificationSignatureRegExp)
+})
+
+export const receiveInternalInvestorNotificationPushBodyInvestorEmailMax = 255;
+
+export const receiveInternalInvestorNotificationPushBodyNotificationIdMax = 64;
+
+export const receiveInternalInvestorNotificationPushBodyTypeMax = 100;
+
+export const receiveInternalInvestorNotificationPushBodyTitleMax = 200;
+
+export const receiveInternalInvestorNotificationPushBodyBodyMax = 1500;
+
+export const receiveInternalInvestorNotificationPushBodyHrefMax = 500;
+
+
+
+export const ReceiveInternalInvestorNotificationPushBody = zod.object({
+  "event_id": zod.string().uuid(),
+  "investor_email": zod.string().email().max(receiveInternalInvestorNotificationPushBodyInvestorEmailMax),
+  "notification_id": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyNotificationIdMax),
+  "type": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyTypeMax),
+  "title": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyTitleMax),
+  "body": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyBodyMax),
+  "href": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyHrefMax)
+})
+
+export const ReceiveInternalInvestorNotificationPushResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary Get unread notification count
  */
 export const GetInvestorUnreadNotificationCountResponse = zod.record(zod.string(), zod.unknown())

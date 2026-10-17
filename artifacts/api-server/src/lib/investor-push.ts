@@ -110,6 +110,8 @@ export async function sendInvestorPush(
     const messages = batch.map(device => ({
       to: device.token,
       sound: "default",
+      channelId: "investor-updates",
+      priority: "high",
       title: message.title,
       body: message.body,
       data,
