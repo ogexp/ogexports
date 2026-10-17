@@ -70,6 +70,8 @@ class InvestmentResource extends JsonResource
                             : $progress?->status,
                         'planned_distribution_date' => $progress?->planned_distribution_date?->toDateString(),
                         'distributed_at' => $distribution?->distributed_at?->toIso8601String(),
+                        'profit_amount' => $distribution?->isConfirmed() ? (float) $distribution->profit_amount : null,
+                        'total_return' => $distribution?->isConfirmed() ? (float) $distribution->total_return : null,
                     ];
                 },
             ),

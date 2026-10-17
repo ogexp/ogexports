@@ -19,6 +19,12 @@ For Home's My Investments card, limit the admin-status change to its Container S
 
 **How to apply:** source the value from the investment/container record and do not substitute a generic trade or project status.
 
+Trade Progress uses a stable color per milestone across the investor app: Funding gold, Investment Confirmed emerald, Cargo Loaded blue, In Transit orange, Custom Clearance deep green, and Settled success green. Unreported stages remain muted; derive color from the stage rather than storing presentation color with admin status data.
+
+**Why:** the user asked that updated milestones retain the distinct colors shown in the supplied trade-progress reference.
+
+**How to apply:** apply the same stage palette to completed and in-progress markers, connectors, and status labels in every Trade Progress variant; keep status and completion sourced from admin/API records.
+
 Country selectors in the investor mobile app should share a polished, searchable country list like the website. Keep free-text market filters distinct from actual country fields.
 
 **Why:** the user asked for a professional country list wherever investors need to select a country.

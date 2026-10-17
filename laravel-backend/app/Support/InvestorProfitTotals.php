@@ -31,9 +31,10 @@ class InvestorProfitTotals
 
         $distributions = InvestmentProfitDistribution::query()
             ->where('investor_id', $userId)
+            ->whereNotNull('distributed_at')
             ->when($monthStart, fn ($q) => $q->where('distributed_at', '>=', $monthStart))
             ->when($monthEnd, fn ($q) => $q->where('distributed_at', '<=', $monthEnd))
-            ->get(['profit_amount', 'profit_amount_pkr', 'distributed_at']);
+            ->get(['investment_id', 'profit_amount', 'profit_amount_pkr', 'distributed_at']);
 
         $wallet = Wallet::query()->where('user_id', $userId)->first();
         $walletRows = collect();
@@ -46,6 +47,9 @@ class InvestorProfitTotals
                 ->when($monthEnd, fn ($q) => $q->where('created_at', '<=', $monthEnd))
                 ->get(['amount', 'created_at', 'meta']);
         }
+        $returnCredits = $wallet
+            ? self::unlinkedInvestmentReturnCredits($wallet->id, $distributions)
+            : collect();
 
         $distributionWallet = 0.0;
         $distributionUsd = 0.0;
@@ -63,6 +67,12 @@ class InvestorProfitTotals
             $amount = (float) $row->amount;
             $walletProfit += self::convertToCurrency($amount, $sourceCurrency, $walletCurrency);
             $walletUsd += self::convertToCurrency($amount, $sourceCurrency, 'USD');
+        }
+        foreach ($returnCredits as $row) {
+            $meta = is_array($row->meta) ? $row->meta : [];
+            $profitUsd = (float) ($meta['profit_amount'] ?? 0);
+            $walletProfit += self::investmentReturnProfitInCurrency($meta, $walletCurrency);
+            $walletUsd += $profitUsd;
         }
 
         return [
@@ -103,7 +113,8 @@ class InvestorProfitTotals
         $confirmedDistributions = InvestmentProfitDistribution::query()
             ->where('investor_id', $userId)
             ->whereNotNull('distributed_at')
-            ->get(['profit_amount', 'profit_amount_pkr']);
+            ->get(['investment_id', 'profit_amount', 'profit_amount_pkr']);
+        $returnCredits = self::unlinkedInvestmentReturnCredits($wallet->id, $confirmedDistributions);
 
         $distributedReturns = (float) $confirmedDistributions
             ->sum(fn (InvestmentProfitDistribution $distribution) => self::distributionToWallet(
@@ -111,6 +122,10 @@ class InvestorProfitTotals
                 $displayCurrency,
                 $displayRate,
             ));
+        foreach ($returnCredits as $row) {
+            $meta = is_array($row->meta) ? $row->meta : [];
+            $distributedReturns += self::investmentReturnProfitInCurrency($meta, $displayCurrency);
+        }
 
         // Pending return credits are explicit ledger entries. Forecasts and
         // investment_return rows are excluded because they are not profit-only payouts.
@@ -178,13 +193,26 @@ class InvestorProfitTotals
         $distributions = InvestmentProfitDistribution::query()
             ->where('investor_id', $userId)
             ->whereNotNull('distributed_at')
-            ->get(['profit_amount', 'profit_amount_pkr', 'distributed_at']);
+            ->get(['investment_id', 'profit_amount', 'profit_amount_pkr', 'distributed_at']);
+        $returnCredits = $wallet
+            ? self::unlinkedInvestmentReturnCredits($wallet->id, $distributions)
+            : collect();
 
         foreach ($distributions as $dist) {
             $key = Carbon::parse($dist->distributed_at)->format('Y-m');
             $byMonth[$key] ??= ['wallet' => 0.0, 'usd' => 0.0];
             $byMonth[$key]['wallet'] += self::distributionToWallet($dist, $walletCurrency, $displayRate);
             $byMonth[$key]['usd'] += (float) $dist->profit_amount;
+        }
+        foreach ($returnCredits as $row) {
+            if (! $row->created_at) {
+                continue;
+            }
+            $meta = is_array($row->meta) ? $row->meta : [];
+            $key = $row->created_at->format('Y-m');
+            $byMonth[$key] ??= ['wallet' => 0.0, 'usd' => 0.0];
+            $byMonth[$key]['wallet'] += self::investmentReturnProfitInCurrency($meta, $walletCurrency);
+            $byMonth[$key]['usd'] += (float) ($meta['profit_amount'] ?? 0);
         }
 
         if ($byMonth === []) {
@@ -286,6 +314,53 @@ class InvestorProfitTotals
         }
 
         return (float) ExchangeRateService::convert($amount, $sourceCurrency, $targetCurrency)['amount'];
+    }
+
+    /**
+     * Older completed investments may have a completed wallet return credit but no
+     * distribution row. Count only the profit metadata from that credit, not the
+     * principal-plus-profit transaction amount, and avoid duplicates when a
+     * confirmed distribution already exists for the investment.
+     *
+     * @param  Collection<int, InvestmentProfitDistribution>  $distributions
+     */
+    private static function unlinkedInvestmentReturnCredits(int $walletId, Collection $distributions): Collection
+    {
+        $distributedInvestmentIds = $distributions
+            ->pluck('investment_id')
+            ->filter()
+            ->map(fn ($id) => (string) $id)
+            ->all();
+
+        return WalletTransaction::query()
+            ->where('wallet_id', $walletId)
+            ->where('type', 'investment_return')
+            ->where('direction', 'credit')
+            ->where('status', 'completed')
+            ->get(['created_at', 'meta'])
+            ->filter(function (WalletTransaction $transaction) use ($distributedInvestmentIds): bool {
+                $meta = is_array($transaction->meta) ? $transaction->meta : [];
+                $investmentId = $meta['investment_id'] ?? null;
+                $profit = (float) ($meta['profit_amount'] ?? 0);
+
+                return $investmentId !== null
+                    && $profit > 0
+                    && ! in_array((string) $investmentId, $distributedInvestmentIds, true);
+            })
+            ->values();
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     */
+    private static function investmentReturnProfitInCurrency(array $meta, string $currency): float
+    {
+        $currency = self::normalizeCurrency($currency);
+        if ($currency === 'PKR' && isset($meta['profit_amount_pkr'])) {
+            return (float) $meta['profit_amount_pkr'];
+        }
+
+        return self::convertToCurrency((float) ($meta['profit_amount'] ?? 0), 'USD', $currency);
     }
 
     public static function usdToPkr(float $usd, ?float $displayRate = null): float

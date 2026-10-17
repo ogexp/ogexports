@@ -87,8 +87,8 @@ export function TradeProgressCard({
           const inProgress = update?.status === 'in_progress';
           const notStarted = update?.status === 'not_started';
           const stageColor = opportunityStageColors[stage.key];
-          const completedColor = variant === 'opportunity' ? stageColor : colors.statusSuccess;
-          const inProgressColor = variant === 'opportunity' ? stageColor : colors.primary;
+           const completedColor = stageColor;
+           const inProgressColor = stageColor;
           const markerColor = completed ? completedColor : inProgress ? inProgressColor : colors.border;
           const statusLabel = update?.statusLabel ?? 'No admin update yet.';
           const updateDate = update?.occurredAt
@@ -132,7 +132,7 @@ export function TradeProgressCard({
                 ) : (
                   <Text testID={`stage-status-${stage.key}`} style={{
                     flexShrink: 1,
-                    color: variant === 'opportunity' ? colors.mutedForeground : rowStatusColor,
+                     color: rowStatusColor,
                     fontSize: 10,
                     fontWeight: completed || inProgress || notStarted ? '700' : '400',
                     textAlign: 'right',

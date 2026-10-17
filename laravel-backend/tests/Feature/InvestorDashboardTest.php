@@ -854,3 +854,112 @@ it('does not use a projected next payout as a pending distribution', function ()
         ->assertJsonPath('data.summary.display_currency', 'USD')
         ->assertJsonPath('data.next_distribution_available', true);
 });
+
+it('reports profit from a completed wallet return credit when no distribution row exists', function () {
+    $wallet = Wallet::query()->create([
+        'user_id' => $this->investorB->id,
+        'currency' => 'USD',
+        'available_balance' => 5200,
+        'pending_balance' => 0,
+    ]);
+    $project = InvestmentProject::query()->create([
+        'title' => 'Settled maize shipment',
+        'type' => 'container',
+        'status' => 'settled',
+        'target_amount' => 100000,
+        'raised_amount' => 2500,
+        'investors_count' => 1,
+        'expected_return_pct' => 8,
+        'min_investment' => 100,
+        'investment_period_days' => 45,
+    ]);
+    $investment = Investment::query()->create([
+        'project_id' => $project->id,
+        'investor_id' => $this->investorB->id,
+        'amount' => 2500,
+        'profit_amount' => 200,
+        'status' => 'completed',
+        'invested_at' => now()->subDays(45),
+    ]);
+    WalletTransaction::query()->create([
+        'wallet_id' => $wallet->id,
+        'type' => 'investment_return',
+        'amount' => 2700,
+        'direction' => 'credit',
+        'status' => 'completed',
+        'meta' => [
+            'investment_id' => $investment->id,
+            'profit_amount' => 200,
+            'currency' => 'USD',
+        ],
+    ]);
+
+    $this->actingAs($this->investorB)
+        ->getJson('/api/investor/dashboard')
+        ->assertOk()
+        ->assertJsonPath('data.summary.total_portfolio_value', 5200)
+        ->assertJsonPath('data.summary.distributed_returns', 200)
+        ->assertJsonPath('data.summary.pending_distribution', 0)
+        ->assertJsonPath('data.summary.total_profit_earned', 200)
+        ->assertJsonPath('data.summary.lifetime_roi', 8);
+});
+
+it('does not count the same profit twice when its credit and distribution record both exist', function () {
+    $wallet = Wallet::query()->create([
+        'user_id' => $this->investorB->id,
+        'currency' => 'USD',
+        'available_balance' => 5200,
+        'pending_balance' => 0,
+    ]);
+    $project = InvestmentProject::query()->create([
+        'title' => 'Recorded maize payout',
+        'type' => 'container',
+        'status' => 'settled',
+        'target_amount' => 100000,
+        'raised_amount' => 2500,
+        'investors_count' => 1,
+        'expected_return_pct' => 8,
+        'min_investment' => 100,
+        'investment_period_days' => 45,
+    ]);
+    $investment = Investment::query()->create([
+        'project_id' => $project->id,
+        'investor_id' => $this->investorB->id,
+        'amount' => 2500,
+        'profit_amount' => 200,
+        'status' => 'completed',
+        'invested_at' => now()->subDays(45),
+    ]);
+    $returnCredit = WalletTransaction::query()->create([
+        'wallet_id' => $wallet->id,
+        'type' => 'investment_return',
+        'amount' => 2700,
+        'direction' => 'credit',
+        'status' => 'completed',
+        'meta' => [
+            'investment_id' => $investment->id,
+            'profit_amount' => 200,
+            'currency' => 'USD',
+        ],
+    ]);
+    InvestmentProfitDistribution::query()->create([
+        'investment_id' => $investment->id,
+        'project_id' => $project->id,
+        'investor_id' => $this->investorB->id,
+        'project_type' => 'container',
+        'invested_amount' => 2500,
+        'profit_amount' => 200,
+        'total_return' => 2700,
+        'roi_pct' => 8,
+        'wallet_transaction_id' => $returnCredit->id,
+        'distributed_at' => now(),
+    ]);
+
+    $this->actingAs($this->investorB)
+        ->getJson('/api/investor/dashboard')
+        ->assertOk()
+        ->assertJsonPath('data.summary.total_portfolio_value', 5200)
+        ->assertJsonPath('data.summary.distributed_returns', 200)
+        ->assertJsonPath('data.summary.total_profit_earned', 200)
+        ->assertJsonPath('data.summary.pending_distribution', 0);
+});
