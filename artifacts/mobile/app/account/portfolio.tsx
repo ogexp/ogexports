@@ -221,6 +221,9 @@ export default function Portfolio() {
       ? `${loadingPort} → ${dischargePort}`
       : origin || destination ? `${origin || '—'} → ${destination || '—'}` : 'Not reported';
     const tradeStatus = first(item, ['trade_status', 'shipment_status'], first(trade, ['trade_status', 'shipment_status', 'status']));
+    const normalizedTradeStatus = tradeStatus.trim().toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ');
+    const isCompletedPosition = entry.category === 'Completed'
+      || /^(complete|completed|closed|settled|fully distributed|fully paid)$/.test(normalizedTradeStatus);
     const containerStatus = formatContainerStatus(first(
       container,
       ['trade_status', 'container_status', 'status', 'current_status', 'shipment_status'],
@@ -257,7 +260,7 @@ export default function Portfolio() {
     const payoutCycleDays = amount(periodProgress, ['total_days'])
       ?? amount(item, ['investment_period_days', 'trade_cycle_days', 'duration_days'])
       ?? amount(trade, ['investment_period_days', 'trade_cycle_days', 'duration_days']);
-    const payoutDateEstimate = !reportedPayoutDate
+    const payoutDateEstimate = !reportedPayoutDate && !isCompletedPosition
       ? estimateDistributionDateFromInvestment(
           payoutCycleDays,
           first(item, ['invested_at', 'invest_date', 'investment_date', 'created_at'], first(dashboardInvestment, ['invest_date'])),
@@ -265,6 +268,11 @@ export default function Portfolio() {
       : null;
     const payoutDateValue = reportedPayoutDate || payoutDateEstimate;
     const payoutDateLabel = payoutDateEstimate ? 'Next payout · estimated' : 'Next payout date';
+    const daysRemainingLabel = isCompletedPosition
+      ? 'Completed'
+      : daysRemaining != null
+        ? `${Math.ceil(Math.max(0, daysRemaining))} days`
+        : 'Not reported';
     const totalReturn = amount(item, ['total_return', 'total_return_amount'])
       ?? amount(distribution, ['total_return']);
   const payoutCurrency = first(trade, ['currency', 'investment_currency'], investmentCurrency || 'USD');
@@ -348,7 +356,7 @@ export default function Portfolio() {
           <InvestmentMetric label="Amount invested" value={amountLabel} color={colors.foreground} />
           <InvestmentMetric label="Expected profit" value={reportedMoney(expectedProfit, 'USD')} color={colors.primary} />
           <InvestmentMetric label="ROI" value={roiText} color={colors.foreground} />
-          <InvestmentMetric label="Days remaining" value={daysRemaining != null ? `${daysRemaining} days` : 'Not reported'} color={colors.foreground} />
+          <InvestmentMetric label="Days remaining" value={daysRemainingLabel} color={colors.foreground} />
           <InvestmentMetric label={payoutDateLabel} value={payoutDateValue ? reportedDate(payoutDateValue) : 'Not announced'} color={colors.foreground} />
           <InvestmentMetric label="Total return recorded" value={reportedMoney(totalReturn, payoutCurrency)} color={colors.foreground} />
         </View>
