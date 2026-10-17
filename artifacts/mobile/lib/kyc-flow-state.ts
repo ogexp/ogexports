@@ -1,6 +1,10 @@
 export type InvestorKycFlowStep = 1 | 2 | 3 | 4;
 export type InvestorKycFormStep = 1 | 2 | 3;
 
+export function shouldShowKycSubmitAction(status: string, submittedThisSession: boolean): boolean {
+  return !submittedThisSession && status.trim().toLowerCase() !== 'under review';
+}
+
 export function getInvestorKycFlowState(
   status: string,
   hasSavedPersonalDetails: boolean,

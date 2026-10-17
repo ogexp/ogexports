@@ -16,7 +16,7 @@ import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { getInvestorKycStatus } from '@/lib/kyc';
-import { getInvestorKycFlowState } from '@/lib/kyc-flow-state';
+import { getInvestorKycFlowState, shouldShowKycSubmitAction } from '@/lib/kyc-flow-state';
 import { MotionProgress, motionHaptic } from '@/lib/motion';
 
 const FALLBACK_KYC_STEPS: Record<string, unknown>[] = [
@@ -93,6 +93,9 @@ export default function Kyc() {
   const status = query.isLoading ? 'Loading' : getInvestorKycStatus(profile);
   const isVerified = status === 'Verified';
   const isUnderReview = status === 'Under Review';
+  const [hasSubmittedForReview, setHasSubmittedForReview] = useState(false);
+  const previousKycStatus = useRef(status);
+  const canSubmitForReview = shouldShowKycSubmitAction(status, hasSubmittedForReview);
   const requiresUpdate = status === 'Action Required' || status === 'Rejected';
   const savedPersonalDetails = Boolean(
     (first(personal, ['name', 'full_name']) || first(profile, ['name', 'full_name']))
@@ -141,6 +144,15 @@ export default function Kyc() {
   const [notice, setNotice] = useState('');
   const [documentPicking, setDocumentPicking] = useState(false);
   const [uploadingDocumentType, setUploadingDocumentType] = useState<string | null>(null);
+
+  useEffect(() => {
+    const wasUnderReview = previousKycStatus.current === 'Under Review';
+    const nowNeedsInvestorAction = status === 'Action Required' || status === 'Rejected';
+    previousKycStatus.current = status;
+    if (hasSubmittedForReview && wasUnderReview && nowNeedsInvestorAction) {
+      setHasSubmittedForReview(false);
+    }
+  }, [hasSubmittedForReview, status]);
 
   useEffect(() => {
     if (!query.data) return;
@@ -235,6 +247,7 @@ export default function Kyc() {
   }
 
   async function submitApplication() {
+    if (!canSubmitForReview || submitKyc.isPending || updateProfile.isPending) return;
     setError('');
     setNotice('');
     const normalizedDob = dob.trim();
@@ -293,6 +306,7 @@ export default function Kyc() {
           documents,
         },
       }));
+      setHasSubmittedForReview(true);
       setNotice(first(result, ['message'], 'Your application was submitted to OG Exports.'));
       await query.refetch();
     } catch (err) {
@@ -366,7 +380,7 @@ export default function Kyc() {
         </Card>;
       })}
       {!query.isLoading && requirements.length === 0 ? <Card><Text style={{ color: colors.mutedForeground, lineHeight: 20 }}>No {title.toLowerCase()} requirements are available from OG Exports right now.</Text></Card> : null}
-      <Card>
+      {canSubmitForReview ? <Card>
         <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginBottom: 12 }}>Upload a clear copy for every required document. PDF and image files up to 10 MB are supported.</Text>
         <Action
           title="Submit for review"
@@ -376,7 +390,7 @@ export default function Kyc() {
           testID="button-submit-kyc-for-review"
           onPress={() => void submitApplication()}
         />
-      </Card>
+      </Card> : null}
       <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginBottom: 12 }}>Uploaded files are attached to the investor application. Their verification status is controlled by OG Exports.</Text>
     </>;
   }
@@ -541,7 +555,7 @@ export default function Kyc() {
         {renderApplicationSummary('Review your information')}
         <Card>
           <Text style={{ color: colors.mutedForeground, lineHeight: 20, marginBottom: 14 }}>Submitting sends these details and documents to OG Exports. Approval is not automatic; this app will show Verified only after the investor server confirms it.</Text>
-          <Action title="Submit for review" icon="send" loading={submitKyc.isPending || updateProfile.isPending} disabled={!savedPersonalDetails || !steps.length || steps.some(item => !first(record(item.document), ['path']))} onPress={() => void submitApplication()} />
+          {canSubmitForReview ? <Action title="Submit for review" icon="send" loading={submitKyc.isPending || updateProfile.isPending} disabled={!savedPersonalDetails || !steps.length || steps.some(item => !first(record(item.document), ['path']))} onPress={() => void submitApplication()} /> : null}
           <View style={{ marginTop: 10 }}><Action title="Back to documents" secondary onPress={() => setStep(2)} /></View>
         </Card>
       </> : null}

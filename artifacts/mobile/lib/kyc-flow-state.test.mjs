@@ -1,6 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getInvestorKycFlowState } from './kyc-flow-state.ts';
+import { getInvestorKycFlowState, shouldShowKycSubmitAction } from './kyc-flow-state.ts';
+
+test('submit action hides after successful submission and while under review', () => {
+  assert.equal(shouldShowKycSubmitAction('Pending', true), false);
+  assert.equal(shouldShowKycSubmitAction('Under Review', false), false);
+});
+
+test('submit action remains available for editable rejected applications', () => {
+  assert.equal(shouldShowKycSubmitAction('Rejected', false), true);
+  assert.equal(shouldShowKycSubmitAction('Action Required', false), true);
+});
 
 test('pending review does not lock an incomplete application', () => {
   assert.deepEqual(getInvestorKycFlowState('Under Review', true, false), {
