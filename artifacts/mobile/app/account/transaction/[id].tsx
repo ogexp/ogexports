@@ -357,7 +357,7 @@ export default function TransactionDetails() {
         style={{ alignSelf: 'flex-start', paddingVertical: 12 }}
       >
         <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>
-          {receiptBusy ? 'Preparing receipt…' : 'Save / share receipt'}
+          {receiptBusy ? 'Preparing receipt…' : 'Save / share receipt PDF'}
         </Text>
       </Pressable>
     </> : null}

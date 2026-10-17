@@ -281,7 +281,7 @@ export default function PositionDetail() {
       if (!apiOrigin) throw new Error('Set the OG Exports investor server address in Settings before downloading.');
       const target = investmentDownloadSpec(first(row, ['id', 'investment_id']), kind);
       if (!target) throw new Error('The server did not provide a valid investment record ID.');
-      await shareInvestorFile(target.path, target.name, apiOrigin, target.mimeType, target.extension);
+      await shareInvestorFile(target.path, target.name, apiOrigin, target.mimeType, target.extension, true);
     } catch (error) {
       setInvestmentDownloadError(messageOf(error));
     } finally {
@@ -321,7 +321,7 @@ export default function PositionDetail() {
           onPress={() => void downloadInvestmentFile('pdf')}
         />
         <Action
-          title="Export details"
+          title="Download detailed PDF"
           icon="file-text"
           secondary
           testID="position-export-investment"

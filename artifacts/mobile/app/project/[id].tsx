@@ -634,7 +634,7 @@ export default function OpportunityDetail() {
           {receiptError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginTop: 10 }}>{receiptError}</Text> : null}
           <View style={{ marginTop: 14 }}>
             <Action
-              title={receiptBusy ? 'Preparing receipt…' : 'Save / share receipt'}
+              title={receiptBusy ? 'Preparing receipt…' : 'Save / share receipt PDF'}
               icon="download"
               loading={receiptBusy}
               disabled={receiptBusy}

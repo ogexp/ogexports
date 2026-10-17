@@ -1010,7 +1010,7 @@ export default function Transactions() {
               event.stopPropagation();
               void accessReceipt(row);
             }} style={{ marginTop: 12, borderRadius: 12, padding: 12, alignItems: 'center', backgroundColor: colors.secondary, opacity: busyReceiptKey === row.key ? 0.5 : 1 }}>
-              <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{busyReceiptKey === row.key ? 'Preparing receipt…' : 'Save / share transaction receipt'}</Text>
+              <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{busyReceiptKey === row.key ? 'Preparing receipt…' : 'Save / share transaction receipt PDF'}</Text>
             </Pressable>
           </View> : null}
         </Card>

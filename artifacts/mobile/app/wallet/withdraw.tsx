@@ -732,7 +732,7 @@ export default function Withdraw() {
       {receiptError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, marginTop: 10 }}>{receiptError}</Text> : null}
       <View style={{ marginTop: 12 }}>
         <Action
-          title={receiptBusy ? 'Preparing receipt…' : 'Save / share receipt'}
+          title={receiptBusy ? 'Preparing receipt…' : 'Save / share receipt PDF'}
           icon="download"
           loading={receiptBusy}
           disabled={receiptBusy}
@@ -814,7 +814,7 @@ export default function Withdraw() {
       {receiptError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, marginTop: 8 }}>{receiptError}</Text> : null}
       <View style={{ marginTop: 10 }}>
         <Action
-          title={receiptBusy ? 'Preparing receipt…' : 'Save / share receipt'}
+          title={receiptBusy ? 'Preparing receipt…' : 'Save / share receipt PDF'}
           icon="download"
           loading={receiptBusy}
           disabled={receiptBusy}

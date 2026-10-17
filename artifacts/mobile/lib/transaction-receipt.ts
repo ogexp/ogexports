@@ -1,8 +1,5 @@
-import { File, Paths } from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-import { Platform } from 'react-native';
-
 import { resolveTransactionPaymentMethod } from './transaction-payment-method';
+import { saveHtmlAsPdf } from './pdf-export';
 
 export type TransactionReceiptKind = 'deposit' | 'withdrawal' | 'investment' | 'transaction';
 
@@ -24,6 +21,7 @@ export type TransactionReceipt = {
   totalDebit: string;
   totalDebitCurrency: string;
   statusNote: string;
+  details: Array<[string, string]>;
   filename: string;
 };
 
@@ -105,6 +103,7 @@ export function createTransactionReceipt(kind: TransactionReceiptKind, value: un
   const records = recordsFor(value);
   const project = records.map(item => asRecord(item.project)).find(item => Object.keys(item).length > 0) ?? {};
   const projectMeta = asRecord(project.meta);
+  const trade = records.map(item => asRecord(item.trade)).find(item => Object.keys(item).length > 0) ?? {};
   const statusKeys = kind === 'deposit'
     ? ['review_status', 'status', 'state']
     : kind === 'withdrawal'
@@ -144,6 +143,14 @@ export function createTransactionReceipt(kind: TransactionReceiptKind, value: un
     totalDebit: kind === 'withdrawal' ? firstServerValue(records, ['total_debit']) : '',
     totalDebitCurrency: kind === 'withdrawal' ? firstServerValue(records, ['total_debit_currency', 'wallet_currency', 'currency']) : '',
     statusNote: statusExplanation(kind, status),
+    details: ([
+      ['Investor', firstServerValue(records, ['investor_name', 'account_holder_name', 'customer_name'])],
+      ['Record description', firstServerValue(records, ['description', 'title', 'name'])],
+      ['Payment method', firstServerValue(paymentMethodSources(records), ['payment_method', 'method', 'payment_method_name'])],
+      ['Trade / project', firstServerValue([project, trade, ...records], ['project_name', 'trade_name', 'title', 'name', 'commodity_name', 'commodity'])],
+      ['Container', firstServerValue([project, trade, ...records], ['container_number', 'container_no', 'container_code'])],
+      ['Transaction type', firstServerValue(records, ['type', 'transaction_type', 'category'])],
+    ] as Array<[string, string]>).filter(([, detail]) => Boolean(detail)),
     filename: `og-exports-${kind}-${filenameId || 'receipt'}`,
   };
 }
@@ -187,7 +194,7 @@ function receiptRows(receipt: TransactionReceipt): Array<[string, string]> {
 }
 
 export function transactionReceiptHtml(receipt: TransactionReceipt): string {
-  const rows = receiptRows(receipt).map(([label, value]) =>
+  const rows = [...receiptRows(receipt), ...receipt.details].map(([label, value]) =>
     `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`,
   ).join('');
   return `<!doctype html>
@@ -197,48 +204,19 @@ export function transactionReceiptHtml(receipt: TransactionReceipt): string {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(receipt.title)}</title>
   <style>
-    :root{color-scheme:light}body{margin:0;background:#f4f7f5;color:#10251c;font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    main{box-sizing:border-box;width:min(720px,100%);margin:32px auto;padding:32px;background:#fff;border:1px solid #dce6df;border-radius:18px}
-    header{border-bottom:1px solid #dce6df;padding-bottom:20px;margin-bottom:12px}p.brand{margin:0 0 8px;color:#157347;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
-    h1{margin:0;font-size:25px}table{width:100%;border-collapse:collapse}th,td{padding:13px 4px;border-bottom:1px solid #edf1ee;text-align:left;vertical-align:top;overflow-wrap:anywhere}
-    th{width:42%;color:#607168;font-size:13px;font-weight:500}td{text-align:right;font-weight:650}
-    aside{margin-top:20px;padding:14px 16px;border:1px solid #bcd7c7;border-radius:12px;background:#eff8f2;color:#244d37;font-size:13px}
-    footer{margin-top:18px;color:#718078;font-size:11px} @media print{body{background:white}main{width:100%;margin:0;padding:18px;border:0;border-radius:0}}
+    main{padding:0}table{width:100%;border-collapse:collapse}th,td{padding:11px 8px;border-bottom:1px solid #edf1ee;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+    th{width:42%;color:#607168;font-size:11px;font-weight:600}td{text-align:right;font-weight:650}
+    aside{margin-top:18px;padding:13px 15px;border:1px solid #bcd7c7;border-radius:10px;background:#eff8f2;color:#244d37;font-size:11px}
+    .receipt-note{margin-top:12px;color:#718078;font-size:9px;line-height:1.5}
   </style>
 </head>
 <body><main>
-  <header><p class="brand">OG Exports · Investor record</p><h1>${escapeHtml(receipt.title)}</h1></header>
   <table><tbody>${rows}</tbody></table>
   <aside>${escapeHtml(receipt.statusNote)}</aside>
-  <footer>Values on this receipt are limited to information returned by OG Exports. “Not provided” means that field was not available in the server record.</footer>
+  <p class="receipt-note">Values on this receipt are limited to information returned by OG Exports. “Not provided” means that field was not available in the server record.</p>
 </main></body></html>`;
 }
 
 export async function saveTransactionReceipt(receipt: TransactionReceipt): Promise<void> {
-  const html = transactionReceiptHtml(receipt);
-  const filename = `${receipt.filename}.html`;
-
-  if (Platform.OS === 'web') {
-    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    return;
-  }
-
-  if (!(await Sharing.isAvailableAsync())) {
-    throw new Error('File sharing is not available on this device.');
-  }
-  const file = new File(Paths.cache, filename);
-  file.create({ overwrite: true });
-  file.write(html);
-  await Sharing.shareAsync(file.uri, {
-    mimeType: 'text/html',
-    dialogTitle: receipt.title,
-    UTI: 'public.html',
-  });
+  await saveHtmlAsPdf(transactionReceiptHtml(receipt), receipt.filename, receipt.title);
 }
