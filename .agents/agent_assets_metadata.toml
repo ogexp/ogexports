@@ -140,3 +140,31 @@ mtime_ms = 1792257050379
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/47f99d00-7a35-49f5-8bfe-021fd1c8b549/4c648f69-1622-4dbf-bbd6-7c537906729c"
 storage_version_token = "1792257063279503"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "fhWt49ZaqiwWjtKx5n_eX"
+uri = "file://generated-artifacts/OG%20Exports%20Laravel%20Backend%2017-10-26.zip"
+type = "unspecified"
+title = "OG Exports Laravel Backend 17-10-26"
+description = "Laravel backend source, composer.lock and vendor dependencies. Environment secrets, logs, and generated caches are excluded."
+logical_id = "39f25cb8-3923-4832-b378-662b17b96a63"
+content_hash = "sha256:39370783ba01adf510db9b832e69d70dc476f651871580fd3ced9963a9a22aa7"
+size = 38658682
+mtime_ms = 1792257290111
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/39f25cb8-3923-4832-b378-662b17b96a63/fe7a38b2-c0ec-400f-9e6e-0ea86f89c763"
+storage_version_token = "1792257356511609"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "-0cqAx7EtUJOW8k9oK2br"
+uri = "file://generated-artifacts/OG%20Exports%20Website%20Frontend%2017-10-26.zip"
+type = "unspecified"
+title = "OG Exports Website Frontend 17-10-26"
+description = "Website frontend from the supplied original source ZIP. Private .env files are excluded; .env.example is retained."
+logical_id = "bb4e3a1d-84db-49f9-a16b-439ef4d385b9"
+content_hash = "sha256:83a231d8099748c365ec59e308166383f3059646f2b3c618a2cdc68c24f4968d"
+size = 26662746
+mtime_ms = 1792257334299
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/bb4e3a1d-84db-49f9-a16b-439ef4d385b9/bdb508a0-1d77-4b0c-8bb2-6b13ee5a82c8"
+storage_version_token = "1792257357987530"
+content_type = "application/octet-stream"
