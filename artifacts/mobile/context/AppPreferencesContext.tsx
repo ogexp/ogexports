@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { I18nManager, Platform, useColorScheme } from 'react-native';
-import { reloadAppAsync } from 'expo';
+import { isRunningInExpoGo, reloadAppAsync } from 'expo';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetInvestorExchangeRates,
@@ -169,7 +169,10 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     if (I18nManager.isRTL !== isRTL) {
       I18nManager.allowRTL(true);
       I18nManager.forceRTL(isRTL);
-      void reloadAppAsync().catch(() => undefined);
+      // Avoid restarting Expo Go while the authenticated app tree is mounting.
+      // The persisted RTL direction will be applied the next time Expo Go is
+      // manually reloaded; installed builds can still reload immediately.
+      if (!isRunningInExpoGo()) void reloadAppAsync().catch(() => undefined);
     }
   }, [preferencesLoaded, preferences.language, isRTL]);
 
