@@ -9,8 +9,8 @@ The OG Exports production Laravel API is hosted on Hostinger Business. Deploymen
 
 **How to apply:** For production Laravel changes, use the supplied backend source and deploy to Hostinger only after a valid SSH key is authorized. Never replace the production `.env`; apply required migrations after deploying code.
 
-In this workspace, HTTPS access to `GIT_URL` only provides repository access; there is no checked-in Hostinger auto-deployment workflow. The workspace FTPS route was unreachable, so a successful Git read or push must not be treated as a production deployment.
+In this workspace, HTTPS access to `GIT_URL` only provides repository access; there is no checked-in Hostinger auto-deployment workflow. Hostinger FTPS can upload source, but the configured server address may be an IP while its certificate is issued for `hstgr.io`; use the verified certificate hostname with an explicit IP mapping, never disable TLS verification.
 
-**Why:** Auto-invest deployment attempts confirmed that source control access and Hostinger runtime access are separate, and the feature requires running its Laravel migration as well as uploading code.
+**Why:** The FTPS endpoint became reachable when the request used its certificate hostname mapped to the configured server IP. The prior direct-IP request failed certificate validation; disabling verification would expose credentials to interception.
 
-**How to apply:** If SSH is unavailable, confirm an actual Hostinger deployment mechanism and command path before changing production. Do not upload only the Laravel files while leaving their migration unapplied.
+**How to apply:** Compare the live Laravel files with the supplied source before uploading. Use FTPS only for code-only changes; it cannot run Artisan migrations or prove runtime behavior. Handle migrations through an authorized server route, and do not treat Git access as a production deployment.
