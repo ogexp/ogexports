@@ -49,9 +49,7 @@ const preferenceStorageKey = (userId: string) => `og-investor-app-preferences:${
 function parsePreferences(value: unknown): Partial<AppPreferences> {
   const source = record(value);
   const next: Partial<AppPreferences> = {};
-  if (source.language === 'en' || source.language === 'ur' || source.language === 'ar') {
-    next.language = source.language;
-  }
+  if (typeof source.language === 'string') next.language = 'en';
   const currency = typeof source.currency === 'string' ? source.currency.toUpperCase() : '';
   if (currency === 'USD' || currency === 'PKR' || currency === 'EUR' || currency === 'GBP') {
     next.currency = currency;

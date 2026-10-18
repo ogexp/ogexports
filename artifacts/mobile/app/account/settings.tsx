@@ -271,7 +271,7 @@ export default function Settings() {
     } catch (err) { setError(messageOf(err)); }
   }
 
-  async function saveAppPreference(patch: { language?: 'en' | 'ur' | 'ar'; currency?: DisplayCurrency; appearance?: AppearancePreference }) {
+  async function saveAppPreference(patch: { language?: 'en'; currency?: DisplayCurrency; appearance?: AppearancePreference }) {
     setError('');
     try {
       await appPreferences.savePreferences(patch);
@@ -319,24 +319,16 @@ export default function Settings() {
       <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 10 }}>App preferences</Text>
       <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>Language</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-        {([
-          ['en', 'English'],
-          ['ur', 'اردو'],
-          ['ar', 'العربية'],
-        ] as const).map(([language, label]) => {
-          const selected = appPreferences.preferences.language === language;
-          return <Pressable
-            key={language}
-            testID={`language-option-${language}`}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: selected, disabled: appPreferences.isSaving }}
-            disabled={appPreferences.isSaving}
-            onPress={() => void saveAppPreference({ language })}
-            style={{ paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, borderRadius: 18, backgroundColor: selected ? colors.lightGreen : colors.card }}
-          >
-            <Text style={{ color: selected ? colors.primary : colors.foreground, fontSize: 13, fontWeight: selected ? '700' : '500' }}>{label}</Text>
-          </Pressable>;
-        })}
+        <Pressable
+          testID="language-option-en"
+          accessibilityRole="radio"
+          accessibilityState={{ checked: true, disabled: appPreferences.isSaving }}
+          disabled={appPreferences.isSaving}
+          onPress={() => void saveAppPreference({ language: 'en' })}
+          style={{ paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderColor: colors.primary, borderRadius: 18, backgroundColor: colors.lightGreen }}
+        >
+          <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>English</Text>
+        </Pressable>
       </View>
 
       <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>
