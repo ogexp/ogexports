@@ -55,6 +55,8 @@ export default function Settings() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState('');
+  const [profileSaveError, setProfileSaveError] = useState('');
+  const [profileSaveMessage, setProfileSaveMessage] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -230,18 +232,26 @@ export default function Settings() {
   }
 
   async function saveProfile() {
-    setError('');
+    setProfileSaveError('');
+    setProfileSaveMessage('');
+    const requestedCountry = countryForApi(country);
     try {
       const saved = record(await updateMe.mutateAsync({
-        data: { name: name.trim(), mobile: phone.trim(), country: countryForApi(country) },
+        data: { name: name.trim(), mobile: phone.trim(), country: requestedCountry },
       }));
       const savedUser = record(saved.user);
       if (!first(savedUser, ['id'])) throw new Error('The server did not return the updated profile.');
+      const savedCountry = typeof savedUser.country === 'string'
+        ? countryForApi(savedUser.country)
+        : '';
+      if (savedCountry !== requestedCountry) {
+        throw new Error('The server did not confirm the selected country. Please try again.');
+      }
       await updateUser(savedUser as Json);
 
-      Alert.alert('Profile updated', 'Your profile details have been saved.');
+      setProfileSaveMessage('Profile details saved successfully.');
       void profileQuery.refetch();
-    } catch (err) { setError(messageOf(err)); }
+    } catch (err) { setProfileSaveError(messageOf(err)); }
   }
 
   async function savePassword() {
@@ -309,9 +319,11 @@ export default function Settings() {
       <Field label="Full name" value={name} onChangeText={setName} placeholder="Your name" />
       <Field label="Mobile number" value={phone} onChangeText={setPhone} placeholder="+92 300 1234567" keyboardType="phone-pad" />
       <CountryPicker label="Country / region" value={country} onChange={setCountry} placeholder="Country of residence" />
+      {profileSaveError ? <Text testID="profile-save-error" accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginBottom: 10 }}>{profileSaveError}</Text> : null}
+      {profileSaveMessage ? <Text testID="profile-save-success" accessibilityRole="text" style={{ color: colors.primary, fontSize: 12, lineHeight: 18, marginBottom: 10 }}>{profileSaveMessage}</Text> : null}
       <View style={{ gap: 12 }}>
         <Action title="Manage bank accounts & verification" secondary onPress={() => router.push('/account/bank-accounts' as never)} />
-        <Action title="Save profile details" icon="save" loading={updateMe.isPending} onPress={() => void saveProfile()} />
+        <Action testID="save-profile-details" title="Save profile details" icon="save" loading={updateMe.isPending} onPress={() => void saveProfile()} />
       </View>
     </Card>
 
