@@ -22,6 +22,7 @@ import { CountryPicker } from '@/components/CountryPicker';
 import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap, type Json } from '@/lib/data';
 import { countryForApi, profileUserCountry } from '@/lib/countries';
+import { updatedInvestorUser } from '@/lib/profile-response';
 import { validOrigin } from '@/lib/api-config';
 import { useColors } from '@/hooks/useColors';
 import { useAppPreferences, type AppearancePreference, type DisplayCurrency } from '@/context/AppPreferencesContext';
@@ -236,11 +237,15 @@ export default function Settings() {
     setProfileSaveMessage('');
     const requestedCountry = countryForApi(country);
     try {
-      const saved = record(await updateMe.mutateAsync({
+      const savedUser = updatedInvestorUser(await updateMe.mutateAsync({
         data: { name: name.trim(), mobile: phone.trim(), country: requestedCountry },
       }));
-      const savedUser = record(saved.user);
-      if (!first(savedUser, ['id'])) throw new Error('The server did not return the updated profile.');
+      const savedUserId = first(savedUser, ['id', 'user_id']);
+      if (!savedUserId) throw new Error('The server did not return the updated profile.');
+      const currentUserId = first(record(user), ['id', 'user_id']);
+      if (currentUserId && savedUserId !== currentUserId) {
+        throw new Error('The server returned a different profile. Please sign in again and retry.');
+      }
       const savedCountry = typeof savedUser.country === 'string'
         ? countryForApi(savedUser.country)
         : '';
