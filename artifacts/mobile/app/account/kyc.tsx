@@ -140,6 +140,7 @@ export default function Kyc() {
   const [streetAddress, setStreetAddress] = useState('');
   const [province, setProvince] = useState('');
   const [postalCode, setPostalCode] = useState('');
+  const [personalDetailsDirty, setPersonalDetailsDirty] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [documentPicking, setDocumentPicking] = useState(false);
@@ -155,7 +156,7 @@ export default function Kyc() {
   }, [hasSubmittedForReview, status]);
 
   useEffect(() => {
-    if (!query.data) return;
+    if (!query.data || personalDetailsDirty) return;
     setName(first(personal, ['name', 'full_name'], first(profile, ['name', 'full_name'])));
     setPhone(first(personal, ['phone'], first(profile, ['phone'])));
     setDob(first(personal, ['dob', 'date_of_birth'], first(profile, ['dob', 'date_of_birth'])));
@@ -170,7 +171,7 @@ export default function Kyc() {
       hasInitializedStep.current = true;
       setStep(resumeStep);
     }
-  }, [query.data]);
+  }, [personalDetailsDirty, query.data]);
 
   useFocusEffect(useCallback(() => {
     if (token) void query.refetch();
@@ -205,7 +206,10 @@ export default function Kyc() {
       });
       setNotice('Your personal details have been saved to your investor profile.');
       setStep(2);
-      await query.refetch();
+      const refreshedProfile = await query.refetch();
+      if (!refreshedProfile.isError && refreshedProfile.data) {
+        setPersonalDetailsDirty(false);
+      }
     } catch (err) {
       motionHaptic('error');
       setError(messageOf(err));
@@ -534,15 +538,15 @@ export default function Kyc() {
           <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: '700' }}>ACCOUNT EMAIL</Text>
           <Text style={{ color: colors.foreground, fontWeight: '600', marginTop: 5 }}>{loginEmail || '—'}</Text>
         </View>
-        <Field label="Full legal name (required)" value={name} onChangeText={setName} placeholder="As shown on your identity document" autoCapitalize="words" />
-        <Field label="Phone number (optional)" value={phone} onChangeText={setPhone} placeholder="+1 555 000 0000" keyboardType="phone-pad" />
-        <DateOfBirthPicker label="Date of birth (required)" value={dob} onChange={setDob} />
-        <Field label="Nationality (required)" value={nationality} onChangeText={setNationality} placeholder="Nationality" autoCapitalize="words" />
-        <CountryPicker label="Country of residence (required)" value={country} onChange={setCountry} placeholder="Select country" />
-        <Field label="City (required)" value={city} onChangeText={setCity} placeholder="City" autoCapitalize="words" />
-        <Field label="Street address (required)" value={streetAddress} onChangeText={setStreetAddress} placeholder="Street address" multiline />
-        <Field label="Province / state" value={province} onChangeText={setProvince} placeholder="Province or state" />
-        <Field label="Postal code" value={postalCode} onChangeText={setPostalCode} placeholder="Postal code" autoCapitalize="characters" />
+        <Field label="Full legal name (required)" value={name} onChangeText={value => { setPersonalDetailsDirty(true); setName(value); }} placeholder="As shown on your identity document" autoCapitalize="words" />
+        <Field label="Phone number (optional)" value={phone} onChangeText={value => { setPersonalDetailsDirty(true); setPhone(value); }} placeholder="+1 555 000 0000" keyboardType="phone-pad" />
+        <DateOfBirthPicker label="Date of birth (required)" value={dob} onChange={value => { setPersonalDetailsDirty(true); setDob(value); }} />
+        <Field label="Nationality (required)" value={nationality} onChangeText={value => { setPersonalDetailsDirty(true); setNationality(value); }} placeholder="Nationality" autoCapitalize="words" />
+        <CountryPicker label="Country of residence (required)" value={country} onChange={value => { setPersonalDetailsDirty(true); setCountry(value); }} placeholder="Select country" />
+        <Field label="City (required)" value={city} onChangeText={value => { setPersonalDetailsDirty(true); setCity(value); }} placeholder="City" autoCapitalize="words" />
+        <Field label="Street address (required)" value={streetAddress} onChangeText={value => { setPersonalDetailsDirty(true); setStreetAddress(value); }} placeholder="Street address" multiline />
+        <Field label="Province / state" value={province} onChangeText={value => { setPersonalDetailsDirty(true); setProvince(value); }} placeholder="Province or state" />
+        <Field label="Postal code" value={postalCode} onChangeText={value => { setPersonalDetailsDirty(true); setPostalCode(value); }} placeholder="Postal code" autoCapitalize="characters" />
         <Action title="Save and continue" icon="arrow-right" loading={updateProfile.isPending} onPress={() => void savePersonalDetails()} />
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 12 }}>Required fields are saved to your investor profile before document submission. OG Exports remains the source of verification decisions.</Text>
       </Card> : null}
