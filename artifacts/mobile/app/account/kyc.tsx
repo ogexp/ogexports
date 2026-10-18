@@ -541,7 +541,14 @@ export default function Kyc() {
         <Field label="Full legal name (required)" value={name} onChangeText={value => { setPersonalDetailsDirty(true); setName(value); }} placeholder="As shown on your identity document" autoCapitalize="words" />
         <Field label="Phone number (optional)" value={phone} onChangeText={value => { setPersonalDetailsDirty(true); setPhone(value); }} placeholder="+1 555 000 0000" keyboardType="phone-pad" />
         <DateOfBirthPicker label="Date of birth (required)" value={dob} onChange={value => { setPersonalDetailsDirty(true); setDob(value); }} />
-        <Field label="Nationality (required)" value={nationality} onChangeText={value => { setPersonalDetailsDirty(true); setNationality(value); }} placeholder="Nationality" autoCapitalize="words" />
+        <CountryPicker
+          label="Nationality (required)"
+          value={nationality}
+          onChange={value => { setPersonalDetailsDirty(true); setNationality(value); }}
+          placeholder="Select nationality"
+          selectionType="nationality"
+          testID="kyc-nationality-picker"
+        />
         <CountryPicker label="Country of residence (required)" value={country} onChange={value => { setPersonalDetailsDirty(true); setCountry(value); }} placeholder="Select country" />
         <Field label="City (required)" value={city} onChangeText={value => { setPersonalDetailsDirty(true); setCity(value); }} placeholder="City" autoCapitalize="words" />
         <Field label="Street address (required)" value={streetAddress} onChangeText={value => { setPersonalDetailsDirty(true); setStreetAddress(value); }} placeholder="Street address" multiline />

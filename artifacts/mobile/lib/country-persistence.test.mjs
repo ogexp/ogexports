@@ -29,3 +29,9 @@ test('KYC country selected by name maps to the canonical API label and reload sh
 test('KYC reload accepts country stored at the profile root for older responses', () => {
   assert.equal(kycProfileCountry({ country: 'Pakistan' }), 'Pakistan');
 });
+
+test('KYC nationality selection uses a canonical country label', () => {
+  const selectedNationality = searchCountries('PK').find(country => country.code === 'PK');
+  assert.ok(selectedNationality);
+  assert.equal(selectedNationality.label, 'Pakistan');
+});

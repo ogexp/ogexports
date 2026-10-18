@@ -20,12 +20,14 @@ export function CountryPicker({
   value,
   onChange,
   placeholder = 'Select country',
+  selectionType = 'country',
   testID = 'country-picker',
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  selectionType?: 'country' | 'nationality';
   testID?: string;
 }) {
   const colors = useColors();
@@ -37,6 +39,9 @@ export function CountryPicker({
   const sections = useMemo(() => countrySections(query), [query]);
   const selectedLabel = countryLabelForValue(value);
   const selectedCountry = COUNTRIES.find(country => country.label === selectedLabel);
+  const pickerTitle = selectionType === 'nationality' ? 'Select nationality' : 'Select country';
+  const searchHint = selectionType === 'nationality' ? 'Search nationalities by country name or code' : 'Search by country name or ISO code';
+  const searchPlaceholder = selectionType === 'nationality' ? 'Search nationality or country' : 'Search country or code';
 
   function openPicker() {
     setQuery('');
@@ -62,7 +67,7 @@ export function CountryPicker({
         testID={`${testID}-trigger`}
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${selectedLabel || placeholder}`}
-        accessibilityHint="Opens a searchable country list"
+        accessibilityHint={`Opens a searchable ${selectionType} list`}
         accessibilityState={{ expanded: visible }}
         onPress={openPicker}
         style={({ pressed }) => ({
@@ -126,8 +131,8 @@ export function CountryPicker({
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.accent, fontSize: 9, fontWeight: '800', letterSpacing: 1.2, marginBottom: 3 }}>OG EXPORTS</Text>
-                <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>Select country</Text>
-                <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 3 }}>Search by country name or ISO code</Text>
+                <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>{pickerTitle}</Text>
+                <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 3 }}>{searchHint}</Text>
               </View>
               <Pressable
                 testID={`${testID}-close`}
@@ -157,10 +162,10 @@ export function CountryPicker({
               <Feather name="search" size={17} color={searchFocused ? colors.primary : colors.mutedForeground} />
               <TextInput
                 testID={`${testID}-search`}
-                accessibilityLabel="Search countries"
+                accessibilityLabel={selectionType === 'nationality' ? 'Search nationalities' : 'Search countries'}
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Search country or code"
+                placeholder={searchPlaceholder}
                 placeholderTextColor={colors.mutedForeground}
                 autoCapitalize="none"
                 autoCorrect={false}
