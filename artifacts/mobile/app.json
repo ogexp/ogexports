@@ -11,7 +11,7 @@
       "supportsTablet": false
     },
     "android": {
-      "package": "com.ogexports.invest",
+      "package": "com.ogexports.investor",
       "versionCode": 7
     },
     "web": {

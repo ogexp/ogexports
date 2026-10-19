@@ -2,76 +2,6 @@ uploads = []
 generated = []
 
 [[outputs]]
-id = "JjCaPu2HlXZCOm4rPNxIL"
-uri = "file://exports/OG%20Exports%20App.zip"
-type = "unspecified"
-title = "OG Exports App.zip"
-description = "Expo mobile app source, required shared API client, workspace configuration, and setup instructions. Cache folders and secret files excluded."
-logical_id = "44246337-903b-47be-aea2-4d929647bcdd"
-content_hash = "sha256:a451d7688af94dda2906bcff81e287342db97526fc17757bbd79f6c59bdc3a44"
-size = 1199532
-mtime_ms = 1791233122317
-storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/44246337-903b-47be-aea2-4d929647bcdd/6b618fec-f890-4650-9a0e-3a0024499380"
-storage_version_token = "1791233132668074"
-content_type = "application/octet-stream"
-
-[[outputs]]
-id = "16hcog7pY1JkGxkGmcXbY"
-uri = "file://exports/OG%20Exports%20app.zip"
-type = "unspecified"
-title = "OG Exports app"
-description = "Updated Expo source ZIP with the official OG Exports app name and premium branded native splash screen."
-logical_id = "2f1a67b0-a771-4423-9f3c-9a9604bf31cf"
-content_hash = "sha256:58b4fb73942e21c063f8336abed61d91ffe29b6723b6857d3b0c0043b1b11d17"
-size = 1305692
-mtime_ms = 1791442101356
-storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/2f1a67b0-a771-4423-9f3c-9a9604bf31cf/0048ac4b-6e1d-470c-ae20-776f458d2086"
-storage_version_token = "1791442169514825"
-content_type = "application/octet-stream"
-
-[[outputs]]
-id = "F-CUKxi4jm7PvIGUSZEdu"
-uri = "file://artifacts/mobile/assets/images/og-splash.png"
-type = "image"
-title = "OG Exports — resized full mobile splash"
-description = "Full portrait splash preview with the logo reduced to about 47% of screen width; name and subtle side circles retained."
-logical_id = "b9c44c36-143d-4a2a-82f3-699351ef0faf"
-content_hash = "sha256:49d0923d47db1da29914b73adc2c13417fa767bae4af325bb3aabbd90cc26e64"
-size = 137463
-mtime_ms = 1791443275555
-storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/b9c44c36-143d-4a2a-82f3-699351ef0faf/1d5d9565-5ba5-40e9-8134-ff578cbf2824"
-storage_version_token = "1791443302470491"
-content_type = "image/png"
-
-[[outputs]]
-id = "wsiFMcljeboGpkCrLcInF"
-uri = "file://exports/OG-Exports-Mobile-App-Source.zip"
-type = "unspecified"
-title = "OG Exports Mobile App — Source ZIP"
-description = "Complete Expo mobile app source with its shared API client and install lockfile. Excludes .env files, credentials, node_modules, and generated preview/build bundles."
-logical_id = "2c067f85-9a8d-4aaf-b7c5-429bbb387bfd"
-content_hash = "sha256:a6da3687c18fc39201e810fd1e2f35b4ef61bb3fd8fa0fc6f7de3830dd29f1c6"
-size = 1428484
-mtime_ms = 1791490564190
-storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/2c067f85-9a8d-4aaf-b7c5-429bbb387bfd/5c879cf1-62e4-4d3b-824b-55872ed71174"
-storage_version_token = "1791490598916086"
-content_type = "application/octet-stream"
-
-[[outputs]]
-id = "ppohR1iEqIVHy7BddDay5"
-uri = "file://exports/OG%20Exports%20app%2009-10-26.zip"
-type = "unspecified"
-title = "OG Exports app 09-10-26.zip"
-description = "Complete OG Exports investor mobile app source ZIP."
-logical_id = "ffea6471-b9f3-4260-9b9a-69dcad51d7ff"
-content_hash = "sha256:c9ae4a77a82932da7828ff2699a366a9fe4381dea275c7a310525ef0670ec63b"
-size = 1490122
-mtime_ms = 1791550806142
-storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/ffea6471-b9f3-4260-9b9a-69dcad51d7ff/f29767c4-a040-4248-9f51-df023d51cd35"
-storage_version_token = "1791551083790371"
-content_type = "application/octet-stream"
-
-[[outputs]]
 id = "IWct86O63aTSDva48GR3A"
 uri = "file://exports/OG%20Exports%20Web%20Frontend%2009-10-26.zip"
 type = "unspecified"
@@ -173,14 +103,14 @@ content_type = "application/octet-stream"
 id = "zYTa6IJ8-DYAyFvBI9PdP"
 uri = "file://artifacts/mobile/android/app/build/outputs/bundle/release/app-release.aab"
 type = "unspecified"
-title = "OG Exports Android App Bundle 2.1.7 (version code 7)"
-description = "Play Console-ready release AAB. Package com.ogexports.invest. Signature verified against the existing upload keystore; not uploaded to Play Console."
+title = "OG Exports Investor — Android App Bundle 2.1.7"
+description = "Signed AAB for package com.ogexports.investor, version 2.1.7 (versionCode 7). Its signing certificate matches the public PEM provided separately."
 logical_id = "678e5568-68a5-403f-9793-f962071f9bc9"
-content_hash = "sha256:01eaa09359b4f2350f0017e9503cceed8ab4edf4dd5037845d6c8c845f8694e3"
-size = 85145793
-mtime_ms = 1792389734066
-storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/678e5568-68a5-403f-9793-f962071f9bc9/2bc4984f-3f73-4c9a-89dc-7f0c04927f60"
-storage_version_token = "1792390021684214"
+content_hash = "sha256:2e8dd9ee272eba94e58f47a4125f29dd90c368e4ae25cc8fc504bba52d772550"
+size = 85145649
+mtime_ms = 1792396164087
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/678e5568-68a5-403f-9793-f962071f9bc9/72efec1b-72bc-46e4-bf8c-0c98439bee27"
+storage_version_token = "1792396343462092"
 content_type = "application/octet-stream"
 
 [[outputs]]
@@ -195,4 +125,18 @@ size = 4314524
 mtime_ms = 1792391807534
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/730959a1-dda7-463e-b9ca-e05e4c27ef25/d3fe03a1-9e80-4159-b79d-86634ec5f74d"
 storage_version_token = "1792391839817829"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "GzJm7AbKc2DAvqUjV0jha"
+uri = "file://generated-artifacts/ogexports-investor-upload.pem"
+type = "unspecified"
+title = "OG Exports Investor — Google Play public upload certificate"
+description = "Public PEM certificate for the new com.ogexports.investor Play listing. SHA-1: F1:BF:8D:5C:7D:F4:86:0A:72:B8:60:6B:95:9D:D6:98:3F:4A:90:20. Do not upload the private JKS file."
+logical_id = "acdf1955-2bbd-4fad-b499-35b23375d8a7"
+content_hash = "sha256:518c374e5a4dcbfc33d26a3dcbb3635d183a4c66ac81501800a67b39a6c8b5de"
+size = 1307
+mtime_ms = 1792394743109
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/acdf1955-2bbd-4fad-b499-35b23375d8a7/709955ed-5e47-4575-bc8e-2748d5ab1d0b"
+storage_version_token = "1792396344792893"
 content_type = "application/octet-stream"
