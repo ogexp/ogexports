@@ -6,7 +6,7 @@
 - [Mobile navigation motion](mobile-navigation-motion.md) — hide bottom tabs while scrolling down; reveal on screen tap, reverse scroll, or brief idle.
 - [Node TypeScript test imports](node-ts-test-imports.md) — native Node tests reject extensionless sibling TypeScript imports; `.ts` suffixes conflict with default `tsc`.
 - [Generated API declaration freshness](generated-api-declaration-freshness.md) — rebuild API-client project declarations when mobile cannot see a hook present in generated source.
-- [API origin configuration](api-origin-configuration.md) — keep the API address off the login screen; use app environment or existing Settings configuration.
+- [API origin configuration](api-origin-configuration.md) — keep the API address hidden from all investor-facing screens; configure it internally.
 - [Investor email auth & profile](investor-auth-rollout.md) — email codes cover signup verification, recovery, and optional 2FA; mobile/country stay profile-only.
 - [Investor push delivery](investor-push-delivery.md) — signed Laravel events map by normalized email to active opted-in devices; live delivery still needs a real Expo project ID.
 - [Notification preference migration](investor-notification-preference-migration.md) — category preferences override matching legacy settings without dropping old keys or changing email/push controls.

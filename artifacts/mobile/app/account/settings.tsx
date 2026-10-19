@@ -23,7 +23,6 @@ import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap, type Json } from '@/lib/data';
 import { countryForApi, profileUserCountry } from '@/lib/countries';
 import { updatedInvestorUser } from '@/lib/profile-response';
-import { validOrigin } from '@/lib/api-config';
 import { useColors } from '@/hooks/useColors';
 import { useAppPreferences, type AppearancePreference, type DisplayCurrency } from '@/context/AppPreferencesContext';
 import { localizedAlert as Alert, translateUi } from '@/lib/strings';
@@ -38,7 +37,7 @@ const pushEnabledKey = (userId: string) => `og-investor-push-enabled:${userId}`;
 const pushTokenKey = (userId: string) => `og-investor-push-token:${userId}`;
 
 export default function Settings() {
-  const { token, user, apiOrigin, updateOrigin, updateUser, signOut } = useAuth();
+  const { token, user, updateUser, signOut } = useAuth();
   const appPreferences = useAppPreferences();
   const motion = useMotion();
   const colors = useColors();
@@ -52,7 +51,6 @@ export default function Settings() {
   const registerPushToken = useRegisterInvestorPushToken();
   const revokePushToken = useRevokeInvestorPushToken();
   const profile = unwrap(profileQuery.data);
-  const [server, setServer] = useState(apiOrigin);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState('');
@@ -74,11 +72,10 @@ export default function Settings() {
     ?? '';
 
   useEffect(() => {
-    setServer(apiOrigin);
     if (profileQuery.data) {
       setNotificationPrefs(record(profile.notification_prefs));
     }
-  }, [apiOrigin, profileQuery.data]);
+  }, [profileQuery.data]);
 
   useEffect(() => {
     const account = record(user);
@@ -271,18 +268,6 @@ export default function Settings() {
       setNewPassword('');
       setConfirmPassword('');
       Alert.alert('Password updated', 'Your sign-in password has been changed.');
-    } catch (err) { setError(messageOf(err)); }
-  }
-
-  async function changeServer() {
-    setError('');
-    if (!validOrigin(server)) {
-      setError('Enter a valid address beginning with https:// (or http:// for local development).');
-      return;
-    }
-    try {
-      await updateOrigin(server);
-      Alert.alert('Server saved', 'The app will use this investor API server.');
     } catch (err) { setError(messageOf(err)); }
   }
 
@@ -500,12 +485,6 @@ export default function Settings() {
 
     <TransactionPasswordSettingsCard />
 
-    <Card>
-      <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 6 }}>Investor API server</Text>
-      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>Changing this address reconnects the app to a different OG Exports server.</Text>
-      <Field label="Server address" value={server} onChangeText={setServer} placeholder="https://api.yourcompany.com" keyboardType="default" autoCapitalize="none" />
-      <Action title="Save server address" icon="globe" secondary onPress={() => void changeServer()} />
-    </Card>
     {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
     <View style={{ marginBottom: 8 }}>
       <Action title="Sign out" icon="log-out" secondary loading={logout.isPending} onPress={() => setConfirmSignOut(true)} />
