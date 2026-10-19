@@ -182,3 +182,17 @@ mtime_ms = 1792389734066
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/678e5568-68a5-403f-9793-f962071f9bc9/2bc4984f-3f73-4c9a-89dc-7f0c04927f60"
 storage_version_token = "1792390021684214"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "9o4nfs-vbav9mdfbO62GN"
+uri = "file://generated-artifacts/OG%20Exp%20investor%2019-10-26.zip"
+type = "unspecified"
+title = "OG Exp investor 19-10-26.zip"
+description = "Latest investor mobile app source, including the Android project and required shared API client. Excludes generated build caches, AAB output, local environment files, and signing keystores."
+logical_id = "730959a1-dda7-463e-b9ca-e05e4c27ef25"
+content_hash = "sha256:d134ec718578f0012995f87e2836c2b6c18082ac23f12668c870fed738aebfcd"
+size = 4314524
+mtime_ms = 1792391807534
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/730959a1-dda7-463e-b9ca-e05e4c27ef25/d3fe03a1-9e80-4159-b79d-86634ec5f74d"
+storage_version_token = "1792391839817829"
+content_type = "application/octet-stream"
