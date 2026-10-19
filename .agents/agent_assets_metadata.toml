@@ -168,3 +168,17 @@ mtime_ms = 1792257334299
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/bb4e3a1d-84db-49f9-a16b-439ef4d385b9/bdb508a0-1d77-4b0c-8bb2-6b13ee5a82c8"
 storage_version_token = "1792257357987530"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "zYTa6IJ8-DYAyFvBI9PdP"
+uri = "file://artifacts/mobile/android/app/build/outputs/bundle/release/app-release.aab"
+type = "unspecified"
+title = "OG Exports Android App Bundle 2.1.7 (version code 7)"
+description = "Play Console-ready release AAB. Package com.ogexports.invest. Signature verified against the existing upload keystore; not uploaded to Play Console."
+logical_id = "678e5568-68a5-403f-9793-f962071f9bc9"
+content_hash = "sha256:01eaa09359b4f2350f0017e9503cceed8ab4edf4dd5037845d6c8c845f8694e3"
+size = 85145793
+mtime_ms = 1792389734066
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/678e5568-68a5-403f-9793-f962071f9bc9/2bc4984f-3f73-4c9a-89dc-7f0c04927f60"
+storage_version_token = "1792390021684214"
+content_type = "application/octet-stream"
