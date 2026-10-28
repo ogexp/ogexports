@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "com.ogexports.investor",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 8
     },
     "web": {
@@ -19,7 +20,12 @@
     },
     "plugins": [
       "expo-router",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "investor-updates-v2"
+        }
+      ],
       "expo-secure-store",
       "expo-sharing",
       [
