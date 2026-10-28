@@ -32,7 +32,7 @@ final class InvestorPushBridge
         $secret = (string) config('services.investor_push.session_secret');
         if (! $url || $secret === '') {
             Log::warning('Investor notification push bridge is not configured.', [
-                'notification_id' => $notification->id,
+                'notification_id' => $notification?->id,
                 'endpoint_configured' => (bool) $url,
                 'signing_secret_configured' => $secret !== '',
             ]);
@@ -72,13 +72,13 @@ final class InvestorPushBridge
             if (! $response->successful()) {
                 Log::warning('Investor notification push event was rejected by the API server.', [
                     'event_id' => $payload['event_id'],
-                    'notification_id' => $notification->id,
+                    'notification_id' => $notification?->id,
                     'http_status' => $response->status(),
                 ]);
             }
         } catch (Throwable $exception) {
             Log::warning('Investor notification push event could not be delivered to the API server.', [
-                'notification_id' => $notification->id,
+                'notification_id' => $notification?->id,
                 'error' => $exception->getMessage(),
             ]);
         }
