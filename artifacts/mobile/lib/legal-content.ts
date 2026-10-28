@@ -31,7 +31,7 @@ export const LEGAL_DOCUMENTS: Record<string, LegalDocument> = {
         'Information, balances, estimates and notifications displayed by the Platform do not by themselves amend a signed agreement or guarantee that a transaction has completed.',
       ] },
       { heading: '4. Investment eligibility and agreements', paragraphs: [
-        'Investment access is subject to the opportunity being open, your account meeting the stated eligibility checks, and your identity-verification status being confirmed as required. KYC must be marked Verified before you can access deposit payment methods or submit a deposit. Withdrawals remain subject to separate legal, security and transaction checks.',
+        'Investment access is subject to the opportunity being open, your account meeting the stated eligibility checks, and your identity-verification status being confirmed as required for investing. The application does not treat KYC as an automatic condition for deposits or withdrawals; separate legal, security or transaction checks may still apply.',
         'Each opportunity has its own commercial details and may require a separate signed Investment Agreement. That agreement and the offer-specific terms control the investment amount, trade, parties, currency, calculation method, settlement and other project-specific obligations. These Platform Terms do not promise that any opportunity will be available or accepted.',
       ] },
       { heading: '5. Payments, wallet and withdrawals', paragraphs: [

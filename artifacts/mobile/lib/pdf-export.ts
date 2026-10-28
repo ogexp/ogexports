@@ -3,7 +3,6 @@ import { File, Paths } from 'expo-file-system';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
-import { absoluteFileUri } from './absolute-file-uri';
 import { brandedPdfHtml } from './pdf-html';
 
 const officialLogo = require('../assets/images/og-logo.png');
@@ -19,8 +18,7 @@ async function logoDataUri(): Promise<string> {
     return asset.uri;
   }
   if (!asset.localUri) throw new Error('The official OG Exports logo could not be loaded.');
-  const logoFile = new File(absoluteFileUri(asset.localUri));
-  cachedLogoDataUri = `data:image/png;base64,${await logoFile.base64()}`;
+  cachedLogoDataUri = `data:image/png;base64,${await new File(asset.localUri).base64()}`;
   return cachedLogoDataUri;
 }
 
@@ -34,7 +32,7 @@ export async function saveHtmlAsPdf(sourceHtml: string, filename: string, title:
   const result = await Print.printToFileAsync({ html });
   const safeName = filename.replace(/[^a-z0-9_-]/gi, '-').replace(/-+/g, '-').slice(0, 70) || 'og-exports-document';
   const output = new File(Paths.cache, `${safeName}.pdf`);
-  await new File(absoluteFileUri(result.uri)).copy(output, { overwrite: true });
+  await new File(result.uri).copy(output, { overwrite: true });
   await Sharing.shareAsync(output.uri, {
     mimeType: 'application/pdf',
     dialogTitle: title,

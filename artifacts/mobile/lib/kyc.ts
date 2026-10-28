@@ -1,5 +1,24 @@
 import { first, list, record } from '@/lib/data';
-import { hasVerifiedStatus, normalizeInvestorKycStatus, type InvestorKycStatus } from '@/lib/kyc-status';
+
+export type InvestorKycStatus =
+  | 'Not Started'
+  | 'In Progress'
+  | 'Under Review'
+  | 'Verified'
+  | 'Action Required'
+  | 'Rejected'
+  | string;
+
+export function normalizeInvestorKycStatus(value: string): InvestorKycStatus {
+  const key = value.trim().toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
+  if (!key || /^(not\s*started|not provided|none)$/.test(key)) return 'Not Started';
+  if (/verified|approved|passed/.test(key)) return 'Verified';
+  if (/action\s*required|requires action|additional information|more information|resubmi|update required|changes requested|documents? needed|documents? required|needs? more documents/.test(key)) return 'Action Required';
+  if (/reject|declin|denied/.test(key)) return 'Rejected';
+  if (/under\s*review|in\s*review|review|submitted|pending|processing/.test(key)) return 'Under Review';
+  if (/in\s*progress|incomplete|draft|started/.test(key)) return 'In Progress';
+  return value.trim();
+}
 
 export function getInvestorKycStatus(profileValue: unknown): InvestorKycStatus {
   const profile = record(profileValue);
@@ -26,15 +45,5 @@ export function getInvestorKycStatus(profileValue: unknown): InvestorKycStatus {
 }
 
 export function isInvestorKycVerified(profile: unknown): boolean {
-  const data = record(profile);
-  const kyc = record(data.kyc);
-  const identityVerification = record(data.identity_verification ?? data.identity_check);
-  const kycIdentityVerification = record(kyc.identity_verification ?? kyc.identity_check);
-  const statuses = [
-    ...['status', 'verification_status', 'application_status', 'state'].map(key => first(kyc, [key])),
-    ...['kyc_status', 'verification_status', 'identity_verification_status', 'profile_verification_status', 'profile_status', 'status'].map(key => first(data, [key])),
-    ...['status', 'verification_status'].map(key => first(identityVerification, [key])),
-    ...['status', 'verification_status'].map(key => first(kycIdentityVerification, [key])),
-  ];
-  return hasVerifiedStatus(statuses);
+  return getInvestorKycStatus(profile) === 'Verified';
 }

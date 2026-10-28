@@ -11,16 +11,14 @@ import {
   useCreateInvestorDeposit,
   useGetInvestorDepositOptions,
   useGetInvestorDeposits,
-  useGetInvestorProfile,
   useGetInvestorPaymentBankAccounts,
   useGetInvestorDashboard,
   useGetInvestorWallet,
 } from '@workspace/api-client-react';
-import { Action, Card, ConfirmationSheet, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
+import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
 import { formatUiStatus } from '@/lib/strings';
 import { amount as readAmount, first, list, messageOf, money, record, unwrap, walletCurrencyFromSources } from '@/lib/data';
 import { DEPOSIT_PAYMENT_METHODS, type DepositPaymentMethodId } from '@/lib/deposit-methods';
-import { getInvestorKycStatus, isInvestorKycVerified } from '@/lib/kyc';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
@@ -111,10 +109,10 @@ function CopyableBankDetailRow({ label, value, copied, accessibilityLabel, testI
   onCopy: () => void;
 }) {
   const colors = useColors();
-  return <View style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+  return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.border }}>
     <Text style={{ color: colors.mutedForeground, fontSize: 12, width: 76 }}>{label}</Text>
     <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} selectable accessibilityLabel={`${label}: ${value || '—'}`}
-      style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', lineHeight: 20, includeFontPadding: true, textAlign: 'right', writingDirection: 'ltr', flex: 1, minWidth: 0 }}>
+      style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right', writingDirection: 'ltr', flex: 1, minWidth: 0 }}>
       {value || '—'}
     </Text>
     {value ? <LocalizedPressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityHint="Copies value to clipboard"
@@ -129,12 +127,6 @@ export default function Deposit() {
   const appPreferences = useAppPreferences();
   const colors = useColors();
   const queryClient = useQueryClient();
-  const investorProfileQuery = useGetInvestorProfile({ query: {
-    queryKey: ['investor-profile'],
-    enabled: Boolean(token),
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
-  } });
   const dashboardQuery = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
   const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
   const optionsQuery = useGetInvestorDepositOptions({ query: { queryKey: ['investor-deposit-options'], enabled: Boolean(token) } });
@@ -164,11 +156,6 @@ export default function Deposit() {
   const [notice, setNotice] = useState('');
   const [stage, setStage] = useState<'method' | 'form' | 'review' | 'submitted'>('method');
   const [paymentMethodId, setPaymentMethodId] = useState<DepositPaymentMethodId | ''>('');
-  const [kycGateVisible, setKycGateVisible] = useState(false);
-  const [kycGateStatus, setKycGateStatus] = useState('Not Started');
-  const [kycGateUnavailable, setKycGateUnavailable] = useState(false);
-  const [checkingKycMethodId, setCheckingKycMethodId] = useState<DepositPaymentMethodId | ''>('');
-  const [checkingKycBeforeContinue, setCheckingKycBeforeContinue] = useState(false);
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
   const [successFeedbackVisible, setSuccessFeedbackVisible] = useState(false);
   const [selectedDepositId, setSelectedDepositId] = useState('');
@@ -179,13 +166,6 @@ export default function Deposit() {
   const selectedBank = banks.find(item => first(item, ['id']) === bankId) ?? defaultBank;
   const selectedProject = projects.find(item => first(item, ['id']) === projectId);
   const selectedPaymentMethod = DEPOSIT_PAYMENT_METHODS.find(item => item.id === paymentMethodId);
-  const kycGateBody = kycGateUnavailable
-    ? 'We could not confirm your verification status right now. Deposits stay locked until the status can be checked. Open KYC & Documents to review your application, then return and try again.'
-    : kycGateStatus === 'Under Review'
-      ? 'Your identity documents are under review. For your account security and payment compliance, deposits unlock only after the KYC status changes to Verified. You can review your application in Profile → KYC & Documents.'
-      : kycGateStatus === 'Action Required' || kycGateStatus === 'Rejected'
-        ? `Your current KYC status is ${kycGateStatus}. Please open Profile → KYC & Documents, review the requested changes, and submit the required information again. Deposits will be available after your KYC is marked Verified.`
-        : `Your current KYC status is ${kycGateStatus}. Before making a deposit, complete your identity details, upload the requested identity and address documents, and submit them for review in Profile → KYC & Documents. Payment methods unlock automatically once your KYC is marked Verified. No deposit has been started.`;
   const paymentCurrency = walletCurrency;
   const paymentFeeAmount = selectedPaymentMethod
     ? Number(amount || 0) * selectedPaymentMethod.feePercent / 100
@@ -230,59 +210,6 @@ export default function Deposit() {
       copyResetTimer.current = setTimeout(() => setCopiedBankField(null), 1600);
     } catch {
       setBankDetailCopyError('Could not copy the bank detail. Select and copy the value instead.');
-    }
-  }
-
-  async function requireVerifiedKyc(): Promise<boolean> {
-    setCheckingKycBeforeContinue(true);
-    try {
-      const latestProfile = await investorProfileQuery.refetch();
-      if (latestProfile.isError || !latestProfile.data) {
-        setKycGateUnavailable(true);
-        setKycGateStatus('Unable to confirm');
-        setKycGateVisible(true);
-        setPaymentMethodId('');
-        setStage('method');
-        return false;
-      }
-
-      const profile = unwrap(latestProfile.data);
-      const status = getInvestorKycStatus(profile);
-      if (!isInvestorKycVerified(profile)) {
-        setKycGateUnavailable(false);
-        setKycGateStatus(status);
-        setKycGateVisible(true);
-        setPaymentMethodId('');
-        setStage('method');
-        return false;
-      }
-
-      setKycGateVisible(false);
-      setKycGateUnavailable(false);
-      return true;
-    } catch {
-      setKycGateUnavailable(true);
-      setKycGateStatus('Unable to confirm');
-      setKycGateVisible(true);
-      setPaymentMethodId('');
-      setStage('method');
-      return false;
-    } finally {
-      setCheckingKycBeforeContinue(false);
-    }
-  }
-
-  async function choosePaymentMethod(methodId: DepositPaymentMethodId) {
-    if (checkingKycMethodId || checkingKycBeforeContinue) return;
-    setError('');
-    setNotice('');
-    setCheckingKycMethodId(methodId);
-    try {
-      if (!await requireVerifiedKyc()) return;
-      setPaymentMethodId(methodId);
-      setStage('form');
-    } finally {
-      setCheckingKycMethodId('');
     }
   }
 
@@ -365,7 +292,6 @@ export default function Deposit() {
   async function submit() {
     setError('');
     setNotice('');
-    if (checkingKycBeforeContinue || !await requireVerifiedKyc()) return;
     const paymentMethod = selectedPaymentMethod;
     if (!paymentMethod) {
       setError('Choose a payment method before continuing.');
@@ -455,12 +381,13 @@ export default function Deposit() {
       </Card> : null}
       {paymentCurrency === 'USD' ? DEPOSIT_PAYMENT_METHODS.map(method => {
         const selected = method.id === paymentMethodId;
-        const checkingKyc = checkingKycMethodId === method.id;
-        return <Pressable key={method.id} accessibilityRole="button"
-          accessibilityState={{ selected, disabled: Boolean(checkingKycMethodId), busy: checkingKyc }}
-          testID={`deposit-payment-method-${method.id}`}
-          disabled={Boolean(checkingKycMethodId)}
-          onPress={() => void choosePaymentMethod(method.id)}
+        return <Pressable key={method.id} accessibilityRole="button" accessibilityState={{ selected }}
+          testID={`deposit-payment-method-${method.id}`} onPress={() => {
+            setPaymentMethodId(method.id);
+            setError('');
+            setNotice('');
+            setStage('form');
+          }}
           style={{ marginBottom: 10 }}>
           <Card style={{
             borderColor: selected ? colors.primary : colors.border,
@@ -474,7 +401,6 @@ export default function Deposit() {
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '700' }}>{method.label}</Text>
               </View>
-              {checkingKyc ? <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '700' }}>Checking KYC…</Text> : null}
               {selected ? <Text style={{ color: colors.primary, fontSize: 9, fontWeight: '700' }}>SELECTED</Text> : null}
               <Feather name={selected ? 'check-circle' : 'circle'} size={19} color={selected ? colors.primary : colors.mutedForeground} />
             </View>
@@ -611,9 +537,8 @@ export default function Deposit() {
           </View> : null}
           {proofRequired ? <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16 }}>The selected payment account requires proof before submission.</Text> : null}
           {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, lineHeight: 18 }}>{error}</Text> : null}
-          <Action title="Review deposit" icon="arrow-right" loading={checkingKycBeforeContinue} disabled={currencyCheckLoading || checkingKycBeforeContinue || !paymentCurrency || !amount || Number(amount) < 1 || !selectedBank || !reference.trim() || (proofRequired && !proof)} onPress={async () => {
+          <Action title="Review deposit" icon="arrow-right" disabled={currencyCheckLoading || !paymentCurrency || !amount || Number(amount) < 1 || !selectedBank || !reference.trim() || (proofRequired && !proof)} onPress={() => {
             setError('');
-            if (!await requireVerifiedKyc()) return;
             if (validateDeposit()) setStage('review');
           }} />
         </View>
@@ -646,8 +571,8 @@ export default function Deposit() {
       {selectedProject ? <DetailRow label="Project association" value={first(selectedProject, ['title', 'name'], 'Investment project')} /> : null}
        <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginTop: 8, marginBottom: 12 }}>OG Exports will review this request. Your wallet balance will update when the deposit is credited.</Text>
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
-       <Action title="Submit deposit request" icon="lock" loading={create.isPending || checkingKycBeforeContinue}
-          disabled={checkingKycBeforeContinue || currencyCheckLoading || dashboardQuery.isError || !paymentCurrency}
+      <Action title="Submit deposit request" icon="lock" loading={create.isPending}
+         disabled={currencyCheckLoading || dashboardQuery.isError || !paymentCurrency}
         onPress={() => void submit()} />
       <View style={{ marginTop: 10 }}><Action title="Edit deposit" secondary onPress={() => { setError(''); setStage('form'); }} /></View>
     </Card> : null}
@@ -752,19 +677,6 @@ export default function Deposit() {
       reference={first(confirmation ?? {}, ['reference', 'deposit_reference', 'bank_reference']) || undefined}
       onDismiss={() => setSuccessFeedbackVisible(false)}
       testID="deposit-success-feedback"
-    />
-    <ConfirmationSheet
-      visible={kycGateVisible}
-      testID="deposit-kyc-gate"
-      title={kycGateUnavailable ? 'KYC status check required' : 'Complete KYC before depositing'}
-      body={kycGateBody}
-      confirmLabel={kycGateUnavailable ? 'Open KYC status' : 'Complete KYC'}
-      cancelLabel="Not now"
-      onCancel={() => setKycGateVisible(false)}
-      onConfirm={() => {
-        setKycGateVisible(false);
-        router.push('/account/kyc');
-      }}
     />
   </Screen>;
 }

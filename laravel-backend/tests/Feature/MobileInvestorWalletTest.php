@@ -92,40 +92,6 @@ it('preserves an existing USD wallet when reading it for a Pakistan-based invest
         ->assertJsonPath('data.summary.available_balance', 1150.33);
 });
 
-it('keeps wallet behavior unchanged when an investor changes profile country', function () {
-    Http::fake([
-        '*' => Http::response(['rates' => ['USD' => 1, 'PKR' => 277.2]], 200),
-    ]);
-    ExchangeRateService::clearCache();
-
-    $wallet = Wallet::query()->where('user_id', $this->investor->id)->firstOrFail();
-    $wallet->update(['available_balance' => 1150.33]);
-    $token = $this->investor->createToken('profile_country_wallet_test')->plainTextToken;
-
-    foreach (['Pakistan', 'United Arab Emirates', 'Canada'] as $country) {
-        $this->withHeader('Authorization', 'Bearer '.$token)
-            ->putJson('/api/me', ['country' => $country])
-            ->assertOk()
-            ->assertJsonPath('data.country', $country)
-            ->assertJsonPath('data.walletCurrency', 'USD');
-    }
-
-    expect($wallet->fresh()->currency)->toBe('USD')
-        ->and((float) $wallet->fresh()->available_balance)->toBe(1150.33);
-
-    $this->withHeader('Authorization', 'Bearer '.$token)
-        ->getJson('/api/investor/wallet')
-        ->assertOk()
-        ->assertJsonPath('data.currency', 'USD')
-        ->assertJsonPath('data.available_balance', 1150.33);
-
-    $this->withHeader('Authorization', 'Bearer '.$token)
-        ->getJson('/api/investor/dashboard')
-        ->assertOk()
-        ->assertJsonPath('data.wallet.currency', 'USD')
-        ->assertJsonPath('data.summary.available_balance', 1150.33);
-});
-
 it('creates a USD wallet for a Pakistan-based investor when Profile currency is unset', function () {
     Http::fake([
         '*' => Http::response(['rates' => ['USD' => 1, 'PKR' => 277.2]], 200),

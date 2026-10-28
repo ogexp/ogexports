@@ -22,7 +22,7 @@ import { CountryPicker } from '@/components/CountryPicker';
 import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap, type Json } from '@/lib/data';
 import { countryForApi, profileUserCountry } from '@/lib/countries';
-import { updatedInvestorUser } from '@/lib/profile-response';
+import { validOrigin } from '@/lib/api-config';
 import { useColors } from '@/hooks/useColors';
 import { useAppPreferences, type AppearancePreference, type DisplayCurrency } from '@/context/AppPreferencesContext';
 import { localizedAlert as Alert, translateUi } from '@/lib/strings';
@@ -37,7 +37,7 @@ const pushEnabledKey = (userId: string) => `og-investor-push-enabled:${userId}`;
 const pushTokenKey = (userId: string) => `og-investor-push-token:${userId}`;
 
 export default function Settings() {
-  const { token, user, updateUser, signOut } = useAuth();
+  const { token, user, apiOrigin, updateOrigin, updateUser, signOut } = useAuth();
   const appPreferences = useAppPreferences();
   const motion = useMotion();
   const colors = useColors();
@@ -51,11 +51,10 @@ export default function Settings() {
   const registerPushToken = useRegisterInvestorPushToken();
   const revokePushToken = useRevokeInvestorPushToken();
   const profile = unwrap(profileQuery.data);
+  const [server, setServer] = useState(apiOrigin);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState('');
-  const [profileSaveError, setProfileSaveError] = useState('');
-  const [profileSaveMessage, setProfileSaveMessage] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -72,10 +71,11 @@ export default function Settings() {
     ?? '';
 
   useEffect(() => {
+    setServer(apiOrigin);
     if (profileQuery.data) {
       setNotificationPrefs(record(profile.notification_prefs));
     }
-  }, [profileQuery.data]);
+  }, [apiOrigin, profileQuery.data]);
 
   useEffect(() => {
     const account = record(user);
@@ -230,30 +230,18 @@ export default function Settings() {
   }
 
   async function saveProfile() {
-    setProfileSaveError('');
-    setProfileSaveMessage('');
-    const requestedCountry = countryForApi(country);
+    setError('');
     try {
-      const savedUser = updatedInvestorUser(await updateMe.mutateAsync({
-        data: { name: name.trim(), mobile: phone.trim(), country: requestedCountry },
+      const saved = record(await updateMe.mutateAsync({
+        data: { name: name.trim(), mobile: phone.trim(), country: countryForApi(country) },
       }));
-      const savedUserId = first(savedUser, ['id', 'user_id']);
-      if (!savedUserId) throw new Error('The server did not return the updated profile.');
-      const currentUserId = first(record(user), ['id', 'user_id']);
-      if (currentUserId && savedUserId !== currentUserId) {
-        throw new Error('The server returned a different profile. Please sign in again and retry.');
-      }
-      const savedCountry = typeof savedUser.country === 'string'
-        ? countryForApi(savedUser.country)
-        : '';
-      if (savedCountry !== requestedCountry) {
-        throw new Error('The server did not confirm the selected country. Please try again.');
-      }
+      const savedUser = record(saved.user);
+      if (!first(savedUser, ['id'])) throw new Error('The server did not return the updated profile.');
       await updateUser(savedUser as Json);
 
-      setProfileSaveMessage('Profile details saved successfully.');
+      Alert.alert('Profile updated', 'Your profile details have been saved.');
       void profileQuery.refetch();
-    } catch (err) { setProfileSaveError(messageOf(err)); }
+    } catch (err) { setError(messageOf(err)); }
   }
 
   async function savePassword() {
@@ -271,7 +259,19 @@ export default function Settings() {
     } catch (err) { setError(messageOf(err)); }
   }
 
-  async function saveAppPreference(patch: { language?: 'en'; currency?: DisplayCurrency; appearance?: AppearancePreference }) {
+  async function changeServer() {
+    setError('');
+    if (!validOrigin(server)) {
+      setError('Enter a valid address beginning with https:// (or http:// for local development).');
+      return;
+    }
+    try {
+      await updateOrigin(server);
+      Alert.alert('Server saved', 'The app will use this investor API server.');
+    } catch (err) { setError(messageOf(err)); }
+  }
+
+  async function saveAppPreference(patch: { language?: 'en' | 'ur' | 'ar'; currency?: DisplayCurrency; appearance?: AppearancePreference }) {
     setError('');
     try {
       await appPreferences.savePreferences(patch);
@@ -309,11 +309,9 @@ export default function Settings() {
       <Field label="Full name" value={name} onChangeText={setName} placeholder="Your name" />
       <Field label="Mobile number" value={phone} onChangeText={setPhone} placeholder="+92 300 1234567" keyboardType="phone-pad" />
       <CountryPicker label="Country / region" value={country} onChange={setCountry} placeholder="Country of residence" />
-      {profileSaveError ? <Text testID="profile-save-error" accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18, marginBottom: 10 }}>{profileSaveError}</Text> : null}
-      {profileSaveMessage ? <Text testID="profile-save-success" accessibilityRole="text" style={{ color: colors.primary, fontSize: 12, lineHeight: 18, marginBottom: 10 }}>{profileSaveMessage}</Text> : null}
       <View style={{ gap: 12 }}>
         <Action title="Manage bank accounts & verification" secondary onPress={() => router.push('/account/bank-accounts' as never)} />
-        <Action testID="save-profile-details" title="Save profile details" icon="save" loading={updateMe.isPending} onPress={() => void saveProfile()} />
+        <Action title="Save profile details" icon="save" loading={updateMe.isPending} onPress={() => void saveProfile()} />
       </View>
     </Card>
 
@@ -321,16 +319,24 @@ export default function Settings() {
       <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 10 }}>App preferences</Text>
       <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>Language</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-        <Pressable
-          testID="language-option-en"
-          accessibilityRole="radio"
-          accessibilityState={{ checked: true, disabled: appPreferences.isSaving }}
-          disabled={appPreferences.isSaving}
-          onPress={() => void saveAppPreference({ language: 'en' })}
-          style={{ paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderColor: colors.primary, borderRadius: 18, backgroundColor: colors.lightGreen }}
-        >
-          <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>English</Text>
-        </Pressable>
+        {([
+          ['en', 'English'],
+          ['ur', 'اردو'],
+          ['ar', 'العربية'],
+        ] as const).map(([language, label]) => {
+          const selected = appPreferences.preferences.language === language;
+          return <Pressable
+            key={language}
+            testID={`language-option-${language}`}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: selected, disabled: appPreferences.isSaving }}
+            disabled={appPreferences.isSaving}
+            onPress={() => void saveAppPreference({ language })}
+            style={{ paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, borderRadius: 18, backgroundColor: selected ? colors.lightGreen : colors.card }}
+          >
+            <Text style={{ color: selected ? colors.primary : colors.foreground, fontSize: 13, fontWeight: selected ? '700' : '500' }}>{label}</Text>
+          </Pressable>;
+        })}
       </View>
 
       <Text style={{ color: colors.mutedForeground, fontSize: 12, marginBottom: 8 }}>
@@ -485,6 +491,12 @@ export default function Settings() {
 
     <TransactionPasswordSettingsCard />
 
+    <Card>
+      <Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 16, marginBottom: 6 }}>Investor API server</Text>
+      <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>Changing this address reconnects the app to a different OG Exports server.</Text>
+      <Field label="Server address" value={server} onChangeText={setServer} placeholder="https://api.yourcompany.com" keyboardType="default" autoCapitalize="none" />
+      <Action title="Save server address" icon="globe" secondary onPress={() => void changeServer()} />
+    </Card>
     {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, marginBottom: 12 }}>{error}</Text> : null}
     <View style={{ marginBottom: 8 }}>
       <Action title="Sign out" icon="log-out" secondary loading={logout.isPending} onPress={() => setConfirmSignOut(true)} />

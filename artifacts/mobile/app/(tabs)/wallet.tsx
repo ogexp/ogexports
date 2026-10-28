@@ -4,14 +4,12 @@ import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useGetInvestorDashboard, useGetInvestorDeposits, useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
+import { useGetInvestorDashboard, useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
 import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap, walletCurrencyFromSources, type Json } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MotionReveal } from '@/lib/motion';
-import { isDepositAwaitingCredit } from '@/lib/deposit-activity';
-import { rememberFinancialDetail } from '@/lib/financial-detail-cache';
 
 type WalletCategory = 'All' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
 const walletCategories: WalletCategory[] = ['All', 'Deposits', 'Investments', 'Withdrawals', 'Distributions'];
@@ -47,7 +45,7 @@ function balanceLabel(value: number | null, currency: string, loading: boolean, 
 }
 
 export default function Wallet() {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const colors = useColors();
   const [category, setCategory] = useState<WalletCategory>('All');
   const wallet = useGetInvestorWallet({
@@ -59,32 +57,22 @@ export default function Wallet() {
   const transactions = useGetInvestorWalletTransactions({ page: 1, per_page: pageSize }, {
     query: { queryKey: ['investor-wallet-transactions', 1, pageSize], enabled: Boolean(token), staleTime: 30_000 },
   });
-  const depositsQuery = useGetInvestorDeposits({ page: 1, per_page: 20 }, {
-    query: { queryKey: ['investor-deposits', 1, 20], enabled: Boolean(token), staleTime: 30_000 },
-  });
   useFocusEffect(React.useCallback(() => {
     if (token) {
       void wallet.refetch();
       void dashboard.refetch();
-      void depositsQuery.refetch();
     }
-  }, [token, wallet.refetch, dashboard.refetch, depositsQuery.refetch]));
+  }, [token, wallet.refetch, dashboard.refetch]));
 
   const walletData = record(record(wallet.data).data ?? wallet.data);
-  const dashboardData = unwrap(dashboard.data);
-  const summary = record(dashboardData.summary);
   const currency = walletCurrencyFromSources(walletData, dashboard.data);
   const walletCurrencyLoading = (wallet.isLoading || wallet.isFetching)
     && !first(walletData, ['currency', 'default_currency']);
   const usdWalletReady = currency === 'USD' && !walletCurrencyLoading;
   const available = availableBalanceFromDashboard(dashboard.data);
   const allocated = amount(walletData, ['allocated_to_trades', 'allocated_balance']);
-  const pendingDeposits = amount(summary, ['pending_deposits_amount', 'pending_deposits']);
-  const pendingWalletBalance = amount(walletData, ['pending_balance']);
+  const pending = amount(walletData, ['pending_balance']);
   const withdrawable = available;
-  const deposits = list(depositsQuery.data);
-  const depositsAwaitingCredit = deposits.filter(isDepositAwaitingCredit);
-  const visiblePendingDeposits = depositsAwaitingCredit.slice(0, 3);
 
   const ledger = list(transactions.data);
   const filteredLedger = category === 'All'
@@ -101,8 +89,7 @@ export default function Wallet() {
   const balanceMetrics = [
     { label: 'Available', value: available },
     { label: 'Allocated to Trades', value: allocated },
-    { label: 'Pending Deposits', value: pendingDeposits },
-    { label: 'Pending Wallet Balance', value: pendingWalletBalance },
+    { label: 'Pending', value: pending },
     { label: 'Withdrawable Balance', value: withdrawable },
   ];
 
@@ -190,10 +177,10 @@ export default function Wallet() {
     <Section title="Balance Breakdown" />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
       {balanceMetrics.map(metric => {
-        const isDashboardBalance = ['Available', 'Pending Deposits', 'Withdrawable Balance'].includes(metric.label);
+        const isDashboardBalance = metric.label === 'Available' || metric.label === 'Withdrawable Balance';
         return <Card key={metric.label} style={{ width: '48%', minHeight: 91, padding: 13, marginBottom: 0 }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{metric.label}</Text>
-          <Text testID={metric.label === 'Pending Deposits' ? 'wallet-pending-deposits' : metric.label === 'Withdrawable Balance' ? 'wallet-withdrawable-balance' : undefined}
+          <Text testID={metric.label === 'Withdrawable Balance' ? 'wallet-withdrawable-balance' : undefined}
             numberOfLines={2} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 8 }}>
             {balanceLabel(
               metric.value,
@@ -215,66 +202,6 @@ export default function Wallet() {
       <View style={{ flex: 1 }}><Action title="Add Funds" icon="plus" disabled={!usdWalletReady} onPress={() => router.push('/wallet/deposit')} /></View>
       <View style={{ flex: 1 }}><Action title="Withdraw" icon="arrow-up-right" secondary disabled={!usdWalletReady} onPress={() => router.push('/wallet/withdraw')} /></View>
     </View>
-    </> : null}
-
-    {depositsQuery.isError ? <ErrorState
-      message="Pending deposit status could not be loaded."
-      error={depositsQuery.error}
-      onRetry={() => void depositsQuery.refetch()}
-    /> : null}
-    {!depositsQuery.isError && visiblePendingDeposits.length > 0 ? <>
-      <Section
-        title="Pending deposits"
-        right={<Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{visiblePendingDeposits.length} shown</Text>}
-      />
-      <Card style={{ borderColor: colors.border, padding: 14 }}>
-        <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginBottom: 8 }}>
-          These deposits are not included in your available balance until OG Exports confirms they are credited.
-        </Text>
-        {visiblePendingDeposits.map((item, index) => {
-          const detailId = first(item, ['id', 'deposit_id', 'depositId']);
-          const reference = first(item, ['reference', 'deposit_reference'], 'Deposit request');
-          const status = first(item, ['review_status_label', 'review_status', 'status', 'state'], 'Status unavailable');
-          const itemCurrency = first(item, ['currency', 'amount_currency', 'original_currency'], 'USD');
-          const submitted = displayDate(first(item, ['created_at', 'submitted_at', 'date']));
-          const clickable = /^[1-9]\d*$/.test(detailId);
-          return <Pressable
-            key={`${detailId || reference}-${index}`}
-            accessibilityRole={clickable ? 'button' : undefined}
-            accessibilityLabel={`Open pending deposit ${reference}`}
-            disabled={!clickable}
-            onPress={() => {
-              rememberFinancialDetail(first(record(user), ['id']), 'deposit', detailId, item);
-              router.push({ pathname: '/account/transaction/[id]', params: { id: detailId, kind: 'deposit', page: '1' } });
-            }}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 11,
-              paddingVertical: 12,
-              borderTopWidth: index === 0 ? 0 : 1,
-              borderTopColor: colors.border,
-            }}
-          >
-            <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' }}>
-              <Feather name="clock" size={16} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>{reference}</Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 3 }}>{submitted}</Text>
-            </View>
-            <View style={{ alignItems: 'flex-end', gap: 5 }}>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>
-                {money(amount(item, ['amount']), itemCurrency)}
-              </Text>
-              <Status value={status} />
-            </View>
-          </Pressable>;
-        })}
-        <View style={{ marginTop: 10 }}>
-          <Action title="View deposit history" icon="arrow-right" secondary onPress={() => router.push('/wallet/deposit')} />
-        </View>
-      </Card>
     </> : null}
 
     <Section title="Transaction History" right={<Pressable

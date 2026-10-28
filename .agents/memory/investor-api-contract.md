@@ -102,9 +102,3 @@ Profile country and display preference must not make an investor's account or wa
 **Why:** The user explicitly stated that every OG Exports investor account must be USD-only.
 
 **How to apply:** Use USD-only financial records and requests. Do not convert or relabel balances in the client; Laravel must perform and audit any conversion of legacy non-USD wallets.
-
-Mobile profile-update responses may return the user directly or inside a `data`/`user` envelope; do not assume the mutation response is always `{ success, user }`.
-
-**Why:** On October 18, 2026, the mobile client received a successful response that did not expose `user.id` at the top level, despite the local Express route using that shape.
-
-**How to apply:** Normalize common response envelopes, then verify the returned investor ID and saved country before showing success or updating the local session.
