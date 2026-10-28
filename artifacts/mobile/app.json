@@ -2,7 +2,7 @@
   "expo": {
     "name": "OG Exports",
     "slug": "og55",
-    "version": "2.1.9",
+    "version": "2.1.8",
     "orientation": "portrait",
     "icon": "./assets/images/og-logo.png",
     "scheme": "mobile",
@@ -12,20 +12,14 @@
     },
     "android": {
       "package": "com.ogexports.investor",
-      "googleServicesFile": "./google-services.json",
-      "versionCode": 9
+      "versionCode": 8
     },
     "web": {
       "favicon": "./assets/images/og-logo.png"
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-notifications",
-        {
-          "defaultChannel": "investor-updates-v2"
-        }
-      ],
+      "expo-notifications",
       "expo-secure-store",
       "expo-sharing",
       [

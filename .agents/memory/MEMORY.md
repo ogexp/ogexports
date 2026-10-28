@@ -32,7 +32,7 @@
 - [OG Exports mobile motion performance](og-mobile-motion-performance.md) — keep other motion short; startup rings loop for six seconds with three dots spaced evenly around each.
 - [OpenAPI date query serialization](openapi-date-query-serialization.md) — date-only query params must remain strings with a YYYY-MM-DD pattern under the current Orval client generator.
 - [ZIP delivery preference](zip-delivery-preference.md) — create or refresh an app ZIP only when the user explicitly asks for one.
-- [Local Android SDK storage](local-android-sdk-quota.md) — keep NDK executables out of noexec tmpfs and Gradle caches off the 4 GB home overlay.
+- [Local Android SDK quota](local-android-sdk-quota.md) — account for quota limits, `/dev/shm` noexec, and tmpfs memory when staging the NDK.
 - [Mobile popup glass treatment](mobile-popup-glass.md) — use blur where supported and a translucent fallback on Android unless a valid modal blur target is available.
 - [Investor auto-invest rules](investor-auto-invest.md) — use the admin-managed mobile catalog, match any container size, and never backfill already-open opportunities.
 - [Hostinger API deployment](hostinger-api-deployment.md) — production Laravel API runs on Hostinger Business; Replit publishing does not deploy it.

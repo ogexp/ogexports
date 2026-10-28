@@ -26,11 +26,3 @@ test('branded PDF escapes the title and removes executable HTML', () => {
   assert.doesNotMatch(html, /<script|onclick=/i);
   assert.ok(html.includes('<p>Safe</p>'));
 });
-
-test('branded PDF keeps the receipt usable when its optional logo is unavailable', () => {
-  const html = brandedPdfHtml('<body><p>Deposit receipt</p></body>', 'Deposit receipt', '');
-
-  assert.doesNotMatch(html, /<img\b/i);
-  assert.match(html, /OG Exports · Global Trade\. Digital Investment\./);
-  assert.match(html, /Deposit receipt/);
-});

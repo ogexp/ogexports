@@ -17,9 +17,6 @@ export function brandedPdfHtml(sourceHtml: string, title: string, logoUri: strin
   const existingStyles = [...head.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)]
     .map(match => match[1]).join('\n');
   const generatedAt = new Intl.DateTimeFormat(undefined, { dateStyle: 'long', timeStyle: 'short' }).format(new Date());
-  const logo = logoUri
-    ? `<img src="${escapeHtml(logoUri)}" alt="OG Exports logo">`
-    : '';
 
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${escapeHtml(title)}</title><style>
@@ -41,7 +38,7 @@ export function brandedPdfHtml(sourceHtml: string, title: string, logoUri: strin
     .og-pdf-footer{border-top:1px solid #dce7e0;margin-top:24px;padding-top:10px;color:#6e7d75;font-size:9px}
     tr,.receipt-card,.section{break-inside:avoid;page-break-inside:avoid}
     </style></head><body><main class="og-pdf">
-    <header class="og-pdf-brand">${logo}<div>
+    <header class="og-pdf-brand"><img src="${escapeHtml(logoUri)}" alt="OG Exports logo"><div>
       <div class="og-pdf-kicker">Official investor document</div><h1>${escapeHtml(title)}</h1>
       <p>OG Exports · Global Trade. Digital Investment.</p>
     </div></header>

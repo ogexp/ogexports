@@ -165,7 +165,6 @@ export function Field({ label, value, onChangeText, placeholder, secureTextEntry
 }) {
   const colors = useColors();
   const [focused, setFocused] = React.useState(false);
-  const [passwordVisible, setPasswordVisible] = React.useState(false);
   const { reduceMotion } = useMotion();
   const focusOpacity = React.useRef(new Animated.Value(0)).current;
   React.useEffect(() => {
@@ -188,7 +187,7 @@ export function Field({ label, value, onChangeText, placeholder, secureTextEntry
         <TextInput accessibilityLabel={label} value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={colors.mutedForeground}
           editable={editable}
           autoFocus={autoFocus} maxLength={maxLength}
-          secureTextEntry={secureTextEntry && !passwordVisible} keyboardType={keyboardType} autoCapitalize={autoCapitalize} multiline={multiline}
+          secureTextEntry={secureTextEntry} keyboardType={keyboardType} autoCapitalize={autoCapitalize} multiline={multiline}
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
           selectionColor={colors.primary} underlineColorAndroid={colors.input}
           style={[s.input, {
@@ -198,30 +197,7 @@ export function Field({ label, value, onChangeText, placeholder, secureTextEntry
             color: colors.foreground,
             outlineWidth: 0,
             opacity: editable ? 1 : 0.65,
-            paddingRight: secureTextEntry ? 50 : 14,
           }, multiline ? { minHeight: 92, textAlignVertical: 'top' } : null]} />
-        {secureTextEntry ? <Pressable
-          testID={`toggle-password-visibility-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
-          accessibilityRole="button"
-          accessibilityLabel={passwordVisible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
-          accessibilityHint={passwordVisible ? 'Hides the password text.' : 'Shows the password text.'}
-          accessibilityState={{ selected: passwordVisible, disabled: !editable }}
-          disabled={!editable}
-          hitSlop={6}
-          onPress={() => setPasswordVisible(visible => !visible)}
-          style={({ pressed }) => ({
-            position: 'absolute',
-            right: 2,
-            top: 2,
-            width: 44,
-            height: 44,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: pressed ? 0.68 : editable ? 1 : 0.5,
-          })}
-        >
-          <Feather name={passwordVisible ? 'eye-off' : 'eye'} size={18} color={passwordVisible ? colors.primary : colors.mutedForeground} />
-        </Pressable> : null}
         <Animated.View pointerEvents="none" style={{
           position: 'absolute',
           left: 0,

@@ -26,12 +26,3 @@ export function updatedInvestorUser(response: unknown): Json {
 
   return hasIdentity(candidate) ? candidate : {};
 }
-
-export function profileUserPhone(user: unknown): string {
-  const account = record(user);
-  for (const key of ['mobile', 'phone']) {
-    const value = account[key];
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return '';
-}

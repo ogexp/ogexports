@@ -37,13 +37,13 @@ export function TradeProgressCard({
   variant = 'default',
 }: Props) {
   const colors = useColors();
-  const stageColors = {
-    funding: colors.stageFunding,
-    investment_confirmed: colors.stageInvestmentConfirmed,
-    cargo_loaded: colors.stageCargoLoaded,
-    in_transit: colors.stageInTransit,
-    custom_clearance: colors.stageCustomClearance,
-    settled: colors.stageSettled,
+  const opportunityStageColors = {
+    funding: colors.allocationProfits,
+    investment_confirmed: colors.allocationBalance,
+    cargo_loaded: colors.allocationInvestments,
+    in_transit: colors.allocationWithdrawals,
+    custom_clearance: colors.balanceCardStart,
+    settled: colors.statusSuccess,
   };
   const stageRecords = stageUpdates.map(rawUpdate => {
     const update = record(rawUpdate);
@@ -85,14 +85,16 @@ export function TradeProgressCard({
           const update = latestByStage.get(stage.key);
           const completed = update?.status === 'completed';
           const inProgress = update?.status === 'in_progress';
-          const stageColor = stageColors[stage.key];
-          const reported = Boolean(update);
-          const markerColor = reported ? stageColor : colors.border;
+          const notStarted = update?.status === 'not_started';
+          const stageColor = opportunityStageColors[stage.key];
+           const completedColor = stageColor;
+           const inProgressColor = stageColor;
+          const markerColor = completed ? completedColor : inProgress ? inProgressColor : colors.border;
           const statusLabel = update?.statusLabel ?? 'No admin update yet.';
           const updateDate = update?.occurredAt
             ? eventDate(update.occurredAt, variant !== 'opportunity')
             : '';
-          const rowStatusColor = reported ? stageColor : colors.mutedForeground;
+          const rowStatusColor = completed ? completedColor : inProgress ? inProgressColor : colors.mutedForeground;
 
           return <MotionReveal key={`${stage.key}-${statusLabel}`} style={{ flexDirection: 'row', gap: 12, minHeight: index === TRADE_STAGES.length - 1 ? 58 : 75 }}>
             <View style={{ width: 25, alignItems: 'center' }}>
@@ -102,15 +104,15 @@ export function TradeProgressCard({
                 borderRadius: 12,
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderWidth: reported ? 0 : 1.5,
+                borderWidth: completed || inProgress ? 0 : 1.5,
                 borderColor: markerColor,
-                backgroundColor: reported ? markerColor : colors.secondary,
+                 backgroundColor: completed || inProgress ? markerColor : colors.secondary,
               }}>
                 {completed ? <Feather name="check" size={13} color={colors.primaryForeground} /> : null}
                 {inProgress ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primaryForeground }} /> : null}
               </View>
               {index < TRADE_STAGES.length - 1
-                ? <View style={{ width: 1.5, flex: 1, marginTop: 4, backgroundColor: completed ? stageColor : colors.border }} />
+                ? <View style={{ width: 1.5, flex: 1, marginTop: 4, backgroundColor: completed ? completedColor : colors.border }} />
                 : null}
             </View>
             <View style={{ flex: 1, paddingBottom: 13 }}>
@@ -130,9 +132,9 @@ export function TradeProgressCard({
                 ) : (
                   <Text testID={`stage-status-${stage.key}`} style={{
                     flexShrink: 1,
-                  color: rowStatusColor,
+                     color: rowStatusColor,
                     fontSize: 10,
-                  fontWeight: reported ? '700' : '400',
+                    fontWeight: completed || inProgress || notStarted ? '700' : '400',
                     textAlign: 'right',
                   }}>
                     {statusLabel}

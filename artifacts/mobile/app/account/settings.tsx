@@ -23,7 +23,7 @@ import { CountryPicker } from '@/components/CountryPicker';
 import { useAuth } from '@/context/AuthContext';
 import { first, list, messageOf, record, unwrap, type Json } from '@/lib/data';
 import { countryForApi, profileUserCountry } from '@/lib/countries';
-import { profileUserPhone, updatedInvestorUser } from '@/lib/profile-response';
+import { updatedInvestorUser } from '@/lib/profile-response';
 import { useColors } from '@/hooks/useColors';
 import { useAppPreferences, type AppearancePreference, type DisplayCurrency } from '@/context/AppPreferencesContext';
 import { localizedAlert as Alert, translateUi } from '@/lib/strings';
@@ -86,7 +86,7 @@ export default function Settings() {
   useEffect(() => {
     const account = record(user);
     setName(first(account, ['name']));
-    setPhone(profileUserPhone(account));
+    setPhone(first(account, ['mobile']));
     setCountry(profileUserCountry(account));
   }, [user]);
 
@@ -300,7 +300,7 @@ export default function Settings() {
     const requestedCountry = countryForApi(country);
     try {
       const savedUser = updatedInvestorUser(await updateMe.mutateAsync({
-        data: { name: name.trim(), phone: phone.trim(), country: requestedCountry },
+        data: { name: name.trim(), mobile: phone.trim(), country: requestedCountry },
       }));
       const savedUserId = first(savedUser, ['id', 'user_id']);
       if (!savedUserId) throw new Error('The server did not return the updated profile.');
@@ -308,14 +308,13 @@ export default function Settings() {
       if (currentUserId && savedUserId !== currentUserId) {
         throw new Error('The server returned a different profile. Please sign in again and retry.');
       }
-      const returnedCountry = profileUserCountry(savedUser);
-      const savedCountry = returnedCountry ? countryForApi(returnedCountry) : '';
-      if (savedCountry && savedCountry !== requestedCountry) {
+      const savedCountry = typeof savedUser.country === 'string'
+        ? countryForApi(savedUser.country)
+        : '';
+      if (savedCountry !== requestedCountry) {
         throw new Error('The server did not confirm the selected country. Please try again.');
       }
-      const savedPhone = profileUserPhone(savedUser) || phone.trim();
-      await updateUser({ ...record(user), ...savedUser, mobile: savedPhone } as Json);
-      setPhone(savedPhone);
+      await updateUser(savedUser as Json);
 
       setProfileSaveMessage('Profile details saved successfully.');
       void profileQuery.refetch();
