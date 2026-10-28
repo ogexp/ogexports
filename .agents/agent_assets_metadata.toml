@@ -140,3 +140,17 @@ mtime_ms = 1792394743109
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/acdf1955-2bbd-4fad-b499-35b23375d8a7/709955ed-5e47-4575-bc8e-2748d5ab1d0b"
 storage_version_token = "1792396344792893"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "a7fTBefe0RVbksFiZOBOQ"
+uri = "file://generated-artifacts/ogexports-investor-2.1.8-v8.aab"
+type = "unspecified"
+title = "OG Exports Android App Bundle 2.1.8 (version code 8)"
+description = "Signed release AAB for com.ogexports.investor. Bundle metadata and signature verified."
+logical_id = "ff2e02cd-b516-47c0-b4ea-23705cfca931"
+content_hash = "sha256:683a6a1a35a8dc3ce446e22ea5d762404df552b170680e34b8897a6aa5d4321f"
+size = 86489815
+mtime_ms = 1793187494571
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/ff2e02cd-b516-47c0-b4ea-23705cfca931/a17ec6ef-1526-49aa-b2a2-25d5f7038a0e"
+storage_version_token = "1793187599169017"
+content_type = "application/octet-stream"
