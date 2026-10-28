@@ -28,32 +28,6 @@ import { translateUi } from '@/lib/strings';
 import { MOTION, MotionProvider, useMotion } from '@/lib/motion';
 import { goBackOrReplace } from '@/lib/safe-navigation';
 
-const investorNotificationChannelId = 'investor-updates-v2';
-const notificationRuntime = Platform.OS === 'web'
-  ? Promise.resolve(null)
-  : import('expo-notifications').then(notificationsApi => {
-    notificationsApi.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowBanner: true,
-        shouldShowList: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-      }),
-    });
-    if (Platform.OS === 'android') {
-      void notificationsApi.setNotificationChannelAsync(investorNotificationChannelId, {
-        name: 'OG Exports investor alerts',
-        importance: notificationsApi.AndroidImportance.MAX,
-        sound: 'default',
-        vibrationPattern: [0, 250, 180, 250],
-        enableVibrate: true,
-        showBadge: true,
-        lockscreenVisibility: notificationsApi.AndroidNotificationVisibility.PUBLIC,
-      }).catch(() => undefined);
-    }
-    return notificationsApi;
-  }).catch(() => null);
-
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -153,8 +127,25 @@ function RootLayoutNav() {
       const data = record(request.content.data);
       router.push(notificationHref(data) ?? '/account/notifications');
     };
-    void notificationRuntime.then(notificationsApi => {
-      if (!active || !notificationsApi) return;
+    void import('expo-notifications').then(notificationsApi => {
+      if (!active) return;
+      notificationsApi.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+        }),
+      });
+      if (Platform.OS === 'android') {
+        void notificationsApi.setNotificationChannelAsync('investor-updates', {
+          name: 'Investor updates',
+          importance: notificationsApi.AndroidImportance.HIGH,
+          sound: 'default',
+          vibrationPattern: [0, 250, 250, 250],
+          lockscreenVisibility: notificationsApi.AndroidNotificationVisibility.PUBLIC,
+        }).catch(() => undefined);
+      }
       subscription = notificationsApi.addNotificationResponseReceivedListener(response => handleResponse(notificationsApi, response));
       return notificationsApi.getLastNotificationResponseAsync().then(response => {
         if (response) handleResponse(notificationsApi, response);

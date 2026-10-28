@@ -35,7 +35,6 @@ import { useMotion } from '@/lib/motion';
 
 const pushEnabledKey = (userId: string) => `og-investor-push-enabled:${userId}`;
 const pushTokenKey = (userId: string) => `og-investor-push-token:${userId}`;
-const investorNotificationChannelId = 'investor-updates-v2';
 
 export default function Settings() {
   const { token, user, updateUser, signOut } = useAuth();
@@ -67,7 +66,6 @@ export default function Settings() {
   const [savingNotificationPreference, setSavingNotificationPreference] = useState<NotificationCategoryKey | null>(null);
   const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
-  const [pushTestBusy, setPushTestBusy] = useState(false);
   const [pushError, setPushError] = useState('');
   const expoProjectId = Constants.easConfig?.projectId
     ?? Constants.expoConfig?.extra?.eas?.projectId
@@ -123,13 +121,11 @@ export default function Settings() {
     try {
       const notifications = await import('expo-notifications');
       if (Platform.OS === 'android') {
-        await notifications.setNotificationChannelAsync(investorNotificationChannelId, {
-          name: 'OG Exports investor alerts',
-          importance: notifications.AndroidImportance.MAX,
+        await notifications.setNotificationChannelAsync('investor-updates', {
+          name: 'Investor updates',
+          importance: notifications.AndroidImportance.HIGH,
           sound: 'default',
-          vibrationPattern: [0, 250, 180, 250],
-          enableVibrate: true,
-          showBadge: true,
+          vibrationPattern: [0, 250, 250, 250],
           lockscreenVisibility: notifications.AndroidNotificationVisibility.PUBLIC,
         });
       }
@@ -213,57 +209,6 @@ export default function Settings() {
       setPushError(messageOf(pushRevocationError));
     } finally {
       setPushBusy(false);
-    }
-  }
-
-  async function sendTestNotification() {
-    setPushTestBusy(true);
-    setPushError('');
-    try {
-      const notifications = await import('expo-notifications');
-      const permission = await notifications.getPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(
-          'Notifications are disabled',
-          'Allow notifications in device settings, then send the test again.',
-          [
-            { text: 'Not now', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => { void Linking.openSettings().catch(() => setPushError('Device settings could not be opened.')); } },
-          ],
-        );
-        return;
-      }
-      if (Platform.OS === 'android') {
-        await notifications.setNotificationChannelAsync(investorNotificationChannelId, {
-          name: 'OG Exports investor alerts',
-          importance: notifications.AndroidImportance.MAX,
-          sound: 'default',
-          vibrationPattern: [0, 250, 180, 250],
-          enableVibrate: true,
-          showBadge: true,
-          lockscreenVisibility: notifications.AndroidNotificationVisibility.PUBLIC,
-        });
-      }
-      await notifications.scheduleNotificationAsync({
-        content: {
-          title: 'OG Exports test alert',
-          body: 'Notifications are active on this device.',
-          sound: 'default',
-          data: { type: 'notification_test', href: '/account/notifications' },
-          ...(Platform.OS === 'android' ? { channelId: investorNotificationChannelId } : {}),
-        },
-        trigger: {
-          type: notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: 5,
-          repeats: false,
-          ...(Platform.OS === 'android' ? { channelId: investorNotificationChannelId } : {}),
-        },
-      });
-      Alert.alert('Test alert scheduled', 'Lock your screen now. The alert should appear in about five seconds.');
-    } catch (testError) {
-      setPushError(messageOf(testError));
-    } finally {
-      setPushTestBusy(false);
     }
   }
 
@@ -528,20 +473,6 @@ export default function Settings() {
         disabled={pushEnabled === null || (!pushEnabled && (!expoProjectId || Platform.OS === 'web'))}
         onPress={() => void (pushEnabled ? disablePushNotifications() : enablePushNotifications())}
       />
-      {pushEnabled && Platform.OS !== 'web' ? <>
-        <View style={{ marginTop: 9 }}>
-          <Action
-            title="Send test notification"
-            icon="bell"
-            secondary
-            loading={pushTestBusy}
-            onPress={() => void sendTestNotification()}
-          />
-        </View>
-        <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 8 }}>
-          Test confirms this device’s banner and lock-screen settings. It does not send a real account event.
-        </Text>
-      </> : null}
     </Card>
 
     <Card>
