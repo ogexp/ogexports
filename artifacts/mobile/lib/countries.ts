@@ -427,7 +427,9 @@ function stringField(value: Record<string, unknown>, key: string): string {
 }
 
 export function profileUserCountry(user: unknown): string {
-  return stringField(recordValue(user), 'country');
+  const account = recordValue(user);
+  const profile = recordValue(account.profile);
+  return stringField(account, 'country') || stringField(profile, 'country');
 }
 
 export function kycProfileCountry(profileValue: unknown): string {

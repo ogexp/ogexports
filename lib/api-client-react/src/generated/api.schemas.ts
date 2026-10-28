@@ -1150,7 +1150,13 @@ export interface InvestorProfileUpdate {
      */
   name?: string;
   /**
-     * Optional mobile number with country calling code. This number is not verified by SMS.
+     * Optional profile mobile number with country calling code. It is not verified by SMS.
+     * @maxLength 50
+     */
+  phone?: string;
+  /**
+     * Legacy alias for phone.
+     * @deprecated
      * @maxLength 32
      */
   mobile?: string;

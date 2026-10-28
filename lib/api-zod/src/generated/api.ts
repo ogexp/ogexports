@@ -90,6 +90,8 @@ export const GetInvestorMeResponse = zod.record(zod.string(), zod.unknown())
 export const updateInvestorMeBodyNameMin = 2;
 export const updateInvestorMeBodyNameMax = 120;
 
+export const updateInvestorMeBodyPhoneMax = 50;
+
 export const updateInvestorMeBodyMobileMax = 32;
 
 export const updateInvestorMeBodyCountryMax = 80;
@@ -98,7 +100,8 @@ export const updateInvestorMeBodyCountryMax = 80;
 
 export const UpdateInvestorMeBody = zod.object({
   "name": zod.string().min(updateInvestorMeBodyNameMin).max(updateInvestorMeBodyNameMax).optional(),
-  "mobile": zod.string().max(updateInvestorMeBodyMobileMax).optional().describe('Optional mobile number with country calling code. This number is not verified by SMS.'),
+  "phone": zod.string().max(updateInvestorMeBodyPhoneMax).optional().describe('Optional profile mobile number with country calling code. It is not verified by SMS.'),
+  "mobile": zod.string().max(updateInvestorMeBodyMobileMax).optional().describe('Legacy alias for phone.'),
   "country": zod.string().max(updateInvestorMeBodyCountryMax).optional().describe('Optional country or region.'),
   "preferences": zod.object({
   "currency": zod.enum(['USD', 'PKR', 'EUR', 'GBP']).optional().describe('Selecting a currency converts the actual wallet balance and changes future wallet operations.')

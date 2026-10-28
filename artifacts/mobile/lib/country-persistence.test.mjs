@@ -12,6 +12,10 @@ test('profile country selected through ISO search maps to the API name and reloa
   assert.equal(profileUserCountry(reloadedUser), 'Pakistan');
 });
 
+test('profile country reload accepts Laravel user-resource nesting', () => {
+  assert.equal(profileUserCountry({ id: 'investor-1', profile: { country: 'Pakistan' } }), 'Pakistan');
+});
+
 test('KYC country selected by name maps to the canonical API label and reload shape', () => {
   const selectedCountry = searchCountries('United Arab Emirates (the)').find(country => country.code === 'AE');
   assert.ok(selectedCountry);

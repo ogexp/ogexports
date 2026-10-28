@@ -2159,9 +2159,14 @@ components:
           type: string
           minLength: 2
           maxLength: 120
+        phone:
+          type: string
+          description: Optional profile mobile number with country calling code. It is not verified by SMS.
+          maxLength: 50
         mobile:
           type: string
-          description: Optional mobile number with country calling code. This number is not verified by SMS.
+          deprecated: true
+          description: Legacy alias for phone.
           maxLength: 32
         country:
           type: string
