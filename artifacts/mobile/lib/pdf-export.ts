@@ -8,20 +8,38 @@ import { brandedPdfHtml } from './pdf-html';
 
 const officialLogo = require('../assets/images/og-logo.png');
 let cachedLogoDataUri: string | null = null;
+let logoResolved = false;
 export { brandedPdfHtml } from './pdf-html';
 
 async function logoDataUri(): Promise<string> {
-  if (cachedLogoDataUri) return cachedLogoDataUri;
+  if (logoResolved) return cachedLogoDataUri ?? '';
   const asset = Asset.fromModule(officialLogo);
-  await asset.downloadAsync();
-  if (Platform.OS === 'web') {
-    cachedLogoDataUri = asset.uri;
-    return asset.uri;
+  try {
+    await asset.downloadAsync();
+    if (Platform.OS === 'web') {
+      cachedLogoDataUri = asset.uri;
+      logoResolved = true;
+      return asset.uri;
+    }
+
+    for (const uri of [asset.localUri, asset.uri]) {
+      if (!uri) continue;
+      try {
+        const logoFile = new File(absoluteFileUri(uri));
+        cachedLogoDataUri = `data:image/png;base64,${await logoFile.base64()}`;
+        logoResolved = true;
+        return cachedLogoDataUri;
+      } catch {
+        // The logo is optional; Android bundled-asset URIs vary by build type.
+      }
+    }
+  } catch {
+    // Receipt generation should not fail when the optional brand asset is unavailable.
   }
-  if (!asset.localUri) throw new Error('The official OG Exports logo could not be loaded.');
-  const logoFile = new File(absoluteFileUri(asset.localUri));
-  cachedLogoDataUri = `data:image/png;base64,${await logoFile.base64()}`;
-  return cachedLogoDataUri;
+
+  cachedLogoDataUri = '';
+  logoResolved = true;
+  return '';
 }
 
 export async function saveHtmlAsPdf(sourceHtml: string, filename: string, title: string): Promise<void> {
