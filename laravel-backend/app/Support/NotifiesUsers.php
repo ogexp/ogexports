@@ -12,20 +12,22 @@ class NotifiesUsers
 {
     public static function notify(User $user, string $type, string $title, ?string $body = null, ?array $data = null): ?AppNotification
     {
-        $notification = self::shouldDeliverInApp($user, $type)
-            ? AppNotification::create([
-                'user_id' => $user->id,
-                'type' => $type,
-                'title' => $title,
-                'body' => $body,
-                'data' => $data,
-                'created_at' => now(),
-            ])
-            : null;
+        if (! self::shouldDeliverInApp($user, $type)) {
+            return null;
+        }
+
+        $notification = AppNotification::create([
+            'user_id' => $user->id,
+            'type' => $type,
+            'title' => $title,
+            'body' => $body,
+            'data' => $data,
+            'created_at' => now(),
+        ]);
 
         if ($user->hasRole('investor') && $type !== InvestorNotificationTypes::PAYOUT_PROGRESS) {
-            DB::afterCommit(static function () use ($user, $type, $title, $body, $data, $notification): void {
-                InvestorPushBridge::sendNotification($user, $type, $title, $body, $data, $notification);
+            DB::afterCommit(static function () use ($user, $notification): void {
+                InvestorPushBridge::sendNotification($user, $notification);
             });
         }
 

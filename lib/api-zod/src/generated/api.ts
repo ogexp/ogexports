@@ -1831,13 +1831,6 @@ export const RegisterInvestorPushTokenResponse = zod.record(zod.string(), zod.un
 
 
 /**
- * Sends a non-sensitive Expo push only to the active device session that made this request.
- * @summary Send a real push test to the signed-in device
- */
-export const SendInvestorPushTestResponse = zod.record(zod.string(), zod.unknown())
-
-
-/**
  * @summary Disable push delivery for the signed-in device
  */
 export const revokeInvestorPushTokenBodyExpoPushTokenMin = 20;
@@ -1883,8 +1876,7 @@ export const ReceiveInternalInvestorPayoutProgressBody = zod.object({
   "investment_reference": zod.string().min(1).max(receiveInternalInvestorPayoutProgressBodyInvestmentReferenceMax),
   "project_name": zod.string().min(1).max(receiveInternalInvestorPayoutProgressBodyProjectNameMax),
   "status": zod.enum(['scheduled', 'processing']),
-  "planned_date": zod.coerce.date().nullable(),
-  "hide_sensitive_details": zod.boolean().optional().describe('Replace the push title and body with generic text on the lock screen.')
+  "planned_date": zod.coerce.date().nullable()
 })
 
 export const ReceiveInternalInvestorPayoutProgressResponse = zod.record(zod.string(), zod.unknown())
@@ -1920,12 +1912,11 @@ export const receiveInternalInvestorNotificationPushBodyHrefMax = 500;
 export const ReceiveInternalInvestorNotificationPushBody = zod.object({
   "event_id": zod.string().uuid(),
   "investor_email": zod.string().email().max(receiveInternalInvestorNotificationPushBodyInvestorEmailMax),
-  "notification_id": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyNotificationIdMax).nullish(),
+  "notification_id": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyNotificationIdMax),
   "type": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyTypeMax),
   "title": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyTitleMax),
   "body": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyBodyMax),
-  "href": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyHrefMax),
-  "hide_sensitive_details": zod.boolean().optional().describe('Replace the push title and body with generic text on the lock screen.')
+  "href": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyHrefMax)
 })
 
 export const ReceiveInternalInvestorNotificationPushResponse = zod.record(zod.string(), zod.unknown())

@@ -7,15 +7,11 @@ use App\Models\Investment;
 use App\Models\InvestmentProject;
 use App\Models\KycApplication;
 use App\Models\User;
-use App\Models\UserProfile;
 use App\Support\AdminModuleKeys;
 use App\Support\AdminNotificationTypes;
 use App\Support\NotifiesAdmins;
-use App\Support\NotifiesUsers;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Client\Request as HttpClientRequest;
-use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
@@ -174,67 +170,6 @@ it('creates admin notifications via NotifiesAdmins', function () {
         ->getJson('/api/admin/notifications')
         ->assertOk()
         ->assertJsonPath('data.0.type', AdminNotificationTypes::USER_REGISTERED);
-});
-
-it('keeps in-app notification details while passing lock-screen privacy to push delivery', function () {
-    config([
-        'services.investor_push.notification_url' => 'https://api.example.test/api/internal/investor-notification',
-        'services.investor_push.session_secret' => str_repeat('notification-bridge-test-secret-', 2),
-    ]);
-    Http::fake([
-        'https://api.example.test/*' => Http::response(['accepted_devices' => 1], 200),
-    ]);
-    UserProfile::query()->create([
-        'user_id' => $this->investor->id,
-        'meta' => ['notification_prefs' => ['hideLockScreenDetails' => true]],
-    ]);
-
-    $notification = NotifiesUsers::notify(
-        $this->investor,
-        'wallet',
-        'Wallet update: USD 1,250 credited',
-        'Your wallet balance increased to USD 1,250.',
-        ['href' => '/account/wallet'],
-    );
-
-    expect($notification)->not->toBeNull()
-        ->and($notification->title)->toBe('Wallet update: USD 1,250 credited')
-        ->and($notification->body)->toBe('Your wallet balance increased to USD 1,250.');
-    Http::assertSent(function (HttpClientRequest $request): bool {
-        return $request->data()['hide_sensitive_details'] === true
-            && $request->data()['title'] === 'Wallet update: USD 1,250 credited'
-            && $request->data()['body'] === 'Your wallet balance increased to USD 1,250.';
-    });
-});
-
-it('delivers push alerts even when in-app notifications are disabled', function () {
-    config([
-        'services.investor_push.notification_url' => 'https://api.example.test/api/internal/investor-notification',
-        'services.investor_push.session_secret' => str_repeat('notification-bridge-test-secret-', 2),
-    ]);
-    Http::fake([
-        'https://api.example.test/*' => Http::response(['accepted_devices' => 1], 200),
-    ]);
-    UserProfile::query()->create([
-        'user_id' => $this->investor->id,
-        'meta' => ['notification_prefs' => ['inApp' => false]],
-    ]);
-
-    $notification = NotifiesUsers::notify(
-        $this->investor,
-        'wallet',
-        'Wallet update',
-        'Your wallet has a new update.',
-        ['href' => '/account/wallet'],
-    );
-
-    expect($notification)->toBeNull();
-    Http::assertSent(function (HttpClientRequest $request): bool {
-        return $request->data()['type'] === 'wallet'
-            && $request->data()['title'] === 'Wallet update'
-            && $request->data()['notification_id'] === null
-            && $request->data()['href'] === '/account/wallet';
-    });
 });
 
 it('marks admin notifications as read', function () {

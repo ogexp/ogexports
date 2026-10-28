@@ -1,0 +1,1147 @@
+Build a premium, production-ready mobile investment application for OG Exports (Private) Limited, connected to the existing investment functionality of https://ogexports.co/.
+
+The app should feel like a premium fintech/investment platform — clean, trustworthy, modern, minimal and highly polished.
+
+1. BRAND & DESIGN DIRECTION
+
+Brand:
+OG Exports (Private) Limited
+
+Primary visual direction:
+
+* Premium WHITE background
+* Dark Emerald Green: #0F3D2E
+* Fresh Green: #4CAF50
+* Off-White: #F7F7F2
+* Charcoal: #1F2933
+* Very subtle Gold accent: #C6A969, only where appropriate
+* Avoid excessive gold
+* Avoid dark/heavy backgrounds
+* No flashy crypto-style gradients
+* No unnecessary neon colors
+
+Design inspiration:
+
+* Apple
+* Rolex
+* Maersk
+* Modern private banking apps
+* Premium investment/wealth-management apps
+
+The application must communicate:
+Trust + Security + Wealth + Global Trade + Professionalism
+
+Use generous white space, excellent typography, rounded cards, subtle shadows, clean icons and premium micro-interactions.
+
+Do NOT make the application look like a cryptocurrency trading app.
+
+⸻
+
+2. TECHNOLOGY
+
+Build the application using a modern mobile-first architecture suitable for deployment from Replit.
+
+Preferred:
+
+* React Native + Expo
+* TypeScript
+* Expo Router
+* Clean reusable component architecture
+* Responsive layouts
+* Production-ready folder structure
+* Secure authentication architecture
+* API-ready backend architecture
+
+The code should be modular and easy to maintain.
+
+Create reusable components for:
+
+* Cards
+* Buttons
+* Inputs
+* Bottom navigation
+* Investment cards
+* Portfolio cards
+* Transaction rows
+* Status badges
+* Charts
+* Modal sheets
+* KYC forms
+* Wallet components
+* Profile components
+
+⸻
+
+3. APP STRUCTURE
+
+Create the following primary navigation:
+
+BOTTOM NAVIGATION:
+
+1. Home
+2. Invest
+3. Trade
+4. Wallet
+5. Profile
+
+Use premium minimal line icons.
+
+The active tab should use OG Emerald Green.
+
+⸻
+
+4. SPLASH SCREEN
+
+Create a premium splash screen.
+
+White background.
+
+Centered OG Exports logo.
+
+Below logo:
+
+OG Exports
+
+Small subtitle:
+
+Global Trade. Smart Investment.
+
+Smooth fade/scale animation.
+
+Keep it elegant and short.
+
+⸻
+
+5. ONBOARDING
+
+Create 3 premium onboarding screens.
+
+Screen 1:
+Title:
+Invest in Real Trade
+
+Subtitle:
+Access carefully structured opportunities connected to real-world commodities and trade.
+
+Screen 2:
+Title:
+Track Your Portfolio
+
+Subtitle:
+Monitor investments, balances, transactions and performance from one place.
+
+Screen 3:
+Title:
+Built Around Trust
+
+Subtitle:
+Secure account verification, transparent investment information and professional reporting.
+
+Buttons:
+
+* Get Started
+* Already have an account? Sign In
+
+Use minimal illustrations/icons related to:
+
+* Global trade
+* Investment
+* Security
+
+⸻
+
+6. AUTHENTICATION
+
+Create:
+
+* Sign Up
+* Login
+* Forgot Password
+* Reset Password
+* Email verification
+* Phone verification
+* Logout
+
+Registration fields:
+
+* Full Name
+* Email
+* Phone Number
+* Country
+* Password
+* Confirm Password
+
+Use strong password validation.
+
+Show clear validation messages.
+
+⸻
+
+7. KYC SYSTEM
+
+Create a complete professional KYC flow.
+
+Profile should show:
+
+KYC Status
+
+Statuses:
+
+* Not Started
+* Pending Review
+* Verified
+* Rejected
+* Requires Update
+
+KYC steps:
+
+Step 1 — Personal Information
+
+* Full Name
+* Date of Birth
+* Nationality
+* Country of Residence
+* Residential Address
+
+Step 2 — Identification
+
+Document types:
+
+* Passport
+* National ID
+* Driving License
+
+Fields:
+
+* Document Number
+* Issue Date
+* Expiry Date
+
+Allow document/photo upload.
+
+Step 3 — Address Verification
+
+Allow upload of:
+
+* Utility Bill
+* Bank Statement
+* Government Document
+
+Step 4 — Selfie / Identity Verification
+
+Create placeholder architecture for selfie verification / third-party KYC provider integration.
+
+Step 5 — Review & Submit
+
+Show all entered information before final submission.
+
+Important:
+Do not claim KYC is legally verified inside the frontend. Build the UI and API-ready workflow so actual verification can later be connected to a compliant KYC provider.
+
+⸻
+
+8. HOME DASHBOARD
+
+After login, create a premium investor dashboard.
+
+Header:
+
+Good Morning, [First Name]
+
+Right side:
+Profile/avatar notification icon.
+
+Main portfolio card:
+
+Total Portfolio
+
+$0.00
+
+Below:
+
+* Invested
+* Available Balance
+* Returns
+
+Example:
+
+Total Portfolio
+$12,500.00
+
+Invested
+$10,000.00
+
+Available
+$2,500.00
+
+Returns
++$850.00
+
+Do not represent example values as real money.
+
+Add a clean portfolio performance chart.
+
+Time filters:
+
+1D | 1W | 1M | 3M | 1Y | ALL
+
+⸻
+
+9. QUICK ACTIONS
+
+Under dashboard create:
+
+Quick Actions
+
+* Add Funds
+* Invest
+* Withdraw
+* Trade
+
+Use premium icon cards.
+
+⸻
+
+10. FEATURED INVESTMENTS
+
+Create a horizontal investment opportunity section.
+
+Example projects:
+
+Rice Trading Project
+
+Category:
+Commodity Trade
+
+Location:
+Pakistan → UAE
+
+Investment Range:
+$100+
+
+Target Return:
+Performance Based
+
+Duration:
+12 Months
+
+Status:
+Open
+
+Important:
+Do NOT promise guaranteed profit.
+
+Use language such as:
+Target Return
+or
+Projected Return
+
+Add:
+
+View Details
+
+⸻
+
+11. INVESTMENT MARKETPLACE
+
+Create an Invest screen.
+
+Top:
+
+Investment Opportunities
+
+Search bar.
+
+Filters:
+
+* All
+* Agriculture
+* Commodity Trade
+* Cold Storage
+* Rice Mills
+* Export Projects
+
+Each investment card should display:
+
+Project Name
+Category
+Minimum Investment
+Target Return
+Investment Duration
+Funding Progress
+Status
+
+Example:
+
+Cold Storage Project
+
+Minimum:
+$500
+
+Target:
+Performance Based
+
+Duration:
+12 Months
+
+Progress:
+62%
+
+Button:
+View Opportunity
+
+⸻
+
+12. INVESTMENT DETAIL PAGE
+
+Create an extremely premium investment detail screen.
+
+Header image/banner.
+
+Project title.
+
+Status badge.
+
+Sections:
+
+Overview
+
+Detailed project description.
+
+Investment Details
+
+* Minimum Investment
+* Target Investment
+* Current Funding
+* Duration
+* Project Location
+* Investment Type
+* Risk Information
+
+Financial Information
+
+Show:
+
+Investment Amount
+Projected/Target Return
+Potential Outcome
+
+IMPORTANT:
+Never show guaranteed returns unless backend/legal documentation explicitly provides them.
+
+Project Documents
+
+Create secure document section:
+
+* Business Plan
+* Project Information Memorandum
+* Financial Information
+* Terms & Conditions
+* Risk Disclosure
+
+Buttons:
+View
+Download
+
+Risk Disclosure
+
+Clearly explain that investments involve risk and returns are not guaranteed unless legally stated.
+
+CTA:
+
+Invest Now
+
+⸻
+
+13. INVESTMENT FLOW
+
+Create a professional investment checkout flow.
+
+Step 1:
+Select Investment
+
+Step 2:
+Enter Amount
+
+Example:
+
+$500
+
+Show:
+
+Investment Amount
+Fees
+Total
+
+Step 3:
+Payment Method
+
+Options:
+
+* Wallet Balance
+* Bank Transfer
+* Other integrated payment methods
+
+Step 4:
+Review
+
+Show:
+
+Project
+Amount
+Payment Method
+Terms
+
+Checkbox:
+
+“I have read and agree to the investment terms and risk disclosure.”
+
+Step 5:
+Confirmation
+
+Show:
+
+Investment Request Submitted
+
+Generate:
+
+Investment ID
+Date
+Amount
+Status
+
+Status:
+
+Pending
+
+Do not show investment as completed until backend confirms payment and investment status.
+
+⸻
+
+14. WALLET
+
+Create a premium wallet screen.
+
+Header:
+
+My Wallet
+
+Balance:
+
+$0.00
+
+Cards:
+
+Available Balance
+Invested Balance
+Pending Balance
+
+Actions:
+
+* Deposit
+* Withdraw
+* Transfer
+
+Transaction history:
+
+* Deposit
+* Withdrawal
+* Investment
+* Return
+* Fee
+* Refund
+
+Each transaction should show:
+
+Icon
+Description
+Date
+Amount
+Status
+
+Statuses:
+
+Completed
+Pending
+Failed
+
+⸻
+
+15. DEPOSIT
+
+Create:
+
+Add Funds
+
+Amount input.
+
+Payment method.
+
+Bank Transfer option.
+
+Show bank/payment instructions dynamically from backend.
+
+Upload payment proof if required.
+
+After submission:
+
+Deposit Under Review
+
+Generate transaction reference.
+
+Never mark a manual bank transfer as completed automatically.
+
+⸻
+
+16. WITHDRAWAL
+
+Create secure withdrawal flow.
+
+Amount.
+
+Destination/payment method.
+
+Confirmation.
+
+OTP / authentication confirmation.
+
+Show:
+
+Available Balance
+Withdrawal Amount
+Fees
+Net Amount
+
+Confirmation screen.
+
+Withdrawal status should remain:
+
+Pending
+
+until backend/admin approval.
+
+⸻
+
+17. TRADE SECTION
+
+Create a dedicated Trade section for OG Exports trade/investment opportunities.
+
+This should NOT look like a crypto exchange.
+
+Show:
+
+Trade Opportunities
+
+Categories:
+
+* Rice
+* Maize
+* Sesame
+* Potatoes
+* Mangoes
+* Other Commodities
+
+Each trade opportunity card:
+
+Commodity
+Origin
+Destination
+Trade Size
+Investment Requirement
+Expected Timeline
+Status
+
+Example:
+
+Pakistan → UAE Rice Trade
+
+Commodity:
+1121 Basmati Rice
+
+Trade Size:
+25 MT
+
+Investment Starting From:
+$100
+
+Timeline:
+30–60 Days
+
+Status:
+Open
+
+Button:
+View Trade
+
+Important:
+All figures shown in examples must be treated as sample/demo data until connected to the real backend.
+
+⸻
+
+18. TRADE DETAIL
+
+Show:
+
+Commodity
+Origin
+Destination
+Quantity
+Trade Structure
+Estimated Timeline
+Required Capital
+Potential Return
+Risk Level
+Supporting Documents
+
+CTA:
+
+Participate
+
+Then:
+
+Amount
+Review
+Confirm
+
+Do not imply guaranteed profit.
+
+⸻
+
+19. PORTFOLIO
+
+Create a portfolio page accessible from Home/Profile.
+
+Show:
+
+Total Invested
+Current Value
+Available Balance
+Pending Investments
+
+Portfolio chart.
+
+Investment allocation:
+
+Rice Trading
+Cold Storage
+Rice Mill
+Other
+
+Investment cards:
+
+Project
+Amount Invested
+Date
+Status
+Performance
+
+⸻
+
+20. TRANSACTION HISTORY
+
+Create complete transaction history.
+
+Filters:
+
+All
+Deposits
+Withdrawals
+Investments
+Returns
+Fees
+
+Search transactions.
+
+Transaction details page:
+
+Transaction ID
+Date
+Type
+Amount
+Status
+Reference
+Related Investment
+
+⸻
+
+21. NOTIFICATIONS
+
+Create notification center.
+
+Types:
+
+* KYC Update
+* Investment Update
+* Payment Update
+* Withdrawal Update
+* Trade Opportunity
+* Security Alert
+
+Use clean notification cards.
+
+Unread notification indicator.
+
+⸻
+
+22. PROFILE
+
+Create premium Profile screen.
+
+Header:
+
+User avatar
+Full Name
+Email
+KYC Status
+
+Sections:
+
+Account
+
+* Personal Information
+* KYC Verification
+* Security
+* Password
+* Two-Factor Authentication
+
+Financial
+
+* Wallet
+* Payment Methods
+* Transactions
+
+Preferences
+
+* Notifications
+* Language
+* Currency
+
+Legal
+
+* Terms & Conditions
+* Privacy Policy
+* Risk Disclosure
+* Investment Terms
+
+Support
+
+* Help Center
+* Contact Support
+
+Logout.
+
+⸻
+
+23. SECURITY
+
+Create a dedicated Security screen.
+
+Features:
+
+* Change Password
+* Enable/Disable 2FA
+* Biometric Login
+* Login Activity
+* Device Management
+* Security Alerts
+
+Show recent login activity:
+
+Device
+Location
+Date
+Time
+
+Use secure architecture.
+
+Never store passwords or sensitive credentials in frontend/local storage.
+
+⸻
+
+24. ADMIN-READY BACKEND
+
+Design the application so an admin dashboard/backend can later control:
+
+Users
+KYC
+Investments
+Projects
+Wallets
+Deposits
+Withdrawals
+Transactions
+Trade Opportunities
+Documents
+Notifications
+
+Admin should be able to change investment/project status without rebuilding the mobile application.
+
+⸻
+
+25. DATABASE ARCHITECTURE
+
+Create database-ready models for:
+
+users
+profiles
+kyc_records
+kyc_documents
+wallets
+wallet_transactions
+investments
+investment_projects
+investment_transactions
+trade_opportunities
+trade_participations
+notifications
+documents
+payment_methods
+withdrawals
+deposits
+security_events
+
+Use proper relationships and unique IDs.
+
+⸻
+
+26. API ARCHITECTURE
+
+Create clean API/service abstraction.
+
+The frontend should NOT directly contain sensitive business logic.
+
+Prepare endpoints/services for:
+
+Authentication
+User Profile
+KYC
+Wallet
+Deposits
+Withdrawals
+Investments
+Trades
+Transactions
+Notifications
+
+Use environment variables for all secrets.
+
+Never hardcode:
+
+* API keys
+* Database credentials
+* Payment credentials
+* Authentication secrets
+
+⸻
+
+27. RESPONSIVE UI/UX
+
+The application must look excellent on:
+
+* iPhone
+* Android phones
+* Small screens
+* Large screens
+
+Use:
+
+* 16–24px card radius where appropriate
+* Comfortable spacing
+* Large readable numbers
+* Premium typography
+* Consistent iconography
+* Smooth animations
+* Skeleton loading states
+* Empty states
+* Error states
+* Success states
+* Confirmation modals
+
+Avoid clutter.
+
+Every screen should feel intentionally designed.
+
+⸻
+
+28. MICRO-INTERACTIONS
+
+Add subtle animations:
+
+* Button press
+* Card transitions
+* Page transitions
+* Loading skeletons
+* Success confirmation
+* Investment confirmation
+* Wallet transaction status
+
+Animations must remain professional and fast.
+
+No excessive bouncing or flashy effects.
+
+⸻
+
+29. EMPTY STATES
+
+Create polished empty states.
+
+Example:
+
+No Investments Yet
+
+“Your investment portfolio will appear here once you make your first investment.”
+
+CTA:
+
+Explore Opportunities
+
+Similarly create empty states for:
+
+Wallet
+Transactions
+Notifications
+Trades
+Documents
+
+⸻
+
+30. ERROR HANDLING
+
+Every API operation should have:
+
+Loading state
+Success state
+Error state
+Retry action
+
+Use human-readable error messages.
+
+Never expose raw backend errors to users.
+
+⸻
+
+31. COMPLIANCE / TRUST
+
+Because this is an investment-related application, do NOT make unsupported financial promises.
+
+Avoid phrases such as:
+
+“Guaranteed Profit”
+“Risk-Free”
+“Guaranteed Return”
+
+Use:
+
+“Target Return”
+“Projected Return”
+“Subject to Performance”
+“Investment involves risk”
+
+Include visible:
+
+Risk Disclosure
+Terms & Conditions
+Privacy Policy
+
+Make these configurable from the backend.
+
+⸻
+
+32. DEMO DATA
+
+Until real APIs are connected, create clearly labelled DEMO/SAMPLE data.
+
+Do not mix demo balances with real user balances.
+
+Create a centralized mock data layer so it can easily be replaced by real APIs later.
+
+⸻
+
+33. PREMIUM UI DETAILS
+
+Use a white-first interface.
+
+Example visual hierarchy:
+
+White background
+↓
+Dark Emerald headings
+↓
+Charcoal secondary text
+↓
+Emerald CTA buttons
+↓
+Very subtle green-tinted cards
+↓
+Minimal gold accents
+
+Cards should have subtle shadows and borders rather than heavy effects.
+
+Use premium financial dashboard aesthetics.
+
+⸻
+
+34. APP BRANDING
+
+Application name:
+
+OG Exports
+
+Suggested tagline:
+
+Global Trade. Smart Investment.
+
+Use the official OG Exports logo where appropriate.
+
+Do not redesign the logo unnecessarily.
+
+Maintain brand consistency with the existing OG Exports website.
+
+⸻
+
+35. IMPORTANT UX REQUIREMENT
+
+Before writing extensive code, first create a complete screen architecture and component system.
+
+Then implement the application screen-by-screen.
+
+Prioritize:
+
+1. Visual quality
+2. UX
+3. Security
+4. Scalability
+5. Maintainability
+
+Do not create a basic template.
+
+The final product should look like a premium fintech/investment application that could realistically be presented to serious international investors.
+
+⸻
+
+36. FINAL QUALITY CHECK
+
+Before finishing:
+
+* Test every navigation route
+* Test login/signup states
+* Test KYC flow
+* Test investment flow
+* Test wallet flow
+* Test deposit/withdrawal states
+* Test trade flow
+* Test profile
+* Test notifications
+* Test loading states
+* Test error states
+* Test empty states
+* Test small mobile screens
+* Remove placeholder lorem ipsum
+* Remove broken links
+* Remove console errors
+* Ensure no sensitive credentials are exposed
+* Ensure demo financial data is clearly separated from real data
+
+Most importantly:
+
+Do not build only a UI mockup. Build a scalable, API-ready investment application architecture with a premium production-quality UI/UX.

@@ -770,19 +770,6 @@ paths:
         "200": { description: Push token registered, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
         "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
         "422": { description: Invalid push token, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
-  /investor/push-tokens/test:
-    post:
-      operationId: sendInvestorPushTest
-      tags: [communication]
-      summary: Send a real push test to the signed-in device
-      description: Sends a non-sensitive Expo push only to the active device session that made this request.
-      security: [{ BearerAuth: [] }]
-      responses:
-        "200": { description: Expo accepted the test push, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
-        "401": { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
-        "409": { description: This device has no active push token, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
-        "429": { description: Too many push tests, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
-        "502": { description: Expo push delivery failed, content: { application/json: { schema: { $ref: "#/components/schemas/JsonObject" } } } }
   /investor/push-tokens/revoke:
     post:
       operationId: revokeInvestorPushToken
@@ -2135,23 +2122,17 @@ components:
         project_name: { type: string, minLength: 1, maxLength: 200 }
         status: { type: string, enum: [scheduled, processing] }
         planned_date: { type: string, format: date, nullable: true }
-        hide_sensitive_details:
-          type: boolean
-          description: Replace the push title and body with generic text on the lock screen.
     InvestorNotificationPushEvent:
       type: object
-      required: [event_id, investor_email, type, title, body, href]
+      required: [event_id, investor_email, notification_id, type, title, body, href]
       properties:
         event_id: { type: string, format: uuid }
         investor_email: { type: string, format: email, maxLength: 255 }
-        notification_id: { type: string, minLength: 1, maxLength: 64, nullable: true }
+        notification_id: { type: string, minLength: 1, maxLength: 64 }
         type: { type: string, minLength: 1, maxLength: 100 }
         title: { type: string, minLength: 1, maxLength: 200 }
         body: { type: string, minLength: 1, maxLength: 1500 }
         href: { type: string, minLength: 1, maxLength: 500 }
-        hide_sensitive_details:
-          type: boolean
-          description: Replace the push title and body with generic text on the lock screen.
     InvestorProfileUpdate:
       type: object
       properties:

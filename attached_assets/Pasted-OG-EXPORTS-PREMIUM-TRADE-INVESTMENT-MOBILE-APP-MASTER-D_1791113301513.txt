@@ -1,0 +1,1902 @@
+OG EXPORTS — PREMIUM TRADE INVESTMENT MOBILE APP
+
+MASTER DEVELOPMENT PROMPT — PHASE-WISE
+
+Build a production-ready, premium, modern, luxury-level mobile investment platform for OG Exports (Private) Limited, focused exclusively on Import/Export Container Investment Opportunities.
+
+This must NOT look like a generic finance app, crypto app, stock trading app, or ordinary business app.
+
+The product identity should be:
+
+Real-World Trade. Digital Investment. Transparent Tracking.
+
+The platform allows eligible investors to discover specific import/export trade opportunities, invest in individual container-based trades, monitor trade/container progress, manage their wallet, view portfolio performance, access documents, and receive trade/settlement updates.
+
+⸻
+
+1. BRAND & VISUAL DIRECTION
+
+Brand:
+
+OG Exports
+
+Use the existing OG Exports logo/brand identity.
+
+Primary visual direction:
+
+* Luxury
+* Premium
+* Institutional
+* Modern fintech
+* International trade
+* Clean
+* Minimal
+* Trustworthy
+* Professional
+* High-end
+* Sophisticated
+
+Color Direction
+
+Use a premium white/off-white interface with OG Exports green branding.
+
+Primary:
+
+* Deep Emerald Green
+* Professional Green
+* Off-White / Premium White
+* Charcoal / Dark Text
+* Very subtle neutral gray
+
+Avoid:
+
+* Excessive gold
+* Neon colors
+* Excessive gradients
+* Cheap-looking green
+* Crypto-style visual language
+* Overly colorful dashboards
+
+Use green strategically for:
+
+* Primary CTA
+* Positive performance
+* Verified states
+* Progress indicators
+* Brand accents
+
+The application should feel closer to a premium private wealth / institutional fintech platform than a normal trading app.
+
+⸻
+
+2. PLATFORM PRINCIPLES
+
+The application must communicate:
+
+TRUST
+
+Clear information, verification, documents and transparent status.
+
+TRANSPARENCY
+
+Investors can understand exactly which trade/container their investment is associated with.
+
+REAL-WORLD TRADE
+
+Every opportunity represents a real import/export trade or container-based trade opportunity.
+
+SIMPLICITY
+
+Complex trade information must be presented in a simple investor-friendly way.
+
+PREMIUM EXPERIENCE
+
+Every screen must feel intentional, polished and modern.
+
+SECURITY
+
+Financial actions require appropriate authentication and verification.
+
+⸻
+
+3. APP NAVIGATION
+
+Use a clean 4-item bottom navigation:
+
+HOME
+
+Investor dashboard.
+
+EXPLORE
+
+Available import/export container opportunities.
+
+PORTFOLIO
+
+Investor’s active, pending and completed trade investments.
+
+WALLET
+
+Balance, deposits, withdrawals and transactions.
+
+DO NOT place Profile in the bottom navigation.
+
+Profile should be accessible through a premium top-right avatar/menu.
+
+⸻
+
+4. PHASE 1 — SPLASH & APP OPENING EXPERIENCE
+
+Create a luxury splash screen.
+
+Display:
+
+OG Exports
+
+Subtitle:
+
+Global Trade. Digital Investment.
+
+Use:
+
+* Premium white/off-white background
+* OG green logo
+* Minimal animation
+* Smooth logo reveal
+* Professional loading transition
+
+Do not over-animate.
+
+⸻
+
+5. PHASE 2 — ONBOARDING
+
+Create 3 premium onboarding screens.
+
+Screen 1
+
+Invest in Real-World Trade
+
+Explain that users can participate in selected import/export trade opportunities.
+
+Screen 2
+
+Track Every Trade
+
+Show the journey from cargo preparation to shipment and destination.
+
+Screen 3
+
+Manage Your Portfolio
+
+Show investment, wallet, returns/distributions and trade performance.
+
+Buttons:
+
+Get Started
+
+Already have an account? Sign In
+
+Use premium illustrations/visuals related to:
+
+* Container
+* Cargo ship
+* Global trade
+* Digital investment
+
+Avoid generic stock-finance imagery.
+
+⸻
+
+6. PHASE 3 — AUTHENTICATION
+
+Create a complete secure authentication flow.
+
+Sign Up
+
+* Full Name
+* Email
+* Mobile Number
+* Country
+* Password
+* Confirm Password
+
+Then:
+
+* Email/OTP verification
+* Mobile OTP where applicable
+
+Login
+
+* Email/mobile
+* Password
+* Biometric login option
+
+Forgot Password
+
+* Email/mobile
+* OTP
+* New password
+
+Security
+
+Support:
+
+* Face ID / Touch ID
+* App PIN
+* 2FA architecture
+* Device/session management
+
+⸻
+
+7. PHASE 4 — KYC & INVESTOR VERIFICATION
+
+Create a professional KYC onboarding system.
+
+KYC Dashboard
+
+Display:
+
+Verification Status
+
+* Not Started
+* In Progress
+* Under Review
+* Verified
+* Action Required
+* Rejected
+
+Information
+
+* Full legal name
+* Date of birth
+* Nationality
+* Residential address
+* Contact details
+
+Identity
+
+Support appropriate identity documents.
+
+* Passport
+* National ID
+* Other supported documents
+
+Verification
+
+Where legally and technically appropriate:
+
+* Document upload
+* Selfie
+* Liveness/identity verification
+* Address verification
+* Bank account verification
+
+Display progress:
+
+Step 1 → Step 2 → Step 3 → Completed
+
+Do not allow restricted financial actions until required verification requirements are satisfied.
+
+⸻
+
+8. PHASE 5 — HOME DASHBOARD
+
+Home must be the most polished screen in the application.
+
+Header
+
+Good Morning, [Investor Name]
+
+Top right:
+
+* Notification icon
+* Profile avatar
+
+Main Portfolio Card
+
+Display:
+
+Total Portfolio Value
+
+* Total Invested
+* Net Returns / Distributions
+* ROI
+* Available Balance
+
+Add an eye icon to hide/show sensitive balances.
+
+Quick Actions
+
+Four premium quick actions:
+
+Invest
+
+Add Funds
+
+Withdraw
+
+Transactions
+
+Active Trade Snapshot
+
+Display:
+
+My Active Trades
+
+Example:
+
+Trade #OG-2026-001
+
+1121 Basmati Rice
+Pakistan → UAE
+
+Status:
+
+In Transit
+
+Show:
+
+* Investment amount
+* Container status
+* Estimated arrival
+* Trade cycle progress
+
+Button:
+
+Track Trade
+
+Featured Opportunities
+
+Display 2–3 opportunities.
+
+Recent Activity
+
+Show:
+
+* Investment
+* Deposit
+* Withdrawal
+* Distribution
+* Status updates
+
+Portfolio Performance
+
+Interactive chart:
+
+* 1M
+* 3M
+* 6M
+* 1Y
+* All
+
+⸻
+
+9. PHASE 6 — EXPLORE MARKETPLACE
+
+Create a premium marketplace for import/export container opportunities.
+
+Header:
+
+Explore Trade Opportunities
+
+Search.
+
+Filter.
+
+Categories:
+
+* All
+* Rice
+* Maize
+* Sesame
+* Potatoes
+* Other Commodities
+
+Additional filters:
+
+* Minimum Investment
+* Trade Duration
+* Destination
+* Risk Level
+* Funding Progress
+* Trade Status
+
+Tabs:
+
+Featured | New | Nearly Funded | Closing Soon
+
+⸻
+
+10. PHASE 7 — OPPORTUNITY CARD
+
+Each trade opportunity must be represented as a premium card.
+
+Example:
+
+Trade #OG-2026-001
+
+1121 Basmati Rice — UAE
+
+Pakistan 🇵🇰 → UAE 🇦🇪
+
+Display:
+
+* Commodity
+* Grade
+* Quantity
+* Container count
+* Container type
+* Destination
+* Incoterm
+* Investment requirement
+* Minimum investment
+* Trade cycle
+* Target/projected return where applicable
+* Funding progress
+* Risk information
+
+Example:
+
+Funding Progress
+
+$6,800 / $8,500
+
+Progress bar.
+
+CTA:
+
+View Trade
+
+⸻
+
+11. PHASE 8 — TRADE DETAILS
+
+This is one of the most important screens.
+
+Do NOT call it simply “Investment Project”.
+
+Use:
+
+Trade Opportunity
+
+or
+
+Trade Details
+
+Header
+
+Trade ID
+
+Status:
+
+Open for Investment
+
+Global Route
+
+Show:
+
+Pakistan → Karachi Port → Sea → Destination Port → Buyer
+
+Use a beautiful trade-route visualization.
+
+Cargo Information
+
+* Commodity
+* Grade
+* Quantity
+* Packaging
+* Container Type
+* Container Count
+* Origin
+* Destination
+
+Commercial Information
+
+* Trade Term / Incoterm
+* Estimated Trade Cycle
+* Shipment Date
+* Estimated Arrival
+* Destination Market
+
+Funding Information
+
+* Total Trade Requirement
+* Amount Funded
+* Remaining Funding
+* Minimum Investment
+* Funding deadline if applicable
+
+Financial Breakdown
+
+Clearly show applicable components such as:
+
+* Commodity Cost
+* Packing
+* Inland Transportation
+* Port Charges
+* Freight
+* Insurance
+* Other Trade Costs
+
+Do not fabricate values.
+
+Only display actual data supplied by the backend.
+
+Projected/Target Information
+
+If applicable:
+
+* Target Return
+* Estimated Distribution
+* Expected Trade Cycle
+
+Clearly label all projected figures.
+
+Never present projected returns as guaranteed.
+
+⸻
+
+12. PHASE 9 — TRADE TIMELINE
+
+Every trade must have a visual timeline.
+
+Example:
+
+Trade Created
+✓
+
+Cargo Procurement
+✓
+
+Cargo Prepared
+✓
+
+Container Stuffed
+✓
+
+Customs Clearance
+✓
+
+Port Departure
+✓
+
+In Transit
+●
+
+Destination Arrival
+○
+
+Buyer Delivery
+○
+
+Trade Settlement
+○
+
+Distribution
+○
+
+Statuses must be controlled by the backend/admin system.
+
+⸻
+
+13. PHASE 10 — CONTAINER TRACKING
+
+Create a dedicated premium container-tracking experience.
+
+Display:
+
+* Container Number
+* Bill of Lading Number
+* Vessel Name
+* Port of Loading
+* Destination Port
+* ETD
+* ETA
+* Latest Update
+* Current Trade Status
+
+Container Journey
+
+Use a visually impressive progress tracker:
+
+Origin
+→
+Port
+→
+Vessel
+→
+Destination
+→
+Buyer
+→
+Settlement
+
+If live carrier/shipping APIs are integrated, show live data.
+
+If no live integration exists, clearly show:
+
+Last Updated
+
+Never fake live tracking.
+
+⸻
+
+14. PHASE 11 — INVESTMENT FLOW
+
+When investor clicks:
+
+Invest Now
+
+Use a modern multi-step flow.
+
+STEP 1 — Amount
+
+Enter investment amount.
+
+Show:
+
+* Minimum investment
+* Available wallet balance
+* Remaining opportunity capacity
+
+STEP 2 — Allocation
+
+Show:
+
+Your Investment
+
+and:
+
+Trade #OG-2026-001
+
+Explain which trade/container the investment is associated with.
+
+STEP 3 — Review
+
+Display:
+
+* Investment amount
+* Trade
+* Fees where applicable
+* Trade cycle
+* Target/projected distribution
+* Payment method
+
+STEP 4 — Risk Disclosure
+
+Investor must acknowledge relevant terms and disclosures.
+
+STEP 5 — Confirmation
+
+Require appropriate authentication:
+
+* PIN
+* OTP
+* Biometrics
+
+STEP 6 — Success
+
+Display:
+
+Investment Confirmed
+
+Show:
+
+* Investment ID
+* Trade ID
+* Amount
+* Date
+* Status
+
+Buttons:
+
+View Investment
+
+Track Trade
+
+⸻
+
+15. PHASE 12 — PORTFOLIO
+
+Rename the experience around real trade investments.
+
+Header:
+
+My Portfolio
+
+Summary
+
+* Total Portfolio Value
+* Total Invested
+* Distributed Returns
+* Pending Distribution
+* Available Balance
+
+Tabs
+
+Active | Pending | Completed
+
+Each investment card:
+
+Trade #OG-2026-001
+
+Commodity
+
+Route
+
+Investment Amount
+
+Trade Status
+
+Container Status
+
+Trade Progress
+
+Projected/target distribution where applicable
+
+CTA:
+
+View Details
+
+⸻
+
+16. PHASE 13 — INVESTMENT DETAILS
+
+Display:
+
+Investment Summary
+
+* Investment ID
+* Trade ID
+* Investment Date
+* Amount Invested
+* Current Status
+* Trade Cycle
+* Distribution status
+
+Trade Information
+
+* Commodity
+* Quantity
+* Container
+* Destination
+* Trade status
+
+Performance
+
+Clearly separate:
+
+Projected
+
+from
+
+Actual
+
+Never mix the two.
+
+Timeline
+
+Investment confirmation → Trade execution → Shipment → Delivery → Settlement → Distribution
+
+Documents
+
+Allow authorized investor access to applicable documents.
+
+⸻
+
+17. PHASE 14 — TRADE ANALYTICS
+
+Create advanced analytics.
+
+Portfolio Statistics
+
+* Total Trades
+* Active Trades
+* Completed Trades
+* Total Capital Deployed
+* Total Distributions
+* Average Trade Cycle
+
+Commodity Allocation
+
+Example:
+
+Rice — 45%
+
+Maize — 30%
+
+Sesame — 15%
+
+Potatoes — 10%
+
+Destination Allocation
+
+Example:
+
+UAE — 50%
+
+Oman — 25%
+
+Saudi Arabia — 15%
+
+Other — 10%
+
+Use interactive charts.
+
+⸻
+
+18. PHASE 15 — WALLET
+
+Create a premium digital wallet.
+
+Main Card
+
+Available Balance
+
+Breakdown
+
+* Available
+* Allocated to Trades
+* Pending
+* Withdrawable
+
+Quick Actions
+
+Add Funds
+
+Withdraw
+
+Transaction History
+
+Categories:
+
+* All
+* Deposits
+* Investments
+* Withdrawals
+* Distributions
+
+Each transaction:
+
+* Transaction ID
+* Type
+* Amount
+* Date
+* Status
+
+⸻
+
+19. PHASE 16 — ADD FUNDS
+
+Flow:
+
+Amount
+
+→
+
+Payment Method
+
+→
+
+Bank/payment instructions
+
+→
+
+Transaction reference
+
+→
+
+Upload proof if required
+
+→
+
+Submit
+
+→
+
+Verification
+
+→
+
+Wallet credited
+
+Statuses:
+
+Submitted → Under Review → Verified → Credited
+
+⸻
+
+20. PHASE 17 — WITHDRAWAL
+
+Display:
+
+Withdrawable Balance
+
+Investor enters amount.
+
+Select verified bank account.
+
+Show:
+
+* Amount
+* Fees where applicable
+* Estimated processing time
+* Destination account
+
+Confirmation with appropriate authentication.
+
+Statuses:
+
+Requested → Processing → Approved → Completed
+
+⸻
+
+21. PHASE 18 — TRANSACTIONS
+
+Create a professional transaction center.
+
+Filters:
+
+* All
+* Deposits
+* Investments
+* Withdrawals
+* Distributions
+
+Transaction details:
+
+* Transaction ID
+* Investment ID where relevant
+* Trade ID where relevant
+* Amount
+* Date/time
+* Status
+* Payment method
+* Reference
+
+Allow receipt/statement access.
+
+⸻
+
+22. PHASE 19 — DOCUMENT VAULT
+
+Create a dedicated:
+
+Trade Documents
+
+Documents can be organized by Trade ID.
+
+Possible document categories:
+
+* Commercial Invoice
+* Packing List
+* Certificate of Origin
+* Inspection Certificate
+* Bill of Lading
+* Customs Documentation
+* Settlement Statement
+* Investment Confirmation
+* Agreements
+* Reports
+
+Only show documents the investor is authorized to access.
+
+⸻
+
+23. PHASE 20 — INVESTOR STATEMENTS
+
+Create automatic statements.
+
+Monthly Statement
+
+Display:
+
+* Opening balance
+* Deposits
+* Investments
+* Distributions
+* Withdrawals
+* Closing balance
+
+Allow:
+
+View
+
+Download PDF
+
+Share
+
+⸻
+
+24. PHASE 21 — PROJECT/TRADE UPDATES
+
+Every active trade can have an update feed.
+
+Example:
+
+Trade #OG-001
+
+Oct 02
+
+Cargo procurement completed.
+
+Oct 05
+
+Container stuffing completed.
+
+Oct 07
+
+Customs clearance completed.
+
+Oct 10
+
+Vessel departed.
+
+Each update should show:
+
+* Date
+* Time
+* Status
+* Description
+* Optional supporting document/image
+
+⸻
+
+25. PHASE 22 — NOTIFICATIONS
+
+Create smart notifications.
+
+Categories:
+
+* Trade
+* Investment
+* Wallet
+* KYC
+* Security
+* Account
+
+Examples:
+
+Trade Update
+
+Your container has departed Karachi Port.
+
+Investment Update
+
+Your investment has been confirmed.
+
+Wallet Update
+
+Your deposit has been credited.
+
+Security Alert
+
+A new device signed into your account.
+
+Allow:
+
+* Mark as read
+* Mark all as read
+* Notification preferences
+
+⸻
+
+26. PHASE 23 — PROFILE
+
+Profile must NOT be in bottom navigation.
+
+Access through top-right avatar.
+
+Menu:
+
+* My Profile
+* KYC Verification
+* Bank Accounts
+* Documents
+* Statements
+* Security
+* Notifications
+* Support
+* Settings
+* Legal
+* Logout
+
+⸻
+
+27. PHASE 24 — BANK ACCOUNTS
+
+Display verified accounts.
+
+* Bank name
+* Account holder
+* Masked account number
+* Currency
+* Verification status
+
+Allow adding a bank account with appropriate verification.
+
+Never display full sensitive bank information unnecessarily.
+
+⸻
+
+28. PHASE 25 — SECURITY CENTER
+
+Create:
+
+Security Center
+
+Features:
+
+* Face ID / Touch ID
+* App PIN
+* Password change
+* Two-factor authentication
+* Login activity
+* Device management
+* Active sessions
+* Logout from all devices
+* Transaction authentication
+
+For high-risk actions, implement appropriate step-up verification.
+
+⸻
+
+29. PHASE 26 — SUPPORT
+
+Create premium support experience.
+
+Help Center
+
+* Investing
+* Trade Tracking
+* Wallet
+* KYC
+* Withdrawals
+* Account
+
+Support
+
+* Create Ticket
+* Live Chat architecture
+* Email support
+* Ticket history
+
+Ticket statuses:
+
+Open → In Progress → Resolved
+
+⸻
+
+30. PHASE 27 — SETTINGS
+
+Preferences
+
+* Language
+* Currency
+* Notifications
+* Appearance
+
+Appearance
+
+* Light
+* Dark
+* System
+
+Privacy
+
+* Data preferences
+* Session management
+
+Legal
+
+* Terms & Conditions
+* Privacy Policy
+* Risk Disclosure
+* Investment Terms
+* User Agreement
+
+⸻
+
+31. PHASE 28 — PREMIUM UX SYSTEM
+
+Use modern mobile UX patterns throughout the application.
+
+Implement:
+
+* Smooth page transitions
+* Bottom sheets
+* Modal confirmations
+* Skeleton loaders
+* Pull-to-refresh
+* Swipe interactions where appropriate
+* Haptic feedback where supported
+* Micro animations
+* Empty states
+* Error states
+* Offline states
+* Loading states
+* Success animations
+* Confirmation states
+
+Do not overuse animations.
+
+The UI must feel fast, calm and expensive.
+
+⸻
+
+32. PHASE 29 — DESIGN SYSTEM
+
+Create a reusable design system.
+
+Define:
+
+Typography
+
+Modern professional sans-serif typography.
+
+Clear hierarchy:
+
+* Display
+* H1
+* H2
+* H3
+* Body
+* Caption
+* Label
+
+Components
+
+Build reusable:
+
+* Buttons
+* Cards
+* Inputs
+* Dropdowns
+* Tabs
+* Bottom sheets
+* Modals
+* Status badges
+* Progress bars
+* Charts
+* Tables
+* Timeline
+* Transaction rows
+* Document rows
+* Navigation components
+
+Do not create every screen independently.
+
+Build a consistent component system.
+
+⸻
+
+33. PHASE 30 — STATUS DESIGN
+
+Create a consistent status system.
+
+Examples:
+
+Trade
+
+* Open for Investment
+* Funding
+* Funded
+* Preparing Cargo
+* Container Stuffed
+* Customs Clearance
+* In Transit
+* Arrived
+* Delivered
+* Settling
+* Completed
+* Delayed
+* Cancelled
+
+Investment
+
+* Pending
+* Confirmed
+* Active
+* Settling
+* Completed
+
+Wallet
+
+* Pending
+* Processing
+* Completed
+* Failed
+* Rejected
+
+Use accessible colors, icons and text — never color alone.
+
+⸻
+
+34. PHASE 31 — ADMIN DASHBOARD
+
+Build the architecture for a secure web-based admin dashboard.
+
+Admin sections:
+
+Dashboard
+
+* Total investors
+* Active investors
+* Total capital
+* Active trades
+* Funded trades
+* Containers in transit
+* Pending deposits
+* Pending withdrawals
+* Pending KYC
+* Trade settlements
+
+Trade Management
+
+Admin can:
+
+* Create trade
+* Edit trade
+* Publish/unpublish
+* Set funding target
+* Add commodity details
+* Add destination
+* Add container information
+* Add documents
+* Update trade status
+* Publish trade updates
+
+Investment Management
+
+* View investments
+* Investor
+* Trade ID
+* Amount
+* Status
+* Date
+
+Investor Management
+
+* Search investors
+* KYC status
+* Account status
+* Investment history
+* Wallet status
+
+Wallet Management
+
+* Deposits
+* Withdrawals
+* Verification
+* Transaction records
+
+Documents
+
+* Upload
+* Replace
+* Categorize
+* Access control
+
+Notifications
+
+Admin can send:
+
+* Trade updates
+* Account notifications
+* System announcements
+
+Audit Logs
+
+Record important administrative actions:
+
+* Who
+* What
+* When
+* Previous value
+* New value
+
+⸻
+
+35. PHASE 32 — BACKEND ARCHITECTURE
+
+Create a scalable backend.
+
+Core entities:
+
+Users
+
+* ID
+* Name
+* Email
+* Phone
+* Country
+* Status
+
+KYC
+
+* Verification status
+* Documents
+* Verification timestamps
+
+Trades
+
+* Trade ID
+* Commodity
+* Quantity
+* Origin
+* Destination
+* Container data
+* Funding target
+* Funding status
+* Trade status
+* Timeline
+
+Investments
+
+* Investment ID
+* User ID
+* Trade ID
+* Amount
+* Status
+* Dates
+* Distribution information
+
+Wallet
+
+* User ID
+* Balance
+* Available balance
+* Allocated balance
+* Pending balance
+
+Transactions
+
+* Transaction ID
+* User ID
+* Type
+* Amount
+* Status
+* Reference
+* Timestamp
+
+Documents
+
+* Document ID
+* Trade ID
+* User ID/access scope
+* Category
+* Secure storage reference
+
+Notifications
+
+* User
+* Type
+* Message
+* Read status
+* Timestamp
+
+⸻
+
+36. PHASE 33 — SECURITY & DATA PROTECTION
+
+Implement production-grade security architecture.
+
+Requirements:
+
+* Secure authentication
+* Password hashing
+* Token/session management
+* Role-based access control
+* Investor/admin separation
+* API authorization
+* Input validation
+* Rate limiting
+* Secure file access
+* Encryption where appropriate
+* Audit logs
+* Sensitive-data masking
+* Secure payment workflows
+* Server-side validation
+
+Never trust client-side values for:
+
+* Wallet balance
+* Investment amount
+* Returns
+* Transaction status
+* KYC status
+* Trade status
+
+All critical financial values must be validated server-side.
+
+⸻
+
+37. PHASE 34 — FINANCIAL DISPLAY RULES
+
+Never hard-code financial values.
+
+The backend must be the source of truth.
+
+Clearly distinguish:
+
+Actual
+
+from
+
+Projected
+
+from
+
+Target
+
+from
+
+Estimated
+
+Never display a projected/target return as guaranteed.
+
+Use clear disclosure:
+
+Investment performance is subject to actual trade performance and applicable risks. Past or projected performance does not guarantee future results.
+
+Legal/compliance text should be configurable by admin.
+
+⸻
+
+38. PHASE 35 — REAL-TIME ARCHITECTURE
+
+Where appropriate, support real-time updates for:
+
+* Trade status
+* Funding progress
+* Container status
+* Wallet transactions
+* Notifications
+
+Use WebSockets/realtime database/subscription architecture where technically appropriate.
+
+Do not simulate real-time data.
+
+⸻
+
+39. PHASE 36 — SHIPPING/CONTAINER API ARCHITECTURE
+
+Design the system so a future shipping/carrier tracking API can be connected.
+
+Create an abstraction layer for:
+
+* Container number
+* Vessel
+* Booking
+* Bill of Lading
+* ETD
+* ETA
+* Port events
+* Current status
+
+If API is unavailable:
+
+Show manually updated information with:
+
+Last updated: [date/time]
+
+⸻
+
+40. PHASE 37 — ANALYTICS
+
+Create internal analytics architecture for:
+
+* New investors
+* Active investors
+* Investments
+* Funding conversion
+* Trade performance
+* Wallet activity
+* Withdrawal activity
+* Popular commodities
+* Popular destinations
+* Average investment
+* Trade funding speed
+
+Admin dashboard should provide charts and filters.
+
+⸻
+
+41. PHASE 38 — PERFORMANCE
+
+The application must be optimized for:
+
+* Fast startup
+* Fast navigation
+* Lazy loading
+* Image optimization
+* Efficient API calls
+* Pagination
+* Caching where appropriate
+* Secure document loading
+
+Avoid unnecessary API requests.
+
+⸻
+
+42. PHASE 39 — RESPONSIVE & ACCESSIBILITY
+
+The app must work beautifully across modern iPhone and Android devices.
+
+Support:
+
+* Different screen sizes
+* Safe areas
+* Dynamic text
+* Keyboard handling
+* Screen readers where applicable
+* Sufficient contrast
+* Touch-friendly controls
+
+⸻
+
+43. PHASE 40 — EMPTY / ERROR / SUCCESS STATES
+
+Every major screen must have:
+
+Loading State
+
+Premium skeleton UI.
+
+Empty State
+
+Example:
+
+No Active Trades
+
+Explore available trade opportunities to get started.
+
+Error State
+
+Clear message + retry.
+
+Success State
+
+Clear confirmation with next action.
+
+Never leave blank white screens.
+
+⸻
+
+44. PHASE 41 — SEARCH
+
+Create universal search architecture.
+
+Search:
+
+* Trade ID
+* Investment ID
+* Commodity
+* Destination
+* Container number
+* Transaction ID
+
+Results should be grouped:
+
+Trades
+
+Investments
+
+Transactions
+
+Documents
+
+⸻
+
+45. PHASE 42 — DEEP LINKS
+
+Support deep links such as:
+
+Trade → specific trade details
+
+Investment → specific investment
+
+Transaction → specific transaction
+
+Notification → relevant screen
+
+This should work from push notifications and internal links.
+
+⸻
+
+46. PHASE 43 — PREMIUM CONTENT LANGUAGE
+
+Use professional international English throughout the application.
+
+Avoid:
+
+* Cheap marketing language
+* Excessive emojis
+* “Get rich”
+* “Guaranteed profit”
+* “Risk-free”
+* “Double your money”
+* Crypto-style hype
+
+Use:
+
+* Trade Opportunity
+* Investment Amount
+* Trade Cycle
+* Target / Projected Return
+* Distribution
+* Settlement
+* Funding Progress
+* Trade Status
+* Verification
+* Portfolio
+
+The tone should feel like an established international financial/trade institution.
+
+⸻
+
+47. PHASE 44 — FINAL USER JOURNEY
+
+The ideal user journey should be:
+
+Open App
+
+↓
+
+Sign Up / Login
+
+↓
+
+KYC
+
+↓
+
+Home
+
+↓
+
+Explore Trade Opportunities
+
+↓
+
+Select Trade
+
+↓
+
+Review Cargo + Trade + Financial Information
+
+↓
+
+Invest
+
+↓
+
+Investment Confirmation
+
+↓
+
+Portfolio
+
+↓
+
+Track Container
+
+↓
+
+Receive Trade Updates
+
+↓
+
+Trade Delivered
+
+↓
+
+Settlement
+
+↓
+
+Distribution / Wallet
+
+↓
+
+Statement
+
+This entire journey must feel seamless.
+
+⸻
+
+48. PHASE 45 — FINAL QUALITY STANDARD
+
+Before considering the application complete, perform a complete UX/UI audit.
+
+Check every screen for:
+
+* Consistency
+* Spacing
+* Typography
+* Alignment
+* Navigation
+* Loading states
+* Error handling
+* Empty states
+* Security
+* Accessibility
+* Responsiveness
+* Financial-data accuracy
+* Backend validation
+* API error handling
+* Authentication
+* KYC restrictions
+* Wallet integrity
+* Document permissions
+
+Do not leave placeholder screens or fake functionality in production.
+
+⸻
+
+49. CRITICAL DEVELOPMENT RULE
+
+Do NOT build this as only a frontend prototype.
+
+Build the architecture so it can become a real production platform.
+
+Use:
+
+Mobile App
++
+Secure Backend
++
+Database
++
+Admin Dashboard
++
+Authentication
++
+KYC Architecture
++
+Wallet/Transaction Ledger
++
+Trade Management
++
+Container Tracking Architecture
++
+Notifications
++
+Document Management
++
+Audit Logs
+
+The architecture must be modular and scalable.
+
+⸻
+
+50. FINAL DESIGN GOAL
+
+The final application should feel like:
+
+A premium institutional investment platform built specifically around real-world global import/export trade.
+
+The investor should open the app and immediately understand:
+
+What I invested in.
+
+Which trade my money is associated with.
+
+Where the container is.
+
+What stage the trade is in.
+
+What has actually happened.
+
+What is projected versus actual.
+
+What is available in my wallet.
+
+The overall experience should be:
+
+Luxury + Trust + Transparency + Global Trade + Modern Fintech + Institutional Quality.
+
+Do not compromise the visual quality for functionality, and do not compromise financial/security integrity for visual effects.
+
+Build phase-by-phase, test each phase before moving to the next, and maintain a clean reusable architecture throughout the project.

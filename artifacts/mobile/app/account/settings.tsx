@@ -12,7 +12,6 @@ import {
   useInvestorMobileLogout,
   useRegisterInvestorPushToken,
   useRevokeInvestorPushToken,
-  useSendInvestorPushTest,
   useUpdateInvestorMe,
   useUpdateInvestorPassword,
   useUpdateInvestorProfile,
@@ -37,7 +36,6 @@ import { useMotion } from '@/lib/motion';
 const pushEnabledKey = (userId: string) => `og-investor-push-enabled:${userId}`;
 const pushTokenKey = (userId: string) => `og-investor-push-token:${userId}`;
 const investorNotificationChannelId = 'investor-updates-v2';
-const hideLockScreenDetailsKey = 'hideLockScreenDetails';
 
 export default function Settings() {
   const { token, user, updateUser, signOut } = useAuth();
@@ -53,7 +51,6 @@ export default function Settings() {
   const logout = useInvestorMobileLogout();
   const registerPushToken = useRegisterInvestorPushToken();
   const revokePushToken = useRevokeInvestorPushToken();
-  const sendInvestorPushTest = useSendInvestorPushTest();
   const profile = unwrap(profileQuery.data);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -68,7 +65,6 @@ export default function Settings() {
   const [notificationPrefs, setNotificationPrefs] = useState<Record<string, unknown>>({});
   const [notificationPreferenceError, setNotificationPreferenceError] = useState('');
   const [savingNotificationPreference, setSavingNotificationPreference] = useState<NotificationCategoryKey | null>(null);
-  const [savingLockScreenPreference, setSavingLockScreenPreference] = useState(false);
   const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushTestBusy, setPushTestBusy] = useState(false);
@@ -248,11 +244,22 @@ export default function Settings() {
           lockscreenVisibility: notifications.AndroidNotificationVisibility.PUBLIC,
         });
       }
-      await sendInvestorPushTest.mutateAsync();
-      Alert.alert(
-        'Push test accepted',
-        'Expo accepted a real push for this device. Lock the screen to check it; system notification and Focus settings still apply.',
-      );
+      await notifications.scheduleNotificationAsync({
+        content: {
+          title: 'OG Exports test alert',
+          body: 'Notifications are active on this device.',
+          sound: 'default',
+          data: { type: 'notification_test', href: '/account/notifications' },
+          ...(Platform.OS === 'android' ? { channelId: investorNotificationChannelId } : {}),
+        },
+        trigger: {
+          type: notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: 5,
+          repeats: false,
+          ...(Platform.OS === 'android' ? { channelId: investorNotificationChannelId } : {}),
+        },
+      });
+      Alert.alert('Test alert scheduled', 'Lock your screen now. The alert should appear in about five seconds.');
     } catch (testError) {
       setPushError(messageOf(testError));
     } finally {
@@ -274,23 +281,6 @@ export default function Settings() {
       setNotificationPreferenceError(messageOf(preferenceError));
     } finally {
       setSavingNotificationPreference(null);
-    }
-  }
-
-  async function saveLockScreenPrivacyPreference(hideDetails: boolean) {
-    setNotificationPreferenceError('');
-    setSavingLockScreenPreference(true);
-    const nextPreferences = { ...notificationPrefs, [hideLockScreenDetailsKey]: hideDetails };
-    try {
-      await updateProfile.mutateAsync({
-        data: { notification_prefs: nextPreferences },
-      });
-      setNotificationPrefs(nextPreferences);
-      void profileQuery.refetch();
-    } catch (preferenceError) {
-      setNotificationPreferenceError(messageOf(preferenceError));
-    } finally {
-      setSavingLockScreenPreference(false);
     }
   }
 
@@ -526,44 +516,6 @@ export default function Settings() {
             ? 'This device can show investor updates on the lock screen and in Notification Centre. Your device notification and Focus settings still apply.'
             : 'Get wallet, investment, verification and account updates on this device, including while the app is closed. Permission is requested only after you choose to enable them.'}
       </Text>
-      <Pressable
-        testID="hide-lock-screen-details-toggle"
-        accessibilityRole="switch"
-        accessibilityLabel="Hide notification details on the lock screen"
-        accessibilityState={{
-          checked: notificationPrefs[hideLockScreenDetailsKey] === true,
-          disabled: profileQuery.isLoading || profileQuery.isError || updateProfile.isPending,
-        }}
-        disabled={profileQuery.isLoading || profileQuery.isError || updateProfile.isPending}
-        onPress={() => void saveLockScreenPrivacyPreference(notificationPrefs[hideLockScreenDetailsKey] !== true)}
-        style={{
-          minHeight: 58,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          paddingVertical: 10,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          marginBottom: 10,
-        }}
-      >
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '600' }}>Hide lock-screen details</Text>
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 3 }}>
-            Show a general OG Exports alert instead of account details in push notifications.
-          </Text>
-        </View>
-        <View style={{ minWidth: 52, alignItems: 'flex-end' }}>
-          <Text style={{ color: notificationPrefs[hideLockScreenDetailsKey] === true ? colors.primary : colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>
-            {savingLockScreenPreference
-              ? 'Saving…'
-              : notificationPrefs[hideLockScreenDetailsKey] === true
-                ? 'Hidden'
-                : 'Shown'}
-          </Text>
-        </View>
-      </Pressable>
       {!expoProjectId && !pushEnabled
         ? <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>Push setup is waiting for this app’s Expo project ID. Permission will not be requested until that is configured.</Text>
         : null}
@@ -587,7 +539,7 @@ export default function Settings() {
           />
         </View>
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 8 }}>
-          Sends a real, non-sensitive push to this device only. Delivery still follows your device’s notification and Focus settings.
+          Test confirms this device’s banner and lock-screen settings. It does not send a real account event.
         </Text>
       </> : null}
     </Card>

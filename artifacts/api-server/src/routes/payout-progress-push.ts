@@ -143,7 +143,6 @@ router.post("/internal/investor-payout-progress", async (req, res): Promise<void
     const acceptedDevices = await sendInvestorPush(investor.id, {
       title: `Payout update: ${statusLabel}`,
       body,
-      hideSensitiveDetails: event.hide_sensitive_details,
       data: {
         type: "payout_progress",
         investment_id: event.investment_id,

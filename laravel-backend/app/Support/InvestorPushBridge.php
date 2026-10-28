@@ -15,14 +15,7 @@ final class InvestorPushBridge
     private const SIGNING_CONTEXT = 'ogexports:investor-payout-push:v1';
     private const NOTIFICATION_SIGNING_CONTEXT = 'ogexports:investor-notification-push:v1';
 
-    public static function sendNotification(
-        User $investor,
-        string $type,
-        string $title,
-        ?string $body,
-        ?array $data,
-        ?AppNotification $notification = null
-    ): void
+    public static function sendNotification(User $investor, AppNotification $notification): void
     {
         if (blank($investor->email) || ! $investor->hasRole('investor')) {
             return;
@@ -32,14 +25,14 @@ final class InvestorPushBridge
         $secret = (string) config('services.investor_push.session_secret');
         if (! $url || $secret === '') {
             Log::warning('Investor notification push bridge is not configured.', [
-                'notification_id' => $notification?->id,
+                'notification_id' => $notification->id,
                 'endpoint_configured' => (bool) $url,
                 'signing_secret_configured' => $secret !== '',
             ]);
             return;
         }
 
-        $notificationData = $data ?? [];
+        $notificationData = is_array($notification->data) ? $notification->data : [];
         $href = $notificationData['href'] ?? '/account/notifications';
         if (! is_string($href) || ! str_starts_with($href, '/')) {
             $href = '/account/notifications';
@@ -48,11 +41,10 @@ final class InvestorPushBridge
         $payload = [
             'event_id' => (string) Str::uuid(),
             'investor_email' => mb_strtolower(trim($investor->email)),
-            'notification_id' => $notification ? (string) $notification->id : null,
-            'type' => $type,
-            'title' => $title,
-            'body' => filled($body) ? $body : 'You have a new update in OG Exports.',
-            'hide_sensitive_details' => self::hideSensitivePushDetails($investor),
+            'notification_id' => (string) $notification->id,
+            'type' => (string) $notification->type,
+            'title' => (string) $notification->title,
+            'body' => filled($notification->body) ? (string) $notification->body : 'You have a new update in OG Exports.',
             'href' => $href,
         ];
 
@@ -72,13 +64,13 @@ final class InvestorPushBridge
             if (! $response->successful()) {
                 Log::warning('Investor notification push event was rejected by the API server.', [
                     'event_id' => $payload['event_id'],
-                    'notification_id' => $notification?->id,
+                    'notification_id' => $notification->id,
                     'http_status' => $response->status(),
                 ]);
             }
         } catch (Throwable $exception) {
             Log::warning('Investor notification push event could not be delivered to the API server.', [
-                'notification_id' => $notification?->id,
+                'notification_id' => $notification->id,
                 'error' => $exception->getMessage(),
             ]);
         }
@@ -115,7 +107,6 @@ final class InvestorPushBridge
             'project_name' => $investment->project?->title ?: 'your investment',
             'status' => $progress->status,
             'planned_date' => $progress->planned_distribution_date?->toDateString(),
-            'hide_sensitive_details' => self::hideSensitivePushDetails($investor),
         ];
 
         try {
@@ -196,15 +187,5 @@ final class InvestorPushBridge
 
         $port = isset($parts['port']) ? ':'.$parts['port'] : '';
         return 'https://'.$host.$port.'/api/internal/investor-notification';
-    }
-
-    private static function hideSensitivePushDetails(User $investor): bool
-    {
-        $investor->loadMissing('profile');
-        $notificationPrefs = is_array($investor->profile?->meta['notification_prefs'] ?? null)
-            ? $investor->profile->meta['notification_prefs']
-            : [];
-
-        return ($notificationPrefs['hideLockScreenDetails'] ?? false) === true;
     }
 }

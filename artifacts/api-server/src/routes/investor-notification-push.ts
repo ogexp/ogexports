@@ -78,10 +78,9 @@ router.post("/internal/investor-notification", async (req, res): Promise<void> =
       ? await sendInvestorPush(investor.id, {
         title: event.title,
         body: event.body,
-        hideSensitiveDetails: event.hide_sensitive_details,
         data: {
           type: event.type,
-          ...(event.notification_id ? { notification_id: event.notification_id } : {}),
+          notification_id: event.notification_id,
           href: event.href,
         },
       })

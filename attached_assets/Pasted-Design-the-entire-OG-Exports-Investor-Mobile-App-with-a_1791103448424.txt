@@ -1,0 +1,265 @@
+Design the entire OG Exports Investor Mobile App with a premium, modern and highly trustworthy fintech/investment aesthetic.
+
+BRAND THEME
+
+The complete application must follow a Premium White + Emerald Green visual identity.
+
+Primary Colors
+
+* Premium White: #FFFFFF
+* Off White: #F7F7F2
+* Dark Emerald Green: #0F3D2E
+* Fresh Green: #4CAF50
+* Charcoal: #1F2933
+* Light Green: #EAF4EF
+* Very subtle Gold: #C6A969
+
+Use gold only as a very small premium accent. The main identity must remain white and emerald green.
+
+DESIGN STYLE
+
+The UI should feel like:
+
+Premium Private Banking + Global Investment + International Trade
+
+Design inspiration:
+
+* Apple
+* Rolex
+* Maersk
+* Premium wealth-management apps
+* Modern fintech applications
+
+Do NOT make it look like:
+
+* Cryptocurrency
+* Gambling
+* Gaming
+* Cheap trading apps
+* Overly colorful fintech apps
+
+Use:
+
+* Large clean typography
+* Generous white space
+* Rounded premium cards
+* Very subtle shadows
+* Thin borders
+* Emerald-green CTAs
+* Minimal line icons
+* Smooth micro-animations
+* Elegant charts
+* Clean financial dashboard layouts
+
+The overall feeling should be:
+
+Trustworthy • Premium • Secure • Global • Professional
+
+⸻
+
+OPENING / SPLASH SCREEN
+
+When the user opens the app, show a premium white splash screen.
+
+Center:
+
+OG Exports Logo
+
+Below:
+
+OG Exports
+
+Small tagline:
+
+Global Trade. Smart Investment.
+
+Use a very subtle emerald-green animated glow/gradient behind the logo.
+
+Animation:
+
+* Logo softly fades in
+* Very slight scale animation
+* Tagline appears smoothly
+* Transition into onboarding/login
+
+Keep the screen minimal.
+
+No unnecessary buttons.
+
+⸻
+
+ONBOARDING
+
+Create 3 premium onboarding screens.
+
+SCREEN 1
+
+Visual:
+Elegant global trade / world connectivity illustration using emerald green and white.
+
+Title:
+
+Invest in Real Trade
+
+Description:
+
+Access investment opportunities connected to real-world commodities, global trade and business.
+
+Button:
+
+Continue
+
+⸻
+
+SCREEN 2
+
+Visual:
+Premium portfolio/investment dashboard illustration.
+
+Title:
+
+Grow With Opportunity
+
+Description:
+
+Discover carefully structured opportunities and monitor your investments from one secure platform.
+
+Button:
+
+Continue
+
+⸻
+
+SCREEN 3
+
+Visual:
+Premium shield/security illustration with subtle emerald accents.
+
+Title:
+
+Built Around Trust
+
+Description:
+
+Secure verification, transparent information and professional investment management — all in one place.
+
+Primary button:
+
+Get Started
+
+Secondary text:
+
+Already have an account? Sign In
+
+⸻
+
+ONBOARDING UI
+
+Background:
+Pure white / very light off-white.
+
+Top:
+Small OG Exports logo.
+
+Center:
+Large premium illustration.
+
+Typography:
+Dark Emerald Green headings.
+Charcoal descriptions.
+
+Buttons:
+Dark Emerald Green background.
+White text.
+Rounded corners.
+
+Progress indicator:
+Small emerald-green dots at the bottom.
+
+Animations:
+Smooth horizontal slide + fade.
+
+Keep animations subtle and premium.
+
+⸻
+
+COMPLETE APP THEME
+
+Every screen of the application must follow the same visual system.
+
+Background
+
+Primary:
+#FFFFFF
+
+Secondary sections:
+#F7F7F2
+
+Cards
+
+White cards with:
+
+* 1px subtle border
+* Very soft shadow
+* 18–24px rounded corners
+
+Primary Buttons
+
+Dark Emerald:
+
+#0F3D2E
+
+White text.
+
+Secondary Buttons
+
+White background.
+
+Emerald border.
+
+Emerald text.
+
+Active Navigation
+
+Emerald Green icon + text.
+
+Inactive navigation:
+
+Muted charcoal/gray.
+
+Typography
+
+Headings:
+Bold / Semi-Bold
+
+Body:
+Regular
+
+Numbers:
+Bold and highly readable.
+
+Financial numbers should have strong visual hierarchy.
+
+⸻
+
+MAIN APP FEEL
+
+The application should feel like a private investment platform, not a normal business app.
+
+Use subtle visual details such as:
+
+* Emerald accent lines
+* Soft green backgrounds
+* Premium financial cards
+* Clean portfolio charts
+* Minimal icons
+* Smooth transitions
+* Elegant status badges
+
+Avoid excessive gradients, shadows, borders or animations.
+
+The final design should be:
+
+Minimal + Premium + White + Emerald + Professional
+
+The OG Exports brand should be immediately recognizable throughout the application.

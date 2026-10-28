@@ -10,7 +10,6 @@ export type InvestorPushMessage = {
   title: string;
   body: string;
   data?: Record<string, unknown>;
-  hideSensitiveDetails?: boolean;
 };
 
 type ExpoTicket =
@@ -73,7 +72,6 @@ async function revokeInvalidToken(token: string): Promise<void> {
 export async function sendInvestorPush(
   userId: string,
   message: InvestorPushMessage,
-  sessionId?: string,
 ): Promise<number> {
   if (!userId) throw new Error("An investor user id is required.");
   if (!message.title.trim() || !message.body.trim()) {
@@ -84,13 +82,9 @@ export async function sendInvestorPush(
   }
 
   const data = message.data ?? {};
-  const title = message.hideSensitiveDetails ? "OG Exports alert" : message.title;
-  const body = message.hideSensitiveDetails
-    ? "You have a new update. Open OG Exports to view details."
-    : message.body;
   const payloadBytes = new TextEncoder().encode(JSON.stringify({
-    title,
-    body,
+    title: message.title,
+    body: message.body,
     data,
   })).length;
   if (payloadBytes > EXPO_PUSH_PAYLOAD_LIMIT_BYTES) {
@@ -98,20 +92,17 @@ export async function sendInvestorPush(
   }
 
   const now = new Date();
-  const deviceConditions = [
-    eq(investorPushTokens.userId, userId),
-    eq(investorSessions.userId, userId),
-    isNull(investorPushTokens.revokedAt),
-    isNull(investorSessions.revokedAt),
-    gt(investorSessions.expiresAt, now),
-  ];
-  if (sessionId) deviceConditions.push(eq(investorPushTokens.sessionId, sessionId));
-
   const devices = await db.select({
     token: investorPushTokens.expoPushToken,
   }).from(investorPushTokens)
     .innerJoin(investorSessions, eq(investorPushTokens.sessionId, investorSessions.id))
-    .where(and(...deviceConditions));
+    .where(and(
+      eq(investorPushTokens.userId, userId),
+      eq(investorSessions.userId, userId),
+      isNull(investorPushTokens.revokedAt),
+      isNull(investorSessions.revokedAt),
+      gt(investorSessions.expiresAt, now),
+    ));
 
   let accepted = 0;
   for (let offset = 0; offset < devices.length; offset += EXPO_PUSH_BATCH_SIZE) {
@@ -121,8 +112,8 @@ export async function sendInvestorPush(
       sound: "default",
       channelId: "investor-updates-v2",
       priority: "high",
-      title,
-      body,
+      title: message.title,
+      body: message.body,
       data,
     }));
     const tickets = await sendExpoBatch(messages);

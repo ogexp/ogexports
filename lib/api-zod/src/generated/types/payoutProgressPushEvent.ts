@@ -25,6 +25,4 @@ export interface PayoutProgressPushEvent {
   project_name: string;
   status: PayoutProgressPushEventStatus;
   planned_date: Date | null;
-  /** Replace the push title and body with generic text on the lock screen. */
-  hide_sensitive_details?: boolean;
 }
