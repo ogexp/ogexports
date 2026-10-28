@@ -133,3 +133,27 @@ export function mergeDepositRequests(
   }
   return merged;
 }
+
+const creditedDepositStatuses = new Set(['credited', 'completed', 'settled']);
+const closedDepositStatuses = new Set([
+  'rejected',
+  'declined',
+  'failed',
+  'error',
+  'cancelled',
+  'canceled',
+]);
+
+export function isDepositAwaitingCredit(item: ActivityRecord): boolean {
+  const statuses = [
+    'review_status_label',
+    'review_status',
+    'status',
+    'state',
+  ].map(field => valueText(item[field]).toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+
+  if (['credited_at', 'settled_at', 'completed_at'].some(field => valueText(item[field]))) return false;
+  if (statuses.some(status => creditedDepositStatuses.has(status) || closedDepositStatuses.has(status))) return false;
+  return true;
+}

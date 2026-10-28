@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeDepositRequests, resolveActivityTransactionTarget } from './deposit-activity.ts';
+import { isDepositAwaitingCredit, mergeDepositRequests, resolveActivityTransactionTarget } from './deposit-activity.ts';
 
 test('adds pending deposit requests as recent deposit activity with their review status', () => {
   const merged = mergeDepositRequests([], [{
@@ -67,4 +67,27 @@ test('uses explicit related financial IDs and never treats a reference as a reco
     resolveActivityTransactionTarget({ type: 'deposit', reference: '20261008' }),
     null,
   );
+});
+
+test('keeps review, verified, and approved deposits visible until credit is confirmed', () => {
+  for (const status of ['pending', 'under_review', 'verified', 'approved']) {
+    assert.equal(isDepositAwaitingCredit({ status }), true, status);
+  }
+});
+
+test('hides credited and closed deposit requests from the pending wallet section', () => {
+  for (const status of ['credited', 'completed', 'settled', 'rejected', 'cancelled']) {
+    assert.equal(isDepositAwaitingCredit({ status }), false, status);
+  }
+});
+
+test('prioritizes a credited server status over a stale review label', () => {
+  assert.equal(isDepositAwaitingCredit({
+    review_status_label: 'Approved',
+    status: 'credited',
+  }), false);
+  assert.equal(isDepositAwaitingCredit({
+    status: 'pending',
+    credited_at: '2026-10-28T09:00:00Z',
+  }), false);
 });
