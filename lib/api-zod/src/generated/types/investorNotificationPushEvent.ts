@@ -14,7 +14,7 @@ export interface InvestorNotificationPushEvent {
      * @minLength 1
      * @maxLength 64
      */
-  notification_id: string;
+  notification_id?: string | null;
   /**
      * @minLength 1
      * @maxLength 100

@@ -12,6 +12,7 @@ import {
   useInvestorMobileLogout,
   useRegisterInvestorPushToken,
   useRevokeInvestorPushToken,
+  useSendInvestorPushTest,
   useUpdateInvestorMe,
   useUpdateInvestorPassword,
   useUpdateInvestorProfile,
@@ -52,6 +53,7 @@ export default function Settings() {
   const logout = useInvestorMobileLogout();
   const registerPushToken = useRegisterInvestorPushToken();
   const revokePushToken = useRevokeInvestorPushToken();
+  const sendInvestorPushTest = useSendInvestorPushTest();
   const profile = unwrap(profileQuery.data);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -246,22 +248,11 @@ export default function Settings() {
           lockscreenVisibility: notifications.AndroidNotificationVisibility.PUBLIC,
         });
       }
-      await notifications.scheduleNotificationAsync({
-        content: {
-          title: 'OG Exports test alert',
-          body: 'Notifications are active on this device.',
-          sound: 'default',
-          data: { type: 'notification_test', href: '/account/notifications' },
-          ...(Platform.OS === 'android' ? { channelId: investorNotificationChannelId } : {}),
-        },
-        trigger: {
-          type: notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: 5,
-          repeats: false,
-          ...(Platform.OS === 'android' ? { channelId: investorNotificationChannelId } : {}),
-        },
-      });
-      Alert.alert('Test alert scheduled', 'Lock your screen now. The alert should appear in about five seconds.');
+      await sendInvestorPushTest.mutateAsync();
+      Alert.alert(
+        'Push test accepted',
+        'Expo accepted a real push for this device. Lock the screen to check it; system notification and Focus settings still apply.',
+      );
     } catch (testError) {
       setPushError(messageOf(testError));
     } finally {
@@ -596,7 +587,7 @@ export default function Settings() {
           />
         </View>
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16, marginTop: 8 }}>
-          Test confirms this device’s banner and lock-screen settings. It does not send a real account event.
+          Sends a real, non-sensitive push to this device only. Delivery still follows your device’s notification and Focus settings.
         </Text>
       </> : null}
     </Card>

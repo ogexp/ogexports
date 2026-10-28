@@ -15,7 +15,14 @@ final class InvestorPushBridge
     private const SIGNING_CONTEXT = 'ogexports:investor-payout-push:v1';
     private const NOTIFICATION_SIGNING_CONTEXT = 'ogexports:investor-notification-push:v1';
 
-    public static function sendNotification(User $investor, AppNotification $notification): void
+    public static function sendNotification(
+        User $investor,
+        string $type,
+        string $title,
+        ?string $body,
+        ?array $data,
+        ?AppNotification $notification = null
+    ): void
     {
         if (blank($investor->email) || ! $investor->hasRole('investor')) {
             return;
@@ -32,7 +39,7 @@ final class InvestorPushBridge
             return;
         }
 
-        $notificationData = is_array($notification->data) ? $notification->data : [];
+        $notificationData = $data ?? [];
         $href = $notificationData['href'] ?? '/account/notifications';
         if (! is_string($href) || ! str_starts_with($href, '/')) {
             $href = '/account/notifications';
@@ -41,10 +48,10 @@ final class InvestorPushBridge
         $payload = [
             'event_id' => (string) Str::uuid(),
             'investor_email' => mb_strtolower(trim($investor->email)),
-            'notification_id' => (string) $notification->id,
-            'type' => (string) $notification->type,
-            'title' => (string) $notification->title,
-            'body' => filled($notification->body) ? (string) $notification->body : 'You have a new update in OG Exports.',
+            'notification_id' => $notification ? (string) $notification->id : null,
+            'type' => $type,
+            'title' => $title,
+            'body' => filled($body) ? $body : 'You have a new update in OG Exports.',
             'hide_sensitive_details' => self::hideSensitivePushDetails($investor),
             'href' => $href,
         ];

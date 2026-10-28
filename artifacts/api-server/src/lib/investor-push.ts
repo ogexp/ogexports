@@ -73,6 +73,7 @@ async function revokeInvalidToken(token: string): Promise<void> {
 export async function sendInvestorPush(
   userId: string,
   message: InvestorPushMessage,
+  sessionId?: string,
 ): Promise<number> {
   if (!userId) throw new Error("An investor user id is required.");
   if (!message.title.trim() || !message.body.trim()) {
@@ -97,17 +98,20 @@ export async function sendInvestorPush(
   }
 
   const now = new Date();
+  const deviceConditions = [
+    eq(investorPushTokens.userId, userId),
+    eq(investorSessions.userId, userId),
+    isNull(investorPushTokens.revokedAt),
+    isNull(investorSessions.revokedAt),
+    gt(investorSessions.expiresAt, now),
+  ];
+  if (sessionId) deviceConditions.push(eq(investorPushTokens.sessionId, sessionId));
+
   const devices = await db.select({
     token: investorPushTokens.expoPushToken,
   }).from(investorPushTokens)
     .innerJoin(investorSessions, eq(investorPushTokens.sessionId, investorSessions.id))
-    .where(and(
-      eq(investorPushTokens.userId, userId),
-      eq(investorSessions.userId, userId),
-      isNull(investorPushTokens.revokedAt),
-      isNull(investorSessions.revokedAt),
-      gt(investorSessions.expiresAt, now),
-    ));
+    .where(and(...deviceConditions));
 
   let accepted = 0;
   for (let offset = 0; offset < devices.length; offset += EXPO_PUSH_BATCH_SIZE) {

@@ -1831,6 +1831,13 @@ export const RegisterInvestorPushTokenResponse = zod.record(zod.string(), zod.un
 
 
 /**
+ * Sends a non-sensitive Expo push only to the active device session that made this request.
+ * @summary Send a real push test to the signed-in device
+ */
+export const SendInvestorPushTestResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary Disable push delivery for the signed-in device
  */
 export const revokeInvestorPushTokenBodyExpoPushTokenMin = 20;
@@ -1913,7 +1920,7 @@ export const receiveInternalInvestorNotificationPushBodyHrefMax = 500;
 export const ReceiveInternalInvestorNotificationPushBody = zod.object({
   "event_id": zod.string().uuid(),
   "investor_email": zod.string().email().max(receiveInternalInvestorNotificationPushBodyInvestorEmailMax),
-  "notification_id": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyNotificationIdMax),
+  "notification_id": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyNotificationIdMax).nullish(),
   "type": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyTypeMax),
   "title": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyTitleMax),
   "body": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyBodyMax),

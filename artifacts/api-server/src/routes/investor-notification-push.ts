@@ -81,7 +81,7 @@ router.post("/internal/investor-notification", async (req, res): Promise<void> =
         hideSensitiveDetails: event.hide_sensitive_details,
         data: {
           type: event.type,
-          notification_id: event.notification_id,
+          ...(event.notification_id ? { notification_id: event.notification_id } : {}),
           href: event.href,
         },
       })

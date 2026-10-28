@@ -207,6 +207,36 @@ it('keeps in-app notification details while passing lock-screen privacy to push 
     });
 });
 
+it('delivers push alerts even when in-app notifications are disabled', function () {
+    config([
+        'services.investor_push.notification_url' => 'https://api.example.test/api/internal/investor-notification',
+        'services.investor_push.session_secret' => str_repeat('notification-bridge-test-secret-', 2),
+    ]);
+    Http::fake([
+        'https://api.example.test/*' => Http::response(['accepted_devices' => 1], 200),
+    ]);
+    UserProfile::query()->create([
+        'user_id' => $this->investor->id,
+        'meta' => ['notification_prefs' => ['inApp' => false]],
+    ]);
+
+    $notification = NotifiesUsers::notify(
+        $this->investor,
+        'wallet',
+        'Wallet update',
+        'Your wallet has a new update.',
+        ['href' => '/account/wallet'],
+    );
+
+    expect($notification)->toBeNull();
+    Http::assertSent(function (HttpClientRequest $request): bool {
+        return $request->data()['type'] === 'wallet'
+            && $request->data()['title'] === 'Wallet update'
+            && $request->data()['notification_id'] === null
+            && $request->data()['href'] === '/account/wallet';
+    });
+});
+
 it('marks admin notifications as read', function () {
     NotifiesAdmins::notify(
         AdminNotificationTypes::DEPOSIT_SUBMITTED,

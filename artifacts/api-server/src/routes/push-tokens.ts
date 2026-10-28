@@ -8,6 +8,7 @@ import {
 import { db, investorPushTokens } from "@workspace/db";
 import type { InvestorSessionContext } from "../middlewares/investor-session";
 import { requireInvestorSession } from "../middlewares/investor-session";
+import { sendInvestorPush } from "../lib/investor-push";
 
 const router: IRouter = Router();
 const rateWindows = new Map<string, { startedAt: number; count: number }>();
@@ -46,6 +47,29 @@ function sessionFrom(res: Response): InvestorSessionContext {
 }
 
 router.use("/investor/push-tokens", rateLimitPushTokenChanges, requireInvestorSession);
+
+router.post("/investor/push-tokens/test", async (_req, res) => {
+  const session = sessionFrom(res);
+  try {
+    const acceptedDevices = await sendInvestorPush(session.userId, {
+      title: "OG Exports test alert",
+      body: "This device is ready to receive OG Exports updates.",
+      hideSensitiveDetails: true,
+      data: {
+        type: "notification_test",
+        href: "/account/notifications",
+      },
+    }, session.id);
+
+    if (acceptedDevices === 0) {
+      res.status(409).json({ message: "Enable push notifications on this device before sending a test." });
+      return;
+    }
+    res.json({ success: true, accepted_devices: acceptedDevices });
+  } catch {
+    res.status(502).json({ message: "The push test could not be sent. Try again shortly." });
+  }
+});
 
 router.post("/investor/push-tokens/register", async (req, res) => {
   const parsed = RegisterInvestorPushTokenBody.safeParse(req.body);
