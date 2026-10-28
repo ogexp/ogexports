@@ -207,9 +207,9 @@ class FinanceController extends Controller
 
             $walletCurrency = UserDisplayCurrency::currencyForUser($deposit->investor);
             $depositCurrency = strtoupper($deposit->currency ?: 'USD');
-            if ($walletCurrency !== 'USD' || $depositCurrency !== 'USD') {
+            if ($walletCurrency !== 'USD') {
                 throw ValidationException::withMessages([
-                    'currency' => ['Only USD deposits can be credited to a USD investor wallet. Resolve this legacy deposit before converting the wallet.'],
+                    'currency' => ['The investor wallet must be converted to USD before this deposit can be credited.'],
                 ]);
             }
 

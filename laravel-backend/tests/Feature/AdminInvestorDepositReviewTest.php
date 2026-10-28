@@ -5,6 +5,7 @@ use App\Models\AppNotification;
 use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\Wallet;
+use App\Models\WalletTransaction;
 use App\Support\ExchangeRateService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -80,12 +81,12 @@ it('requires a supported currency on deposit submit', function () {
         ->assertStatus(422);
 });
 
-it('converts USD deposit to PKR wallet on approval for pakistan investors', function () {
+it('keeps the USD wallet after changing profile country to Pakistan before deposit approval', function () {
     $investor = User::factory()->create(['account_status' => 'active']);
     $investor->assignRole('investor');
     UserProfile::query()->create([
         'user_id' => $investor->id,
-        'country' => 'Pakistan',
+        'country' => 'United Arab Emirates',
     ]);
 
     $deposit = Deposit::query()->create([
@@ -97,26 +98,65 @@ it('converts USD deposit to PKR wallet on approval for pakistan investors', func
         'status' => 'pending',
     ]);
 
+    $investorToken = $investor->createToken('profile_country_deposit_test')->plainTextToken;
+    $this->withHeader('Authorization', 'Bearer '.$investorToken)
+        ->putJson('/api/me', ['country' => 'Pakistan'])
+        ->assertOk()
+        ->assertJsonPath('data.country', 'Pakistan');
+
     $this->actingAs($this->admin)
         ->postJson("/api/admin/finance/deposits/{$deposit->id}/approve")
         ->assertOk()
         ->assertJsonPath('data.status', 'approved');
 
     $wallet = Wallet::query()->where('user_id', $investor->id)->first();
-    expect((float) $wallet->available_balance)->toBe(27850.0)
-        ->and($wallet->currency)->toBe('PKR');
+    expect((float) $wallet->available_balance)->toBe(100.0)
+        ->and($wallet->currency)->toBe('USD');
 
     $deposit->refresh();
     $notification = AppNotification::query()
         ->where('user_id', $investor->id)
         ->where('type', 'deposit_approved')
         ->sole();
-    expect((float) $deposit->converted_amount)->toBe(27850.0)
-        ->and($deposit->wallet_currency)->toBe('PKR')
-        ->and($deposit->exchange_rate)->not->toBeNull()
+    expect((float) $deposit->converted_amount)->toBe(100.0)
+        ->and($deposit->wallet_currency)->toBe('USD')
+        ->and((float) $deposit->exchange_rate)->toBe(1.0)
         ->and($notification->data['transaction_status'])->toBe('approved')
         ->and($notification->data['href'])->toBe("/invest/transactions/deposit/{$deposit->id}")
         ->and($notification->body)->toContain('credited to your wallet');
+});
+
+it('does not let deposit approval bypass conversion for an existing non-USD wallet', function () {
+    $investor = User::factory()->create(['account_status' => 'active']);
+    $investor->assignRole('investor');
+    UserProfile::query()->create([
+        'user_id' => $investor->id,
+        'country' => 'Pakistan',
+    ]);
+    $wallet = Wallet::query()->create([
+        'user_id' => $investor->id,
+        'currency' => 'PKR',
+        'available_balance' => 27850,
+        'pending_balance' => 0,
+    ]);
+    $deposit = Deposit::query()->create([
+        'investor_id' => $investor->id,
+        'amount' => 100,
+        'currency' => 'USD',
+        'method' => 'Bank Transfer',
+        'reference' => 'DEP-LEGACY-WALLET',
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->postJson("/api/admin/finance/deposits/{$deposit->id}/approve")
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('currency');
+
+    expect($wallet->fresh()->currency)->toBe('PKR')
+        ->and((float) $wallet->fresh()->available_balance)->toBe(27850.0)
+        ->and($deposit->fresh()->status)->toBe('pending')
+        ->and(WalletTransaction::query()->where('wallet_id', $wallet->id)->exists())->toBeFalse();
 });
 
 it('converts GBP deposit to USD wallet on approval for international investors', function () {
@@ -240,7 +280,7 @@ it('rejects and cancels pending investor deposits', function () {
         ->and($cancelledNotification->data['href'])->toBe("/invest/transactions/deposit/{$cancel->id}");
 });
 
-it('approves investor deposit once and prevents double credit', function () {
+it('converts a PKR deposit into the USD wallet and prevents double credit', function () {
     $investor = User::factory()->create(['account_status' => 'active']);
     $investor->assignRole('investor');
     UserProfile::query()->create([
@@ -262,8 +302,14 @@ it('approves investor deposit once and prevents double credit', function () {
         ->assertOk();
 
     $wallet = Wallet::query()->where('user_id', $investor->id)->first();
-    expect((float) $wallet->available_balance)->toBe(28000.0)
-        ->and($wallet->currency)->toBe('PKR');
+    expect((float) $wallet->available_balance)->toBe(100.54)
+        ->and($wallet->currency)->toBe('USD');
+
+    $deposit->refresh();
+    expect((float) $deposit->converted_amount)->toBe(100.54)
+        ->and($deposit->wallet_currency)->toBe('USD')
+        ->and((float) $deposit->amount)->toBe(28000.0)
+        ->and($deposit->currency)->toBe('PKR');
 
     $this->actingAs($this->admin)
         ->postJson("/api/admin/finance/deposits/{$deposit->id}/approve")
