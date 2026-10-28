@@ -29,3 +29,15 @@ channel = "stable-25_05"
 [userenv.shared]
 OG_EXPORTS_AUTH_EMAIL_FROM = "info@ogexports.co"
 EXPO_PUBLIC_API_BASE_URL = "https://api.ogexports.co/"
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
+
+[[ports]]
+localPort = 22552
+externalPort = 80
