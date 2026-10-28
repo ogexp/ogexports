@@ -101,7 +101,7 @@ export default function TransactionDetails() {
   const walletQuery = useGetInvestorWalletTransactions({ page: sourcePage, per_page: 100 }, {
     query: {
       queryKey: ['investor-wallet-transactions', sourcePage, 100],
-      enabled: Boolean(token && id && kind === 'withdrawal'),
+      enabled: Boolean(token && id && (kind === 'withdrawal' || kind === 'wallet')),
       staleTime: 20_000,
     },
   });
@@ -137,7 +137,7 @@ export default function TransactionDetails() {
     ? depositHistoryQuery
     : kind === 'withdrawal'
       ? withdrawalHistoryQuery
-      : undefined;
+      : walletQuery;
   const directTransaction = record(unwrap(query.data));
   const historyRecord = kind === 'deposit'
     ? findFinancialDetailRecord(list(depositHistoryQuery.data), id, ['id', 'deposit_id', 'depositId'])
@@ -156,9 +156,22 @@ export default function TransactionDetails() {
         id,
         ['id', 'withdrawal_id', 'withdraw_id'],
       )
-      : undefined;
-  const walletTransaction = kind === 'wallet'
+        : findFinancialDetailRecord(
+          queryClient.getQueriesData({ queryKey: ['investor-wallet-transactions'] }).flatMap(([, data]) => list(data)),
+          id,
+          ['id', 'transaction_id', 'wallet_transaction_id'],
+        );
+  const directWalletTransaction = kind === 'wallet'
     ? record(unwrap(walletTransactionQuery.data))
+    : {};
+  const walletTransaction = kind === 'wallet'
+    ? Object.keys(directWalletTransaction).length
+      ? directWalletTransaction
+      : findFinancialDetailRecord(
+        list(walletQuery.data),
+        id,
+        ['id', 'transaction_id', 'wallet_transaction_id'],
+      ) ?? cachedHistoryRecord ?? {}
     : undefined;
   const transaction = kind === 'wallet'
     ? walletTransaction ?? {}
@@ -171,10 +184,7 @@ export default function TransactionDetails() {
     || Boolean(historyQuery?.isLoading)
     || (Platform.OS !== 'web' && !savedTransactionLoaded)
   );
-  const detailIsError = !hasRecord
-    && query.isError
-    && (historyQuery?.isError ?? true)
-    && (Platform.OS === 'web' || savedTransactionLoaded);
+  const detailIsError = !hasRecord && !detailIsLoading;
   const meta = record(transaction.meta);
   const bankDetails = record(transaction.bank_details);
   const walletType = first(transaction, ['type', 'transaction_type']).toLowerCase();

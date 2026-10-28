@@ -16,6 +16,18 @@ test('finds deposit and withdrawal details by their server record ID aliases', (
   );
 });
 
+test('finds a wallet transaction detail by its ledger record ID', () => {
+  const transaction = { id: 81000023, type: 'deposit', status: 'completed' };
+  assert.equal(
+    findFinancialDetailRecord(
+      [transaction],
+      '81000023',
+      ['id', 'transaction_id', 'wallet_transaction_id'],
+    ),
+    transaction,
+  );
+});
+
 test('does not substitute a partial ID or a matching reference for the requested record', () => {
   const records = [
     { id: 421, reference: 'DEP-10000421' },
