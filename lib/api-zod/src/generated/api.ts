@@ -1876,7 +1876,8 @@ export const ReceiveInternalInvestorPayoutProgressBody = zod.object({
   "investment_reference": zod.string().min(1).max(receiveInternalInvestorPayoutProgressBodyInvestmentReferenceMax),
   "project_name": zod.string().min(1).max(receiveInternalInvestorPayoutProgressBodyProjectNameMax),
   "status": zod.enum(['scheduled', 'processing']),
-  "planned_date": zod.coerce.date().nullable()
+  "planned_date": zod.coerce.date().nullable(),
+  "hide_sensitive_details": zod.boolean().optional().describe('Replace the push title and body with generic text on the lock screen.')
 })
 
 export const ReceiveInternalInvestorPayoutProgressResponse = zod.record(zod.string(), zod.unknown())
@@ -1916,7 +1917,8 @@ export const ReceiveInternalInvestorNotificationPushBody = zod.object({
   "type": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyTypeMax),
   "title": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyTitleMax),
   "body": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyBodyMax),
-  "href": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyHrefMax)
+  "href": zod.string().min(1).max(receiveInternalInvestorNotificationPushBodyHrefMax),
+  "hide_sensitive_details": zod.boolean().optional().describe('Replace the push title and body with generic text on the lock screen.')
 })
 
 export const ReceiveInternalInvestorNotificationPushResponse = zod.record(zod.string(), zod.unknown())

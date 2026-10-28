@@ -10,6 +10,7 @@ export type InvestorPushMessage = {
   title: string;
   body: string;
   data?: Record<string, unknown>;
+  hideSensitiveDetails?: boolean;
 };
 
 type ExpoTicket =
@@ -82,9 +83,13 @@ export async function sendInvestorPush(
   }
 
   const data = message.data ?? {};
+  const title = message.hideSensitiveDetails ? "OG Exports alert" : message.title;
+  const body = message.hideSensitiveDetails
+    ? "You have a new update. Open OG Exports to view details."
+    : message.body;
   const payloadBytes = new TextEncoder().encode(JSON.stringify({
-    title: message.title,
-    body: message.body,
+    title,
+    body,
     data,
   })).length;
   if (payloadBytes > EXPO_PUSH_PAYLOAD_LIMIT_BYTES) {
@@ -112,8 +117,8 @@ export async function sendInvestorPush(
       sound: "default",
       channelId: "investor-updates-v2",
       priority: "high",
-      title: message.title,
-      body: message.body,
+      title,
+      body,
       data,
     }));
     const tickets = await sendExpoBatch(messages);

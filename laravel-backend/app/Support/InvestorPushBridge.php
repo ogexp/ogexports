@@ -45,6 +45,7 @@ final class InvestorPushBridge
             'type' => (string) $notification->type,
             'title' => (string) $notification->title,
             'body' => filled($notification->body) ? (string) $notification->body : 'You have a new update in OG Exports.',
+            'hide_sensitive_details' => self::hideSensitivePushDetails($investor),
             'href' => $href,
         ];
 
@@ -107,6 +108,7 @@ final class InvestorPushBridge
             'project_name' => $investment->project?->title ?: 'your investment',
             'status' => $progress->status,
             'planned_date' => $progress->planned_distribution_date?->toDateString(),
+            'hide_sensitive_details' => self::hideSensitivePushDetails($investor),
         ];
 
         try {
@@ -187,5 +189,15 @@ final class InvestorPushBridge
 
         $port = isset($parts['port']) ? ':'.$parts['port'] : '';
         return 'https://'.$host.$port.'/api/internal/investor-notification';
+    }
+
+    private static function hideSensitivePushDetails(User $investor): bool
+    {
+        $investor->loadMissing('profile');
+        $notificationPrefs = is_array($investor->profile?->meta['notification_prefs'] ?? null)
+            ? $investor->profile->meta['notification_prefs']
+            : [];
+
+        return ($notificationPrefs['hideLockScreenDetails'] ?? false) === true;
     }
 }

@@ -254,6 +254,7 @@ it('notifies investors once for each actual scheduled or processing payout progr
     Http::assertSentCount(2);
     Http::assertSent(fn (HttpClientRequest $request) => $request->data()['status'] === 'scheduled');
     Http::assertSent(fn (HttpClientRequest $request) => $request->data()['status'] === 'processing');
+    Http::assertSent(fn (HttpClientRequest $request) => $request->data()['hide_sensitive_details'] === false);
     Http::assertSent(function (HttpClientRequest $request) use ($signingSecret) {
         $timestamp = $request->header('X-OG-Payout-Timestamp')[0] ?? '';
         $signature = $request->header('X-OG-Payout-Signature')[0] ?? '';
@@ -262,6 +263,37 @@ it('notifies investors once for each actual scheduled or processing payout progr
 
         return hash_equals($expected, $signature);
     });
+});
+
+it('passes the investor lock-screen privacy preference with payout pushes', function () {
+    config([
+        'services.investor_push.url' => 'https://api.example.test/api/internal/investor-payout-progress',
+        'services.investor_push.session_secret' => str_repeat('payout-bridge-test-secret-', 2),
+    ]);
+    Http::fake([
+        'https://api.example.test/*' => Http::response(['accepted_devices' => 1], 200),
+    ]);
+
+    $profile = UserProfile::query()->where('user_id', $this->investor->id)->firstOrFail();
+    $profile->update(['meta' => ['notification_prefs' => ['hideLockScreenDetails' => true]]]);
+    $investment = createPendingInvestment($this->investor, $this->project, 2500);
+    $investment->update(['status' => 'active']);
+
+    $this->actingAs($this->admin)
+        ->patchJson("/api/admin/investment-payout-progress/{$investment->id}", [
+            'status' => 'scheduled',
+            'planned_distribution_date' => '2026-11-15',
+        ])
+        ->assertOk();
+
+    Http::assertSent(fn (HttpClientRequest $request) => $request->data()['hide_sensitive_details'] === true);
+    $notification = AppNotification::query()
+        ->where('user_id', $this->investor->id)
+        ->where('type', 'payout_progress')
+        ->sole();
+    expect($notification->title)->toBe('Payout update: Scheduled')
+        ->and($notification->body)->toContain('2026-11-15')
+        ->and($notification->data['investment_id'])->toBe($investment->id);
 });
 
 it('respects payout email and in-app notification preferences independently', function () {

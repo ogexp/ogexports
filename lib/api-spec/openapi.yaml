@@ -2122,6 +2122,9 @@ components:
         project_name: { type: string, minLength: 1, maxLength: 200 }
         status: { type: string, enum: [scheduled, processing] }
         planned_date: { type: string, format: date, nullable: true }
+        hide_sensitive_details:
+          type: boolean
+          description: Replace the push title and body with generic text on the lock screen.
     InvestorNotificationPushEvent:
       type: object
       required: [event_id, investor_email, notification_id, type, title, body, href]
@@ -2133,6 +2136,9 @@ components:
         title: { type: string, minLength: 1, maxLength: 200 }
         body: { type: string, minLength: 1, maxLength: 1500 }
         href: { type: string, minLength: 1, maxLength: 500 }
+        hide_sensitive_details:
+          type: boolean
+          description: Replace the push title and body with generic text on the lock screen.
     InvestorProfileUpdate:
       type: object
       properties:

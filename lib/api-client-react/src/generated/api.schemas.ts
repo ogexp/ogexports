@@ -1087,6 +1087,8 @@ export interface PayoutProgressPushEvent {
   project_name: string;
   status: PayoutProgressPushEventStatus;
   planned_date: string | null;
+  /** Replace the push title and body with generic text on the lock screen. */
+  hide_sensitive_details?: boolean;
 }
 
 export interface InvestorNotificationPushEvent {
@@ -1118,6 +1120,8 @@ export interface InvestorNotificationPushEvent {
      * @maxLength 500
      */
   href: string;
+  /** Replace the push title and body with generic text on the lock screen. */
+  hide_sensitive_details?: boolean;
 }
 
 /**
