@@ -71,13 +71,16 @@ export default function Wallet() {
   }, [token, wallet.refetch, dashboard.refetch, depositsQuery.refetch]));
 
   const walletData = record(record(wallet.data).data ?? wallet.data);
+  const dashboardData = unwrap(dashboard.data);
+  const summary = record(dashboardData.summary);
   const currency = walletCurrencyFromSources(walletData, dashboard.data);
   const walletCurrencyLoading = (wallet.isLoading || wallet.isFetching)
     && !first(walletData, ['currency', 'default_currency']);
   const usdWalletReady = currency === 'USD' && !walletCurrencyLoading;
   const available = availableBalanceFromDashboard(dashboard.data);
   const allocated = amount(walletData, ['allocated_to_trades', 'allocated_balance']);
-  const pending = amount(walletData, ['pending_balance']);
+  const pendingDeposits = amount(summary, ['pending_deposits_amount', 'pending_deposits']);
+  const pendingWalletBalance = amount(walletData, ['pending_balance']);
   const withdrawable = available;
   const deposits = list(depositsQuery.data);
   const depositsAwaitingCredit = deposits.filter(isDepositAwaitingCredit);
@@ -98,7 +101,8 @@ export default function Wallet() {
   const balanceMetrics = [
     { label: 'Available', value: available },
     { label: 'Allocated to Trades', value: allocated },
-    { label: 'Pending', value: pending },
+    { label: 'Pending Deposits', value: pendingDeposits },
+    { label: 'Pending Wallet Balance', value: pendingWalletBalance },
     { label: 'Withdrawable Balance', value: withdrawable },
   ];
 
@@ -186,10 +190,10 @@ export default function Wallet() {
     <Section title="Balance Breakdown" />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
       {balanceMetrics.map(metric => {
-        const isDashboardBalance = metric.label === 'Available' || metric.label === 'Withdrawable Balance';
+        const isDashboardBalance = ['Available', 'Pending Deposits', 'Withdrawable Balance'].includes(metric.label);
         return <Card key={metric.label} style={{ width: '48%', minHeight: 91, padding: 13, marginBottom: 0 }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{metric.label}</Text>
-          <Text testID={metric.label === 'Withdrawable Balance' ? 'wallet-withdrawable-balance' : undefined}
+          <Text testID={metric.label === 'Pending Deposits' ? 'wallet-pending-deposits' : metric.label === 'Withdrawable Balance' ? 'wallet-withdrawable-balance' : undefined}
             numberOfLines={2} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 8 }}>
             {balanceLabel(
               metric.value,
