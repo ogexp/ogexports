@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "OG Exports",
-    "slug": "og55",
+    "slug": "og-exports-50",
+    "owner": "ogpagsjs",
     "version": "2.1.9",
     "orientation": "portrait",
     "icon": "./assets/images/og-logo.png",
@@ -43,7 +44,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "b87feb7a-4930-40d3-9e2a-95adfb577039"
+        "projectId": "1178e32b-a81d-4a9e-a36e-df5090f3c8ba"
       }
     },
     "experiments": {

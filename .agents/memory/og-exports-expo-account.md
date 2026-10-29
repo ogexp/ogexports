@@ -5,6 +5,12 @@ description: Keep OG Exports builds on its own Expo project and GitHub repositor
 
 OG Exports uses a separate Expo account/project from OG Landmark. The existing OG Landmark Expo project is not the OG Exports project; use only the account and project details the user provides for OG Exports.
 
+After a rollback, verify the configured Expo project association against the user's confirmed dashboard project before requesting new credentials. Resolve by the confirmed account/project name, and compare its known build metadata with the local configuration.
+
+**Why:** A valid connected Expo account was repeatedly denied access because the app referenced a different project. Resolving the user-confirmed project name succeeded without a new access token.
+
+**How to apply:** Treat project-identity mismatch separately from expired credentials. An authorization error on one configured project does not establish that the Expo account connection is broken.
+
 The user confirmed `ogexp/ogexports` as the GitHub repository for OG Exports.
 
 **Why:** The user selected the repository shown in the Expo connection screen after earlier context identified a different repository.
