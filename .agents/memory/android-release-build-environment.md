@@ -8,3 +8,9 @@ The Android SDK supplied through the Nix store is read-only, and Gradle may requ
 **Why:** A release build could not install a required Build Tools package in the immutable Nix SDK, and the default Java 19 runtime failed during Android SDK image transformation.
 
 **How to apply:** Before a local Gradle release build, point `ANDROID_HOME` and `ANDROID_SDK_ROOT` at a writable temporary SDK root and use Java 17; preserve the app's configured SDK/NDK versions.
+
+Do not treat Expo CLI authentication as a requirement for every AAB. Local Gradle release builds do not inherently need an Expo access token; first determine how the existing release was built and whether its original private signing keystore is available.
+
+**Why:** An earlier local AAB remained available while the EAS CLI was logged out. Assuming all builds required EAS authentication caused repeated, unnecessary token requests during a Secrets-service failure.
+
+**How to apply:** Inspect the existing release route before requesting credentials. A connected Expo integration, EAS CLI login, project authorization, and local signing material are distinct checks. Never substitute a debug key or a newly generated key for an existing production upload key.

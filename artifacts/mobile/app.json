@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "com.ogexports.investor",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 9
     },
     "web": {

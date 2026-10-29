@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "33619291908",
+    "project_id": "og-exports",
+    "storage_bucket": "og-exports.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:33619291908:android:72e951a6ae86ab6c206a51",
+        "android_client_info": {
+          "package_name": "com.ogexports.investor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5XPFZkIXIZB7Xf_fKWPWwLZ78vDFrzx8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
