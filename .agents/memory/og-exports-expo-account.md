@@ -11,6 +11,12 @@ After a rollback, verify the configured Expo project association against the use
 
 **How to apply:** Treat project-identity mismatch separately from expired credentials. An authorization error on one configured project does not establish that the Expo account connection is broken.
 
+An AAB's embedded Expo configuration identifies the configuration bundled in that file, not independently the account/project that executed its build. Do not assume a workspace AAB is the exact release the user means.
+
+**Why:** The user corrected an assertion about their prior build's project after a local artifact's embedded slug was mistaken for proof of build origin.
+
+**How to apply:** Match the exact artifact to its build-details link before making claims about historical build origin; report bundled metadata and verified build-service metadata separately.
+
 The user confirmed `ogexp/ogexports` as the GitHub repository for OG Exports.
 
 **Why:** The user selected the repository shown in the Expo connection screen after earlier context identified a different repository.
