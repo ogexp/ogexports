@@ -7,9 +7,9 @@ OG Exports uses a separate Expo account/project from OG Landmark. The existing O
 
 After a rollback, verify the configured Expo project association against the user's confirmed dashboard project before requesting new credentials. Resolve by the confirmed account/project name, and compare its known build metadata with the local configuration.
 
-**Why:** A valid connected Expo account was repeatedly denied access because the app referenced a different project. Resolving the user-confirmed project name succeeded without a new access token.
+**Why:** Different user-supplied dashboard links referred to distinct project IDs. A readable older project was initially mistaken for the intended release project; read access alone did not establish the correct production association.
 
-**How to apply:** Treat project-identity mismatch separately from expired credentials. An authorization error on one configured project does not establish that the Expo account connection is broken.
+**How to apply:** Match the user's final confirmed dashboard link against the previous release's bundled project association. Never switch a production app to another project merely because that project is accessible. Treat identity mismatch, account permissions and expired credentials separately.
 
 An AAB's embedded Expo configuration identifies the configuration bundled in that file, not independently the account/project that executed its build. Do not assume a workspace AAB is the exact release the user means.
 
