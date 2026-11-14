@@ -1,3 +1,4 @@
+import { BalanceGlass } from '@/components/BalanceGlass';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
@@ -105,6 +106,7 @@ export default function Wallet() {
 
   return <Screen title="Wallet" subtitle="Your account balance and wallet activity" refreshable>
     <LinearGradient
+      testID="wallet-balance-card"
       colors={[colors.balanceCardStart, colors.balanceCardEnd]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -117,6 +119,7 @@ export default function Wallet() {
         justifyContent: 'space-between',
       }}
     >
+      <BalanceGlass />
       <View
         accessible={false}
         style={{
@@ -151,19 +154,19 @@ export default function Wallet() {
       </View>
       <View style={{ height: 1, width: 34, backgroundColor: colors.accent, opacity: 0.8, marginTop: 25 }} />
       {usdWalletReady || dashboard.isLoading || dashboard.isError || walletCurrencyLoading ? <>
-        <Text style={{ color: colors.balanceCardText, fontSize: 11, fontWeight: '600', letterSpacing: 0.8, marginTop: 13, opacity: 0.88 }}>AVAILABLE BALANCE</Text>
+        <Text style={{ color: colors.balanceCardText, fontSize: 11, fontWeight: '600', letterSpacing: 0.8, marginTop: 13, opacity: 0.9 }}>AVAILABLE BALANCE</Text>
         <MotionReveal key={balanceLabel(available, currency, dashboard.isLoading, dashboard.isError)}>
           <Text adjustsFontSizeToFit numberOfLines={1} style={{ color: colors.balanceCardText, fontSize: 33, fontWeight: '700', letterSpacing: -0.45, marginTop: 6 }}>
             {balanceLabel(available, currency, dashboard.isLoading || walletCurrencyLoading, dashboard.isError)}
           </Text>
         </MotionReveal>
-        <Text style={{ color: colors.balanceCardText, fontSize: 11, opacity: 0.82, marginTop: 7 }}>
+        <Text style={{ color: colors.balanceCardText, fontSize: 11, opacity: 0.9, marginTop: 7 }}>
           {usdWalletReady ? 'USD account' : dashboard.isLoading || walletCurrencyLoading ? 'Checking wallet status' : 'Wallet status unavailable'}
         </Text>
       </> : <View style={{ marginTop: 15 }}>
-        <Text style={{ color: colors.balanceCardText, fontSize: 11, fontWeight: '600', letterSpacing: 0.8, opacity: 0.88 }}>WALLET STATUS</Text>
+        <Text style={{ color: colors.balanceCardText, fontSize: 11, fontWeight: '600', letterSpacing: 0.8, opacity: 0.9 }}>WALLET STATUS</Text>
         <Text style={{ color: colors.balanceCardText, fontSize: 22, fontWeight: '700', marginTop: 7 }}>USD wallet setup required</Text>
-        <Text style={{ color: colors.balanceCardText, fontSize: 11, opacity: 0.82, marginTop: 6 }}>Balance protected until conversion is confirmed</Text>
+        <Text style={{ color: colors.balanceCardText, fontSize: 11, opacity: 0.9, marginTop: 6 }}>Balance protected until conversion is confirmed</Text>
       </View>}
     </LinearGradient>
 

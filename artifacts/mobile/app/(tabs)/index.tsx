@@ -1,3 +1,4 @@
+import { BalanceGlass } from '@/components/BalanceGlass';
 import React, { useCallback, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
@@ -339,6 +340,7 @@ export default function InvestorHome() {
          borderBottomRightRadius: 30,
        }}
     >
+       <BalanceGlass />
        <View pointerEvents="none" style={{ position: 'absolute', top: 88, right: -126, width: 250, height: 250, borderRadius: 125, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.075)' }} />
        <View pointerEvents="none" style={{ position: 'absolute', top: 66, right: -148, width: 294, height: 294, borderRadius: 147, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.018)' }} />
        <View style={{ position: 'relative', zIndex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -348,7 +350,7 @@ export default function InvestorHome() {
          </Pressable>
          <View style={{ flex: 1, minWidth: 0 }}>
            <Text numberOfLines={1} style={{ color: colors.balanceCardText, fontSize: 14, fontWeight: '700' }}>{greeting}, {firstName}</Text>
-           <Text style={{ color: colors.balanceCardText, opacity: 0.76, fontSize: 10, marginTop: 2 }}>Good morning</Text>
+           <Text style={{ color: colors.balanceCardText, opacity: 0.9, fontSize: 10, marginTop: 2 }}>Good morning</Text>
          </View>
          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Pressable testID="home-notifications" accessibilityRole="button"
@@ -384,7 +386,7 @@ export default function InvestorHome() {
 
        <View style={{ position: 'relative', zIndex: 1, alignItems: 'center', marginTop: 20 }}>
          <View style={{ minHeight: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-           <Text style={{ color: colors.balanceCardText, opacity: 0.78, fontSize: 12 }}>Available balance</Text>
+           <Text style={{ color: colors.balanceCardText, opacity: 0.9, fontSize: 12 }}>Available balance</Text>
            <Feather name="help-circle" size={13} color={colors.balanceCardText} />
          </View>
          <Pressable testID="home-toggle-sensitive-values" accessibilityRole="button" accessibilityLabel={balanceHidden ? 'Show account balances' : 'Hide account balances'}
@@ -395,7 +397,7 @@ export default function InvestorHome() {
          <Text testID="home-available-balance" numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.balanceCardText, fontSize: 40, fontWeight: '700', letterSpacing: -0.9, lineHeight: 45, marginTop: 5, textAlign: 'center' }}>
              {dashboard.isLoading ? '…' : displayMoney(availableBalance, currency)}
          </Text>
-         {dashboard.isError ? <Text style={{ color: colors.balanceCardText, opacity: 0.7, fontSize: 10, marginTop: 4 }}>
+         {dashboard.isError ? <Text style={{ color: colors.balanceCardText, opacity: 0.9, fontSize: 10, marginTop: 4 }}>
            Balance details unavailable right now
          </Text> : null}
        </View>
