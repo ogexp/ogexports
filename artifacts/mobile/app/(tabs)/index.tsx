@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import type { LayoutChangeEvent } from 'react-native';
 import { Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { BrandMark } from '@/components/BrandMark';
 import { LocalizedText as Text } from '@/components/LocalizedText';
@@ -23,9 +24,9 @@ import { latestRecords } from '@/lib/latest-records';
 import { isInvestorNotificationUnread } from '@/lib/notification-utils';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
-import { useTabBarBehavior } from '@/context/TabBarBehaviorContext';
+import { useTabBarScrollBehavior } from '@/context/TabBarBehaviorContext';
 import { GlassPopupSurface } from '@/components/GlassPopupSurface';
-import { RouteBrandBackdrop, GlassLayers } from "@/components/GlassSurface";
+import { RouteBrandBackdrop, GlassLayers, GlassEffectsProvider } from "@/components/GlassSurface";
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
 import {
   DashboardMetric,
@@ -132,6 +133,8 @@ const activityDateFields = ['created_at', 'createdAt', 'occurred_at', 'transacte
 const quickActionsOverlap = 31;
 const quickActionsGap = 20;
 const quickActionsMinimumHeight = 67 + 9 * 2 + 2;
+// Stable first-frame reservation for the hero body below its top padding (rows, pill, balance, bottom padding).
+const heroBodyEstimate = 40 + 19 + 36 + 20 + 25 + 45 + 45;
 
 function activityDate(item: Record<string, unknown>) {
   return first(item, activityDateFields);
@@ -148,7 +151,7 @@ function HomeSection({ title, right }: { title: string; right?: React.ReactNode 
 }
 
 export default function InvestorHome() {
-  const tabBarBehavior = useTabBarBehavior();
+  const tabBarBehavior = useTabBarScrollBehavior();
   const { token, user } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -156,7 +159,6 @@ export default function InvestorHome() {
   const [balanceHidden, setBalanceHidden] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [quickActionsHeight, setQuickActionsHeight] = useState(quickActionsMinimumHeight);
   const dashboard = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: !!token, staleTime: 30_000 } });
   const investments = useGetInvestorInvestments({ per_page: 50 }, { query: { queryKey: ['investor-positions', 50], enabled: !!token, staleTime: 30_000 } });
   const projects = useGetInvestorProjects({ per_page: 3 }, { query: { queryKey: ['investor-projects', 3], enabled: !!token, staleTime: 60_000 } });
@@ -304,24 +306,34 @@ export default function InvestorHome() {
     if (/status/.test(kind)) return 'truck';
     return 'arrow-down-left';
   };
+  const heroTopPadding = Platform.OS === 'web' ? 79 : insets.top + (Platform.OS === 'ios' ? 10 : 16);
+  const estimatedFixedHeight = heroTopPadding + heroBodyEstimate + quickActionsMinimumHeight - quickActionsOverlap;
+  const [measuredFixedHeight, setMeasuredFixedHeight] = useState<number | null>(null);
+  const fixedInset = measuredFixedHeight ?? estimatedFixedHeight;
+  const onFixedLayout = useCallback((event: LayoutChangeEvent) => {
+    const next = Math.round(event.nativeEvent.layout.height);
+    setMeasuredFixedHeight(current => (current != null && Math.abs(current - next) < 1 ? current : next));
+  }, []);
   const dockShadow = Platform.OS === 'web'
     ? { boxShadow: `0 8px 20px ${colors.shadow}` }
     : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 7 };
 
-  return <View style={{ flex: 1, backgroundColor: colors.background }} onTouchStart={tabBarBehavior.reveal}>
-  <View testID="home-fixed-header" style={{ flexShrink: 0, zIndex: 2 }}>
-    <MotionReveal>
+  return <GlassEffectsProvider reflections={false}><View style={{ flex: 1, backgroundColor: colors.background }}
+    onTouchStart={tabBarBehavior.onTouchStart} onTouchEnd={tabBarBehavior.onTouchEnd} onTouchCancel={tabBarBehavior.onTouchCancel}>
+  <View testID="home-fixed-overlay" pointerEvents="box-none" onLayout={onFixedLayout}
+    style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 3, backgroundColor: 'transparent' }}>
+  <View testID="home-fixed-header" pointerEvents="box-none" style={{ backgroundColor: 'transparent' }}>
+    <MotionReveal pointerEvents="box-none">
     <LinearGradient
       testID="home-fixed-balance-card"
+      pointerEvents="box-none"
        colors={[colors.balanceCardEnd, colors.balanceCardStart]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
        style={{
          overflow: 'hidden',
          paddingHorizontal: 21,
-          paddingTop: Platform.OS === 'web'
-            ? 79
-            : insets.top + (Platform.OS === 'ios' ? 10 : 16),
+          paddingTop: heroTopPadding,
          paddingBottom: 45,
          borderBottomLeftRadius: 30,
          borderBottomRightRadius: 30,
@@ -391,11 +403,9 @@ export default function InvestorHome() {
     </MotionReveal>
   </View>
 
-  <View testID="home-lower-region" style={{ flex: 1, minHeight: 0, marginTop: -quickActionsOverlap, zIndex: 3 }}>
-    <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 20, right: 20, zIndex: 2 }}>
-    <MotionReveal delay={MOTION.revealStagger}>
+    <View testID="home-fixed-dock-layer" pointerEvents="box-none" style={{ marginTop: -quickActionsOverlap, paddingHorizontal: 20, backgroundColor: 'transparent' }}>
+    <MotionReveal pointerEvents="box-none" delay={MOTION.revealStagger}>
     <View testID="home-fixed-quick-actions"
-      onLayout={event => setQuickActionsHeight(event.nativeEvent.layout.height)}
       style={[{ flexDirection: 'row', alignItems: 'center', gap: 2, borderRadius: 23, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassFill, overflow: 'hidden', paddingVertical: 9, paddingHorizontal: 8, zIndex: 2 }, dockShadow]}>
       <GlassLayers />
       {quickActions.map((action, index) => {
@@ -437,26 +447,28 @@ export default function InvestorHome() {
     </View>
     </MotionReveal>
     </View>
+  </View>
 
   <ScrollView
     testID="home-scroll-content"
+    onScrollBeginDrag={tabBarBehavior.onScrollBeginDrag}
     contentInsetAdjustmentBehavior="never"
     onScroll={tabBarBehavior.onScroll}
     onScrollEndDrag={tabBarBehavior.onScrollSettled}
     onMomentumScrollEnd={tabBarBehavior.onScrollSettled}
-    scrollEventThrottle={16}
+    scrollEventThrottle={32}
     refreshControl={<RefreshControl
       testID="home-pull-to-refresh"
       refreshing={refreshing}
       onRefresh={() => void refreshDashboard()}
-      progressViewOffset={Math.max(0, quickActionsHeight - quickActionsOverlap) + quickActionsGap}
+      progressViewOffset={fixedInset}
       tintColor={colors.primary}
       colors={[colors.primary]}
       progressBackgroundColor={colors.card}
     />}
-    style={{ flex: 1, minHeight: 0, marginTop: quickActionsOverlap, backgroundColor: 'transparent' }}
+    style={{ flex: 1, minHeight: 0, zIndex: 1, backgroundColor: 'transparent' }}
     contentContainerStyle={{
-      paddingTop: Math.max(0, quickActionsHeight - quickActionsOverlap) + quickActionsGap,
+      paddingTop: fixedInset + quickActionsGap,
       paddingBottom: Platform.OS === 'web' ? 110 : insets.bottom + 112,
       paddingHorizontal: 20,
     }}
@@ -698,7 +710,6 @@ export default function InvestorHome() {
       <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 13 }}>Payout schedule</Text><Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 4 }}>Upcoming payout details have not been reported.</Text></View>
     </Card>}
   </ScrollView>
-  </View>
   <Modal
     visible={accountMenuOpen}
     transparent
@@ -780,5 +791,5 @@ export default function InvestorHome() {
       <Pressable accessibilityRole="button" accessibilityLabel="Close navigation menu" onPress={() => setAccountMenuOpen(false)} style={{ flex: 1 }} />
     </View>
   </Modal>
-  </View>;
+  </View></GlassEffectsProvider>;
 }

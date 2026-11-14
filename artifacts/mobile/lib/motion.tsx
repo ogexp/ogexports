@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { AccessibilityInfo, Animated, Platform, View, ViewStyle } from 'react-native';
+import { AccessibilityInfo, Animated, Platform, View, ViewStyle, type ViewProps } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
@@ -98,11 +98,12 @@ export function useMotion() {
   return value;
 }
 
-export function MotionReveal({ children, delay = 0, style, testID }: {
+export function MotionReveal({ children, delay = 0, style, testID, pointerEvents }: {
   children: React.ReactNode;
   delay?: number;
   style?: ViewStyle;
   testID?: string;
+  pointerEvents?: ViewProps['pointerEvents'];
 }) {
   const { reduceMotion } = useMotion();
   const opacity = React.useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
@@ -123,7 +124,7 @@ export function MotionReveal({ children, delay = 0, style, testID }: {
     return () => animation.stop();
   }, [delay, opacity, reduceMotion]);
 
-  return <Animated.View testID={testID} style={[style, { opacity }]}>{children}</Animated.View>;
+  return <Animated.View testID={testID} pointerEvents={pointerEvents} style={[style, { opacity }]}>{children}</Animated.View>;
 }
 
 export function MotionProgress({ value, height = 6, color, trackColor, style, accessibilityLabel }: {

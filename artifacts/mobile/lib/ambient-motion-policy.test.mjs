@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { canAnimateAmbient } from './ambient-motion-policy.ts';
+import { ambientFieldGeometry, canAnimateAmbient } from './ambient-motion-policy.ts';
 
 const activeState = {
   reduceMotion: false,
@@ -10,6 +10,20 @@ const activeState = {
   isFocused: true,
   isDocumentVisible: true,
 };
+
+test('scrolling backgrounds never allocate content-height SVG colour fields', () => {
+  for (const height of [0, 320, 667, 874, 1000, 30000, NaN, Infinity, -10]) {
+    const field = ambientFieldGeometry(height);
+    assert.ok(Number.isFinite(field.height) && field.height >= 0 && field.height <= 700);
+    assert.ok(field.offset <= 0 && field.offset >= -250);
+  }
+  assert.deepEqual(ambientFieldGeometry(800), { height: 560, offset: -200 });
+  const source = readFileSync(new URL('../components/GlassSurface.tsx', import.meta.url), 'utf8');
+  assert.match(source, /ambientFieldGeometry\(viewportHeight\)/);
+  assert.doesNotMatch(source, /height: '70%'/);
+  const home = readFileSync(new URL('../app/(tabs)/index.tsx', import.meta.url), 'utf8');
+  assert.match(home, /GlassEffectsProvider reflections=\{false\}/, 'the Home feed retains static glass without per-card reflection animations');
+});
 
 test('ambient motion runs only with known preferences on an active visible screen', () => {
   for (const appState of ['active', 'inactive', 'background', 'unknown', 'extension', null]) {

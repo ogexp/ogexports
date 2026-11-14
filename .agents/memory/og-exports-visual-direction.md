@@ -37,7 +37,7 @@ Keep the Home balance hero and its four-action dock fixed together at the top; o
 
 **Why:** The user explicitly asked for the green card and Deposit/Invest/Withdrawal/View Portfolio card to stay fixed while the remaining Home content scrolls. They clarified that the background behind the quick-action card, below the green hero, must also move rather than remaining a fixed panel.
 
-**How to apply:** Fix only the hero and actual glass action card, not a full-height background panel behind the actions. Keep the lower branded background inside scrolling content and float the dock transparently above it, with safe touch bounds and measured clearance. Preserve privacy, navigation, pull-to-refresh and bottom-navigation clearance.
+**How to apply:** Fix only the hero and actual glass action card, not a full-height background panel behind the actions. The scrolling plane must extend behind both lower rounded hero corners, not start below them; the user specifically corrected stationary patches there. Transparent overlay/corner areas must pass drag gestures through while controls remain tappable. Keep branded background inside scrolling content with measured fixed-control clearance. Preserve privacy, navigation, pull-to-refresh and bottom-navigation clearance.
 
 For Home's My Investments card, limit the admin-status change to its Container Status value. Preserve the existing card layout and Portfolio Performance section; do not change unrelated refresh or dashboard elements.
 

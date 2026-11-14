@@ -1,13 +1,19 @@
 import React from 'react';
-import { Animated, AppState, Easing, Platform, StyleSheet, View } from 'react-native';
+import { Animated, AppState, Easing, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
 import { useFocusEffect } from 'expo-router';
 import { useMotion, useOptionalMotion } from '@/lib/motion';
-import { canAnimateAmbient } from '@/lib/ambient-motion-policy';
+import { ambientFieldGeometry, canAnimateAmbient } from '@/lib/ambient-motion-policy';
 
 const nativeDriver = Platform.OS !== 'web';
+const GlassReflectionsContext = React.createContext(true);
+
+/** Keep the Home feed's glass appearance without animating every card at once. */
+export function GlassEffectsProvider({ children, reflections = true }: { children: React.ReactNode; reflections?: boolean }) {
+  return <GlassReflectionsContext.Provider value={reflections}>{children}</GlassReflectionsContext.Provider>;
+}
 
 /** Live app state (null until known) and browser document visibility. */
 function useAmbientLifecycle() {
@@ -38,7 +44,8 @@ export function GlassLayers({ tone = 'teal' }: { tone?: 'teal' | 'gold' }) {
   const colors = useColors();
   // ErrorFallback also uses these layers after MotionProvider has unmounted.
   const motion = useOptionalMotion();
-  const allowSweep = Boolean(motion?.motionSettingsReady && !motion.reduceMotion);
+  const reflections = React.useContext(GlassReflectionsContext);
+  const allowSweep = Boolean(reflections && motion?.motionSettingsReady && !motion.reduceMotion);
   const sweep = React.useRef(new Animated.Value(0)).current;
   const played = React.useRef(false);
   React.useEffect(() => {
@@ -119,6 +126,8 @@ function SoftColourField({ colour }: { colour: string }) {
  */
 export function BrandBackdrop({ active = false }: { active?: boolean }) {
   const colors = useColors();
+  const { height: viewportHeight } = useWindowDimensions();
+  const field = ambientFieldGeometry(viewportHeight);
   const { reduceMotion, motionSettingsReady } = useMotion();
   const { appState, docVisible } = useAmbientLifecycle();
   const animate = motionSettingsReady && !reduceMotion;
@@ -164,7 +173,7 @@ export function BrandBackdrop({ active = false }: { active?: boolean }) {
       style={StyleSheet.absoluteFill}
     />
     {animate ? <Animated.View style={[StyleSheet.absoluteFill, { opacity: fieldsIn }]}>
-      <Animated.View style={[styles.fieldA, {
+      <Animated.View style={[styles.fieldA, { top: field.offset, height: field.height,
         transform: [
           { translateX: driftA.interpolate({ inputRange: [0, 1], outputRange: [-40, 70] }) },
           { translateY: driftA.interpolate({ inputRange: [0, 1], outputRange: [-20, 90] }) },
@@ -173,7 +182,7 @@ export function BrandBackdrop({ active = false }: { active?: boolean }) {
       }]}>
         <SoftColourField colour={colors.canvasWashTeal} />
       </Animated.View>
-      <Animated.View style={[styles.fieldB, {
+      <Animated.View style={[styles.fieldB, { bottom: field.offset, height: field.height,
         transform: [
           { translateX: driftB.interpolate({ inputRange: [0, 1], outputRange: [50, -60] }) },
           { translateY: driftB.interpolate({ inputRange: [0, 1], outputRange: [30, -80] }) },
@@ -194,8 +203,8 @@ export function BrandBackdrop({ active = false }: { active?: boolean }) {
 
 const styles = StyleSheet.create({
   sweep: { position: 'absolute', top: -40, bottom: -40, left: 0, width: 70 },
-  fieldA: { position: 'absolute', top: '-25%', left: '-30%', width: '95%', height: '70%', opacity: 0.75 },
-  fieldB: { position: 'absolute', bottom: '-25%', right: '-30%', width: '95%', height: '70%', opacity: 0.7 },
+  fieldA: { position: 'absolute', left: '-30%', width: '95%', opacity: 0.75 },
+  fieldB: { position: 'absolute', right: '-30%', width: '95%', opacity: 0.7 },
 });
 
 /** Route-screen backdrop: animates only while this route is focused. Use only inside a navigator. */
