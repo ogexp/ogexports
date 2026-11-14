@@ -1,9 +1,15 @@
 ---
 name: OG Exports mobile visual direction
-description: The requested light mobile UI with dark-teal splash and brand accents, plus data-safe visual constraints.
+description: The requested premium glass mobile UI with branded teal backgrounds, plus data-safe visual constraints.
 ---
 
 Keep a calm premium visual language with warm off-white surfaces and muted gold only as a small accent. The user requested that the mobile splash match their supplied dark-teal OG artwork and that mobile brand-green accents use that same teal hue. This mobile change does not authorize restyling the web portal. Use moderate heading sizes and weights; avoid oversized heavy type or making all app surfaces dark. Light is the default appearance; users can choose Light, Dark, or System.
+
+Use premium glass-style cards throughout the mobile app, over soft branded colour-wash backgrounds like the user's supplied pastel-card reference. This supersedes the earlier plain-white card/dock treatment, not the existing content hierarchy or functionality.
+
+**Why:** The user asked to make all app cards glassy and update backgrounds with branded colours for a full premium look.
+
+**How to apply:** Carry the treatment through shared and custom surfaces, authentication and detail screens, while preserving readable balances, distinct financial/status colours, the exact splash-teal primary buttons and smooth native scrolling. Use the existing cross-platform glass fallback constraints rather than requiring unsupported blur.
 
 **Why:** The user supplied a new OG Exports splash reference and explicitly asked to replace the mobile app's green colour with its colour.
 
@@ -25,7 +31,7 @@ Keep the mobile splash visible for seven seconds before navigating onward, inclu
 
 Use spacious typography, rounded cards with subtle borders and shadows, and light secondary actions with brand-teal borders on mobile. Avoid crypto, gambling, or speculative-return visual cues. Decorative portfolio illustrations must not imply actual performance or introduce financial amounts, forecasts, or other unreported data.
 
-On Home, preserve the supplied screenshot's layout: a full-width brand gradient hero and a white floating action dock with Deposit Funds, Invest Now, Withdraw Funds, and View Portfolio. Keep the balance API-driven, preserve the privacy toggle, and keep the decorative circles subtle. The white content begins with Account Overview, followed by verification and investment summaries; move Portfolio Performance and Recent Transactions lower.
+On Home, preserve the supplied screenshot's layout: a full-width brand gradient hero and a floating glass action dock with Deposit Funds, Invest Now, Withdraw Funds, and View Portfolio. Keep the balance API-driven, preserve the privacy toggle, and keep the decorative circles subtle. The main content begins with Account Overview, followed by verification and investment summaries; move Portfolio Performance and Recent Transactions lower.
 
 For Home's My Investments card, limit the admin-status change to its Container Status value. Preserve the existing card layout and Portfolio Performance section; do not change unrelated refresh or dashboard elements.
 

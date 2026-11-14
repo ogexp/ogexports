@@ -11,6 +11,7 @@ import { first, list, messageOf, record, unwrap } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, MotionReveal, motionHaptic, useMotion } from '@/lib/motion';
+import { GlassLayers } from '@/components/GlassSurface';
 
 type SupportMode = 'help' | 'chat' | 'tickets';
 
@@ -293,13 +294,15 @@ export default function Messages() {
             gap: 12,
             padding: 15,
             marginBottom: 9,
-            borderRadius: colors.radius,
-            backgroundColor: colors.card,
+            borderRadius: 18,
+            backgroundColor: colors.glassFill,
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: colors.glassBorder,
+            overflow: 'hidden',
             opacity: pressed ? 0.78 : 1,
           })}
         >
+          <GlassLayers />
           <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
             <Feather name={topic.icon} size={18} color={colors.primary} />
           </View>

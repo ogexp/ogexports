@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
 import { goBackOrReplace } from '@/lib/safe-navigation';
 import { normalizeAuthResponse, readEmailVerificationChallenge } from '@/lib/auth-response';
+import { BrandBackdrop } from '@/components/GlassSurface';
 
 const PASSWORD_POLICY_MESSAGE = 'Use 8–128 characters with uppercase and lowercase letters, a number, and a symbol.';
 
@@ -156,8 +157,8 @@ export default function Register() {
   const topInset = Platform.OS === 'web' ? 72 : Platform.OS === 'ios' ? insets.top : insets.top + 10;
   const bottomInset = Platform.OS === 'web' ? 34 : insets.bottom + 24;
   return (
-    <KeyboardAwareScrollViewCompat
-      style={{ flex: 1, backgroundColor: colors.background }}
+    <View style={{ flex: 1, backgroundColor: colors.background }}><BrandBackdrop /><KeyboardAwareScrollViewCompat
+      style={{ flex: 1, backgroundColor: 'transparent' }}
       contentInsetAdjustmentBehavior="never"
       contentContainerStyle={[s.container, { paddingTop: topInset, paddingBottom: bottomInset }]}
       bottomOffset={72}
@@ -273,7 +274,7 @@ export default function Register() {
           <Text style={[s.footerLink, { color: colors.primary }]}>Sign in</Text>
         </Pressable>
       </View>
-    </KeyboardAwareScrollViewCompat>
+    </KeyboardAwareScrollViewCompat></View>
   );
 }
 

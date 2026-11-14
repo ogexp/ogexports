@@ -23,6 +23,7 @@ import { buildWithdrawalRequest, maximumWithdrawalPayout, parseWithdrawalAmount,
 import { motionHaptic } from '@/lib/motion';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
 import { rememberFinancialDetail } from '@/lib/financial-detail-cache';
+import { GlassLayers } from '@/components/GlassSurface';
 
 const withdrawalPurposes = ['Profit Withdrawal', 'Principal Return', 'Business Expense', 'Personal Use'] as const;
 
@@ -628,7 +629,7 @@ export default function Withdraw() {
       <Text style={{ color: colors.mutedForeground, lineHeight: 19, marginBottom: 14 }}>
         {otpEmail ? <><Text>Code sent to</Text><Text> {otpEmail}</Text></> : 'Enter the six-digit code sent to your registered email.'}
       </Text>
-      <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 14, padding: 14, marginBottom: 14 }}>
+      <View style={{ borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassFill, overflow: 'hidden', borderRadius: 14, padding: 14, marginBottom: 14 }}><GlassLayers />
         <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700', marginBottom: 10 }}>OTP verification</Text>
         <Field
           label="Six-digit email code"
@@ -651,7 +652,7 @@ export default function Withdraw() {
           <Text>Resend available in</Text><Text> {otpCooldown}s</Text>
         </Text> : null}
       </View>
-      <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 14, padding: 14, marginBottom: 12 }}>
+      <View style={{ borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassFill, overflow: 'hidden', borderRadius: 14, padding: 14, marginBottom: 12 }}><GlassLayers />
         <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '700', marginBottom: 10 }}>Transaction password</Text>
         <TransactionPasswordEntryField onValueChange={updateTransactionPassword} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 }}>
@@ -718,10 +719,12 @@ export default function Withdraw() {
           paddingVertical: 13,
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: colors.border,
-          backgroundColor: colors.card,
+          borderColor: colors.glassBorder,
+          backgroundColor: colors.glassFill,
+          overflow: 'hidden',
         }}
       >
+        <GlassLayers />
         <Text style={{ color: colors.mutedForeground, fontSize: 13, fontWeight: '700', flex: 1 }}>Total wallet debit</Text>
         <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '800', textAlign: 'right' }}>
           {money(readAmount(confirmation, ['total_debit', 'total_debit_usd']), first(confirmation, ['currency'], withdrawalCurrency || 'USD'))}

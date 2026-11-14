@@ -25,6 +25,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { useTabBarBehavior } from '@/context/TabBarBehaviorContext';
 import { GlassPopupSurface } from '@/components/GlassPopupSurface';
+import { BrandBackdrop, GlassLayers } from '@/components/GlassSurface';
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
 import {
   DashboardMetric,
@@ -304,6 +305,7 @@ export default function InvestorHome() {
     : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 7 };
 
   return <View style={{ flex:  1, backgroundColor: colors.background }}>
+  <BrandBackdrop />
   <ScrollView
     contentInsetAdjustmentBehavior="never"
     onTouchStart={tabBarBehavior.reveal}
@@ -407,9 +409,10 @@ export default function InvestorHome() {
     </LinearGradient>
     </MotionReveal>
 
-    <View style={{ marginHorizontal: -18, paddingHorizontal: 20, paddingTop: 1, backgroundColor: colors.background }}>
+    <View style={{ marginHorizontal: -18, paddingHorizontal: 20, paddingTop: 1, backgroundColor: 'transparent' }}>
     <MotionReveal delay={MOTION.revealStagger}>
-    <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 2, borderRadius: 23, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingVertical: 9, paddingHorizontal: 8, marginTop: -31, marginBottom: 20, zIndex: 2 }, dockShadow]}>
+    <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 2, borderRadius: 23, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassFill, overflow: 'hidden', paddingVertical: 9, paddingHorizontal: 8, marginTop: -31, marginBottom: 20, zIndex: 2 }, dockShadow]}>
+      <GlassLayers />
       {quickActions.map((action, index) => {
         const isPrimary = action.title === 'Deposit Funds';
         return (

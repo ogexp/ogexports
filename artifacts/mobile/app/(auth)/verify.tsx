@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router } from 'expo-router';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
@@ -16,6 +16,7 @@ import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotionReveal, motionHaptic } from '@/lib/motion';
 import { buildTwoFactorVerifyPayload, normalizeAuthResponse } from '@/lib/auth-response';
+import { BrandBackdrop } from '@/components/GlassSurface';
 
 export default function Verify() {
   const { challenge, acceptSession } = useAuth();
@@ -77,8 +78,8 @@ export default function Verify() {
   }
   const isTwoFactor = challenge.mode === '2fa';
   const isPending = emailVerify.isPending || twoFactor.isPending;
-  return <KeyboardAwareScrollViewCompat
-    style={{ flex: 1, backgroundColor: colors.background }}
+  return <View style={{ flex: 1, backgroundColor: colors.background }}><BrandBackdrop /><KeyboardAwareScrollViewCompat
+    style={{ flex: 1, backgroundColor: 'transparent' }}
     contentInsetAdjustmentBehavior="never"
     contentContainerStyle={{
       flexGrow: 1,
@@ -135,5 +136,5 @@ export default function Verify() {
       </Pressable>}
     </Card>
     </MotionReveal>
-  </KeyboardAwareScrollViewCompat>;
+  </KeyboardAwareScrollViewCompat></View>;
 }

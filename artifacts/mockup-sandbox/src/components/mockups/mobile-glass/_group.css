@@ -1,0 +1,12 @@
+.og-mobile-glass-preview {
+  --og-background: #f8f7f3;
+  --og-card: #fdfdfb;
+  --og-border: #dfddd7;
+  --og-foreground: #283833;
+  --og-muted: #687d76;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--og-background);
+  color: var(--og-foreground);
+  min-height: 100vh;
+  padding: 32px 20px;
+}

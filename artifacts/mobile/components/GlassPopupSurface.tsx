@@ -2,6 +2,7 @@ import React from 'react';
 import { Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useColors } from '@/hooks/useColors';
+import { GlassLayers } from '@/components/GlassSurface';
 
 function withAlpha(hex: string, alpha: number) {
   const value = hex.replace('#', '');
@@ -37,8 +38,9 @@ export function GlassPopupSurface({
     />
     <View
       pointerEvents="none"
-      style={[StyleSheet.absoluteFill, { backgroundColor: withAlpha(colors.card, 0.84) }]}
+      style={[StyleSheet.absoluteFill, { backgroundColor: withAlpha(colors.card, Platform.OS === 'android' ? 0.93 : 0.8) }]}
     />
+    <GlassLayers />
     {children}
   </View>;
 }

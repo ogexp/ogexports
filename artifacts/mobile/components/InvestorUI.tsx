@@ -22,6 +22,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { translateUi } from '@/lib/strings';
 import { GlassPopupSurface } from '@/components/GlassPopupSurface';
+import { BrandBackdrop, GlassLayers } from '@/components/GlassSurface';
 import { MOTION, MotionReveal, motionHaptic, useMotion } from '@/lib/motion';
 import {
   shouldPlayTransactionChime,
@@ -84,18 +85,21 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
     return (
       <View style={{
         flex: 1,
-        backgroundColor: colors.background,
+        backgroundColor: 'transparent',
         paddingTop: topPadding,
         paddingBottom: Platform.OS === 'web' ? 34 : 0,
         paddingHorizontal: 20,
       }} onTouchStart={tabBarBehavior.reveal}>
+        <BrandBackdrop />
         {header}
         <MotionReveal delay={35} style={{ flex: 1 }} testID="screen-content-reveal">{children}</MotionReveal>
       </View>
     );
   }
   return (
-    <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: colors.background }} contentInsetAdjustmentBehavior={Platform.OS === 'ios' ? 'never' : 'automatic'}
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <BrandBackdrop />
+    <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: 'transparent' }} contentInsetAdjustmentBehavior={Platform.OS === 'ios' ? 'never' : 'automatic'}
       keyboardShouldPersistTaps="handled" bottomOffset={24}
       onTouchStart={tabBarBehavior.reveal}
       onScroll={tabBarBehavior.onScroll}
@@ -114,15 +118,23 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
       {header}
       <MotionReveal delay={35} testID="screen-content-reveal">{children}</MotionReveal>
     </KeyboardAwareScrollViewCompat>
+    </View>
   );
 }
 
 export function Card({ children, style, testID }: { children: React.ReactNode; style?: object; testID?: string }) {
   const colors = useColors();
+  const flat = (StyleSheet.flatten(style as object) || {}) as { backgroundColor?: string };
+  // Semantic background overrides (status, warnings) keep their colour; glass only replaces the default surface.
+  const ordinarySurfaces = [colors.card, colors.background, colors.secondary, colors.muted, colors.input, colors.glassFill];
+  const semanticBackground = flat.backgroundColor && !ordinarySurfaces.includes(flat.backgroundColor) ? flat.backgroundColor : undefined;
   const cardShadow = Platform.OS === 'web'
-    ? { boxShadow: `0 5px 16px ${colors.shadow}` }
-    : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.045, shadowRadius: 10, elevation: 1 };
-  return <View testID={testID} style={[s.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }, cardShadow, style]}>{children}</View>;
+    ? { boxShadow: `0 10px 28px ${colors.glassShadow}` }
+    : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.07, shadowRadius: 16, elevation: 2 };
+  return <View testID={testID} style={[s.card, { backgroundColor: semanticBackground ?? colors.glassFill, borderColor: colors.glassBorder, borderRadius: 18, overflow: 'hidden' }, cardShadow, style, semanticBackground ? null : { backgroundColor: colors.glassFill }]}>
+    {semanticBackground ? null : <GlassLayers />}
+    {children}
+  </View>;
 }
 
 export function Action({ title, onPress, icon, secondary = false, destructive = false, disabled = false, loading = false, testID }: {

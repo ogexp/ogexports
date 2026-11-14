@@ -32,6 +32,7 @@ import { motionHaptic } from '@/lib/motion';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
 import { goBackOrReplace } from '@/lib/safe-navigation';
 import { formatEstimatedDistributionDate } from '@/lib/investment-metrics';
+import { GlassLayers } from '@/components/GlassSurface';
 
 function parseCycleDays(value: string): number | null {
   const match = /\b(\d{1,5})\s*-?\s*(?:days?|d)\b/i.exec(value);
@@ -464,7 +465,7 @@ export default function OpportunityDetail() {
         <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 19, marginTop: 5, marginBottom: 16 }}>
           Enter the amount in {currency || 'the opportunity currency'}. This summary uses your Profile currency, and OG Exports converts the wallet debit at its server rate when you submit.
         </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12, marginBottom: 16, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12, marginBottom: 16, borderRadius: 14, borderWidth: 1, borderColor: colors.glassBorder, overflow: 'hidden', backgroundColor: colors.glassFill }}><GlassLayers />
           <View style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.lightGreen }}>
             <Feather name="shield" size={19} color={colors.primary} />
           </View>
@@ -485,7 +486,7 @@ export default function OpportunityDetail() {
           </Text>
         </View> : null}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-          {amountFacts.map(([label, value]) => <View key={label} style={{ flexGrow: 1, flexBasis: '46%', minWidth: '44%', padding: 11, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background }}>
+          {amountFacts.map(([label, value]) => <View key={label} style={{ flexGrow: 1, flexBasis: '46%', minWidth: '44%', padding: 11, borderRadius: 12, borderWidth: 1, borderColor: colors.glassBorder, overflow: 'hidden', backgroundColor: colors.glassFill }}><GlassLayers />
             <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{label}</Text>
             <Text style={{ color: value === 'Unavailable' ? colors.mutedForeground : colors.foreground, fontSize: 14, fontWeight: '700', marginTop: 5 }}>{value}</Text>
           </View>)}
@@ -529,7 +530,7 @@ export default function OpportunityDetail() {
           <Text style={{ color: colors.mutedForeground, flex: 1 }}>{label}</Text>
           <Text style={{ color: value === '—' ? colors.mutedForeground : colors.foreground, fontWeight: '700', flex: 1, textAlign: 'right' }}>{value}</Text>
         </View>)}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 9, padding: 12, marginTop: 12, borderRadius: 12, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 9, padding: 12, marginTop: 12, borderRadius: 12, backgroundColor: colors.glassFill, borderWidth: 1, borderColor: colors.glassBorder, overflow: 'hidden' }}><GlassLayers />
           <Feather name="info" size={15} color={colors.primary} style={{ marginTop: 2 }} />
           <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, flex: 1 }}>The distribution date is an estimate, not a guarantee. Returns are targets, not guarantees. Fees and currency conversion are confirmed by OG Exports; this screen does not estimate them.</Text>
         </View>

@@ -12,6 +12,7 @@ import { useAppPreferences } from '@/context/AppPreferencesContext';
 import { translateUi } from '@/lib/strings';
 import { MOTION, useMotion } from '@/lib/motion';
 import { TabBarBehaviorProvider, useTabBarBehavior } from '@/context/TabBarBehaviorContext';
+import { GlassLayers } from '@/components/GlassSurface';
 
 function NativeLayout() {
   const colors = useColors();
@@ -118,7 +119,8 @@ function ClassicLayout() {
               experimentalBlurMethod="dimezisBlurView"
               style={StyleSheet.absoluteFill}
             />
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.card, opacity: 0.76 }]} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.card, opacity: 0.8 }]} />
+            <GlassLayers />
             <View style={[StyleSheet.absoluteFill, { borderRadius: 35, borderWidth: 1, borderColor: colors.border }]} />
             <View style={{ position: 'absolute', top: 1, left: 28, right: 28, height: StyleSheet.hairlineWidth, backgroundColor: colors.background, opacity: 0.75 }} />
           </View>
@@ -130,9 +132,11 @@ function ClassicLayout() {
               position: 'absolute', left: 0, right: 0, top: 0, bottom: isWeb ? 34 : 0,
               backgroundColor: colors.card,
               opacity: isWeb ? 1 : 0.84,
-              borderWidth: 1, borderColor: colors.border, borderRadius: 30,
+              borderWidth: 1, borderColor: colors.glassBorder, borderRadius: 30, overflow: 'hidden',
               ...(isWeb ? { boxShadow: `0 -6px 20px ${colors.shadow}` } : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 12 }),
-            }} />
+            }}>
+              <GlassLayers />
+            </View>
           </View>
         ),
     }}>
