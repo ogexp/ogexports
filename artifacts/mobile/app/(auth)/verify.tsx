@@ -16,7 +16,7 @@ import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotionReveal, motionHaptic } from '@/lib/motion';
 import { buildTwoFactorVerifyPayload, normalizeAuthResponse } from '@/lib/auth-response';
-import { BrandBackdrop } from '@/components/GlassSurface';
+import { RouteBrandBackdrop } from "@/components/GlassSurface";
 
 export default function Verify() {
   const { challenge, acceptSession } = useAuth();
@@ -78,7 +78,7 @@ export default function Verify() {
   }
   const isTwoFactor = challenge.mode === '2fa';
   const isPending = emailVerify.isPending || twoFactor.isPending;
-  return <View style={{ flex: 1, backgroundColor: colors.background }}><BrandBackdrop /><KeyboardAwareScrollViewCompat
+  return <View style={{ flex: 1, backgroundColor: colors.background }}><RouteBrandBackdrop /><KeyboardAwareScrollViewCompat
     style={{ flex: 1, backgroundColor: 'transparent' }}
     contentInsetAdjustmentBehavior="never"
     contentContainerStyle={{

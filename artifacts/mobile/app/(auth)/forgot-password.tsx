@@ -9,7 +9,7 @@ import { useInvestorForgotPassword, useInvestorResetPassword, useInvestorVerifyR
 import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
-import { BrandBackdrop } from '@/components/GlassSurface';
+import { RouteBrandBackdrop } from "@/components/GlassSurface";
 
 export default function ForgotPassword() {
   const colors = useColors();
@@ -49,7 +49,7 @@ export default function ForgotPassword() {
     } catch (err) { motionHaptic('error'); setError(messageOf(err)); }
   }
   const title = ['Reset your password', 'Enter your email code', 'Choose a new password', 'Password updated'][step];
-  return <View style={{ flex: 1, backgroundColor: colors.background }}><BrandBackdrop /><KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: 'transparent' }} contentInsetAdjustmentBehavior="never" contentContainerStyle={{ flexGrow: 1, paddingTop: Platform.OS === 'ios' ? 0 : insets.top + 30, paddingBottom: insets.bottom + 24, paddingHorizontal: 20, justifyContent: 'center' }} bottomOffset={72} keyboardShouldPersistTaps="handled">
+  return <View style={{ flex: 1, backgroundColor: colors.background }}><RouteBrandBackdrop /><KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: 'transparent' }} contentInsetAdjustmentBehavior="never" contentContainerStyle={{ flexGrow: 1, paddingTop: Platform.OS === 'ios' ? 0 : insets.top + 30, paddingBottom: insets.bottom + 24, paddingHorizontal: 20, justifyContent: 'center' }} bottomOffset={72} keyboardShouldPersistTaps="handled">
     <MotionReveal key={`recovery-heading-${step}`} style={{ alignSelf: 'stretch' }}>
     <Text style={{ color: colors.foreground, fontSize: 27, fontWeight: '700' }}>{title}</Text>
     <Text style={{ color: colors.mutedForeground, marginTop: 8, marginBottom: 20, lineHeight: 21 }}>

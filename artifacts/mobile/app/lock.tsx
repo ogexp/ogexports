@@ -10,7 +10,7 @@ import { resolvePostAuthHref } from '@/lib/post-auth-route';
 import { first, record } from '@/lib/data';
 import { verifyAppPin } from '@/lib/app-pin';
 import { authenticateWithBiometrics, getBiometricInfo } from '@/lib/biometrics';
-import { BrandBackdrop } from '@/components/GlassSurface';
+import { RouteBrandBackdrop } from "@/components/GlassSurface";
 
 export default function AppLock() {
   const { unlockApp, user, appPinEnabled, biometricEnabled } = useAuth();
@@ -93,7 +93,7 @@ export default function AppLock() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', padding: 22 }}>
-      <BrandBackdrop />
+      <RouteBrandBackdrop />
       <View style={{ alignItems: 'center', marginBottom: 22 }}>
         <BrandMark width={140} />
         <Text style={{ color: colors.foreground, fontSize: 25, fontWeight: '700', marginTop: 18 }}>Welcome back</Text>

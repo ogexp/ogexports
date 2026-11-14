@@ -16,6 +16,12 @@ function over(foreground, background) {
   return foreground.slice(0, 3).map((channel, index) => channel * alpha + background[index] * (1 - alpha)).concat(1);
 }
 
+function withOpacity(value, opacity) {
+  const colour = rgba(value);
+  colour[3] *= opacity;
+  return colour;
+}
+
 function luminance(value) {
   const channels = value.slice(0, 3).map(channel => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
   return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
@@ -37,26 +43,40 @@ test('premium card surfaces remain translucent in both appearances', () => {
   }
 });
 
-test('body and secondary labels remain readable over composited glass colour washes', () => {
+test('body and secondary labels remain readable over static and animated glass layers', () => {
+  const minimumRatios = new Map();
   for (const appearance of ['light', 'dark']) {
     const theme = colors[appearance];
     const base = rgba(theme.background);
     for (const wash of ['canvasWashTeal', 'canvasWashGold', 'canvasWashMist']) {
-      const canvas = over(rgba(theme.canvasWashMist), over(rgba(theme[wash]), base));
-      const card = over(rgba(theme.glassFill), canvas);
-      for (const tint of ['glassTintTeal', 'glassTintGold', 'glassFill']) {
-        const surface = over(rgba(theme[tint]), card);
-        const highlight = rgba(theme.glassHighlight);
-        highlight[3] *= 0.55;
-        for (const background of [canvas, surface, over(highlight, surface)]) {
-          for (const text of ['foreground', 'mutedForeground']) {
-            const ratio = contrast(rgba(theme[text]), background);
-            assert.ok(ratio >= 4.5, `${appearance} ${text} over ${wash}/${tint}: ${ratio.toFixed(2)}:1`);
+      const washBase = over(rgba(theme[wash]), base);
+      // Match BrandBackdrop paint order and maximum field opacities. Test the
+      // conservative overlap even though the moving fields sit in opposite corners.
+      const fields = over(withOpacity(theme.canvasWashGold, 0.7), over(withOpacity(theme.canvasWashTeal, 0.75), washBase));
+      for (const [mode, canvas] of [
+        ['static', over(rgba(theme.canvasWashMist), washBase)],
+        ['moving', over(rgba(theme.canvasWashMist), fields)],
+      ]) {
+        const card = over(rgba(theme.glassFill), canvas);
+        for (const tint of ['glassTintTeal', 'glassTintGold', 'glassFill']) {
+          const surface = over(rgba(theme[tint]), card);
+          const sheen = over(withOpacity(theme.glassHighlight, 0.55), surface);
+          const corner = over(withOpacity(theme.glassHighlight, 0.22), sheen);
+          const reflection = over(withOpacity(theme.glassHighlight, 0.32), corner);
+          for (const background of [canvas, surface, sheen, corner, reflection]) {
+            for (const text of ['foreground', 'mutedForeground']) {
+              const ratio = contrast(rgba(theme[text]), background);
+              const key = `${appearance} ${mode} ${text}`;
+              minimumRatios.set(key, Math.min(minimumRatios.get(key) ?? Infinity, ratio));
+            }
           }
         }
       }
     }
   }
+  const failures = [...minimumRatios].filter(([, ratio]) => ratio < 4.5)
+    .map(([key, ratio]) => `${key}: ${ratio.toFixed(2)}:1`);
+  assert.deepEqual(failures, [], 'all text must retain at least 4.5:1 contrast, including peak reflections');
 });
 
 test('glass decorations do not intercept gestures or enter the accessibility tree', () => {

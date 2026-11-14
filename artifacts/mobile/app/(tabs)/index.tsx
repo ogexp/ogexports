@@ -25,7 +25,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { useTabBarBehavior } from '@/context/TabBarBehaviorContext';
 import { GlassPopupSurface } from '@/components/GlassPopupSurface';
-import { BrandBackdrop, GlassLayers } from '@/components/GlassSurface';
+import { RouteBrandBackdrop, GlassLayers } from "@/components/GlassSurface";
 import { PortfolioHistoryCard } from '@/components/PortfolioHistoryCard';
 import {
   DashboardMetric,
@@ -305,7 +305,7 @@ export default function InvestorHome() {
     : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 7 };
 
   return <View style={{ flex:  1, backgroundColor: colors.background }}>
-  <BrandBackdrop />
+  <RouteBrandBackdrop />
   <ScrollView
     contentInsetAdjustmentBehavior="never"
     onTouchStart={tabBarBehavior.reveal}

@@ -87,8 +87,13 @@ export function MotionProvider({ children }: { children: React.ReactNode }) {
   return <MotionContext.Provider value={value}>{children}</MotionContext.Provider>;
 }
 
+/** Decorative surfaces also appear in recovery UI outside app providers. */
+export function useOptionalMotion() {
+  return useContext(MotionContext);
+}
+
 export function useMotion() {
-  const value = useContext(MotionContext);
+  const value = useOptionalMotion();
   if (!value) throw new Error('useMotion must be used inside MotionProvider.');
   return value;
 }

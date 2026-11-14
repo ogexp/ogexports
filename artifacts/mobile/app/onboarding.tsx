@@ -9,7 +9,7 @@ import { Action, Card } from '@/components/InvestorUI';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MOTION, MotionProgress, motionHaptic, useMotion } from '@/lib/motion';
-import { BrandBackdrop } from '@/components/GlassSurface';
+import { RouteBrandBackdrop } from "@/components/GlassSurface";
 
 const slides = [
   {
@@ -444,7 +444,7 @@ export default function Onboarding() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, paddingHorizontal: 22 }}>
-      <BrandBackdrop />
+      <RouteBrandBackdrop />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: Platform.OS === 'ios' ? 0 : 10 }}>
         <BrandMark width={56} />
         <View><Text style={{ color: colors.primary, fontWeight: '700', fontSize: 16 }}>OG Exports</Text><Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 1 }}>Global Trade. Digital Investment.</Text></View>

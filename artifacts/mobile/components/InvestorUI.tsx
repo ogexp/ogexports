@@ -13,7 +13,7 @@ import {
 import { LocalizedText as Text, LocalizedTextInput as TextInput } from '@/components/LocalizedText';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSegments } from 'expo-router';
+import { useFocusEffect, useSegments } from 'expo-router';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useColors } from '@/hooks/useColors';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
@@ -53,6 +53,11 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
   const insets = useSafeAreaInsets();
   const segments = useSegments();
   const isHeaderlessTabRoute = segments[0] === '(tabs)';
+  const [screenFocused, setScreenFocused] = React.useState(false);
+  useFocusEffect(React.useCallback(() => {
+    setScreenFocused(true);
+    return () => setScreenFocused(false);
+  }, []));
   const topPadding = Platform.OS === 'web'
     ? 67
     : Platform.OS === 'android'
@@ -90,7 +95,7 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
         paddingBottom: Platform.OS === 'web' ? 34 : 0,
         paddingHorizontal: 20,
       }} onTouchStart={tabBarBehavior.reveal}>
-        <BrandBackdrop />
+        <BrandBackdrop active={screenFocused} />
         {header}
         <MotionReveal delay={35} style={{ flex: 1 }} testID="screen-content-reveal">{children}</MotionReveal>
       </View>
@@ -98,7 +103,7 @@ export function Screen({ title, subtitle, children, action, scrollable = true, r
   }
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-    <BrandBackdrop />
+    <BrandBackdrop active={screenFocused} />
     <KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: 'transparent' }} contentInsetAdjustmentBehavior={Platform.OS === 'ios' ? 'never' : 'automatic'}
       keyboardShouldPersistTaps="handled" bottomOffset={24}
       onTouchStart={tabBarBehavior.reveal}

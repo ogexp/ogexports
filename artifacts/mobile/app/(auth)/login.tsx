@@ -15,7 +15,7 @@ import { resolvePostAuthHref } from '@/lib/post-auth-route';
 import { authenticateWithBiometrics, getBiometricInfo, type BiometricInfo } from '@/lib/biometrics';
 import { MotionReveal, motionHaptic } from '@/lib/motion';
 import { normalizeAuthResponse, readEmailVerificationChallenge, readTwoFactorLoginChallenge } from '@/lib/auth-response';
-import { BrandBackdrop } from '@/components/GlassSurface';
+import { RouteBrandBackdrop } from "@/components/GlassSurface";
 
 export default function Login() {
   const { apiOrigin, token, biometricEnabled, acceptSession, setChallenge, unlockApp } = useAuth();
@@ -117,7 +117,7 @@ export default function Login() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}><BrandBackdrop /><KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: 'transparent' }} contentInsetAdjustmentBehavior="never" contentContainerStyle={{ flexGrow: 1, paddingTop: Platform.OS === 'ios' ? insets.top : insets.top + 18, paddingBottom: insets.bottom + 24, paddingHorizontal: 22, justifyContent: 'center' }} bottomOffset={72} keyboardShouldPersistTaps="handled">
+    <View style={{ flex: 1, backgroundColor: colors.background }}><RouteBrandBackdrop /><KeyboardAwareScrollViewCompat style={{ flex: 1, backgroundColor: 'transparent' }} contentInsetAdjustmentBehavior="never" contentContainerStyle={{ flexGrow: 1, paddingTop: Platform.OS === 'ios' ? insets.top : insets.top + 18, paddingBottom: insets.bottom + 24, paddingHorizontal: 22, justifyContent: 'center' }} bottomOffset={72} keyboardShouldPersistTaps="handled">
       <MotionReveal>
       <View style={{ alignItems: 'center', marginBottom: 22 }}>
         <AuthBrandHeader />
