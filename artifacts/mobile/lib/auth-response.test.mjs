@@ -1,6 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildTwoFactorVerifyPayload, normalizeAuthResponse, readTwoFactorLoginChallenge } from './auth-response.ts';
+import { buildTwoFactorVerifyPayload, normalizeAuthResponse, readEmailVerificationChallenge, readTwoFactorLoginChallenge } from './auth-response.ts';
+
+test('recognizes Laravel pending-email verification responses, direct or enveloped', () => {
+  for (const flag of ['requires_verification', 'requires_email_verification']) {
+    const payload = { [flag]: true, email: ' investor@example.com ', message: 'Please verify your email before signing in.' };
+    for (const value of [payload, { data: payload }]) {
+      assert.deepEqual(readEmailVerificationChallenge(value), {
+        email: 'investor@example.com',
+        message: 'Please verify your email before signing in.',
+      });
+    }
+  }
+});
+
+test('does not redirect verified accounts or malformed challenges to email verification', () => {
+  assert.equal(readEmailVerificationChallenge({ token: 'session-token', user: { id: '1' } }), null);
+  assert.equal(readEmailVerificationChallenge({ requires_verification: false, email: 'investor@example.com' }), null);
+  assert.equal(readEmailVerificationChallenge({ requires_verification: true, email: ' ' }), null);
+});
 
 test('recognizes the direct two-factor login response', () => {
   assert.deepEqual(

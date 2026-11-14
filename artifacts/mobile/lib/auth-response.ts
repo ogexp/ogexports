@@ -9,6 +9,18 @@ export function normalizeAuthResponse(value: unknown): AuthResponsePayload {
   return isRecord(outer.data) ? outer.data : outer;
 }
 
+export function readEmailVerificationChallenge(value: unknown): { email: string; message: string } | null {
+  const payload = normalizeAuthResponse(value);
+  if (
+    (payload.requires_verification !== true && payload.requires_email_verification !== true)
+    || typeof payload.email !== 'string' || !payload.email.trim()
+  ) return null;
+  return {
+    email: payload.email.trim(),
+    message: typeof payload.message === 'string' ? payload.message : '',
+  };
+}
+
 export type TwoFactorLoginChallenge = {
   email: string;
   message: string;

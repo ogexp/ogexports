@@ -1,5 +1,7 @@
 export type CustomFetchOptions = RequestInit & {
   responseType?: "json" | "text" | "blob" | "auto";
+  /** Opt-in deadline. No automatic retries: the server may have processed a POST. */
+  timeoutMs?: number;
 };
 
 export type ErrorType<T = unknown> = ApiError<T>;
@@ -322,7 +324,60 @@ async function parseSuccessBody(
   }
 }
 
+export class ApiRequestTimeoutError extends Error {
+  readonly name = "ApiRequestTimeoutError";
+
+  constructor() {
+    super(
+      "The server took too long to respond. Check your connection and try again. " +
+      "If you were creating an account, try signing in before registering again.",
+    );
+  }
+}
+
 export async function customFetch<T = unknown>(
+  input: RequestInfo | URL,
+  options: CustomFetchOptions = {},
+): Promise<T> {
+  const { timeoutMs, ...requestOptions } = options;
+  if (!timeoutMs || !Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return executeFetch<T>(input, requestOptions);
+  }
+
+  const controller = new AbortController();
+  const callerSignal = requestOptions.signal ?? (isRequest(input) ? input.signal : undefined);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let onAbort: (() => void) | undefined;
+
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      // Reject first, so the timeout remains distinguishable from fetch cancellation.
+      reject(new ApiRequestTimeoutError());
+      controller.abort();
+    }, timeoutMs);
+    onAbort = () => {
+      const error = new Error("The request was cancelled.");
+      error.name = "AbortError";
+      reject(error);
+      controller.abort();
+    };
+    if (callerSignal?.aborted) onAbort();
+    else callerSignal?.addEventListener("abort", onAbort, { once: true });
+  });
+
+  try {
+    // The race also bounds token lookup and response reading on native fetch.
+    return await Promise.race([
+      deadline,
+      executeFetch<T>(input, { ...requestOptions, signal: controller.signal }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+    if (onAbort) callerSignal?.removeEventListener("abort", onAbort);
+  }
+}
+
+async function executeFetch<T = unknown>(
   input: RequestInfo | URL,
   options: CustomFetchOptions = {},
 ): Promise<T> {

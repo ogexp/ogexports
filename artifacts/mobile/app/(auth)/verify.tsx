@@ -21,9 +21,9 @@ export default function Verify() {
   const { challenge, acceptSession } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const emailVerify = useInvestorVerifyEmail();
-  const twoFactor = useInvestorVerifyTwoFactor();
-  const resend = useInvestorResendEmailVerification();
+  const emailVerify = useInvestorVerifyEmail({ request: { timeoutMs: 20000, responseType: 'json' } });
+  const twoFactor = useInvestorVerifyTwoFactor({ request: { timeoutMs: 20000, responseType: 'json' } });
+  const resend = useInvestorResendEmailVerification({ request: { timeoutMs: 45000, responseType: 'json' } });
   const postAuthRedirect = useRef(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState('');

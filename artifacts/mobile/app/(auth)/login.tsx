@@ -14,14 +14,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { resolvePostAuthHref } from '@/lib/post-auth-route';
 import { authenticateWithBiometrics, getBiometricInfo, type BiometricInfo } from '@/lib/biometrics';
 import { MotionReveal, motionHaptic } from '@/lib/motion';
-import { normalizeAuthResponse, readTwoFactorLoginChallenge } from '@/lib/auth-response';
+import { normalizeAuthResponse, readEmailVerificationChallenge, readTwoFactorLoginChallenge } from '@/lib/auth-response';
 
 export default function Login() {
   const { apiOrigin, token, biometricEnabled, acceptSession, setChallenge, unlockApp } = useAuth();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const login = useInvestorMobileLogin();
+  const login = useInvestorMobileLogin({ request: { timeoutMs: 20000, responseType: 'json' } });
   const postAuthPath = Array.isArray(returnTo) ? returnTo[0] : returnTo;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,6 +41,14 @@ export default function Login() {
       .catch(() => { if (active) setBiometricInfo({ available: false, name: 'biometrics' }); });
     return () => { active = false; };
   }, [hasSavedBiometricSession]);
+
+  function openEmailVerification(response: unknown): boolean {
+    const challenge = readEmailVerificationChallenge(response);
+    if (!challenge) return false;
+    setChallenge({ ...challenge, mode: 'email', ...(postAuthPath ? { returnTo: postAuthPath } : {}) });
+    router.push('/(auth)/verify');
+    return true;
+  }
 
   async function submit() {
     setError('');
@@ -66,21 +74,12 @@ export default function Login() {
         return;
       }
       const user = record(result.user);
+      if (openEmailVerification(response)) return;
       if (typeof result.token !== 'string') throw new Error('The server response did not include a session token.');
       await acceptSession(result.token, user);
       router.replace(resolvePostAuthHref(returnTo));
     } catch (err) {
-      const payload = normalizeAuthResponse(record(err).data);
-      if (payload.requires_email_verification === true && typeof payload.email === 'string') {
-        setChallenge({
-          email: payload.email,
-          mode: 'email',
-          message: typeof payload.message === 'string' ? payload.message : '',
-          ...(postAuthPath ? { returnTo: postAuthPath } : {}),
-        });
-        router.push('/(auth)/verify');
-        return;
-      }
+      if (openEmailVerification(record(err).data)) return;
       motionHaptic('error');
       setError(messageOf(err));
     }

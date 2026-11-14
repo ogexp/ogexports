@@ -13,6 +13,7 @@ import { useColors } from '@/hooks/useColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MOTION, MotionReveal, motionHaptic } from '@/lib/motion';
 import { goBackOrReplace } from '@/lib/safe-navigation';
+import { normalizeAuthResponse, readEmailVerificationChallenge } from '@/lib/auth-response';
 
 const PASSWORD_POLICY_MESSAGE = 'Use 8–128 characters with uppercase and lowercase letters, a number, and a symbol.';
 
@@ -98,7 +99,7 @@ export default function Register() {
   const { apiOrigin, setChallenge } = useAuth();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const mutation = useInvestorRegister();
+  const mutation = useInvestorRegister({ request: { timeoutMs: 45000, responseType: 'json' } });
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -122,7 +123,7 @@ export default function Register() {
       return;
     }
     try {
-      const result = record(await mutation.mutateAsync({
+      const result = normalizeAuthResponse(await mutation.mutateAsync({
         data: {
           name: fullName.trim(),
           email: email.trim(),
@@ -138,12 +139,11 @@ export default function Register() {
       });
       router.replace('/(auth)/verify');
     } catch (err) {
-      const payload = record(record(err).data);
-      if (payload.requires_email_verification === true && typeof payload.email === 'string') {
+      const challenge = readEmailVerificationChallenge(record(err).data);
+      if (challenge) {
         setChallenge({
-          email: payload.email,
+          ...challenge,
           mode: 'email',
-          message: typeof payload.message === 'string' ? payload.message : '',
         });
         router.replace('/(auth)/verify');
         return;
