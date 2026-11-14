@@ -15,11 +15,11 @@ On Home, uninterrupted scrolling takes priority over per-card decorative animati
 
 **How to apply:** Keep decorative paint bounded by the viewport even when its background belongs to long scrolling content. Avoid timer churn or page-wide state updates from scroll events, and do not show/hide navigation merely because a new drag starts; preserve actual tap, reverse-scroll and idle reveal behavior.
 
-Home and Wallet green balance cards should have only a subtle glass treatment, approximately 10% strength, rather than the stronger glass used on general cards.
+Home and Wallet green balance cards should have only a subtle frosted-glass treatment, at most approximately 10% strength, with no shine or reflective band.
 
-**Why:** The user specifically requested “10% tak means kam premium glass effect” on these two balance cards.
+**Why:** The user requested a low-strength glass finish, then explicitly corrected the result: “shine ko remove kro, just glassy bnao.”
 
-**How to apply:** Preserve the opaque branded green and readable balances; add only lightweight static decoration, not stronger blur or additional animations that undo the Home scrolling improvements.
+**How to apply:** Preserve the opaque branded green and readable balances; use a quiet uniform frosted tint and corner-matched outline. Do not reintroduce reflective streaks, shine gradients, stronger blur or animations that undo the Home scrolling improvements.
 
 Play a short, elegant confirmation chime when an accepted deposit, withdrawal, or investment response opens its confirmation popup, including received/approved/completed states; keep failed or rejected responses silent. The source asset must be normalized to an audible level. Play through iOS silent mode, but respect Android silent/vibrate ringer modes and media volume.
 

@@ -68,3 +68,51 @@ test('uses explicit related financial IDs and never treats a reference as a reco
     null,
   );
 });
+
+test('repeated copies of one wallet record appear once while retaining its latest supplied version', () => {
+  const merged = mergeDepositRequests([
+    { id: 81000101, type: 'deposit', reference: 'OGDEP-101', status: 'pending' },
+    { id: '81000101', type: 'deposit', reference: 'OGDEP-101', status: 'completed' },
+  ], []);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].status, 'completed');
+});
+
+test('empty meta cannot hide the related deposit ID present in metadata', () => {
+  const transaction = { id: 81000102, type: 'deposit', meta: {}, metadata: { deposit_id: 81000103 } };
+  assert.equal(mergeDepositRequests([transaction], [{ id: 81000103, status: 'approved' }]).length, 1);
+  assert.deepEqual(resolveActivityTransactionTarget(transaction), { id: '81000103', kind: 'deposit' });
+});
+
+test('a request already supplied in activity is not repeated beside its linked wallet posting', () => {
+  const merged = mergeDepositRequests([
+    { id: 81000104, activity_source: 'deposit_request', status: 'pending' },
+    { id: 81000105, type: 'deposit', meta: { deposit_id: 81000104 }, status: 'completed' },
+  ], [{ id: 81000104, status: 'approved' }]);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].id, 81000105);
+});
+
+test('the fresh request status takes precedence over a stale request-shaped activity row', () => {
+  const merged = mergeDepositRequests([
+    { id: 81000106, activity_source: 'deposit_request', status: 'pending' },
+  ], [{ id: 81000106, status: 'rejected' }]);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].status, 'rejected');
+});
+
+test('two real deposits never collapse merely because their amount or bank reference is equal', () => {
+  const merged = mergeDepositRequests([], [
+    { id: 81000107, reference: 'OGDEP-107', bank_reference: 'SHARED', amount: 250 },
+    { id: 81000108, reference: 'OGDEP-108', bank_reference: 'SHARED', amount: 250 },
+  ]);
+  assert.equal(merged.length, 2);
+});
+
+test('distinct actual ledger postings stay visible even when they relate to the same deposit', () => {
+  const merged = mergeDepositRequests([
+    { id: 81000109, type: 'deposit', reference: 'OGDEP-110', meta: { deposit_id: 81000110 } },
+    { id: 81000111, type: 'deposit', reference: 'OGDEP-110', meta: { deposit_id: 81000110 } },
+  ], [{ id: 81000110, reference: 'OGDEP-110' }]);
+  assert.deepEqual(merged.map(item => item.id), [81000109, 81000111]);
+});

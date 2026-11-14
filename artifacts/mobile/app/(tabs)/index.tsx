@@ -340,7 +340,7 @@ export default function InvestorHome() {
          borderBottomRightRadius: 30,
        }}
     >
-       <BalanceGlass />
+       <BalanceGlass radius={30} bottomOnly />
        <View pointerEvents="none" style={{ position: 'absolute', top: 88, right: -126, width: 250, height: 250, borderRadius: 125, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.075)' }} />
        <View pointerEvents="none" style={{ position: 'absolute', top: 66, right: -148, width: 294, height: 294, borderRadius: 147, borderWidth: 1, borderColor: 'rgba(248, 251, 248, 0.018)' }} />
        <View style={{ position: 'relative', zIndex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>

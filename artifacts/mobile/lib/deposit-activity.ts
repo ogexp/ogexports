@@ -6,8 +6,6 @@ const depositReferenceFields = [
   'transaction_reference',
   'deposit_reference',
   'depositReference',
-  'bank_reference',
-  'transfer_reference',
 ];
 
 function valueText(value: unknown): string {
@@ -30,6 +28,18 @@ function asRecord(value: unknown): ActivityRecord {
     : {};
 }
 
+function identityRecords(item: ActivityRecord): ActivityRecord[] {
+  return [item, asRecord(item.meta), asRecord(item.metadata)];
+}
+
+function firstIdentityText(item: ActivityRecord, fields: string[]): string {
+  for (const source of identityRecords(item)) {
+    const value = firstText(source, fields);
+    if (value) return value;
+  }
+  return '';
+}
+
 export type ActivityTransactionTarget = {
   id: string;
   kind: 'deposit' | 'withdrawal' | 'wallet';
@@ -41,9 +51,8 @@ function validFinancialId(value: unknown): string {
 }
 
 export function resolveActivityTransactionTarget(item: ActivityRecord): ActivityTransactionTarget | null {
-  const meta = asRecord(item.meta ?? item.metadata);
   const activitySource = firstText(item, ['activity_source']).toLowerCase();
-  const explicitDepositId = firstText(item, depositIdFields) || firstText(meta, depositIdFields);
+  const explicitDepositId = firstIdentityText(item, depositIdFields);
 
   if (activitySource === 'deposit_request') {
     const id = validFinancialId(explicitDepositId) || validFinancialId(item.id);
@@ -54,7 +63,7 @@ export function resolveActivityTransactionTarget(item: ActivityRecord): Activity
   }
 
   const withdrawalIdFields = ['withdrawal_id', 'withdrawalId', 'withdraw_id', 'withdrawId'];
-  const explicitWithdrawalId = firstText(item, withdrawalIdFields) || firstText(meta, withdrawalIdFields);
+  const explicitWithdrawalId = firstIdentityText(item, withdrawalIdFields);
   const withdrawalId = validFinancialId(explicitWithdrawalId)
     || (activitySource === 'withdrawal_request' ? validFinancialId(item.id) : '');
   if (withdrawalId) return { id: withdrawalId, kind: 'withdrawal' };
@@ -64,8 +73,7 @@ export function resolveActivityTransactionTarget(item: ActivityRecord): Activity
 }
 
 function tokens(item: ActivityRecord, fields: string[]): string[] {
-  const meta = asRecord(item.meta ?? item.metadata);
-  return [...fields.map(field => valueText(item[field])), ...fields.map(field => valueText(meta[field]))]
+  return identityRecords(item).flatMap(source => fields.map(field => valueText(source[field])))
     .filter(Boolean)
     .map(value => value.toLowerCase());
 }
@@ -86,8 +94,6 @@ function addKnownDepositTokens(
   isRequest = false,
 ) {
   const ids = tokens(item, depositIdFields);
-  const meta = asRecord(item.meta ?? item.metadata);
-  ids.push(...depositIdFields.map(field => valueText(meta[field])).filter(Boolean).map(value => value.toLowerCase()));
   if (isRequest || firstText(item, ['activity_source']) === 'deposit_request') {
     const id = valueText(item.id);
     if (id) ids.push(id.toLowerCase());
@@ -101,8 +107,6 @@ function addKnownDepositTokens(
 
 function matchesKnownDeposit(item: ActivityRecord, knownIds: Set<string>, knownReferences: Set<string>): boolean {
   const ids = tokens(item, depositIdFields);
-  const meta = asRecord(item.meta ?? item.metadata);
-  ids.push(...depositIdFields.map(field => valueText(meta[field])).filter(Boolean).map(value => value.toLowerCase()));
   const id = valueText(item.id);
   if (id) ids.push(id.toLowerCase());
   return ids.some(value => knownIds.has(value))
@@ -115,10 +119,31 @@ export function mergeDepositRequests(
 ): ActivityRecord[] {
   const knownIds = new Set<string>();
   const knownReferences = new Set<string>();
-  for (const item of activity) addKnownDepositTokens(item, knownIds, knownReferences);
+  const merged: ActivityRecord[] = [];
+  const recordPositions = new Map<string, number>();
+  const suppliedRequests: ActivityRecord[] = [];
+  for (const item of activity) {
+    const source = firstText(item, ['activity_source']).toLowerCase();
+    if (source === 'deposit_request') {
+      suppliedRequests.push(item);
+      continue;
+    }
+    // Only repeated copies of the same primary record are collapsed. Different
+    // ledger IDs remain visible, even when their deposit/reference is shared.
+    const id = validFinancialId(firstText(item, ['id', 'wallet_transaction_id', 'transaction_id']));
+    const key = id ? `${source === 'withdrawal_request' ? 'withdrawal' : 'wallet'}:${id}` : '';
+    const position = key ? recordPositions.get(key) : undefined;
+    if (position != null) {
+      merged[position] = item;
+    } else {
+      if (key) recordPositions.set(key, merged.length);
+      merged.push(item);
+    }
+  }
+  for (const item of merged) addKnownDepositTokens(item, knownIds, knownReferences);
 
-  const merged = [...activity];
-  for (const deposit of depositRequests) {
+  // Prefer the fresh deposits endpoint over an older request-shaped feed row.
+  for (const deposit of [...depositRequests, ...suppliedRequests]) {
     if (matchesKnownDeposit(deposit, knownIds, knownReferences)) continue;
 
     merged.push({

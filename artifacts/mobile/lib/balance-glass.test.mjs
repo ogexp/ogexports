@@ -52,6 +52,21 @@ test('glass decoration cannot capture touches, speak to screen readers or add a 
   assert.doesNotMatch(decoration, /\b(?:Animated|BlurView|useEffect|setTimeout|setInterval|requestAnimationFrame|onLayout)\b/);
 });
 
+test('the frosted finish has no shine band and its outline follows each card shape', () => {
+  const source = parse(decoration);
+  const frost = nodes(source, node => jsx(node) && attr(node, 'testID')?.initializer?.text === 'balance-glass-frost')[0];
+  assert.ok(frost);
+  assert.equal(opening(frost).tagName.getText(), 'View');
+  assert.match(attr(frost, 'style').getText(), /StyleSheet\.absoluteFill/);
+  assert.match(attr(frost, 'style').getText(), /backgroundColor: tint/);
+  assert.doesNotMatch(decoration, /LinearGradient|SHEEN_OPACITY|balance-glass-sheen/);
+  assert.match(decoration, /borderTopLeftRadius: 0/);
+  assert.match(decoration, /borderBottomLeftRadius: radius/);
+  assert.match(decoration, /borderTopWidth: bottomOnly \? 0/);
+  assert.match(read('../app/(tabs)/index.tsx'), /<BalanceGlass radius=\{30\} bottomOnly \/>/);
+  assert.match(read('../app/(tabs)/wallet.tsx'), /<BalanceGlass radius=\{22\} \/>/);
+});
+
 test('only the two existing opaque green heroes receive the shared glass decoration', () => {
   for (const [path, id] of files) {
     const source = parse(read(path));

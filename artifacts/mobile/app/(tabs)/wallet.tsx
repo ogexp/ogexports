@@ -84,7 +84,6 @@ export default function Wallet() {
   const usdWalletReady = currency === 'USD' && !walletCurrencyLoading;
   const available = availableBalanceFromDashboard(dashboard.data);
   const allocated = amount(walletData, ['allocated_to_trades', 'allocated_balance']);
-  const pending = amount(walletData, ['pending_balance']);
   const pendingDeposits = amount(record(unwrap(dashboard.data).summary), ['pending_deposits_amount', 'pending_deposits']);
   const withdrawable = available;
 
@@ -100,7 +99,7 @@ export default function Wallet() {
   const balanceMetrics = [
     { label: 'Available', value: available },
     { label: 'Allocated to Trades', value: allocated },
-    { label: 'Pending Wallet Balance', value: pending },
+    { label: 'Pending Deposits', value: pendingDeposits },
     { label: 'Withdrawable Balance', value: withdrawable },
   ];
 
@@ -119,7 +118,7 @@ export default function Wallet() {
         justifyContent: 'space-between',
       }}
     >
-      <BalanceGlass />
+      <BalanceGlass radius={22} />
       <View
         accessible={false}
         style={{
@@ -170,6 +169,14 @@ export default function Wallet() {
       </View>}
     </LinearGradient>
 
+    {usdWalletReady ? <>
+    <Section title="Quick Actions" />
+    <View style={{ flexDirection: 'row', gap: 10 }}>
+      <View style={{ flex: 1 }}><Action title="Add Funds" icon="plus" disabled={!usdWalletReady} onPress={() => router.push('/wallet/deposit')} /></View>
+      <View style={{ flex: 1 }}><Action title="Withdraw" icon="arrow-up-right" secondary disabled={!usdWalletReady} onPress={() => router.push('/wallet/withdraw')} /></View>
+    </View>
+    </> : null}
+
     {!dashboard.isLoading && !dashboard.isError && !walletCurrencyLoading && !usdWalletReady ? <Card testID="wallet-usd-conversion-pending">
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
         <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: colors.lightGreen, alignItems: 'center', justifyContent: 'center' }}>
@@ -190,10 +197,11 @@ export default function Wallet() {
     <Section title="Balance Breakdown" />
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
       {balanceMetrics.map(metric => {
-        const isDashboardBalance = metric.label === 'Available' || metric.label === 'Withdrawable Balance';
-        return <Card key={metric.label} style={{ width: '48%', minHeight: 91, padding: 13, marginBottom: 0 }}>
+        const isPendingDeposit = metric.label === 'Pending Deposits';
+        const isDashboardBalance = isPendingDeposit || metric.label === 'Available' || metric.label === 'Withdrawable Balance';
+        const content = <Card style={{ minHeight: 91, padding: 13, marginBottom: 0 }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{metric.label}</Text>
-          <Text testID={metric.label === 'Withdrawable Balance' ? 'wallet-withdrawable-balance' : undefined}
+          <Text testID={isPendingDeposit ? 'wallet-pending-deposits-amount' : metric.label === 'Withdrawable Balance' ? 'wallet-withdrawable-balance' : undefined}
             numberOfLines={2} adjustsFontSizeToFit style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginTop: 8 }}>
             {balanceLabel(
               metric.value,
@@ -203,37 +211,19 @@ export default function Wallet() {
             )}
           </Text>
         </Card>;
+        return <View key={metric.label} style={{ width: '48%' }}>
+          {isPendingDeposit ? <Pressable testID="wallet-open-pending-deposits" accessibilityRole="button" accessibilityLabel="View pending deposits"
+            accessibilityHint="Awaiting review. Not included in your available balance."
+            accessibilityValue={{ text: balanceLabel(pendingDeposits, currency, dashboard.isLoading, dashboard.isError) }}
+            onPress={() => router.push({ pathname: '/account/transactions', params: { tab: 'Deposits', status: 'pending' } })}>
+            {content}
+          </Pressable> : content}
+        </View>;
       })}
     </View>
-    <Pressable testID="wallet-open-pending-deposits" accessibilityRole="button" accessibilityLabel="View pending deposits"
-      onPress={() => router.push({ pathname: '/account/transactions', params: { tab: 'Deposits', status: 'pending' } })}>
-    <Card testID="wallet-pending-deposits" style={{ marginTop: 10, marginBottom: 0, padding: 14 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' }}>
-          <Feather name="clock" size={16} color={colors.primary} />
-        </View>
-        <Text style={{ flex: 1, color: colors.foreground, fontWeight: '600', fontSize: 12 }}>Pending Deposits</Text>
-        <Text testID="wallet-pending-deposits-amount" style={{ flexShrink: 1, color: colors.foreground, fontSize: 15, fontWeight: '700' }}>
-          {balanceLabel(pendingDeposits, currency, dashboard.isLoading, dashboard.isError)}
-        </Text>
-        <Feather name="chevron-right" size={15} color={colors.mutedForeground} />
-      </View>
-      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 9 }}>
-        Awaiting review. Not included in your available balance.
-      </Text>
-    </Card>
-    </Pressable>
     </> : null}
     {dashboard.isError ? <ErrorState message="Account balance could not be loaded from OG Exports." error={dashboard.error} onRetry={() => void dashboard.refetch()} /> : null}
     {wallet.isError ? <ErrorState message="Wallet breakdown could not be loaded from OG Exports." error={wallet.error} onRetry={() => void wallet.refetch()} /> : null}
-
-    {usdWalletReady ? <>
-    <Section title="Quick Actions" />
-    <View style={{ flexDirection: 'row', gap: 10 }}>
-      <View style={{ flex: 1 }}><Action title="Add Funds" icon="plus" disabled={!usdWalletReady} onPress={() => router.push('/wallet/deposit')} /></View>
-      <View style={{ flex: 1 }}><Action title="Withdraw" icon="arrow-up-right" secondary disabled={!usdWalletReady} onPress={() => router.push('/wallet/withdraw')} /></View>
-    </View>
-    </> : null}
 
     <Section title="Recent Transactions" right={<Pressable
       accessibilityRole="button"

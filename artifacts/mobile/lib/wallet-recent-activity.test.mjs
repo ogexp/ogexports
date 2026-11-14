@@ -96,9 +96,24 @@ test('focus and manual refresh include both sources, and a failed source never b
 
 test('pending deposit total uses the full dashboard summary, never the preview sum or available balance', () => {
   assert.match(walletSource, /pendingDeposits = amount\(record\(unwrap\(dashboard\.data\)\.summary\), \['pending_deposits_amount', 'pending_deposits'\]\)/);
-  assert.match(walletSource, /balanceLabel\(pendingDeposits, currency, dashboard\.isLoading, dashboard\.isError\)/);
+  assert.match(walletSource, /\{ label: 'Pending Deposits', value: pendingDeposits \}/);
+  assert.match(walletSource, /isDashboardBalance = isPendingDeposit \|\|/);
   assert.match(walletSource, /available = availableBalanceFromDashboard\(dashboard\.data\)/);
   assert.match(walletSource, /withdrawable = available;/);
   assert.match(walletSource, /params: \{ tab: 'Deposits', status: 'pending' \}/);
   assert.match(walletSource, /Not included in your available balance/);
+});
+
+test('Quick Actions precede every transaction row and pending deposits have no extra request card', () => {
+  const actions = walletSource.indexOf('<Section title="Quick Actions"');
+  const breakdown = walletSource.indexOf('<Section title="Balance Breakdown"');
+  const recentSection = walletSource.indexOf('<Section title="Recent Transactions"');
+  const rows = walletSource.indexOf('visibleTransactions.map(');
+  assert.ok(actions > 0 && breakdown > actions && recentSection > breakdown && rows > recentSection);
+  assert.doesNotMatch(walletSource.slice(0, actions), /visibleTransactions\.map/);
+  assert.doesNotMatch(walletSource, /testID="wallet-pending-deposits"/, 'the standalone card above Add Funds / Withdraw is gone');
+  assert.doesNotMatch(walletSource, /label: 'Pending Wallet Balance'/, 'only the correctly sourced pending-deposit metric is shown');
+  assert.equal((walletSource.match(/label: 'Pending Deposits'/g) ?? []).length, 1);
+  assert.match(walletSource.slice(actions, recentSection), /title="Add Funds"/);
+  assert.match(walletSource.slice(actions, recentSection), /title="Withdraw"/);
 });
