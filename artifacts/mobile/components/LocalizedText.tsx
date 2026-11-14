@@ -38,9 +38,7 @@ function localizedTypography(style: StyleProp<TextStyle>, direction: 'ltr' | 'rt
     : numericWeight >= 500
       ? 'Inter_500Medium'
       : 'Inter_400Regular';
-  const resolvedStyle: TextStyle = { ...flattened };
-  delete resolvedStyle.fontWeight;
-  delete resolvedStyle.fontFamily;
+  const { fontWeight: _fontWeight, fontFamily: _fontFamily, ...resolvedStyle } = flattened;
 
   return [{ writingDirection: direction, fontFamily }, resolvedStyle];
 }

@@ -358,7 +358,7 @@ export default function Messages() {
             messagesQuery.isLoading
               ? <Card><Text style={{ color: colors.mutedForeground }}>Loading messages…</Text></Card>
               : messagesQuery.isError
-                ? null
+                ? undefined
                 : <EmptyState title="Start a conversation" body="Send a message to investor support. Replies will appear here." />
           }
           renderItem={({ item, index }) => {

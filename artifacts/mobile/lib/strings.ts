@@ -18,7 +18,7 @@ export const localizedAlert = {
   alert(...args: AlertArgs) {
     const [title, message, buttons, options] = args;
     return NativeAlert.alert(
-      translateUi(title, activeUiLanguage),
+      title == null ? title : translateUi(title, activeUiLanguage),
       message ? translateUi(message, activeUiLanguage) : message,
       buttons?.map(button => ({
         ...button,

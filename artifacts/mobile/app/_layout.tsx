@@ -45,7 +45,7 @@ function RootLayoutNav() {
   const isDarkStatusBar = resolvedAppearance === 'dark';
   const useLightStatusBar = isHomeRoute || isDarkStatusBar;
   const statusBar = Platform.OS === 'android'
-    ? <NativeStatusBar barStyle={useLightStatusBar ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+    ? <NativeStatusBar barStyle={useLightStatusBar ? 'light-content' : 'dark-content'} />
     : <ExpoStatusBar style={useLightStatusBar ? 'light' : 'dark'} />;
   const safeBackButton = (fallbackHref: Href, testID: string) => () => (
     <Pressable

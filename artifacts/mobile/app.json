@@ -14,14 +14,21 @@
     "android": {
       "package": "com.ogexports.investor",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 9
+      "versionCode": 9,
+      "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/images/og-logo.png"
+      "favicon": "./assets/images/og-logo.png",
+      "output": "single"
     },
     "plugins": [
       "expo-router",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "investor-updates-v2"
+        }
+      ],
       "expo-secure-store",
       "expo-sharing",
       [

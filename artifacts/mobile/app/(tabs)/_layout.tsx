@@ -4,7 +4,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/native-tabs';
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
@@ -145,14 +145,14 @@ function ClassicLayout() {
       ] as const).map(([name, title, androidIcon, androidSelectedIcon, iosIcon, iosSelectedIcon]) => (
         <Tabs.Screen key={name} name={name} options={{
           title,
-          tabBarIcon: ({ color, focused }) => <AnimatedTabIcon focused={focused}>
+          tabBarIcon: ({ focused }) => <AnimatedTabIcon focused={focused}>
             {Platform.OS === 'ios'
-              ? <SymbolView name={focused ? iosSelectedIcon : iosIcon} tintColor={color} size={22} />
+              ? <SymbolView name={focused ? iosSelectedIcon : iosIcon} tintColor={focused ? colors.primary : colors.mutedForeground} size={22} />
               : name === 'wallet'
-                ? <MaterialCommunityIcons name={focused ? 'wallet-bifold' : 'wallet-bifold-outline'} size={22} color={color} />
+                ? <MaterialCommunityIcons name={focused ? 'wallet-bifold' : 'wallet-bifold-outline'} size={22} color={focused ? colors.primary : colors.mutedForeground} />
               : Platform.OS === 'android' && name === 'index'
-                ? <MaterialCommunityIcons name={focused ? 'home-circle' : 'home-circle-outline'} size={22} color={color} />
-              : <Ionicons name={focused ? androidSelectedIcon : androidIcon} size={22} color={color} />}
+                ? <MaterialCommunityIcons name={focused ? 'home-circle' : 'home-circle-outline'} size={22} color={focused ? colors.primary : colors.mutedForeground} />
+              : <Ionicons name={focused ? androidSelectedIcon : androidIcon} size={22} color={focused ? colors.primary : colors.mutedForeground} />}
           </AnimatedTabIcon>,
         }} />
       ))}
