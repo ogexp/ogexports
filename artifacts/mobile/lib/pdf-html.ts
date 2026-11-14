@@ -25,9 +25,9 @@ export function brandedPdfHtml(sourceHtml: string, title: string, logoUri: strin
     *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     body{margin:0;color:#153328;background:#fff;font:12px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
     .og-pdf{max-width:800px;margin:0 auto}
-    .og-pdf-brand{display:flex;align-items:center;gap:14px;padding:0 0 16px;border-bottom:2px solid #17784f;margin-bottom:22px}
+    .og-pdf-brand{display:flex;align-items:center;gap:14px;padding:0 0 16px;border-bottom:2px solid #0A3637;margin-bottom:22px}
     .og-pdf-brand img{width:70px;height:70px;object-fit:contain}
-    .og-pdf-kicker{color:#17784f;font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase}
+    .og-pdf-kicker{color:#0A3637;font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase}
     .og-pdf-brand h1{font-size:22px;line-height:1.25;margin:4px 0;color:#143a2b}
     .og-pdf-brand p{margin:0;color:#62746b;font-size:10px}
     .og-pdf-content{overflow-wrap:anywhere}

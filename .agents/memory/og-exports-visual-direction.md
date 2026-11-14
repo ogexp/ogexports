@@ -1,17 +1,21 @@
 ---
 name: OG Exports mobile visual direction
-description: The requested premium light brand style and data-safe visual constraints for the investor app.
+description: The requested light mobile UI with dark-teal splash and brand accents, plus data-safe visual constraints.
 ---
 
-Across OG Exports web and mobile, keep a calm premium visual language: warm off-white surfaces, clear emerald hierarchy, soft green highlights, and muted gold only as a small accent. Use moderate heading sizes and weights; avoid oversized heavy type, black-heavy surfaces, strong glows, and metallic shimmer. Light is the default appearance; users can choose Light, Dark, or System.
+Keep a calm premium visual language with warm off-white surfaces and muted gold only as a small accent. The user requested that the mobile splash match their supplied dark-teal OG artwork and that mobile brand-green accents use that same teal hue. This mobile change does not authorize restyling the web portal. Use moderate heading sizes and weights; avoid oversized heavy type or making all app surfaces dark. Light is the default appearance; users can choose Light, Dark, or System.
 
-Use five bottom tabs: Dashboard, Opportunities, Portfolio, Wallet, and Profile. The Home screen uses a full-width emerald hero with a bank glyph, greeting, notifications and settings, an Investor account pill, and the centered live available balance. Keep the OG Exports logo/name in the account menu.
+**Why:** The user supplied a new OG Exports splash reference and explicitly asked to replace the mobile app's green colour with its colour.
+
+**How to apply:** Use the supplied splash artwork and teal brand family throughout mobile controls and highlights while retaining accessible dark-mode variants, light surfaces, and distinct financial-status colours.
+
+Use five bottom tabs: Dashboard, Opportunities, Portfolio, Wallet, and Profile. The Home screen uses a full-width brand-teal hero with a bank glyph, greeting, notifications and settings, an Investor account pill, and the centered live available balance. Keep the OG Exports logo/name in the account menu.
 
 The metallic emerald “OG” artwork supplied by the user is the official logo. Use that artwork for app identity instead of the previous sprout mark, with a transparent background and its original emerald colors.
 
-Use spacious typography, rounded cards with subtle borders and shadows, and light secondary actions with emerald borders. Avoid crypto, gambling, or speculative-return visual cues. Decorative portfolio illustrations must not imply actual performance or introduce financial amounts, forecasts, or other unreported data.
+Use spacious typography, rounded cards with subtle borders and shadows, and light secondary actions with brand-teal borders on mobile. Avoid crypto, gambling, or speculative-return visual cues. Decorative portfolio illustrations must not imply actual performance or introduce financial amounts, forecasts, or other unreported data.
 
-On Home, use the supplied screenshot direction: a full-width emerald gradient hero and a white floating action dock with Deposit Funds, Invest Now, Withdraw Funds, and View Portfolio. Keep the balance API-driven, preserve the privacy toggle, and keep the decorative circles subtle. The white content begins with Account Overview, followed by verification and investment summaries; move Portfolio Performance and Recent Transactions lower.
+On Home, preserve the supplied screenshot's layout: a full-width brand gradient hero and a white floating action dock with Deposit Funds, Invest Now, Withdraw Funds, and View Portfolio. Keep the balance API-driven, preserve the privacy toggle, and keep the decorative circles subtle. The white content begins with Account Overview, followed by verification and investment summaries; move Portfolio Performance and Recent Transactions lower.
 
 For Home's My Investments card, limit the admin-status change to its Container Status value. Preserve the existing card layout and Portfolio Performance section; do not change unrelated refresh or dashboard elements.
 

@@ -206,7 +206,7 @@ export function transactionReceiptHtml(receipt: TransactionReceipt): string {
   <style>
     main{padding:0}table{width:100%;border-collapse:collapse}th,td{padding:11px 8px;border-bottom:1px solid #edf1ee;text-align:left;vertical-align:top;overflow-wrap:anywhere}
     th{width:42%;color:#607168;font-size:11px;font-weight:600}td{text-align:right;font-weight:650}
-    aside{margin-top:18px;padding:13px 15px;border:1px solid #bcd7c7;border-radius:10px;background:#eff8f2;color:#244d37;font-size:11px}
+    aside{margin-top:18px;padding:13px 15px;border:1px solid #B7CFCD;border-radius:10px;background:#EAF2F1;color:#0A3637;font-size:11px}
     .receipt-note{margin-top:12px;color:#718078;font-size:9px;line-height:1.5}
   </style>
 </head>

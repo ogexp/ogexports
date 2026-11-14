@@ -1,7 +1,7 @@
 - [OG Exports API contract](investor-api-contract.md) — Laravel owns financial data; align portfolio totals with available funds without counting paid returns twice.
 - [KYC latest-application ordering](kyc-latest-application-ordering.md) — break timestamp ties by descending ID so resubmissions keep status and application details aligned.
 - [Financial transaction IDs](financial-transaction-ids.md) — use the database primary ID itself as the exact 8-digit ID across backend and investor/admin interfaces.
-- [OG Exports mobile visual direction](og-exports-visual-direction.md) — premium light/emerald UI, five investor tabs, default-USD display currency, and source-currency transactions.
+- [OG Exports mobile visual direction](og-exports-visual-direction.md) — light UI with supplied dark-teal splash/accents, five investor tabs, default-USD display, and source-currency transactions.
 - [Mobile navigation motion](mobile-navigation-motion.md) — hide bottom tabs while scrolling down; reveal on screen tap, reverse scroll, or brief idle.
 - [Node TypeScript test imports](node-ts-test-imports.md) — native Node tests reject extensionless sibling TypeScript imports; `.ts` suffixes conflict with default `tsc`.
 - [Generated API declaration freshness](generated-api-declaration-freshness.md) — rebuild API-client project declarations when mobile cannot see a hook present in generated source.

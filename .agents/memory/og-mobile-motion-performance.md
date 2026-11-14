@@ -3,11 +3,11 @@ name: OG Exports mobile motion performance
 description: Project-specific constraints for motion performance and financial trust in the investor app.
 ---
 
-Keep the OG Exports investor app fast: animations must not delay submission or other user actions. Prefer short, native/UI-thread opacity and transform transitions; avoid continuous decorative motion and artificial financial counters. Exception: the user wants the startup logo's two orbit rings to rotate throughout the six-second intro, with three evenly spaced dots on each ring; the outer dots should be evenly distributed around the full circle. Stop the loops when the intro ends and skip them under reduced-motion accessibility.
+Keep the OG Exports investor app fast: animations must not delay submission or other user actions. Prefer short, native/UI-thread opacity and transform transitions; avoid continuous decorative motion and artificial financial counters. The mobile startup visual now follows the user's supplied dark-teal OG splash, with a restrained logo/text entrance and lower progress treatment rather than the older rotating orbit rings. Preserve existing startup timing and routing unless the user requests a timing change, and retain reduced-motion skipping.
 
-**Why:** the user explicitly asked for premium, professional motion without slowing normal app actions, then requested a six-second startup intro with continuous circle motion, a second outer ring, and three evenly spaced dots on each ring.
+**Why:** the user wants professional motion without slowing normal app actions, and later replaced the old orbit-ring splash direction with a supplied dark-teal splash reference.
 
-**How to apply:** keep non-startup interactions fast; limit the continuous loops and six-second hold to the splash intro, space three dots evenly around both rings, use the native driver, and stop the loops on route transition.
+**How to apply:** keep non-startup interactions fast; do not reintroduce the superseded orbit rings or add new startup delays. Keep splash transitions lightweight and stop animations on route transition.
 
 Play a short, elegant confirmation chime when an accepted deposit, withdrawal, or investment response opens its confirmation popup, including received/approved/completed states; keep failed or rejected responses silent. The source asset must be normalized to an audible level. Play through iOS silent mode, but respect Android silent/vibrate ringer modes and media volume.
 

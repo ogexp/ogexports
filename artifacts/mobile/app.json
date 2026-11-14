@@ -33,8 +33,8 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F8F7F3",
-          "image": "./assets/images/og-logo.png",
+          "backgroundColor": "#0A3335",
+          "image": "./assets/images/og-splash-mark.png",
           "imageWidth": 220,
           "resizeMode": "contain"
         }
