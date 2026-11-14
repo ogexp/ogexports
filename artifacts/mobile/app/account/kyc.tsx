@@ -537,7 +537,7 @@ export default function Kyc() {
         <Field label="Full legal name (required)" value={name} onChangeText={setName} placeholder="As shown on your identity document" autoCapitalize="words" />
         <Field label="Phone number (optional)" value={phone} onChangeText={setPhone} placeholder="+1 555 000 0000" keyboardType="phone-pad" />
         <DateOfBirthPicker label="Date of birth (required)" value={dob} onChange={setDob} />
-        <Field label="Nationality (required)" value={nationality} onChangeText={setNationality} placeholder="Nationality" autoCapitalize="words" />
+        <CountryPicker label="Nationality (required)" value={nationality} onChange={setNationality} placeholder="Select nationality" selectionType="nationality" testID="kyc-nationality" />
         <CountryPicker label="Country of residence (required)" value={country} onChange={setCountry} placeholder="Select country" />
         <Field label="City (required)" value={city} onChangeText={setCity} placeholder="City" autoCapitalize="words" />
         <Field label="Street address (required)" value={streetAddress} onChangeText={setStreetAddress} placeholder="Street address" multiline />

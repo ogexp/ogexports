@@ -236,6 +236,8 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["My portfolio","میرا پورٹ فولیو","محفظتي الاستثمارية"],
   ["Nationality","قومیت","الجنسية"],
   ["Nationality (required)","قومیت (مطلوب)","الجنسية (مطلوب)"],
+  ["Select nationality","قومیت منتخب کریں","اختر الجنسية"],
+  ["Select your country of citizenship","اپنی شہریت کا ملک منتخب کریں","اختر دولة جنسيتك"],
   ["New password","نیا پاس ورڈ","كلمة مرور جديدة"],
   ["New to OG Exports?","OG Exports پر نئے ہیں؟","هل أنت جديد في OG Exports؟"],
   ["New transaction password","نیا ٹرانزیکشن پاس ورڈ","كلمة مرور جديدة للمعاملات"],

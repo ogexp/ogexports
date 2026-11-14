@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { countryForApi, kycProfileCountry, profileUserCountry, searchCountries } from './countries.ts';
+import { readFileSync } from 'node:fs';
+import { countryForApi, countryLabelForValue, kycProfileCountry, profileUserCountry, searchCountries } from './countries.ts';
 
 test('profile country selected through ISO search maps to the API name and reload shape', () => {
   const selectedCountry = searchCountries('PK').find(country => country.code === 'PK');
@@ -28,4 +29,19 @@ test('KYC country selected by name maps to the canonical API label and reload sh
 
 test('KYC reload accepts country stored at the profile root for older responses', () => {
   assert.equal(kycProfileCountry({ country: 'Pakistan' }), 'Pakistan');
+});
+
+test('KYC nationality uses its own controlled searchable picker, not a text field', () => {
+  const source = readFileSync(new URL('../app/account/kyc.tsx', import.meta.url), 'utf8');
+  assert.match(source, /<CountryPicker label="Nationality \(required\)" value=\{nationality\} onChange=\{setNationality\}[^>]*selectionType="nationality"[^>]*testID="kyc-nationality"/);
+  assert.doesNotMatch(source, /<Field label="Nationality/);
+  assert.match(source, /<CountryPicker label="Country of residence \(required\)" value=\{country\} onChange=\{setCountry\}/);
+  assert.match(source, /nationality: nationality\.trim\(\)/);
+});
+
+test('nationality selections retain country labels and do not erase legacy saved nationalities', () => {
+  assert.equal(countryLabelForValue('PK'), 'Pakistan');
+  assert.equal(countryLabelForValue('Pakistan'), 'Pakistan');
+  assert.equal(countryLabelForValue('Pakistani'), 'Pakistani');
+  assert.equal(countryLabelForValue(''), '');
 });

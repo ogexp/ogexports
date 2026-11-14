@@ -21,12 +21,14 @@ export function CountryPicker({
   onChange,
   placeholder = 'Select country',
   testID = 'country-picker',
+  selectionType = 'country',
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   testID?: string;
+  selectionType?: 'country' | 'nationality';
 }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -37,6 +39,8 @@ export function CountryPicker({
   const sections = useMemo(() => countrySections(query), [query]);
   const selectedLabel = countryLabelForValue(value);
   const selectedCountry = COUNTRIES.find(country => country.label === selectedLabel);
+  const isNationality = selectionType === 'nationality';
+  const closeLabel = isNationality ? 'Close nationality selector' : 'Close country selector';
 
   function openPicker() {
     setQuery('');
@@ -102,7 +106,7 @@ export function CountryPicker({
         <Pressable
           testID={`${testID}-backdrop`}
           accessibilityRole="button"
-          accessibilityLabel="Close country selector"
+           accessibilityLabel={closeLabel}
           onPress={closePicker}
           style={[StyleSheet.absoluteFill, { backgroundColor: colors.shadowColor, opacity: 0.44 }]}
         />
@@ -126,13 +130,13 @@ export function CountryPicker({
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.accent, fontSize: 9, fontWeight: '800', letterSpacing: 1.2, marginBottom: 3 }}>OG EXPORTS</Text>
-                <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>Select country</Text>
-                <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 3 }}>Search by country name or ISO code</Text>
+                <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>{isNationality ? 'Select nationality' : 'Select country'}</Text>
+                <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 3 }}>{isNationality ? 'Select your country of citizenship' : 'Search by country name or ISO code'}</Text>
               </View>
               <Pressable
                 testID={`${testID}-close`}
                 accessibilityRole="button"
-                accessibilityLabel="Close country selector"
+                accessibilityLabel={closeLabel}
                 hitSlop={10}
                 onPress={closePicker}
                 style={{ width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, backgroundColor: colors.secondary }}
