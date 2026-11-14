@@ -88,7 +88,7 @@ function addKnownDepositTokens(
   const ids = tokens(item, depositIdFields);
   const meta = asRecord(item.meta ?? item.metadata);
   ids.push(...depositIdFields.map(field => valueText(meta[field])).filter(Boolean).map(value => value.toLowerCase()));
-  if (isRequest || looksLikeDeposit(item)) {
+  if (isRequest || firstText(item, ['activity_source']) === 'deposit_request') {
     const id = valueText(item.id);
     if (id) ids.push(id.toLowerCase());
   }

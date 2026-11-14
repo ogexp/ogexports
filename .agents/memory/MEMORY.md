@@ -1,4 +1,5 @@
 - [OG Exports API contract](investor-api-contract.md) — Laravel owns financial data; align portfolio totals with available funds without counting paid returns twice.
+- [Wallet activity preview](wallet-activity-preview.md) — show only five latest entries, include unposted deposits, and keep pending amounts separate from spendable funds.
 - [KYC latest-application ordering](kyc-latest-application-ordering.md) — break timestamp ties by descending ID so resubmissions keep status and application details aligned.
 - [Financial transaction IDs](financial-transaction-ids.md) — use the database primary ID itself as the exact 8-digit ID across backend and investor/admin interfaces.
 - [OG Exports mobile visual direction](og-exports-visual-direction.md) — premium glass cards, branded teal backgrounds, official splash identity and data-safe investor layouts.

@@ -4,16 +4,19 @@ import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useGetInvestorDashboard, useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
+import { useGetInvestorDashboard, useGetInvestorDeposits, useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
 import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap, walletCurrencyFromSources, type Json } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MotionReveal } from '@/lib/motion';
+import { mergeDepositRequests, resolveActivityTransactionTarget } from '@/lib/deposit-activity';
+import { latestRecords } from '@/lib/latest-records';
 
 type WalletCategory = 'All' | 'Deposits' | 'Investments' | 'Withdrawals' | 'Distributions';
 const walletCategories: WalletCategory[] = ['All', 'Deposits', 'Investments', 'Withdrawals', 'Distributions'];
 const pageSize = 100;
+const recentLimit = 5;
 
 function categoryFor(item: Json): Exclude<WalletCategory, 'All'> | null {
   const type = `${first(item, ['type', 'transaction_type', 'category'])} ${first(item, ['description', 'title'])}`.toLowerCase();
@@ -57,12 +60,21 @@ export default function Wallet() {
   const transactions = useGetInvestorWalletTransactions({ page: 1, per_page: pageSize }, {
     query: { queryKey: ['investor-wallet-transactions', 1, pageSize], enabled: Boolean(token), staleTime: 30_000 },
   });
+  const deposits = useGetInvestorDeposits({ page: 1, per_page: pageSize }, {
+    query: { queryKey: ['investor-deposits', 1, pageSize], enabled: Boolean(token), staleTime: 30_000 },
+  });
+  const refreshWallet = React.useCallback(async () => {
+    if (!token) return;
+    await Promise.all([
+      wallet.refetch({ cancelRefetch: false }),
+      dashboard.refetch({ cancelRefetch: false }),
+      transactions.refetch({ cancelRefetch: false }),
+      deposits.refetch({ cancelRefetch: false }),
+    ]);
+  }, [token, wallet.refetch, dashboard.refetch, transactions.refetch, deposits.refetch]);
   useFocusEffect(React.useCallback(() => {
-    if (token) {
-      void wallet.refetch();
-      void dashboard.refetch();
-    }
-  }, [token, wallet.refetch, dashboard.refetch]));
+    void refreshWallet();
+  }, [refreshWallet]));
 
   const walletData = record(record(wallet.data).data ?? wallet.data);
   const currency = walletCurrencyFromSources(walletData, dashboard.data);
@@ -72,24 +84,22 @@ export default function Wallet() {
   const available = availableBalanceFromDashboard(dashboard.data);
   const allocated = amount(walletData, ['allocated_to_trades', 'allocated_balance']);
   const pending = amount(walletData, ['pending_balance']);
+  const pendingDeposits = amount(record(unwrap(dashboard.data).summary), ['pending_deposits_amount', 'pending_deposits']);
   const withdrawable = available;
 
-  const ledger = list(transactions.data);
+  const ledger = mergeDepositRequests(list(transactions.data), list(deposits.data));
   const filteredLedger = category === 'All'
     ? ledger
     : ledger.filter(item => categoryFor(item) === category);
-  const visibleTransactions = filteredLedger.slice(0, 8);
-  const transactionsEnvelope = record(transactions.data);
-  const nestedTransactionsEnvelope = record(transactionsEnvelope.data);
-  const transactionsMeta = record(transactionsEnvelope.meta ?? nestedTransactionsEnvelope.meta);
-  const totalTransactions = amount(transactionsMeta, ['total']) ?? amount(transactionsEnvelope, ['total']);
-  const hasMoreTransactions = !transactions.isLoading && !transactions.isError
-    && (totalTransactions != null ? totalTransactions > ledger.length : ledger.length >= pageSize);
+  const visibleTransactions = latestRecords(filteredLedger, ['created_at', 'date', 'submitted_at'], recentLimit);
+  const activityLoading = transactions.isLoading || deposits.isLoading;
+  const activityError = transactions.isError || deposits.isError;
+  const activityFetching = transactions.isFetching || deposits.isFetching;
 
   const balanceMetrics = [
     { label: 'Available', value: available },
     { label: 'Allocated to Trades', value: allocated },
-    { label: 'Pending', value: pending },
+    { label: 'Pending Wallet Balance', value: pending },
     { label: 'Withdrawable Balance', value: withdrawable },
   ];
 
@@ -192,6 +202,24 @@ export default function Wallet() {
         </Card>;
       })}
     </View>
+    <Pressable testID="wallet-open-pending-deposits" accessibilityRole="button" accessibilityLabel="View pending deposits"
+      onPress={() => router.push({ pathname: '/account/transactions', params: { tab: 'Deposits', status: 'pending' } })}>
+    <Card testID="wallet-pending-deposits" style={{ marginTop: 10, marginBottom: 0, padding: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' }}>
+          <Feather name="clock" size={16} color={colors.primary} />
+        </View>
+        <Text style={{ flex: 1, color: colors.foreground, fontWeight: '600', fontSize: 12 }}>Pending Deposits</Text>
+        <Text testID="wallet-pending-deposits-amount" style={{ flexShrink: 1, color: colors.foreground, fontSize: 15, fontWeight: '700' }}>
+          {balanceLabel(pendingDeposits, currency, dashboard.isLoading, dashboard.isError)}
+        </Text>
+        <Feather name="chevron-right" size={15} color={colors.mutedForeground} />
+      </View>
+      <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 9 }}>
+        Awaiting review. Not included in your available balance.
+      </Text>
+    </Card>
+    </Pressable>
     </> : null}
     {dashboard.isError ? <ErrorState message="Account balance could not be loaded from OG Exports." error={dashboard.error} onRetry={() => void dashboard.refetch()} /> : null}
     {wallet.isError ? <ErrorState message="Wallet breakdown could not be loaded from OG Exports." error={wallet.error} onRetry={() => void wallet.refetch()} /> : null}
@@ -204,11 +232,13 @@ export default function Wallet() {
     </View>
     </> : null}
 
-    <Section title="Transaction History" right={<Pressable
+    <Section title="Recent Transactions" right={<Pressable
       accessibilityRole="button"
-      accessibilityLabel="Refresh transaction history"
+      accessibilityLabel="Refresh wallet activity"
+      accessibilityState={{ busy: activityFetching }}
+      disabled={activityFetching}
       testID="refresh-wallet-history"
-      onPress={() => void transactions.refetch()}
+      onPress={() => void refreshWallet()}
       style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}
     ><Feather name="refresh-cw" size={15} color={colors.primary} /></Pressable>} />
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7, paddingBottom: 12 }}>
@@ -227,17 +257,18 @@ export default function Wallet() {
       })}
     </ScrollView>
 
-    {transactions.isLoading ? <LoadingCard label="Loading transactions…" /> : null}
+    {activityLoading ? <LoadingCard label="Loading transactions…" /> : null}
     {transactions.isError ? <ErrorState message="Wallet activity could not be loaded." error={transactions.error} onRetry={() => void transactions.refetch()} /> : null}
-    {!transactions.isLoading && !transactions.isError && visibleTransactions.length === 0
+    {deposits.isError ? <ErrorState message="Deposit requests could not be loaded. Recent activity may be incomplete." error={deposits.error} onRetry={() => void deposits.refetch()} /> : null}
+    {!activityLoading && !activityError && visibleTransactions.length === 0
       ? <EmptyState
         title={category === 'All' ? 'No transactions yet' : `No ${category.toLowerCase()} yet`}
         body="Transactions returned by OG Exports will appear here."
       />
       : null}
     {visibleTransactions.map((item, index) => {
-      const id = first(item, ['transaction_id', 'reference', 'id'], '—');
-      const detailId = first(item, ['id', 'transaction_id']);
+      const id = first(item, ['id', 'transaction_id'], '—');
+      const target = resolveActivityTransactionTarget(item);
       const rawType = first(item, ['type', 'transaction_type', 'category']);
       const date = displayDate(first(item, ['created_at', 'date']));
       const status = first(item, ['status', 'state'], '—');
@@ -248,12 +279,14 @@ export default function Wallet() {
         : itemCategory === 'Investments' ? 'briefcase'
           : itemCategory === 'Distributions' ? 'trending-up' : 'arrow-down-left';
       return <Pressable
-        key={`${id}-${index}`}
+        key={`${target?.kind || 'unknown'}-${id}-${index}`}
         accessibilityRole="button"
         accessibilityLabel={`Open ${humanizeType(rawType)} transaction details`}
-        testID={`wallet-transaction-${detailId || index}`}
-        disabled={!/^\d+$/.test(detailId)}
-        onPress={() => router.push({ pathname: '/account/transaction/[id]', params: { id: detailId, kind: 'wallet' } })}
+        testID={`wallet-transaction-${target?.kind || 'unknown'}-${target?.id || index}`}
+        disabled={!target}
+        onPress={() => {
+          if (target) router.push({ pathname: '/account/transaction/[id]', params: target });
+        }}
       >
       <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 11, padding: 14 }}>
         <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' }}>
@@ -273,9 +306,9 @@ export default function Wallet() {
       </Card>
       </Pressable>;
     })}
-    {hasMoreTransactions ? <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 2 }}>
-      Categories above use the latest {ledger.length}{totalTransactions != null ? ` of ${totalTransactions}` : ''} transactions. Choose View All to browse older records.
-    </Text> : null}
-    {!transactions.isLoading && !transactions.isError ? <Action title="View All Transactions" icon="list" secondary onPress={() => router.push('/account/transactions')} /> : null}
+    <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 2, marginBottom: 10 }}>
+      Showing up to 5 recent transactions. View all for complete history.
+    </Text>
+    <Action title="View All Transactions" icon="list" secondary onPress={() => router.push('/account/transactions')} />
   </Screen>;
 }
