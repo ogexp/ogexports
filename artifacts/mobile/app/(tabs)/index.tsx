@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Image, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { BrandMark } from '@/components/BrandMark';
 import { LocalizedText as Text } from '@/components/LocalizedText';
 import { router, useFocusEffect } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -708,7 +709,7 @@ export default function InvestorHome() {
       }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Image source={require('../../assets/images/og-logo.png')} resizeMode="contain" style={{ width: 38, height: 38 }} />
+            <BrandMark width={52} />
             <View>
               <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 }}>OG Exports</Text>
               <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '600', letterSpacing: 0.8, marginTop: 2 }}>INVESTOR PORTAL</Text>

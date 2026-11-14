@@ -47,3 +47,33 @@ test('native splash uses a bundled PNG and the matching runtime splash backgroun
   const image = readFileSync(new URL(`../${plugin[1].image.replace(/^\.\//, '')}`, import.meta.url));
   assert.deepEqual([...image.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
 });
+
+function pngDimensions(relativePath) {
+  const data = readFileSync(new URL(`../${relativePath.replace(/^\.\//, '')}`, import.meta.url));
+  assert.deepEqual([...data.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  return [data.readUInt32BE(16), data.readUInt32BE(20)];
+}
+
+test('official mobile launcher assets use properly sized approved-logo PNGs', () => {
+  const config = JSON.parse(readFileSync(new URL('../app.json', import.meta.url), 'utf8')).expo;
+  assert.equal(config.icon, './assets/images/og-app-icon.png');
+  assert.deepEqual(pngDimensions(config.icon), [1024, 1024]);
+  assert.equal(config.android.adaptiveIcon.foregroundImage, './assets/images/og-adaptive-foreground.png');
+  assert.deepEqual(pngDimensions(config.android.adaptiveIcon.foregroundImage), [1024, 1024]);
+  assert.equal(config.android.adaptiveIcon.backgroundColor, colors.light.splashEnd);
+  assert.equal(config.web.favicon, './assets/images/og-favicon.png');
+  assert.deepEqual(pngDimensions(config.web.favicon), [128, 128]);
+});
+
+test('screen and PDF branding share the transparent approved splash mark', () => {
+  assert.deepEqual(pngDimensions('assets/images/og-official-mark.png'), [389, 270]);
+  const component = readFileSync(new URL('../components/BrandMark.tsx', import.meta.url), 'utf8');
+  const pdf = readFileSync(new URL('./pdf-export.ts', import.meta.url), 'utf8');
+  assert.ok(component.includes("require('../assets/images/og-official-mark.png')"));
+  assert.ok(pdf.includes("require('../assets/images/og-official-mark.png')"));
+  for (const route of ['(auth)/login', '(auth)/register', 'lock', 'onboarding', '(tabs)/index']) {
+    const source = readFileSync(new URL(`../app/${route}.tsx`, import.meta.url), 'utf8');
+    assert.ok(source.includes('<BrandMark'), `${route} uses shared approved branding`);
+    assert.equal(source.includes('og-logo.png'), false, `${route} does not use the former logo`);
+  }
+});

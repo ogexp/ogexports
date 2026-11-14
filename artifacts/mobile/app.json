@@ -5,7 +5,7 @@
     "owner": "ogexp55",
     "version": "2.1.9",
     "orientation": "portrait",
-    "icon": "./assets/images/og-logo.png",
+    "icon": "./assets/images/og-app-icon.png",
     "scheme": "mobile",
     "userInterfaceStyle": "light",
     "ios": {
@@ -15,10 +15,14 @@
       "package": "com.ogexports.investor",
       "googleServicesFile": "./google-services.json",
       "versionCode": 9,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/og-adaptive-foreground.png",
+        "backgroundColor": "#0A3335"
+      }
     },
     "web": {
-      "favicon": "./assets/images/og-logo.png",
+      "favicon": "./assets/images/og-favicon.png",
       "output": "single"
     },
     "plugins": [

@@ -5,7 +5,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { brandedPdfHtml } from './pdf-html';
 
-const officialLogo = require('../assets/images/og-logo.png');
+const officialLogo = require('../assets/images/og-official-mark.png');
 let cachedLogoDataUri: string | null = null;
 export { brandedPdfHtml } from './pdf-html';
 

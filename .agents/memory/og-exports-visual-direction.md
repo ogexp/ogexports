@@ -11,7 +11,11 @@ Keep a calm premium visual language with warm off-white surfaces and muted gold 
 
 Use five bottom tabs: Dashboard, Opportunities, Portfolio, Wallet, and Profile. The Home screen uses a full-width brand-teal hero with a bank glyph, greeting, notifications and settings, an Investor account pill, and the centered live available balance. Keep the OG Exports logo/name in the account menu.
 
-The metallic emerald “OG” artwork supplied by the user is the official logo. Use that artwork for app identity instead of the previous sprout mark, with a transparent background and its original emerald colors.
+The silver-and-green interlocking OG mark shown on the current dark-teal splash is the official OG Exports logo. Use that exact artwork throughout the mobile app, not the older blocky emerald OG mark or the previous sprout mark. Preserve its silver, green and gold details; use transparent artwork on app surfaces and the teal-backed version for launcher identity.
+
+**Why:** The user explicitly said, “jo logo splash ma ha ab OG Exports ka Official logo yahi ha,” and asked to update the complete mobile app with it.
+
+**How to apply:** Keep mobile screen branding, app icons and locally generated receipt/report branding consistent with the approved splash artwork. This instruction does not authorize changing the web portal.
 
 Use spacious typography, rounded cards with subtle borders and shadows, and light secondary actions with brand-teal borders on mobile. Avoid crypto, gambling, or speculative-return visual cues. Decorative portfolio illustrations must not imply actual performance or introduce financial amounts, forecasts, or other unreported data.
 
