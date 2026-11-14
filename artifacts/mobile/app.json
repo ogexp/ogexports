@@ -9,15 +9,18 @@
     "scheme": "mobile",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "icon": "./assets/images/og-app-icon.png"
     },
     "android": {
       "package": "com.ogexports.investor",
       "googleServicesFile": "./google-services.json",
       "versionCode": 9,
+      "icon": "./assets/images/og-app-icon.png",
       "predictiveBackGestureEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/og-adaptive-foreground.png",
+        "backgroundImage": "./assets/images/og-icon-background.png",
         "backgroundColor": "#0A3335"
       }
     },

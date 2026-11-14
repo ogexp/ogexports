@@ -57,10 +57,14 @@ function pngDimensions(relativePath) {
 test('official mobile launcher assets use properly sized approved-logo PNGs', () => {
   const config = JSON.parse(readFileSync(new URL('../app.json', import.meta.url), 'utf8')).expo;
   assert.equal(config.icon, './assets/images/og-app-icon.png');
+  assert.equal(config.ios.icon, config.icon);
+  assert.equal(config.android.icon, config.icon);
   assert.deepEqual(pngDimensions(config.icon), [1024, 1024]);
   assert.equal(config.android.adaptiveIcon.foregroundImage, './assets/images/og-adaptive-foreground.png');
   assert.deepEqual(pngDimensions(config.android.adaptiveIcon.foregroundImage), [1024, 1024]);
   assert.equal(config.android.adaptiveIcon.backgroundColor, colors.light.splashEnd);
+  assert.equal(config.android.adaptiveIcon.backgroundImage, './assets/images/og-icon-background.png');
+  assert.deepEqual(pngDimensions(config.android.adaptiveIcon.backgroundImage), [1024, 1024]);
   assert.equal(config.web.favicon, './assets/images/og-favicon.png');
   assert.deepEqual(pngDimensions(config.web.favicon), [128, 128]);
 });

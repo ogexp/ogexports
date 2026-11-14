@@ -140,3 +140,17 @@ mtime_ms = 1792257334299
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/bb4e3a1d-84db-49f9-a16b-439ef4d385b9/bdb508a0-1d77-4b0c-8bb2-6b13ee5a82c8"
 storage_version_token = "1792257357987530"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "MFaWpQR66-7qdo3GVv33h"
+uri = "file://artifacts/mobile/assets/images/og-app-icon.png"
+type = "image"
+title = "OG Exports app icon"
+description = "Official logo with the splash page’s teal gradient background. Configured for the next installed Android and iPhone app build."
+logical_id = "e293e32f-9c65-444e-a122-b149fdb06a43"
+content_hash = "sha256:461ac60d48ecfb1fb2b62c3b6b45699e296f39b9024241a7fa761d64cb509664"
+size = 215015
+mtime_ms = 1794679160906
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/e293e32f-9c65-444e-a122-b149fdb06a43/6650ed62-337c-45e7-bd69-8bef61a4c71e"
+storage_version_token = "1794679251992317"
+content_type = "image/png"
