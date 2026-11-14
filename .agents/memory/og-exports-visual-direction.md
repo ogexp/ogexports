@@ -17,6 +17,12 @@ The silver-and-green interlocking OG mark shown on the current dark-teal splash 
 
 **How to apply:** Keep mobile screen branding, app icons and locally generated receipt/report branding consistent with the approved splash artwork. This instruction does not authorize changing the web portal.
 
+Keep the mobile splash visible for seven seconds before navigating onward, including when Reduce Motion is enabled; reduced motion should disable animation, not shorten the splash.
+
+**Why:** The user said, “Splash page 7 second rehna chahye phir next page.”
+
+**How to apply:** Enforce the duration independently of animation preferences while still waiting for session initialization before choosing a safe destination.
+
 Use spacious typography, rounded cards with subtle borders and shadows, and light secondary actions with brand-teal borders on mobile. Avoid crypto, gambling, or speculative-return visual cues. Decorative portfolio illustrations must not imply actual performance or introduce financial amounts, forecasts, or other unreported data.
 
 On Home, preserve the supplied screenshot's layout: a full-width brand gradient hero and a white floating action dock with Deposit Funds, Invest Now, Withdraw Funds, and View Portfolio. Keep the balance API-driven, preserve the privacy toggle, and keep the decorative circles subtle. The white content begins with Account Overview, followed by verification and investment summaries; move Portfolio Performance and Recent Transactions lower.

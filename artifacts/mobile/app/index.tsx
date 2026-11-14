@@ -48,10 +48,7 @@ export default function Entry() {
 
   useEffect(() => {
     if (!motionSettingsReady) return;
-    if (reduceMotion) {
-      setIntroDurationElapsed(true);
-      return;
-    }
+    // Reduced motion disables animation, not the required seven-second splash.
     const remainingDuration = Math.max(0, INTRO_MIN_DURATION - (Date.now() - introStartedAt.current));
     if (remainingDuration === 0) {
       setIntroDurationElapsed(true);
@@ -60,16 +57,16 @@ export default function Entry() {
     setIntroDurationElapsed(false);
     const timer = setTimeout(() => setIntroDurationElapsed(true), remainingDuration);
     return () => clearTimeout(timer);
-  }, [introStartedAt, motionSettingsReady, reduceMotion]);
+  }, [introStartedAt, motionSettingsReady]);
 
   useEffect(() => {
     if (!ready || !motionSettingsReady) return;
-    if (!reduceMotion && !introDurationElapsed) return;
+    if (!introDurationElapsed) return;
     const destination = token
       ? appUnlocked ? '/(tabs)' : '/lock'
       : onboardingComplete ? '/(auth)/login' : '/onboarding';
     router.replace(destination);
-  }, [ready, motionSettingsReady, introDurationElapsed, token, onboardingComplete, appUnlocked, reduceMotion]);
+  }, [ready, motionSettingsReady, introDurationElapsed, token, onboardingComplete, appUnlocked]);
 
   const animate = motionSettingsReady && !reduceMotion;
   const staticShown = !motionSettingsReady || reduceMotion;
