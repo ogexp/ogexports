@@ -154,3 +154,17 @@ mtime_ms = 1794679160906
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/e293e32f-9c65-444e-a122-b149fdb06a43/6650ed62-337c-45e7-bd69-8bef61a4c71e"
 storage_version_token = "1794679251992317"
 content_type = "image/png"
+
+[[outputs]]
+id = "reqHG5JhFGgpxLi5pYolG"
+uri = "file://generated-artifacts/OG-Exports-Mobile-App-Complete-Source.zip"
+type = "unspecified"
+title = "OG Exports — Complete Mobile App Source ZIP"
+description = "Latest mobile app source with all screens, assets, Firebase client configuration, shared API packages, lockfile and setup README. 308 source files; approximately 2.3 MB. Secrets, signing keys, installed dependencies, separate backend and admin portal are excluded."
+logical_id = "cd6494aa-c6f4-4e8b-9a1a-c53c0cc1c1de"
+content_hash = "sha256:7b1ce7e4f410e1a49296985c47330e1941df514234c5d65242d608754b27c63d"
+size = 2326833
+mtime_ms = 1794688437105
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/cd6494aa-c6f4-4e8b-9a1a-c53c0cc1c1de/b9fa8860-00fd-4050-a536-50c9a7fcf3b1"
+storage_version_token = "1794688485887008"
+content_type = "application/octet-stream"
