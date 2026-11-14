@@ -304,39 +304,17 @@ export default function InvestorHome() {
     ? { boxShadow: `0 8px 20px ${colors.shadow}` }
     : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 7 };
 
-  return <View style={{ flex:  1, backgroundColor: colors.background }}>
+  return <View style={{ flex: 1, backgroundColor: colors.background }} onTouchStart={tabBarBehavior.reveal}>
   <RouteBrandBackdrop />
-  <ScrollView
-    contentInsetAdjustmentBehavior="never"
-    onTouchStart={tabBarBehavior.reveal}
-    onScroll={tabBarBehavior.onScroll}
-    onScrollEndDrag={tabBarBehavior.onScrollSettled}
-    onMomentumScrollEnd={tabBarBehavior.onScrollSettled}
-    scrollEventThrottle={16}
-    refreshControl={<RefreshControl
-      testID="home-pull-to-refresh"
-      refreshing={refreshing}
-      onRefresh={() => void refreshDashboard()}
-      tintColor={colors.primary}
-      colors={[colors.primary]}
-      progressBackgroundColor={colors.card}
-    />}
-    style={{ flex: 1, backgroundColor: 'transparent' }}
-    contentContainerStyle={{
-      paddingTop: 0,
-      paddingBottom: Platform.OS === 'web' ? 110 : insets.bottom + 112,
-      paddingHorizontal: 18,
-    }}
-    showsVerticalScrollIndicator={false}
-  >
+  <View testID="home-fixed-header" style={{ flexShrink: 0, zIndex: 2 }}>
     <MotionReveal>
     <LinearGradient
+      testID="home-fixed-balance-card"
        colors={[colors.balanceCardEnd, colors.balanceCardStart]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
        style={{
          overflow: 'hidden',
-         marginHorizontal: -18,
          paddingHorizontal: 21,
           paddingTop: Platform.OS === 'web'
             ? 79
@@ -409,9 +387,9 @@ export default function InvestorHome() {
     </LinearGradient>
     </MotionReveal>
 
-    <View style={{ marginHorizontal: -18, paddingHorizontal: 20, paddingTop: 1, backgroundColor: 'transparent' }}>
+    <View style={{ paddingHorizontal: 20, paddingTop: 1, backgroundColor: 'transparent' }}>
     <MotionReveal delay={MOTION.revealStagger}>
-    <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 2, borderRadius: 23, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassFill, overflow: 'hidden', paddingVertical: 9, paddingHorizontal: 8, marginTop: -31, marginBottom: 20, zIndex: 2 }, dockShadow]}>
+    <View testID="home-fixed-quick-actions" style={[{ flexDirection: 'row', alignItems: 'center', gap: 2, borderRadius: 23, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassFill, overflow: 'hidden', paddingVertical: 9, paddingHorizontal: 8, marginTop: -31, marginBottom: 20, zIndex: 2 }, dockShadow]}>
       <GlassLayers />
       {quickActions.map((action, index) => {
         const isPrimary = action.title === 'Deposit Funds';
@@ -451,7 +429,31 @@ export default function InvestorHome() {
       })}
     </View>
     </MotionReveal>
+    </View>
+  </View>
 
+  <ScrollView
+    testID="home-scroll-content"
+    contentInsetAdjustmentBehavior="never"
+    onScroll={tabBarBehavior.onScroll}
+    onScrollEndDrag={tabBarBehavior.onScrollSettled}
+    onMomentumScrollEnd={tabBarBehavior.onScrollSettled}
+    scrollEventThrottle={16}
+    refreshControl={<RefreshControl
+      testID="home-pull-to-refresh"
+      refreshing={refreshing}
+      onRefresh={() => void refreshDashboard()}
+      tintColor={colors.primary}
+      colors={[colors.primary]}
+      progressBackgroundColor={colors.card}
+    />}
+    style={{ flex: 1, minHeight: 0, backgroundColor: 'transparent' }}
+    contentContainerStyle={{
+      paddingBottom: Platform.OS === 'web' ? 110 : insets.bottom + 112,
+      paddingHorizontal: 20,
+    }}
+    showsVerticalScrollIndicator={false}
+  >
     {dashboard.isError ? <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 4, paddingVertical: 5 }}>
       <Text style={{ flex: 1, color: colors.mutedForeground, fontSize: 11 }}>Portfolio data is unavailable.</Text>
       <Pressable accessibilityRole="button" onPress={() => void dashboard.refetch()}><Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>Try again</Text></Pressable>
@@ -684,7 +686,6 @@ export default function InvestorHome() {
       <Feather name="calendar" size={18} color={colors.accent} />
       <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 13 }}>Payout schedule</Text><Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 4 }}>Upcoming payout details have not been reported.</Text></View>
     </Card>}
-    </View>
   </ScrollView>
   <Modal
     visible={accountMenuOpen}

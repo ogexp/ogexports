@@ -33,6 +33,12 @@ Use spacious typography, rounded cards with subtle borders and shadows, and ligh
 
 On Home, preserve the supplied screenshot's layout: a full-width brand gradient hero and a floating glass action dock with Deposit Funds, Invest Now, Withdraw Funds, and View Portfolio. Keep the balance API-driven, preserve the privacy toggle, and keep the decorative circles subtle. The main content begins with Account Overview, followed by verification and investment summaries; move Portfolio Performance and Recent Transactions lower.
 
+Keep the Home balance hero and its four-action dock fixed together at the top; only the account overview and the rest of the page below them should scroll.
+
+**Why:** The user explicitly asked for the green card and Deposit/Invest/Withdrawal/View Portfolio card to stay fixed while the remaining Home content scrolls.
+
+**How to apply:** Keep the group in normal safe-area-aware layout outside the lower scroll region, preserve its overlapping dock, privacy and navigation controls, and retain pull-to-refresh and bottom-navigation clearance for the scrollable body.
+
 For Home's My Investments card, limit the admin-status change to its Container Status value. Preserve the existing card layout and Portfolio Performance section; do not change unrelated refresh or dashboard elements.
 
 **Why:** the user explicitly said only the My Investments container status needed updating, and objected to unrelated Home/dashboard changes.
