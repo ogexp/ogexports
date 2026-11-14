@@ -79,7 +79,17 @@ test('screen and PDF branding share the transparent approved splash mark', () =>
   assert.ok(pdf.includes("require('../assets/images/og-official-mark.png')"));
   for (const route of ['(auth)/login', '(auth)/register', 'lock', 'onboarding', '(tabs)/index']) {
     const source = readFileSync(new URL(`../app/${route}.tsx`, import.meta.url), 'utf8');
-    assert.ok(source.includes('<BrandMark'), `${route} uses shared approved branding`);
+    assert.match(source, /<(?:BrandMark|AuthBrandHeader)\b/, `${route} uses shared approved branding`);
     assert.equal(source.includes('og-logo.png'), false, `${route} does not use the former logo`);
+  }
+});
+
+test('login and registration use the same brand sizing and approved logo component', () => {
+  const header = readFileSync(new URL('../components/AuthBrandHeader.tsx', import.meta.url), 'utf8');
+  assert.match(header, /<BrandMark width=\{120\}/);
+  assert.match(header, /fontSize: 22, lineHeight: 28/);
+  for (const route of ['login', 'register']) {
+    const source = readFileSync(new URL(`../app/(auth)/${route}.tsx`, import.meta.url), 'utf8');
+    assert.match(source, /<AuthBrandHeader\s*\/>/);
   }
 });

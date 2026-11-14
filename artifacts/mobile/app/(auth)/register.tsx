@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { BrandMark } from '@/components/BrandMark';
+import { AuthBrandHeader } from '@/components/AuthBrandHeader';
 import { LocalizedText as Text, LocalizedTextInput as TextInput } from '@/components/LocalizedText';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { Action, Card } from '@/components/InvestorUI';
@@ -173,11 +173,7 @@ export default function Register() {
         >
           <Feather name="arrow-left" size={21} color={colors.primary} />
         </Pressable>
-        <View style={s.brand}>
-          <BrandMark style={{ marginBottom: 2 }} />
-          <Text style={[s.brandName, { color: colors.primary }]}>OG Exports</Text>
-          <Text style={[s.brandTagline, { color: colors.accent }]}>GLOBAL TRADE. DIGITAL INVESTMENT.</Text>
-        </View>
+        <AuthBrandHeader />
       </View>
 
       <MotionReveal delay={MOTION.revealStagger}>
@@ -285,9 +281,6 @@ const s = StyleSheet.create({
   container: { flexGrow: 1, paddingHorizontal: 28 },
   topBar: { minHeight: 150, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   backButton: { position: 'absolute', left: 0, top: 0, width: 42, height: 46, alignItems: 'flex-start', justifyContent: 'center', zIndex: 1 },
-  brand: { alignItems: 'center', justifyContent: 'center', gap: 2 },
-  brandName: { fontSize: 19, fontWeight: '700', letterSpacing: -0.3 },
-  brandTagline: { fontSize: 9, fontWeight: '700', letterSpacing: 2.5, marginTop: 3 },
   intro: { alignItems: 'center', marginBottom: 22 },
   title: { fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.6 },
   subtitle: { fontSize: 13, lineHeight: 19, marginTop: 6, textAlign: 'center' },
