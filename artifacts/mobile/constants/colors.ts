@@ -12,16 +12,20 @@
  * The useColors() hook will automatically pick it up.
  */
 
+const splashBackground = '#0A3335';
+
 const colors = {
   light: {
     text: '#283833',
-    tint: '#0A3637',
+    tint: splashBackground,
     background: '#F8F7F3',
     foreground: '#283833',
     card: '#FDFDFB',
     cardForeground: '#283833',
-    primary: '#0A3637',
+    primary: splashBackground,
     primaryForeground: '#F9F8F6',
+    buttonBackground: splashBackground,
+    buttonForeground: '#F9F8F6',
     secondary: '#EFEDE6',
     secondaryForeground: '#283833',
     muted: '#EFEDE6',
@@ -33,7 +37,7 @@ const colors = {
     glow: 'rgba(10, 54, 55, 0.04)',
     splashStart: '#0B3A3C',
     splashMid: '#124B4D',
-    splashEnd: '#0A3335',
+    splashEnd: splashBackground,
     splashText: '#F1F4F2',
     splashMuted: '#B9CCC9',
     splashTrack: 'rgba(241, 244, 242, 0.18)',
@@ -43,7 +47,7 @@ const colors = {
     statusSuccess: '#0A3637',
     statusPendingBackground: '#F3EFE4',
     statusPending: '#806B45',
-    allocationBalance: '#0A3637',
+    allocationBalance: splashBackground,
     allocationWithdrawals: '#C96F59',
     allocationInvestments: '#4C8192',
     allocationProfits: '#B99A64',
@@ -64,6 +68,8 @@ const colors = {
     cardForeground: '#F0F0EB',
     primary: '#4FA6A1',
     primaryForeground: '#0F151A',
+    buttonBackground: splashBackground,
+    buttonForeground: '#F9F8F6',
     secondary: '#202A32',
     secondaryForeground: '#F0F0EB',
     muted: '#202A32',
@@ -75,7 +81,7 @@ const colors = {
     glow: 'rgba(79, 166, 161, 0.10)',
     splashStart: '#0B3A3C',
     splashMid: '#124B4D',
-    splashEnd: '#0A3335',
+    splashEnd: splashBackground,
     splashText: '#F1F4F2',
     splashMuted: '#B9CCC9',
     splashTrack: 'rgba(241, 244, 242, 0.18)',

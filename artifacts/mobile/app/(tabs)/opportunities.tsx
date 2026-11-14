@@ -253,8 +253,8 @@ export default function Opportunities() {
             <Pressable accessibilityRole="button" onPress={() => { motionHaptic('action'); resetCriteria(); setFiltersOpen(false); }} style={{ flex: 1, minHeight: 46, borderRadius: 13, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '700' }}>Clear all</Text>
             </Pressable>
-            <Pressable testID="marketplace-apply-filters" accessibilityRole="button" onPress={() => { motionHaptic('action'); setAppliedFilters(draftFilters); setFiltersOpen(false); }} style={{ flex: 1.4, minHeight: 46, borderRadius: 13, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: colors.primaryForeground, fontSize: 12, fontWeight: '700' }}>Apply filters</Text>
+            <Pressable testID="marketplace-apply-filters" accessibilityRole="button" onPress={() => { motionHaptic('action'); setAppliedFilters(draftFilters); setFiltersOpen(false); }} style={{ flex: 1.4, minHeight: 46, borderRadius: 13, backgroundColor: colors.buttonBackground, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: colors.buttonForeground, fontSize: 12, fontWeight: '700' }}>Apply filters</Text>
             </Pressable>
           </View>
         </GlassPopupSurface>

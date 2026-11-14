@@ -398,9 +398,9 @@ export default function PositionDetail() {
           ))} />
         </View>
         <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 10 }}>Only reported shipment details are shown; no live carrier position is inferred.</Text>
-        <Pressable testID="position-open-container-record" accessibilityRole="button" onPress={() => router.push({ pathname: '/tracking/[id]', params: { id, source: 'position' } })} style={({ pressed }) => ({ minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 13, borderRadius: 12, backgroundColor: colors.primary, opacity: pressed ? 0.82 : 1 })}>
-          <Text style={{ color: colors.primaryForeground, fontSize: 13, fontWeight: '700' }}>Open container record</Text>
-          <Text style={{ color: colors.primaryForeground, fontSize: 17 }}>›</Text>
+        <Pressable testID="position-open-container-record" accessibilityRole="button" onPress={() => router.push({ pathname: '/tracking/[id]', params: { id, source: 'position' } })} style={({ pressed }) => ({ minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 13, borderRadius: 12, backgroundColor: colors.buttonBackground, opacity: pressed ? 0.82 : 1 })}>
+          <Text style={{ color: colors.buttonForeground, fontSize: 13, fontWeight: '700' }}>Open container record</Text>
+          <Text style={{ color: colors.buttonForeground, fontSize: 17 }}>›</Text>
         </Pressable>
       </Card>
 

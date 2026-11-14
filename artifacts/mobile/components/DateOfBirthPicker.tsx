@@ -459,12 +459,12 @@ export function DateOfBirthPicker({
                 justifyContent: 'center',
                 gap: 8,
                 borderRadius: colors.radius,
-                backgroundColor: colors.primary,
+                backgroundColor: colors.buttonBackground,
                 opacity: !draftDate ? 0.45 : pressed ? 0.88 : 1,
               })}
             >
-              <Feather name="check" size={16} color={colors.primaryForeground} />
-              <Text style={{ color: colors.primaryForeground, fontSize: 13, fontWeight: '700' }}>Use this date</Text>
+              <Feather name="check" size={16} color={colors.buttonForeground} />
+              <Text style={{ color: colors.buttonForeground, fontSize: 13, fontWeight: '700' }}>Use this date</Text>
             </Pressable>
           </View>
         </GlassPopupSurface>

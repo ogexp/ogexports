@@ -7,7 +7,7 @@ Keep a calm premium visual language with warm off-white surfaces and muted gold 
 
 **Why:** The user supplied a new OG Exports splash reference and explicitly asked to replace the mobile app's green colour with its colour.
 
-**How to apply:** Use the supplied splash artwork and teal brand family throughout mobile controls and highlights while retaining accessible dark-mode variants, light surfaces, and distinct financial-status colours.
+**How to apply:** Use the supplied splash artwork and teal brand family throughout mobile controls and highlights. The user specifically asked for button colours to match the splash background exactly: filled primary buttons should use its dark teal in both light and dark appearances, with readable light labels. Retain light surfaces, accessible dark-mode links and distinct financial-status colours.
 
 Use five bottom tabs: Dashboard, Opportunities, Portfolio, Wallet, and Profile. The Home screen uses a full-width brand-teal hero with a bank glyph, greeting, notifications and settings, an Investor account pill, and the centered live available balance. Keep the OG Exports logo/name in the account menu.
 

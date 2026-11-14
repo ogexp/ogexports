@@ -17,7 +17,7 @@ function contrast(first, second) {
 }
 
 test('mobile brand accents use the supplied splash reference teal', () => {
-  assert.equal(colors.light.primary.toUpperCase(), '#0A3637');
+  assert.equal(colors.light.primary.toUpperCase(), '#0A3335');
   assert.equal(colors.light.tint, colors.light.primary);
   assert.equal(colors.light.allocationBalance, colors.light.primary);
 });
@@ -25,6 +25,8 @@ test('mobile brand accents use the supplied splash reference teal', () => {
 test('brand buttons and body text remain readable in light and dark appearances', () => {
   for (const name of ['light', 'dark']) {
     const theme = colors[name];
+    assert.equal(theme.buttonBackground, theme.splashEnd, `${name} buttons match the splash background exactly`);
+    assert.ok(contrast(theme.buttonBackground, theme.buttonForeground) >= 4.5, `${name} button label contrast`);
     assert.ok(contrast(theme.primary, theme.primaryForeground) >= 4.5, `${name} button text contrast`);
     assert.ok(contrast(theme.background, theme.foreground) >= 4.5, `${name} body text contrast`);
     assert.notEqual(theme.primary, theme.destructive, `${name} errors retain a separate semantic color`);

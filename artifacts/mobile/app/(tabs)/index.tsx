@@ -432,9 +432,9 @@ export default function InvestorHome() {
             borderRadius: 17,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: isPrimary ? colors.primary : colors.lightGreen,
+            backgroundColor: isPrimary ? colors.buttonBackground : colors.lightGreen,
           }}>
-            <Feather name={action.icon} size={17} color={isPrimary ? colors.primaryForeground : colors.primary} />
+            <Feather name={action.icon} size={17} color={isPrimary ? colors.buttonForeground : colors.primary} />
           </View>
           <Text numberOfLines={1} adjustsFontSizeToFit style={{
             color: colors.mutedForeground,
@@ -554,9 +554,9 @@ export default function InvestorHome() {
           Next payout{estimatedPayout ? ' · estimated' : ''}: {formatReportedPayoutDate(payoutDate ?? '') ?? 'Not announced'}
         </Text>
         <Pressable testID={`home-track-trade-${index}`} accessibilityRole="button" accessibilityLabel={`Track ${title}`} disabled={!positionId} onPress={() => router.push({ pathname: '/position/[id]', params: { id: positionId } })}
-          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 42, borderRadius: 12, backgroundColor: positionId ? colors.primary : colors.secondary, marginTop: 14, opacity: pressed ? 0.82 : 1 })}>
-          <Text style={{ color: positionId ? colors.primaryForeground : colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>Track Trade</Text>
-          <Feather name="arrow-up-right" size={14} color={positionId ? colors.primaryForeground : colors.mutedForeground} />
+          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 42, borderRadius: 12, backgroundColor: positionId ? colors.buttonBackground : colors.secondary, marginTop: 14, opacity: pressed ? 0.82 : 1 })}>
+          <Text style={{ color: positionId ? colors.buttonForeground : colors.mutedForeground, fontSize: 12, fontWeight: '700' }}>Track Trade</Text>
+          <Feather name="arrow-up-right" size={14} color={positionId ? colors.buttonForeground : colors.mutedForeground} />
         </Pressable>
       </Card>
       </MotionReveal>;

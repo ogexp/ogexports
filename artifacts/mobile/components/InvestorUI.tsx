@@ -141,8 +141,8 @@ export function Action({ title, onPress, icon, secondary = false, destructive = 
     ? { backgroundColor: colors.destructive, borderWidth: 1, borderColor: colors.destructive }
     : secondary
     ? { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }
-    : { backgroundColor: colors.primary, borderWidth: 1, borderColor: colors.primary };
-  const buttonTextColor = secondary ? colors.primary : destructive ? colors.destructiveForeground : colors.primaryForeground;
+    : { backgroundColor: colors.buttonBackground, borderWidth: 1, borderColor: colors.buttonBackground };
+  const buttonTextColor = secondary ? colors.primary : destructive ? colors.destructiveForeground : colors.buttonForeground;
   return (
       <Pressable accessibilityRole="button" accessibilityState={{ disabled: disabled || loading, busy: loading }} testID={testID} onPress={() => {
       if (disabled || loading) return;
@@ -585,12 +585,12 @@ export function SuccessFeedback({
             borderRadius: 14,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: colors.primary,
+            backgroundColor: colors.buttonBackground,
             opacity: pressed ? 0.88 : 1,
             transform: [{ scale: pressed && !reduceMotion ? MOTION.pressScale : 1 }],
           })}
         >
-          <Text style={{ color: colors.primaryForeground, fontSize: 14, fontWeight: '700' }}>Continue</Text>
+          <Text style={{ color: colors.buttonForeground, fontSize: 14, fontWeight: '700' }}>Continue</Text>
         </Pressable>
         </GlassPopupSurface>
       </Animated.View>
