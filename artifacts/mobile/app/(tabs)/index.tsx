@@ -129,6 +129,9 @@ function activityLabel(item: Record<string, unknown>) {
 
 const investmentDateFields = ['invested_at', 'invest_date', 'investment_date', 'created_at', 'createdAt', 'date'];
 const activityDateFields = ['created_at', 'createdAt', 'occurred_at', 'transacted_at', 'transaction_date', 'date', 'timestamp'];
+const quickActionsOverlap = 31;
+const quickActionsGap = 20;
+const quickActionsMinimumHeight = 67 + 9 * 2 + 2;
 
 function activityDate(item: Record<string, unknown>) {
   return first(item, activityDateFields);
@@ -153,6 +156,7 @@ export default function InvestorHome() {
   const [balanceHidden, setBalanceHidden] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [quickActionsHeight, setQuickActionsHeight] = useState(quickActionsMinimumHeight);
   const dashboard = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: !!token, staleTime: 30_000 } });
   const investments = useGetInvestorInvestments({ per_page: 50 }, { query: { queryKey: ['investor-positions', 50], enabled: !!token, staleTime: 30_000 } });
   const projects = useGetInvestorProjects({ per_page: 3 }, { query: { queryKey: ['investor-projects', 3], enabled: !!token, staleTime: 60_000 } });
@@ -305,7 +309,6 @@ export default function InvestorHome() {
     : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 7 };
 
   return <View style={{ flex: 1, backgroundColor: colors.background }} onTouchStart={tabBarBehavior.reveal}>
-  <RouteBrandBackdrop />
   <View testID="home-fixed-header" style={{ flexShrink: 0, zIndex: 2 }}>
     <MotionReveal>
     <LinearGradient
@@ -386,10 +389,14 @@ export default function InvestorHome() {
        </View>
     </LinearGradient>
     </MotionReveal>
+  </View>
 
-    <View style={{ paddingHorizontal: 20, paddingTop: 1, backgroundColor: 'transparent' }}>
+  <View testID="home-lower-region" style={{ flex: 1, minHeight: 0, marginTop: -quickActionsOverlap, zIndex: 3 }}>
+    <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 20, right: 20, zIndex: 2 }}>
     <MotionReveal delay={MOTION.revealStagger}>
-    <View testID="home-fixed-quick-actions" style={[{ flexDirection: 'row', alignItems: 'center', gap: 2, borderRadius: 23, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassFill, overflow: 'hidden', paddingVertical: 9, paddingHorizontal: 8, marginTop: -31, marginBottom: 20, zIndex: 2 }, dockShadow]}>
+    <View testID="home-fixed-quick-actions"
+      onLayout={event => setQuickActionsHeight(event.nativeEvent.layout.height)}
+      style={[{ flexDirection: 'row', alignItems: 'center', gap: 2, borderRadius: 23, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassFill, overflow: 'hidden', paddingVertical: 9, paddingHorizontal: 8, zIndex: 2 }, dockShadow]}>
       <GlassLayers />
       {quickActions.map((action, index) => {
         const isPrimary = action.title === 'Deposit Funds';
@@ -430,7 +437,6 @@ export default function InvestorHome() {
     </View>
     </MotionReveal>
     </View>
-  </View>
 
   <ScrollView
     testID="home-scroll-content"
@@ -443,17 +449,22 @@ export default function InvestorHome() {
       testID="home-pull-to-refresh"
       refreshing={refreshing}
       onRefresh={() => void refreshDashboard()}
+      progressViewOffset={Math.max(0, quickActionsHeight - quickActionsOverlap) + quickActionsGap}
       tintColor={colors.primary}
       colors={[colors.primary]}
       progressBackgroundColor={colors.card}
     />}
-    style={{ flex: 1, minHeight: 0, backgroundColor: 'transparent' }}
+    style={{ flex: 1, minHeight: 0, marginTop: quickActionsOverlap, backgroundColor: 'transparent' }}
     contentContainerStyle={{
+      paddingTop: Math.max(0, quickActionsHeight - quickActionsOverlap) + quickActionsGap,
       paddingBottom: Platform.OS === 'web' ? 110 : insets.bottom + 112,
       paddingHorizontal: 20,
     }}
     showsVerticalScrollIndicator={false}
   >
+    <View testID="home-scrolling-background" pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <RouteBrandBackdrop />
+    </View>
     {dashboard.isError ? <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 4, paddingVertical: 5 }}>
       <Text style={{ flex: 1, color: colors.mutedForeground, fontSize: 11 }}>Portfolio data is unavailable.</Text>
       <Pressable accessibilityRole="button" onPress={() => void dashboard.refetch()}><Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>Try again</Text></Pressable>
@@ -687,6 +698,7 @@ export default function InvestorHome() {
       <View style={{ flex: 1 }}><Text style={{ color: colors.foreground, fontWeight: '700', fontSize: 13 }}>Payout schedule</Text><Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 17, marginTop: 4 }}>Upcoming payout details have not been reported.</Text></View>
     </Card>}
   </ScrollView>
+  </View>
   <Modal
     visible={accountMenuOpen}
     transparent

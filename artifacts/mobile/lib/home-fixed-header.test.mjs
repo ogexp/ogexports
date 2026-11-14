@@ -28,15 +28,34 @@ function ancestors(node) {
 
 test('the Home balance and four-action dock stay outside the scrolling content', () => {
   const fixed = byId('home-fixed-header');
+  const lower = byId('home-lower-region');
   const scroll = byId('home-scroll-content');
-  assert.equal(fixed.parent, scroll.parent, 'fixed header and content are siblings in the flex screen');
+  assert.equal(fixed.parent, lower.parent, 'fixed hero and lower region are siblings');
+  assert.equal(scroll.parent, lower, 'the lower region owns scrolling');
   assert.ok(fixed.pos < scroll.pos, 'header stays before the scrolling body');
   assert.equal(tag(scroll), 'ScrollView');
   for (const id of ['home-fixed-balance-card', 'home-fixed-quick-actions']) {
     const parents = ancestors(byId(id));
-    assert.ok(parents.includes(fixed), `${id} belongs to the fixed group`);
+    assert.ok(parents.includes(id === 'home-fixed-balance-card' ? fixed : lower), `${id} belongs to its pinned layer`);
     assert.ok(!parents.some(node => ts.isJsxElement(node) && tag(node) === 'ScrollView'), `${id} cannot move with a scroll container`);
   }
+});
+
+test('the background below the green hero scrolls behind the floating action card', () => {
+  const scroll = byId('home-scroll-content');
+  const background = byId('home-scrolling-background');
+  assert.ok(ancestors(background).includes(scroll), 'background belongs to scrolling content, not the fixed screen root');
+  const backdrops = elements.filter(node => tag(node) === 'RouteBrandBackdrop');
+  assert.equal(backdrops.length, 1);
+  assert.ok(ancestors(backdrops[0]).includes(background));
+  const dock = byId('home-fixed-quick-actions');
+  assert.ok(!ancestors(dock).includes(scroll), 'only the glass action card stays fixed over the moving background');
+  assert.match(dock.getText(source), /onLayout=.*setQuickActionsHeight/);
+  assert.match(scroll.getText(source), /paddingTop: Math\.max\(0, quickActionsHeight - quickActionsOverlap\) \+ quickActionsGap/);
+  const overlay = ancestors(dock).find(node => ts.isJsxElement(node) && opening(node).attributes.properties.some(prop =>
+    ts.isJsxAttribute(prop) && prop.name.getText(source) === 'pointerEvents'
+      && prop.initializer && ts.isStringLiteral(prop.initializer) && prop.initializer.text === 'box-none'));
+  assert.ok(overlay, 'the transparent overlay passes gestures outside the card through to the page');
 });
 
 test('balance privacy, account menu and header navigation stay in the pinned region', () => {
