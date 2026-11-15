@@ -17,6 +17,7 @@
 - [Android splash release resource](android-splash-release-resource.md) — the Expo splash plugin needs a valid image path so EAS generates the Android drawable referenced by its splash theme.
 - [Android release build environment](android-release-build-environment.md) — Nix Android SDK is read-only; local release builds need a temporary writable SDK and JDK 17.
 - [Android AAB build approval](android-aab-build-approval.md) — do not create or rebuild an Android App Bundle without the user's explicit request.
+- [Android upload signing identity](android-upload-signing-identity.md) — OG Exports 50's existing EAS key does not match the Play upload certificate; restore the original before release builds.
 - [Android package identity](android-package-identity.md) — regenerate React Native autolinking data after package changes so generated BuildConfig references stay aligned.
 - [OG Exports platform principles](og-exports-platform-principles.md) — make trade traceability, verified documents/status, simple real-trade data, and financial security visible throughout the investor app.
 - [Account deletion review](account-deletion-review.md) — verify ownership and review investments/legal retention before deleting or anonymizing eligible investor data.
