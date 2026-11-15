@@ -4,6 +4,7 @@ import { I18nManager, Platform, useColorScheme } from 'react-native';
 import { isRunningInExpoGo, reloadAppAsync } from 'expo';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  getInvestorProfile,
   useGetInvestorExchangeRates,
   useGetInvestorProfile,
   useUpdateInvestorProfile,
@@ -11,7 +12,8 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { configureMoneyDisplay, first, messageOf, record, unwrap } from '@/lib/data';
 import { configureUiLanguage, translateUi } from '@/lib/strings';
-import { defaultPreferences, parsePreferences, persistPreferences, PreferenceSaveError, readPreferenceSnapshot,
+import { createPreferenceHydrator, createPreferenceSyncQueue, defaultPreferences, parsePreferences,
+  persistPreferences, PreferenceSaveError, preferenceAccountId,
   type AppPreferences, type PreferencePatch } from '@/lib/app-preferences';
 export type { AppearancePreference, DisplayCurrency, AppPreferences } from '@/lib/app-preferences';
 
@@ -21,6 +23,7 @@ type PreferencesContextValue = {
   isRTL: boolean;
   isLoading: boolean;
   isSaving: boolean;
+  isSyncing: boolean;
   hasPendingSync: boolean;
   error: string;
   rates: Record<string, number>;
@@ -29,6 +32,7 @@ type PreferencesContextValue = {
   ratesError: boolean;
   savePreferences: (patch: Partial<AppPreferences>) => Promise<void>;
   clearError: () => void;
+  retryLoading: () => void;
 };
 
 const PreferencesContext = createContext<PreferencesContextValue | null>(null);
@@ -49,18 +53,24 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const systemAppearance = useColorScheme();
-  const userId = first(record(user), ['id']);
+  const authUserId = preferenceAccountId(user);
+  const [recoveredOwner, setRecoveredOwner] = useState<{ token: string; id: string } | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const userId = authUserId || (recoveredOwner?.token === token ? recoveredOwner.id : '');
   const [preferences, setPreferences] = useState<AppPreferences>(defaultPreferences);
-  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+  const [initializedSession, setInitializedSession] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState('');
   const currentPreferences = useRef<AppPreferences>(defaultPreferences);
   const pendingPreferences = useRef<PreferencePatch>({});
   const savingSession = useRef<string | null>(null);
-  const loadedAccount = useRef<string | null>(null);
+  const saveRevision = useRef(0);
   const activeSession = `${userId}:${token ?? ''}`;
   const sessionRef = useRef(activeSession);
   sessionRef.current = activeSession;
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
   const storageWrites = useRef<Promise<void>>(Promise.resolve());
   const store = useCallback((owner: string, next: AppPreferences, pending: PreferencePatch) => {
     const write = storageWrites.current.catch(() => undefined).then(() =>
@@ -73,6 +83,34 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     pendingPreferences.current = pending;
     setPreferences(next);
   }, []);
+  const hydration = useMemo(() => createPreferenceHydrator(
+    owner => AsyncStorage.getItem(preferenceStorageKey(owner)),
+    (_owner, session, snapshot, readError) => {
+      if (sessionRef.current !== session) return;
+      apply(snapshot.preferences, snapshot.pending);
+      setError(readError);
+      setInitializedSession(session);
+    },
+  ), [apply]);
+  const queueSync = useMemo(() => createPreferenceSyncQueue(), [activeSession]);
+  const preferencesLoaded = initializedSession === activeSession;
+
+  // A legacy/partial saved session may have a token but no top-level user ID.
+  // Recover ownership from a fresh authenticated response, never another account's query cache.
+  useEffect(() => {
+    if (!token || authUserId) return;
+    let active = true;
+    void getInvestorProfile({ timeoutMs: 8000 }).then(response => {
+      if (!active || tokenRef.current !== token) return;
+      const id = preferenceAccountId(unwrap(response).user);
+      if (!id) throw new Error('The server did not return your account identity.');
+      queryClient.setQueryData(['investor-profile'], response);
+      setRecoveredOwner({ token, id });
+    }).catch(() => {
+      if (active && tokenRef.current === token) setError('Account details could not be loaded. Retry loading preferences.');
+    });
+    return () => { active = false; };
+  }, [token, authUserId, queryClient, loadAttempt]);
   const profileQuery = useGetInvestorProfile({
     query: {
       queryKey: ['investor-profile'],
@@ -107,38 +145,20 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   configureUiLanguage(preferences.language);
 
   useEffect(() => {
-    let active = true;
     apply(defaultPreferences, {});
-    loadedAccount.current = null;
+    setInitializedSession(null);
+    saveRevision.current += 1;
     savingSession.current = null;
     setIsSaving(false);
-    setPreferencesLoaded(!userId);
+    setIsSyncing(false);
     setError('');
-    if (!userId) return () => { active = false; };
-    void AsyncStorage.getItem(preferenceStorageKey(userId))
-      .then(raw => {
-        if (!active) return;
-        if (raw) {
-          try {
-            const saved = readPreferenceSnapshot(JSON.parse(raw));
-            apply({ ...saved.preferences, ...saved.pending }, saved.pending);
-          } catch { setError('Saved app preferences could not be read. Please select your preferences again.'); }
-        }
-        loadedAccount.current = userId;
-        setPreferencesLoaded(true);
-      })
-      .catch(() => {
-        if (active) {
-          loadedAccount.current = userId;
-          setError('Saved app preferences could not be read from this device.');
-          setPreferencesLoaded(true);
-        }
-      });
-    return () => { active = false; };
-  }, [userId, apply]);
+    if (!token) setInitializedSession(activeSession);
+    else if (userId) void hydration.load(userId, activeSession);
+    return () => hydration.invalidate();
+  }, [userId, token, activeSession, apply, hydration, loadAttempt]);
 
   useEffect(() => {
-    if (!preferencesLoaded || !profileQuery.data || loadedAccount.current !== userId) return;
+    if (!preferencesLoaded || !userId || !profileQuery.data) return;
     if (first(record(profile.user), ['id']) !== userId) return;
     const parsed = parsePreferences(profile.preferences);
     const pending = pendingPreferences.current;
@@ -162,7 +182,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
       return;
     }
     // Do not restart an installed app before the new language is stored durably.
-    if (isSaving) return;
+    if (isSaving || isSyncing) return;
     if (I18nManager.isRTL !== isRTL) {
       I18nManager.allowRTL(true);
       I18nManager.forceRTL(isRTL);
@@ -171,30 +191,35 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
       // manually reloaded; installed builds can still reload immediately.
       if (!isRunningInExpoGo()) void reloadAppAsync().catch(() => undefined);
     }
-  }, [preferencesLoaded, preferences.language, isRTL, isSaving]);
+  }, [preferencesLoaded, preferences.language, isRTL, isSaving, isSyncing]);
 
   const savePreferences = useCallback(async (patch: Partial<AppPreferences>) => {
-    if (!userId || !token || loadedAccount.current !== userId) {
-      const error = new Error('Wait for your account preferences to load before saving.');
+    if (!userId || !token) {
+      const error = new Error('Account details could not be loaded. Retry loading preferences.');
       setError(error.message);
       throw error;
     }
-    if (savingSession.current === activeSession) return;
+    // Do not reject a tap because a ref has not caught up with initialization.
+    await hydration.load(userId, activeSession);
+    if (sessionRef.current !== activeSession) return;
+    const revision = ++saveRevision.current;
     setError('');
     savingSession.current = activeSession;
     setIsSaving(true);
-    const isCurrent = () => sessionRef.current === activeSession;
+    setIsSyncing(true);
+    const isCurrent = () => sessionRef.current === activeSession && saveRevision.current === revision;
     try {
       await persistPreferences({
         current: currentPreferences.current,
         pending: pendingPreferences.current,
         patch, isCurrent, apply,
+        stored: () => { if (isCurrent()) setIsSaving(false); },
         store: (next, pending) => store(userId, next, pending),
-        sync: async preferences => {
+        sync: preferences => queueSync(isCurrent, async () => {
           await queryClient.cancelQueries({ queryKey: ['investor-profile'] });
           if (!isCurrent()) throw new Error('The signed-in account changed.');
           return updateProfile({ data: { preferences } });
-        },
+        }),
         confirmed: async response => {
           await queryClient.cancelQueries({ queryKey: ['investor-profile'] });
           if (isCurrent()) queryClient.setQueryData(['investor-profile'], response);
@@ -212,12 +237,13 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
       if (isCurrent()) {
         savingSession.current = null;
         setIsSaving(false);
+        setIsSyncing(false);
       }
     }
-  }, [activeSession, apply, queryClient, store, token, updateProfile, userId]);
+  }, [activeSession, apply, hydration, queryClient, queueSync, store, token, updateProfile, userId]);
 
   useEffect(() => {
-    if (preferencesLoaded && token && loadedAccount.current === userId && Object.keys(pendingPreferences.current).length) {
+    if (preferencesLoaded && token && userId && Object.keys(pendingPreferences.current).length) {
       void savePreferences({}).catch(() => { /* A visible sync error and Retry action are provided by Settings. */ });
     }
   }, [preferencesLoaded, token, userId, savePreferences]);
@@ -228,8 +254,9 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     preferences,
     resolvedAppearance,
     isRTL,
-    isLoading: !preferencesLoaded || Boolean(userId && loadedAccount.current !== userId),
+    isLoading: Boolean(token) && (!userId || !preferencesLoaded),
     isSaving,
+    isSyncing,
     hasPendingSync,
     error,
     rates,
@@ -238,8 +265,9 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     ratesError: ratesQuery.isError,
     savePreferences,
     clearError: () => setError(''),
+    retryLoading: () => setLoadAttempt(attempt => attempt + 1),
   }), [
-    preferences, resolvedAppearance, isRTL, preferencesLoaded, isSaving, hasPendingSync, userId, error,
+    preferences, resolvedAppearance, isRTL, preferencesLoaded, isSaving, isSyncing, hasPendingSync, userId, token, error,
     rates, ratesAsOf, ratesQuery.isLoading, ratesQuery.isError, savePreferences,
   ]);
 

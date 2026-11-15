@@ -31,6 +31,65 @@ export function readPreferenceSnapshot(value: unknown) {
   };
 }
 
+/** Effect initialization and a tap arriving during initialization share one bounded read. */
+export function createPreferenceHydrator(
+  read: (owner: string) => Promise<string | null>,
+  settled: (owner: string, session: string, snapshot: ReturnType<typeof readPreferenceSnapshot>, error: string) => void,
+  timeoutMs = 2500,
+) {
+  let current: { owner: string; session: string; promise: Promise<void> } | undefined;
+  return {
+    invalidate() { current = undefined; },
+    load(owner: string, session: string): Promise<void> {
+      if (current?.owner === owner && current.session === session) return current.promise;
+      const entry = { owner, session, promise: Promise.resolve() };
+      current = entry;
+      entry.promise = Promise.resolve().then(async () => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        let snapshot = readPreferenceSnapshot(null);
+        let error = '';
+        try {
+          const raw = await Promise.race([
+            read(owner),
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(() => reject(new Error('Preference read timed out.')), timeoutMs);
+            }),
+          ]);
+          snapshot = readPreferenceSnapshot(raw ? JSON.parse(raw) : null);
+          snapshot.preferences = { ...snapshot.preferences, ...snapshot.pending };
+        } catch {
+          error = 'Saved app preferences could not be read from this device.';
+        } finally {
+          if (timer) clearTimeout(timer);
+        }
+        if (current === entry) settled(owner, session, snapshot, error);
+      });
+      return entry.promise;
+    },
+  };
+}
+
+/** Recognize old saved user envelopes without trusting an unrelated cached profile. */
+export function preferenceAccountId(value: unknown): string {
+  const user = object(value);
+  const data = object(user.data);
+  for (const source of [user, object(user.user), data, object(data.user)]) {
+    if (typeof source.id === 'string' && source.id.trim()) return source.id.trim();
+    if (typeof source.id === 'number' && Number.isFinite(source.id)) return String(source.id);
+  }
+  return '';
+}
+
+/** Only the newest waiting selection is sent after an earlier request settles. */
+export function createPreferenceSyncQueue() {
+  let tail: Promise<unknown> = Promise.resolve();
+  return (isCurrent: () => boolean, sync: () => Promise<unknown>) => {
+    const result = tail.catch(() => undefined).then(() => isCurrent() ? sync() : undefined);
+    tail = result;
+    return result;
+  };
+}
+
 export class PreferenceSaveError extends Error {
   readonly stage: 'device' | 'account' | 'marker';
   readonly summary: string;
@@ -60,6 +119,7 @@ export async function persistPreferences(options: {
   store: (preferences: AppPreferences, pending: PreferencePatch) => Promise<void>;
   sync: (preferences: Record<string, string>) => Promise<unknown>;
   confirmed: (response: unknown) => Promise<void>;
+  stored?: () => void;
 }) {
   const { current, pending, isCurrent, apply, store, sync, confirmed } = options;
   const patch = parsePreferences(options.patch);
@@ -74,6 +134,7 @@ export async function persistPreferences(options: {
     throw new PreferenceSaveError('device', error);
   }
   if (!isCurrent()) return;
+  options.stored?.();
   const serverPatch: Record<string, string> = { ...dirty };
   if (dirty.appearance) serverPatch.theme = dirty.appearance;
   let saved: AppPreferences;

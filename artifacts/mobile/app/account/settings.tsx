@@ -387,9 +387,15 @@ export default function Settings() {
           </Pressable>;
         })}
       </View>
-      {appPreferences.isSaving ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 8 }}>Saving app preferences…</Text> : null}
+      {appPreferences.isLoading ? <Text testID="app-preferences-loading" style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 8 }}>Loading app preferences…</Text>
+        : appPreferences.isSaving ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 8 }}>Saving app preferences…</Text>
+          : appPreferences.isSyncing ? <Text testID="app-preferences-syncing" style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 8 }}>Syncing preferences with your account…</Text> : null}
       {appPreferences.error ? <View testID="app-preferences-save-error" style={{ gap: 10, marginBottom: 12 }}>
         <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18 }}>{appPreferences.error}</Text>
+        {appPreferences.isLoading ? <Action
+          title="Retry loading preferences" secondary
+          onPress={appPreferences.retryLoading}
+        /> : null}
         {appPreferences.hasPendingSync ? <Action
           title="Retry saving preferences" secondary
           disabled={appPreferences.isSaving || appPreferences.isLoading}
