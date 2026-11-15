@@ -3,7 +3,7 @@
     "name": "OG Exports",
     "slug": "og-exports-50",
     "owner": "ogpagsjs",
-    "version": "2.1.9",
+    "version": "2.1.10",
     "orientation": "portrait",
     "icon": "./assets/images/og-app-icon.png",
     "scheme": "mobile",
@@ -15,7 +15,7 @@
     "android": {
       "package": "com.ogexports.investor",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 10,
+      "versionCode": 9,
       "icon": "./assets/images/og-app-icon.png",
       "predictiveBackGestureEnabled": false,
       "adaptiveIcon": {
