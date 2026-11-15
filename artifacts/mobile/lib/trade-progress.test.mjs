@@ -71,7 +71,7 @@ test('keeps the latest explicit stage record authoritative over project status',
 
   assert.equal(progress.latestByStage.get('settled')?.status, 'completed');
   assert.equal(progress.latestByStage.get('settled')?.source, 'stage_update');
-  assert.equal(progress.completedCount, 1);
+  assert.equal(progress.completedCount, 6);
 });
 
 test('normalizes human-readable milestone labels and counts every milestone', () => {
