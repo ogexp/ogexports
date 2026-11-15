@@ -275,8 +275,8 @@ export default function Settings() {
     setError('');
     try {
       await appPreferences.savePreferences(patch);
-    } catch (preferenceSaveError) {
-      setError(messageOf(preferenceSaveError));
+    } catch {
+      // The provider reports this beside the controls, not at the page footer.
     }
   }
 
@@ -329,8 +329,8 @@ export default function Settings() {
             key={language}
             testID={`language-option-${language}`}
             accessibilityRole="radio"
-            accessibilityState={{ checked: selected, disabled: appPreferences.isSaving }}
-            disabled={appPreferences.isSaving}
+            accessibilityState={{ checked: selected, disabled: appPreferences.isSaving || appPreferences.isLoading }}
+            disabled={appPreferences.isSaving || appPreferences.isLoading}
             onPress={() => void saveAppPreference({ language })}
             style={{ paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, borderRadius: 18, backgroundColor: selected ? colors.lightGreen : colors.card }}
           >
@@ -349,8 +349,8 @@ export default function Settings() {
             key={currency}
             testID={`currency-option-${currency}`}
             accessibilityRole="radio"
-            accessibilityState={{ checked: selected, disabled: appPreferences.isSaving }}
-            disabled={appPreferences.isSaving}
+            accessibilityState={{ checked: selected, disabled: appPreferences.isSaving || appPreferences.isLoading }}
+            disabled={appPreferences.isSaving || appPreferences.isLoading}
             onPress={() => void saveAppPreference({ currency })}
             style={{ paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, borderRadius: 18, backgroundColor: selected ? colors.lightGreen : colors.card }}
           >
@@ -378,8 +378,8 @@ export default function Settings() {
             key={appearance}
             testID={`appearance-option-${appearance}`}
             accessibilityRole="radio"
-            accessibilityState={{ checked: selected, disabled: appPreferences.isSaving }}
-            disabled={appPreferences.isSaving}
+            accessibilityState={{ checked: selected, disabled: appPreferences.isSaving || appPreferences.isLoading }}
+            disabled={appPreferences.isSaving || appPreferences.isLoading}
             onPress={() => void saveAppPreference({ appearance })}
             style={{ paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1, borderColor: selected ? colors.primary : colors.border, borderRadius: 18, backgroundColor: selected ? colors.lightGreen : colors.card }}
           >
@@ -388,6 +388,14 @@ export default function Settings() {
         })}
       </View>
       {appPreferences.isSaving ? <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 8 }}>Saving app preferences…</Text> : null}
+      {appPreferences.error ? <View testID="app-preferences-save-error" style={{ gap: 10, marginBottom: 12 }}>
+        <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 12, lineHeight: 18 }}>{appPreferences.error}</Text>
+        {appPreferences.hasPendingSync ? <Action
+          title="Retry saving preferences" secondary
+          disabled={appPreferences.isSaving || appPreferences.isLoading}
+          onPress={() => void saveAppPreference({})}
+        /> : null}
+      </View> : null}
       <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 14, marginTop: 2, marginBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: '600' }}>Reduce motion</Text>

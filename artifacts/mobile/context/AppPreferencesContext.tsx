@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { I18nManager, Platform, useColorScheme } from 'react-native';
 import { isRunningInExpoGo, reloadAppAsync } from 'expo';
@@ -9,18 +9,11 @@ import {
   useUpdateInvestorProfile,
 } from '@workspace/api-client-react';
 import { useAuth } from '@/context/AuthContext';
-import { configureMoneyDisplay, first, messageOf, record, unwrap, type Json } from '@/lib/data';
+import { configureMoneyDisplay, first, messageOf, record, unwrap } from '@/lib/data';
 import { configureUiLanguage, translateUi } from '@/lib/strings';
-import type { AppLanguage } from '@/lib/strings';
-
-export type AppearancePreference = 'light' | 'dark' | 'system';
-export type DisplayCurrency = 'USD' | 'PKR' | 'EUR' | 'GBP';
-
-export type AppPreferences = {
-  language: AppLanguage;
-  currency: DisplayCurrency;
-  appearance: AppearancePreference;
-};
+import { defaultPreferences, parsePreferences, persistPreferences, PreferenceSaveError, readPreferenceSnapshot,
+  type AppPreferences, type PreferencePatch } from '@/lib/app-preferences';
+export type { AppearancePreference, DisplayCurrency, AppPreferences } from '@/lib/app-preferences';
 
 type PreferencesContextValue = {
   preferences: AppPreferences;
@@ -28,6 +21,7 @@ type PreferencesContextValue = {
   isRTL: boolean;
   isLoading: boolean;
   isSaving: boolean;
+  hasPendingSync: boolean;
   error: string;
   rates: Record<string, number>;
   ratesAsOf: string;
@@ -37,31 +31,8 @@ type PreferencesContextValue = {
   clearError: () => void;
 };
 
-const defaultPreferences: AppPreferences = {
-  language: 'en',
-  currency: 'USD',
-  appearance: 'light',
-};
-
 const PreferencesContext = createContext<PreferencesContextValue | null>(null);
 const preferenceStorageKey = (userId: string) => `og-investor-app-preferences:${userId}`;
-
-function parsePreferences(value: unknown): Partial<AppPreferences> {
-  const source = record(value);
-  const next: Partial<AppPreferences> = {};
-  if (source.language === 'en' || source.language === 'ur' || source.language === 'ar') {
-    next.language = source.language;
-  }
-  const currency = typeof source.currency === 'string' ? source.currency.toUpperCase() : '';
-  if (currency === 'USD' || currency === 'PKR' || currency === 'EUR' || currency === 'GBP') {
-    next.currency = currency;
-  }
-  const appearance = source.appearance ?? source.theme;
-  if (appearance === 'light' || appearance === 'dark' || appearance === 'system') {
-    next.appearance = appearance;
-  }
-  return next;
-}
 
 function normalizeRates(value: unknown, base: string): Record<string, number> {
   const source = record(value);
@@ -83,6 +54,25 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const currentPreferences = useRef<AppPreferences>(defaultPreferences);
+  const pendingPreferences = useRef<PreferencePatch>({});
+  const savingSession = useRef<string | null>(null);
+  const loadedAccount = useRef<string | null>(null);
+  const activeSession = `${userId}:${token ?? ''}`;
+  const sessionRef = useRef(activeSession);
+  sessionRef.current = activeSession;
+  const storageWrites = useRef<Promise<void>>(Promise.resolve());
+  const store = useCallback((owner: string, next: AppPreferences, pending: PreferencePatch) => {
+    const write = storageWrites.current.catch(() => undefined).then(() =>
+      AsyncStorage.setItem(preferenceStorageKey(owner), JSON.stringify({ ...next, pendingSync: pending })));
+    storageWrites.current = write;
+    return write;
+  }, []);
+  const apply = useCallback((next: AppPreferences, pending: PreferencePatch) => {
+    currentPreferences.current = next;
+    pendingPreferences.current = pending;
+    setPreferences(next);
+  }, []);
   const profileQuery = useGetInvestorProfile({
     query: {
       queryKey: ['investor-profile'],
@@ -98,10 +88,9 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
       retry: 1,
     },
   });
-  const updateProfile = useUpdateInvestorProfile();
+  const { mutateAsync: updateProfile } = useUpdateInvestorProfile({ request: { timeoutMs: 10_000 } });
   const profile = unwrap(profileQuery.data);
   const rateResponse = unwrap(ratesQuery.data);
-  const parsedProfilePreferences = parsePreferences(profile.preferences);
   const rates = normalizeRates(rateResponse.rates, first(rateResponse, ['base']).toUpperCase());
   const ratesAsOf = first(rateResponse, ['as_of', 'updated_at']);
   const isRTL = preferences.language === 'ur' || preferences.language === 'ar';
@@ -119,7 +108,10 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
 
   useEffect(() => {
     let active = true;
-    setPreferences(defaultPreferences);
+    apply(defaultPreferences, {});
+    loadedAccount.current = null;
+    savingSession.current = null;
+    setIsSaving(false);
     setPreferencesLoaded(!userId);
     setError('');
     if (!userId) return () => { active = false; };
@@ -128,34 +120,37 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
         if (!active) return;
         if (raw) {
           try {
-            setPreferences(current => ({ ...current, ...parsePreferences(JSON.parse(raw)) }));
-          } catch {
-            setPreferences(current => ({ ...current }));
-          }
+            const saved = readPreferenceSnapshot(JSON.parse(raw));
+            apply({ ...saved.preferences, ...saved.pending }, saved.pending);
+          } catch { setError('Saved app preferences could not be read. Please select your preferences again.'); }
         }
+        loadedAccount.current = userId;
         setPreferencesLoaded(true);
       })
       .catch(() => {
-        if (active) setPreferencesLoaded(true);
+        if (active) {
+          loadedAccount.current = userId;
+          setError('Saved app preferences could not be read from this device.');
+          setPreferencesLoaded(true);
+        }
       });
     return () => { active = false; };
-  }, [userId]);
+  }, [userId, apply]);
 
   useEffect(() => {
-    if (!preferencesLoaded || !profileQuery.data) return;
-    const serverPreferences = record(profile.preferences);
-    const parsed = parsePreferences(serverPreferences);
-    if (!parsed.currency) parsed.currency = 'USD';
-    if (Object.keys(parsed).length) {
-      setPreferences(current => ({ ...current, ...parsed }));
-      if (userId) {
-        void AsyncStorage.setItem(
-          preferenceStorageKey(userId),
-          JSON.stringify({ ...defaultPreferences, ...parsed }),
-        ).catch(() => undefined);
-      }
+    if (!preferencesLoaded || !profileQuery.data || loadedAccount.current !== userId) return;
+    if (first(record(profile.user), ['id']) !== userId) return;
+    const parsed = parsePreferences(profile.preferences);
+    const pending = pendingPreferences.current;
+    const next = { ...currentPreferences.current, ...parsed, ...pending };
+    apply(next, pending);
+    if (!savingSession.current) {
+      const ownerSession = activeSession;
+      void store(userId, next, pending).catch(() => {
+        if (sessionRef.current === ownerSession) setError('Account preferences loaded, but could not be cached on this device.');
+      });
     }
-  }, [preferencesLoaded, profileQuery.data, userId]);
+  }, [preferencesLoaded, profileQuery.data, userId, apply, store, activeSession]);
 
   useEffect(() => {
     if (!preferencesLoaded) return;
@@ -166,6 +161,8 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
       }
       return;
     }
+    // Do not restart an installed app before the new language is stored durably.
+    if (isSaving) return;
     if (I18nManager.isRTL !== isRTL) {
       I18nManager.allowRTL(true);
       I18nManager.forceRTL(isRTL);
@@ -174,48 +171,66 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
       // manually reloaded; installed builds can still reload immediately.
       if (!isRunningInExpoGo()) void reloadAppAsync().catch(() => undefined);
     }
-  }, [preferencesLoaded, preferences.language, isRTL]);
+  }, [preferencesLoaded, preferences.language, isRTL, isSaving]);
 
   const savePreferences = useCallback(async (patch: Partial<AppPreferences>) => {
-    if (!userId || !token) throw new Error('Sign in before saving app preferences.');
-    setError('');
-    setIsSaving(true);
-    const next = { ...preferences, ...patch };
-    const serverPatch: Json = {};
-    if (patch.language !== undefined) serverPatch.language = patch.language;
-    if (patch.currency !== undefined) serverPatch.currency = patch.currency;
-    if (patch.appearance !== undefined) {
-      serverPatch.appearance = patch.appearance;
-      serverPatch.theme = patch.appearance;
+    if (!userId || !token || loadedAccount.current !== userId) {
+      const error = new Error('Wait for your account preferences to load before saving.');
+      setError(error.message);
+      throw error;
     }
+    if (savingSession.current === activeSession) return;
+    setError('');
+    savingSession.current = activeSession;
+    setIsSaving(true);
+    const isCurrent = () => sessionRef.current === activeSession;
     try {
-      const currentProfile = profileQuery.data
-        ? profile
-        : unwrap((await profileQuery.refetch()).data);
-      const currentPreferences = record(currentProfile.preferences);
-      const preferencesToSave: Json = { ...currentPreferences, ...serverPatch };
-      await updateProfile.mutateAsync({ data: { preferences: preferencesToSave } });
-      await AsyncStorage.setItem(preferenceStorageKey(userId), JSON.stringify(next));
-      setPreferences(next);
-      if (patch.currency !== undefined) {
-        await queryClient.invalidateQueries();
-      } else {
-        void profileQuery.refetch();
-      }
+      await persistPreferences({
+        current: currentPreferences.current,
+        pending: pendingPreferences.current,
+        patch, isCurrent, apply,
+        store: (next, pending) => store(userId, next, pending),
+        sync: async preferences => {
+          await queryClient.cancelQueries({ queryKey: ['investor-profile'] });
+          if (!isCurrent()) throw new Error('The signed-in account changed.');
+          return updateProfile({ data: { preferences } });
+        },
+        confirmed: async response => {
+          await queryClient.cancelQueries({ queryKey: ['investor-profile'] });
+          if (isCurrent()) queryClient.setQueryData(['investor-profile'], response);
+        },
+      });
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'App preferences could not be saved.');
+      if (isCurrent()) {
+        const language = currentPreferences.current.language;
+        setError(saveError instanceof PreferenceSaveError
+          ? `${translateUi(saveError.summary, language)} ${translateUi(saveError.detail, language)}`
+          : messageOf(saveError));
+      }
       throw saveError;
     } finally {
-      setIsSaving(false);
+      if (isCurrent()) {
+        savingSession.current = null;
+        setIsSaving(false);
+      }
     }
-  }, [preferences, profile, profileQuery, queryClient, token, updateProfile, userId]);
+  }, [activeSession, apply, queryClient, store, token, updateProfile, userId]);
+
+  useEffect(() => {
+    if (preferencesLoaded && token && loadedAccount.current === userId && Object.keys(pendingPreferences.current).length) {
+      void savePreferences({}).catch(() => { /* A visible sync error and Retry action are provided by Settings. */ });
+    }
+  }, [preferencesLoaded, token, userId, savePreferences]);
+
+  const hasPendingSync = Object.keys(pendingPreferences.current).length > 0;
 
   const value = useMemo<PreferencesContextValue>(() => ({
     preferences,
     resolvedAppearance,
     isRTL,
-    isLoading: !preferencesLoaded,
+    isLoading: !preferencesLoaded || Boolean(userId && loadedAccount.current !== userId),
     isSaving,
+    hasPendingSync,
     error,
     rates,
     ratesAsOf,
@@ -224,7 +239,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     savePreferences,
     clearError: () => setError(''),
   }), [
-    preferences, resolvedAppearance, isRTL, preferencesLoaded, isSaving, error,
+    preferences, resolvedAppearance, isRTL, preferencesLoaded, isSaving, hasPendingSync, userId, error,
     rates, ratesAsOf, ratesQuery.isLoading, ratesQuery.isError, savePreferences,
   ]);
 

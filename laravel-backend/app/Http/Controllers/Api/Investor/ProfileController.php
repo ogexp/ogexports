@@ -134,6 +134,9 @@ class ProfileController extends Controller
             'risk_profile' => ['nullable', 'string', 'max:50'],
             'notification_prefs' => ['nullable', 'array'],
             'preferences' => ['nullable', 'array'],
+            'preferences.language' => ['sometimes', 'string', Rule::in(['en', 'ur', 'ar'])],
+            'preferences.appearance' => ['sometimes', 'string', Rule::in(['light', 'dark', 'system'])],
+            'preferences.theme' => ['sometimes', 'string', Rule::in(['light', 'dark', 'system'])],
             'preferences.currency' => ['sometimes', 'string', Rule::in(['USD', 'PKR', 'EUR', 'GBP'])],
             'account_status' => ['sometimes', 'string', Rule::in(['active', 'suspended'])],
             'meta' => ['nullable', 'array'],
@@ -194,7 +197,14 @@ class ProfileController extends Controller
                 $meta['notification_prefs'] = array_merge($meta['notification_prefs'] ?? [], $data['notification_prefs'] ?? []);
             }
             if (array_key_exists('preferences', $data)) {
-                $meta['preferences'] = array_merge($meta['preferences'] ?? [], $data['preferences'] ?? []);
+                $preferences = $data['preferences'] ?? [];
+                // Keep mobile's appearance and the legacy web theme in agreement.
+                if (isset($preferences['appearance'])) {
+                    $preferences['theme'] = $preferences['appearance'];
+                } elseif (isset($preferences['theme'])) {
+                    $preferences['appearance'] = $preferences['theme'];
+                }
+                $meta['preferences'] = array_merge($meta['preferences'] ?? [], $preferences);
             }
             if (! empty($data['meta']) && is_array($data['meta'])) {
                 $meta = array_replace_recursive($meta, $data['meta']);
