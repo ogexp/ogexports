@@ -26,7 +26,7 @@ function NativeLayout() {
       labelStyle={{ default: { color: colors.mutedForeground }, selected: { color: colors.primary, fontWeight: '600' } }}
       backgroundColor={colors.card}
       hidden={!visible}
-      minimizeBehavior="onScrollDown"
+      minimizeBehavior="never"
     >
       <NativeTabs.Trigger name="index"><NativeTabs.Trigger.Icon sf={{ default: 'house.circle', selected: 'house.circle.fill' }} /><NativeTabs.Trigger.Label>{t('Dashboard')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
       <NativeTabs.Trigger name="opportunities"><NativeTabs.Trigger.Icon sf={{ default: 'safari', selected: 'safari.fill' }} /><NativeTabs.Trigger.Label>{t('Opportunities')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
