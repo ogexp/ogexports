@@ -168,3 +168,17 @@ mtime_ms = 1794688437105
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/cd6494aa-c6f4-4e8b-9a1a-c53c0cc1c1de/b9fa8860-00fd-4050-a536-50c9a7fcf3b1"
 storage_version_token = "1794688485887008"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "ToILOTvk236FtTpDA17Fu"
+uri = "file://generated-artifacts/OG-Exports-55-v2.1.10-code10.aab"
+type = "unspecified"
+title = "OG Exports 55 Android AAB"
+description = "Production Android App Bundle — version 2.1.10, build 10, SDK 57. Signing certificate matches the confirmed Play upload certificate. Not submitted to Google Play."
+logical_id = "387f6bb3-1c92-4566-aee3-9dcca0f203cb"
+content_hash = "sha256:20bb53b9fb0f4a2109b7df75d61ee5b0b9b04aae7b96d13011472c354d4f5312"
+size = 87181242
+mtime_ms = 1794733897107
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/387f6bb3-1c92-4566-aee3-9dcca0f203cb/fc1d18f7-f8aa-4f02-ba24-0dcf6cf6b9ab"
+storage_version_token = "1794733945250877"
+content_type = "application/octet-stream"
