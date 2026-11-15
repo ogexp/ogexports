@@ -182,3 +182,17 @@ mtime_ms = 1794733897107
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/387f6bb3-1c92-4566-aee3-9dcca0f203cb/fc1d18f7-f8aa-4f02-ba24-0dcf6cf6b9ab"
 storage_version_token = "1794733945250877"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "J4Rvp6uP_NwM99K305Byn"
+uri = "file://generated-artifacts/og-exports-com.ogexports.app-1.1.0-build1.aab"
+type = "unspecified"
+title = "OG Exports AAB 1.1.0 build 1"
+description = "Android production AAB for com.ogexports.app. Package, version, build number, and signing certificate verified."
+logical_id = "036f8a85-f63d-4a23-86be-f6242b27379d"
+content_hash = "sha256:73144946d7be41df47022fcff4ade4a922a0d3c587873d174ea158863598d50e"
+size = 87181035
+mtime_ms = 1794766500826
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:f4e473f4-6ce4-483c-abb3-f8df0ba6670a/036f8a85-f63d-4a23-86be-f6242b27379d/a9330da8-47d6-4651-9cd0-dbfb151b8f55"
+storage_version_token = "1794766610777210"
+content_type = "application/octet-stream"
