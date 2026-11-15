@@ -57,6 +57,19 @@ function stageKey(value: unknown): TradeStageKey | null {
     : null;
 }
 
+function projectStageKey(value: unknown): TradeStageKey | null {
+  const normalized = token(value);
+  const legacyStages: Record<string, TradeStageKey> = {
+    active: 'investment_confirmed',
+    ready_to_ship: 'investment_confirmed',
+    shipping: 'in_transit',
+    completed: 'settled',
+    complete: 'settled',
+    done: 'settled',
+  };
+  return stageKey(normalized) ?? legacyStages[normalized] ?? null;
+}
+
 function titleCase(value: string): string {
   return value
     .replace(/[_-]+/g, ' ')
@@ -116,33 +129,42 @@ export function resolveTradeProgress(stageUpdates: TradeStageRecord[], projectSt
     });
   }
 
-  // The admin project status explicitly means the final milestone is settled.
-  // Use it only when no per-stage Settled record exists; never infer earlier
-  // milestones or invent an event date/description.
-  if (stageKey(projectStatus) === 'settled' && !latestByStage.has('settled')) {
-    latestByStage.set('settled', {
-      status: 'completed',
-      statusLabel: 'Completed',
-      description: '',
-      occurredAt: '',
-      source: 'project_status',
-    });
-  }
-
-  // The server-reported current stage can highlight one active milestone, but
-  // must not imply that any earlier stages were completed.
+  // Match the admin progress rail: the reported project/current stage means
+  // earlier milestones are complete, this stage is active, and later stages
+  // stay unreported. Settled completes the full sequence. Explicit per-stage
+  // records always win, and inferred milestones never gain event details.
+  const statusStage = projectStageKey(projectStatus);
   const currentStageKey = stageKey(currentStage);
-  if (
-    stageKey(projectStatus) !== 'settled'
-    && currentStageKey
-    && !latestByStage.has(currentStageKey)
-  ) {
-    latestByStage.set(currentStageKey, {
-      status: 'in_progress',
-      statusLabel: 'Current milestone',
-      description: '',
-      occurredAt: '',
-      source: 'current_project_stage',
+  const reportedStage = statusStage === 'settled'
+    ? statusStage
+    : [statusStage, currentStageKey]
+      .filter((stage): stage is TradeStageKey => Boolean(stage))
+      .sort((left, right) =>
+        TRADE_STAGES.findIndex(stage => stage.key === right)
+        - TRADE_STAGES.findIndex(stage => stage.key === left)
+      )[0];
+  if (reportedStage) {
+    const currentIndex = TRADE_STAGES.findIndex(stage => stage.key === reportedStage);
+    const source = statusStage === 'settled' ? 'project_status' : 'current_project_stage';
+    TRADE_STAGES.forEach((stage, index) => {
+      if (latestByStage.has(stage.key)) return;
+      if (index < currentIndex || reportedStage === 'settled') {
+        latestByStage.set(stage.key, {
+          status: 'completed',
+          statusLabel: 'Completed',
+          description: '',
+          occurredAt: '',
+          source,
+        });
+      } else if (index === currentIndex) {
+        latestByStage.set(stage.key, {
+          status: 'in_progress',
+          statusLabel: 'Current milestone',
+          description: '',
+          occurredAt: '',
+          source,
+        });
+      }
     });
   }
 
