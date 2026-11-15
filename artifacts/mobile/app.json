@@ -13,7 +13,7 @@
       "icon": "./assets/images/og-app-icon.png"
     },
     "android": {
-      "package": "com.ogexports.investor",
+      "package": "com.ogexports.app",
       "googleServicesFile": "./google-services.json",
       "versionCode": 11,
       "icon": "./assets/images/og-app-icon.png",
