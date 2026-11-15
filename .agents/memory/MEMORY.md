@@ -13,7 +13,7 @@
 - [Expo DevTools runtime](expo-devtools-runtime.md) — a missing libglib can break the optional debugger without blocking Metro or the app preview.
 - [Expo workflow log freshness](expo-workflow-log-freshness.md) — when Metro errors conflict with exports, restart the managed Expo workflow and inspect fresh logs before changing code.
 - [Expo Go RTL reload behavior](expo-go-rtl-reload.md) — avoid automatic app reloads in Expo Go when authenticated profile preferences switch text direction.
-- [OG Exports Expo and GitHub separation](og-exports-expo-account.md) — use OG Exports' own Expo project and `ogexp/ogexports` repo, never OG Landmark's.
+- [OG Exports Expo and GitHub separation](og-exports-expo-account.md) — build OG Exports on its confirmed `og-exports-50` Expo project and `ogexp/ogexports` repo, never OG Landmark's.
 - [Android splash release resource](android-splash-release-resource.md) — the Expo splash plugin needs a valid image path so EAS generates the Android drawable referenced by its splash theme.
 - [Android release build environment](android-release-build-environment.md) — Nix Android SDK is read-only; local release builds need a temporary writable SDK and JDK 17.
 - [Android AAB build approval](android-aab-build-approval.md) — do not create or rebuild an Android App Bundle without the user's explicit request.

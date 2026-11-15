@@ -34,3 +34,9 @@ Before pushing, verify the live `origin` URL. Replit's Git settings can leave th
 **Why:** The workspace remote initially targeted the wrong repository, and the shell push was rejected despite read access and the GitHub app showing active.
 
 **How to apply:** Never push until `origin` exactly matches `ogexp/ogexports`; use the Replit Git pane's authenticated flow or resolve its GitHub credential connection if direct push is rejected.
+
+The user selected `@ogpagsjs/og-exports-50` as the intended OG Exports build project; it is distinct from the local `@ogexp55/og55` configuration.
+
+**Why:** The user requested SDK 57 builds on OG Exports 50 after the app had been configured for a different Expo project.
+
+**How to apply:** Use the confirmed OG Exports 50 project for future builds, and verify its original Android upload signing identity before creating a store AAB.
