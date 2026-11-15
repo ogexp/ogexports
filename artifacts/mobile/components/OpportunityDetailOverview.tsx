@@ -275,7 +275,14 @@ export function OpportunityDetailOverview({
       ]} />
     </Card>
 
-    <TradeProgressCard title="Project timeline" stageUpdates={stageUpdates} showPeriod={false} variant="opportunity" />
+    <TradeProgressCard
+      title="Project timeline"
+      stageUpdates={stageUpdates}
+      projectStatus={status}
+      currentStage={first(project, ['current_project_stage'])}
+      showPeriod={false}
+      variant="opportunity"
+    />
 
     <Section title="Documents" />
     <Card>

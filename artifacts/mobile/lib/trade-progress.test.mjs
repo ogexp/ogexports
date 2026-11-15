@@ -1,6 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveTradeProgress, TRADE_STAGES } from './trade-progress.ts';
+import colors from '../constants/colors.ts';
+import { resolveTradeProgress, TRADE_STAGE_COLOR_TOKENS, TRADE_STAGES } from './trade-progress.ts';
+
+test('each project milestone uses its own distinct theme color', () => {
+  const tokenNames = TRADE_STAGES.map(stage => TRADE_STAGE_COLOR_TOKENS[stage.key]);
+  assert.equal(new Set(tokenNames).size, TRADE_STAGES.length);
+  for (const appearance of ['light', 'dark']) {
+    const stageColors = tokenNames.map(token => colors[appearance][token]);
+    assert.equal(new Set(stageColors).size, TRADE_STAGES.length, `${appearance} milestone colors are distinct`);
+  }
+});
 
 test('reflects an explicit project-level Settled status on the final milestone only', () => {
   const progress = resolveTradeProgress([], 'Settled');

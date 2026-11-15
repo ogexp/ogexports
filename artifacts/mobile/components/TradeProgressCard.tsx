@@ -5,7 +5,7 @@ import { LocalizedText as Text } from '@/components/LocalizedText';
 import { Card, Section } from '@/components/InvestorUI';
 import { amount, first, record, type Json } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
-import { resolveTradeProgress, TRADE_STAGES } from '@/lib/trade-progress';
+import { resolveTradeProgress, TRADE_STAGE_COLOR_TOKENS, TRADE_STAGES } from '@/lib/trade-progress';
 import { MotionProgress, MotionReveal } from '@/lib/motion';
 
 type Props = {
@@ -37,14 +37,6 @@ export function TradeProgressCard({
   variant = 'default',
 }: Props) {
   const colors = useColors();
-  const opportunityStageColors = {
-    funding: colors.allocationProfits,
-    investment_confirmed: colors.allocationBalance,
-    cargo_loaded: colors.allocationInvestments,
-    in_transit: colors.allocationWithdrawals,
-    custom_clearance: colors.balanceCardStart,
-    settled: colors.statusSuccess,
-  };
   const stageRecords = stageUpdates.map(rawUpdate => {
     const update = record(rawUpdate);
     return {
@@ -86,9 +78,9 @@ export function TradeProgressCard({
           const completed = update?.status === 'completed';
           const inProgress = update?.status === 'in_progress';
           const notStarted = update?.status === 'not_started';
-          const stageColor = opportunityStageColors[stage.key];
-           const completedColor = stageColor;
-           const inProgressColor = stageColor;
+          const stageColor = colors[TRADE_STAGE_COLOR_TOKENS[stage.key]];
+          const completedColor = stageColor;
+          const inProgressColor = stageColor;
           const markerColor = completed ? completedColor : inProgress ? inProgressColor : colors.border;
           const statusLabel = update?.statusLabel ?? 'No admin update yet.';
           const updateDate = update?.occurredAt
@@ -106,7 +98,7 @@ export function TradeProgressCard({
                 justifyContent: 'center',
                 borderWidth: completed || inProgress ? 0 : 1.5,
                 borderColor: markerColor,
-                 backgroundColor: completed || inProgress ? markerColor : colors.secondary,
+                backgroundColor: completed || inProgress ? markerColor : colors.secondary,
               }}>
                 {completed ? <Feather name="check" size={13} color={colors.primaryForeground} /> : null}
                 {inProgress ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primaryForeground }} /> : null}
@@ -132,7 +124,7 @@ export function TradeProgressCard({
                 ) : (
                   <Text testID={`stage-status-${stage.key}`} style={{
                     flexShrink: 1,
-                     color: rowStatusColor,
+                    color: rowStatusColor,
                     fontSize: 10,
                     fontWeight: completed || inProgress || notStarted ? '700' : '400',
                     textAlign: 'right',

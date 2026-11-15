@@ -7,6 +7,15 @@ export const TRADE_STAGES = [
   { key: 'settled', label: 'Settled' },
 ] as const;
 
+export const TRADE_STAGE_COLOR_TOKENS = {
+  funding: 'stageFunding',
+  investment_confirmed: 'stageInvestmentConfirmed',
+  cargo_loaded: 'stageCargoLoaded',
+  in_transit: 'stageInTransit',
+  custom_clearance: 'stageCustomClearance',
+  settled: 'stageSettled',
+} as const;
+
 export type TradeStageKey = typeof TRADE_STAGES[number]['key'];
 export type TradeStageStatus = 'completed' | 'in_progress' | 'not_started' | 'unknown';
 
