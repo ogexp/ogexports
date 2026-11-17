@@ -31,11 +31,11 @@ When no carrier/shipping API is integrated, label only a backend-supplied timest
 
 **How to apply:** make live-data claims conditional on a real carrier integration, and keep shipment refresh/update timestamps server-sourced.
 
-KYC gating applies to investments only: require a server-reported `Verified` status before allowing an investment, and leave deposits and withdrawals unchanged. Never infer verification from submitted forms or uploaded documents.
+Require a server-reported `Verified` identity before allowing investments or selecting any deposit payment method. Withdrawals keep their separate verification flow. Never infer verification from submitted forms or uploaded documents.
 
-**Why:** the user chose to gate only investments; approval must remain authoritative to OG Exports.
+**Why:** the user asked that investors verify identity before choosing any of the four deposit methods; approval must remain authoritative to OG Exports.
 
-**How to apply:** fail closed for investment access when KYC status is missing, loading, or unavailable. Do not add KYC checks to deposits or withdrawals unless the user changes this scope.
+**How to apply:** fail closed for investment access and deposit-method selection when KYC status is missing, loading, or unavailable. Deposit taps should open a clear identity-verification prompt; do not begin deposit details until the server confirms `Verified`.
 
 **Why:** the user established these as platform-wide acceptance criteria for the OG Exports investor app.
 

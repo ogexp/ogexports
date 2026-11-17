@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { Pressable, View, Platform } from 'react-native';
+import { Modal, Pressable, View, Platform } from 'react-native';
 import { LocalizedPressable, LocalizedText as Text } from '@/components/LocalizedText';
 import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile } from 'expo-file-system';
@@ -13,12 +13,16 @@ import {
   useGetInvestorDeposits,
   useGetInvestorPaymentBankAccounts,
   useGetInvestorDashboard,
+  useGetInvestorProfile,
   useGetInvestorWallet,
 } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, Field, Screen, Section, Status, SuccessFeedback, SuccessMark } from '@/components/InvestorUI';
+import { GlassPopupSurface } from '@/components/GlassPopupSurface';
 import { formatUiStatus } from '@/lib/strings';
 import { amount as readAmount, first, list, messageOf, money, record, unwrap, walletCurrencyFromSources } from '@/lib/data';
 import { DEPOSIT_PAYMENT_METHODS, type DepositPaymentMethodId } from '@/lib/deposit-methods';
+import { getInvestorKycStatus } from '@/lib/kyc';
+import { canChooseDepositPaymentMethod } from '@/lib/deposit-identity-gate';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
@@ -27,6 +31,7 @@ import { useColors } from '@/hooks/useColors';
 import { motionHaptic } from '@/lib/motion';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
 import { rememberFinancialDetail } from '@/lib/financial-detail-cache';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const depositStages = ['Submitted', 'Under Review', 'Verified', 'Credited'] as const;
 const verificationStatuses = new Set(['approved', 'verified']);
@@ -126,7 +131,16 @@ export default function Deposit() {
   const { token, user, apiOrigin, beginExternalFilePicker, endExternalFilePicker } = useAuth();
   const appPreferences = useAppPreferences();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const profileQuery = useGetInvestorProfile({
+    query: {
+      queryKey: ['investor-profile'],
+      enabled: Boolean(token),
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+    },
+  });
   const dashboardQuery = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
   const walletQuery = useGetInvestorWallet({ query: { queryKey: ['investor-wallet'], enabled: Boolean(token), staleTime: 30_000, refetchOnMount: 'always' } });
   const optionsQuery = useGetInvestorDepositOptions({ query: { queryKey: ['investor-deposit-options'], enabled: Boolean(token) } });
@@ -156,6 +170,8 @@ export default function Deposit() {
   const [notice, setNotice] = useState('');
   const [stage, setStage] = useState<'method' | 'form' | 'review' | 'submitted'>('method');
   const [paymentMethodId, setPaymentMethodId] = useState<DepositPaymentMethodId | ''>('');
+  const [pendingPaymentMethodId, setPendingPaymentMethodId] = useState<DepositPaymentMethodId | ''>('');
+  const [identityPromptVisible, setIdentityPromptVisible] = useState(false);
   const [confirmation, setConfirmation] = useState<Record<string, unknown> | null>(null);
   const [successFeedbackVisible, setSuccessFeedbackVisible] = useState(false);
   const [selectedDepositId, setSelectedDepositId] = useState('');
@@ -182,6 +198,45 @@ export default function Deposit() {
   const proofRequired = isEnabled(first(selectedBank ?? {}, ['proof_required', 'requires_proof']));
   const timelineDeposit = confirmation ?? deposits.find(item => first(item, ['id', 'reference', 'deposit_reference']) === selectedDepositId);
   const confirmationCurrency = first(confirmation ?? {}, ['currency', 'wallet_currency'], paymentCurrency);
+  const investorProfile = unwrap(profileQuery.data);
+  const identityStatusConfirmed = profileQuery.isSuccess && !profileQuery.isFetching && !profileQuery.isError;
+  const identityStatusVerified = canChooseDepositPaymentMethod(getInvestorKycStatus(investorProfile), identityStatusConfirmed);
+  const identityStatusChecking = profileQuery.isLoading || profileQuery.isFetching;
+  const identityStatusUnavailable = profileQuery.isError || !profileQuery.data;
+  const identityStatus = getInvestorKycStatus(investorProfile);
+
+  const enterDepositDetails = useCallback((methodId: DepositPaymentMethodId) => {
+    setPaymentMethodId(methodId);
+    setError('');
+    setNotice('');
+    setStage('form');
+  }, []);
+
+  function chooseDepositMethod(methodId: DepositPaymentMethodId) {
+    if (!identityStatusVerified) {
+      setPendingPaymentMethodId(methodId);
+      setIdentityPromptVisible(true);
+      return;
+    }
+    enterDepositDetails(methodId);
+  }
+
+  function closeIdentityPrompt() {
+    setIdentityPromptVisible(false);
+    setPendingPaymentMethodId('');
+  }
+
+  function openIdentityVerification() {
+    closeIdentityPrompt();
+    router.push('/account/kyc');
+  }
+
+  useEffect(() => {
+    if (!identityPromptVisible || !pendingPaymentMethodId || !identityStatusVerified) return;
+    setIdentityPromptVisible(false);
+    setPendingPaymentMethodId('');
+    enterDepositDetails(pendingPaymentMethodId);
+  }, [enterDepositDetails, identityPromptVisible, pendingPaymentMethodId, identityStatusVerified]);
 
   async function downloadReceipt(source: Record<string, unknown>) {
     setReceiptError('');
@@ -293,6 +348,11 @@ export default function Deposit() {
     setError('');
     setNotice('');
     const paymentMethod = selectedPaymentMethod;
+    if (!identityStatusVerified) {
+      setPendingPaymentMethodId(paymentMethodId);
+      setIdentityPromptVisible(true);
+      return;
+    }
     if (!paymentMethod) {
       setError('Choose a payment method before continuing.');
       setStage('method');
@@ -382,12 +442,7 @@ export default function Deposit() {
       {paymentCurrency === 'USD' ? DEPOSIT_PAYMENT_METHODS.map(method => {
         const selected = method.id === paymentMethodId;
         return <Pressable key={method.id} accessibilityRole="button" accessibilityState={{ selected }}
-          testID={`deposit-payment-method-${method.id}`} onPress={() => {
-            setPaymentMethodId(method.id);
-            setError('');
-            setNotice('');
-            setStage('form');
-          }}
+          testID={`deposit-payment-method-${method.id}`} onPress={() => chooseDepositMethod(method.id)}
           style={{ marginBottom: 10 }}>
           <Card style={{
             borderColor: selected ? colors.primary : colors.border,
@@ -678,5 +733,77 @@ export default function Deposit() {
       onDismiss={() => setSuccessFeedbackVisible(false)}
       testID="deposit-success-feedback"
     />
+    <Modal
+      visible={identityPromptVisible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={closeIdentityPrompt}
+    >
+      <View style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 22,
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom,
+        backgroundColor: 'rgba(8, 18, 13, 0.48)',
+      }}>
+        <Pressable
+          accessible={false}
+          importantForAccessibility="no"
+          onPress={closeIdentityPrompt}
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+        />
+        <GlassPopupSurface
+          testID="deposit-identity-verification-prompt"
+          accessibilityViewIsModal
+          style={{
+            width: '100%',
+            maxWidth: 440,
+            borderRadius: 24,
+            borderWidth: 1,
+            borderColor: colors.border,
+            padding: 22,
+          }}
+        >
+          <View style={{
+            width: 52,
+            height: 52,
+            borderRadius: 18,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.lightGreen,
+            borderWidth: 1,
+            borderColor: colors.border,
+            marginBottom: 15,
+          }}>
+            <Feather name={identityStatusChecking ? 'clock' : 'shield'} size={23} color={colors.primary} />
+          </View>
+          <Text style={{ color: colors.foreground, fontSize: 19, lineHeight: 25, fontWeight: '700' }}>
+            {identityStatusChecking
+              ? 'Checking identity status'
+              : identityStatusUnavailable
+                ? 'Identity status unavailable'
+                : 'Identity verification required'}
+          </Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 20, marginTop: 8, marginBottom: 19 }}>
+            {identityStatusChecking
+              ? 'Checking your identity status before continuing with a deposit.'
+              : identityStatusUnavailable
+                ? "We couldn't confirm your identity status. Please retry before continuing."
+                : identityStatus === 'Under Review'
+                  ? 'Your identity review is still pending. Wait until OG Exports confirms you as Verified before choosing a deposit method.'
+                  : 'Complete the required identity details and documents. Deposit methods unlock only after OG Exports confirms your identity as Verified.'}
+          </Text>
+          {identityStatusChecking ? <Action title="Checking…" icon="clock" loading disabled onPress={() => undefined} testID="deposit-identity-checking" />
+            : identityStatusUnavailable ? <Action title="Retry" icon="refresh-cw" loading={profileQuery.isFetching} onPress={() => void profileQuery.refetch()} testID="deposit-identity-retry" />
+              : <Action title="Verify identity" icon="shield" onPress={openIdentityVerification} testID="deposit-open-identity-verification" />}
+          <View style={{ marginTop: 10 }}>
+            <Action title="Not now" secondary onPress={closeIdentityPrompt} testID="deposit-identity-dismiss" />
+          </View>
+        </GlassPopupSurface>
+      </View>
+    </Modal>
   </Screen>;
 }

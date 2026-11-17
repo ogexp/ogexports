@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { getInvestorKycFlowState, shouldShowKycSubmitAction } from './kyc-flow-state.ts';
+import { canChooseDepositPaymentMethod } from './deposit-identity-gate.ts';
 
 test('submit action hides after successful submission and while under review', () => {
   assert.equal(shouldShowKycSubmitAction('Pending', true), false);
@@ -42,4 +43,12 @@ test('only a server-confirmed verified status makes the flow read-only', () => {
     progressStep: 4,
     resumeStep: 3,
   });
+});
+
+test('deposit payment methods require a confirmed server-reported Verified identity', () => {
+  assert.equal(canChooseDepositPaymentMethod('Verified', true), true);
+  assert.equal(canChooseDepositPaymentMethod('Verified', false), false);
+  assert.equal(canChooseDepositPaymentMethod('Under Review', true), false);
+  assert.equal(canChooseDepositPaymentMethod('Not Started', true), false);
+  assert.equal(canChooseDepositPaymentMethod('In Progress', true), false);
 });
