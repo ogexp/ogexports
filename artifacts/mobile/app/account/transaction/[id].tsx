@@ -174,9 +174,11 @@ export default function TransactionDetails() {
     : undefined;
   const transaction = kind === 'wallet'
     ? walletTransaction ?? {}
-    : Object.keys(directTransaction).length
+    : kind === 'investment'
       ? directTransaction
-        : historyRecord ?? cachedHistoryRecord ?? getRememberedFinancialDetail(userId, kind, id) ?? savedTransaction;
+      : Object.keys(directTransaction).length
+        ? directTransaction
+          : historyRecord ?? cachedHistoryRecord ?? getRememberedFinancialDetail(userId, kind, id) ?? savedTransaction;
   const hasRecord = Object.keys(transaction).length > 0;
   const detailIsLoading = !hasRecord && (
     query.isLoading
@@ -324,7 +326,7 @@ export default function TransactionDetails() {
       ? 'Withdrawal'
       : kind === 'investment'
         ? first(investmentProject, ['title', 'name'], first(transaction, ['project_title', 'description', 'title'], 'Investment'))
-      : first(transaction, ['description', 'title'], first(transaction, ['type', 'transaction_type'], 'Transaction'));
+        : first(transaction, ['description', 'title'], first(transaction, ['type', 'transaction_type'], 'Transaction'));
   const currency = first(
     transaction,
     ['currency', 'amount_currency', 'wallet_currency'],
@@ -398,7 +400,7 @@ export default function TransactionDetails() {
         transaction,
         value => Clipboard.setStringAsync(value),
         ['id', 'transaction_id'],
-        ['transaction_id', 'reference', 'transaction_reference', 'deposit_reference', 'withdraw_id'],
+        ['investment_reference', 'transaction_id', 'reference', 'transaction_reference', 'deposit_reference', 'withdraw_id'],
       );
       setCopiedRecordId(copiedTarget.value);
     } catch {
@@ -429,7 +431,7 @@ export default function TransactionDetails() {
       <Section title="Transaction record" />
       <Card>
         <DetailLine label="Transaction ID" value={transactionId} />
-        <DetailLine label="Type" value={kind === 'wallet' ? first(transaction, ['type', 'transaction_type'], unavailable) : title} />
+        <DetailLine label="Type" value={kind === 'wallet' ? first(transaction, ['type', 'transaction_type'], unavailable) : kind === 'investment' ? 'Investment' : title} />
         <DetailLine label="Status" value={status} />
         <DetailLine label="Amount" value={amountLabel} />
         <DetailLine label="Date / time" value={formatDateTime(first(transaction, kind === 'investment' ? ['invested_at', 'created_at', 'date'] : ['created_at', 'occurred_at', 'date']))} />
