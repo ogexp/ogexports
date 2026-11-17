@@ -23,6 +23,7 @@ import { amount as readAmount, first, list, messageOf, money, record, unwrap, wa
 import { DEPOSIT_PAYMENT_METHODS, type DepositPaymentMethodId } from '@/lib/deposit-methods';
 import { getInvestorKycStatus } from '@/lib/kyc';
 import { canChooseDepositPaymentMethod } from '@/lib/deposit-identity-gate';
+import { formatIbanForDisplay } from '@/lib/bank-detail-display';
 import { uploadInvestorFile } from '@/lib/file-upload';
 import { INVESTOR_DOCUMENT_MIME_TYPES } from '@/lib/upload-rules';
 import { useAuth } from '@/context/AuthContext';
@@ -105,20 +106,29 @@ function exactBankDetail(row: Record<string, unknown>, keys: string[]): string {
 
 type PaymentBankDetailKey = 'account-number' | 'iban' | 'swift';
 
-function CopyableBankDetailRow({ label, value, copied, accessibilityLabel, testID, onCopy }: {
+function CopyableBankDetailRow({ label, value, copied, accessibilityLabel, testID, onCopy, valueFormat = 'plain' }: {
   label: string;
   value: string;
   copied: boolean;
   accessibilityLabel: string;
   testID: string;
   onCopy: () => void;
+  valueFormat?: 'plain' | 'iban';
 }) {
   const colors = useColors();
+  const isIban = valueFormat === 'iban';
+  const displayValue = isIban ? formatIbanForDisplay(value) : value;
   return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.border }}>
     <Text style={{ color: colors.mutedForeground, fontSize: 12, width: 76 }}>{label}</Text>
-    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} selectable accessibilityLabel={`${label}: ${value || '—'}`}
-      style={{ color: colors.foreground, fontSize: 12, fontWeight: '600', textAlign: 'right', writingDirection: 'ltr', flex: 1, minWidth: 0 }}>
-      {value || '—'}
+    <Text
+      numberOfLines={isIban ? 2 : 1}
+      adjustsFontSizeToFit={!isIban}
+      minimumFontScale={0.85}
+      selectable
+      accessibilityLabel={`${label}: ${value || '—'}`}
+      style={{ color: colors.foreground, fontSize: 12, lineHeight: 18, fontWeight: '600', textAlign: 'right', writingDirection: 'ltr', flex: 1, minWidth: 0 }}
+    >
+      {displayValue || '—'}
     </Text>
     {value ? <LocalizedPressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityHint="Copies value to clipboard"
       testID={testID} onPress={onCopy} style={{ width: 40, height: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 10 }}>
@@ -547,7 +557,7 @@ export default function Deposit() {
           <CopyableBankDetailRow label="Account number" value={bankAccountNumber} copied={copiedBankField === 'account-number'}
             accessibilityLabel={copiedBankField === 'account-number' ? 'Account number copied' : 'Copy account number'} testID="copy-payment-account-number"
             onCopy={() => void copyBankDetail('account-number', bankAccountNumber)} />
-          <CopyableBankDetailRow label="IBAN" value={bankIban} copied={copiedBankField === 'iban'}
+          <CopyableBankDetailRow label="IBAN" value={bankIban} copied={copiedBankField === 'iban'} valueFormat="iban"
             accessibilityLabel={copiedBankField === 'iban' ? 'IBAN copied' : 'Copy IBAN'} testID="copy-payment-iban"
             onCopy={() => void copyBankDetail('iban', bankIban)} />
           <CopyableBankDetailRow label="SWIFT / BIC" value={bankSwift} copied={copiedBankField === 'swift'}
