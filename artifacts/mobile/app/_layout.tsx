@@ -160,7 +160,7 @@ function RootLayoutNav() {
   useEffect(() => {
     if (!ready) return;
     const firstSegment = String(segments[0] ?? '');
-    const publicSegments = new Set(['', 'index', 'onboarding', '(auth)']);
+    const publicSegments = new Set(['', 'index', 'onboarding', '(auth)', 'forgot-password']);
     if (token && !appUnlocked && firstSegment !== 'lock' && firstSegment !== '(auth)') {
       router.replace({ pathname: '/lock', params: { returnTo } });
       return;
@@ -198,6 +198,17 @@ function RootLayoutNav() {
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="lock" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ presentation: 'modal', headerShown: false }} />
+        <Stack.Screen name="forgot-password" options={{
+          title: t('Reset password'),
+          presentation: 'formSheet',
+          headerShown: false,
+          sheetAllowedDetents: [0.82, 1],
+          sheetInitialDetentIndex: 0,
+          sheetGrabberVisible: true,
+          sheetCornerRadius: 28,
+          sheetElevation: 16,
+          sheetExpandsWhenScrolledToEdge: true,
+        }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="project/[id]" options={{
           title: t('Opportunity'),

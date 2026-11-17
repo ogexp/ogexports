@@ -158,7 +158,7 @@ export default function Login() {
                 color={biometricInfo?.available ? colors.primary : colors.mutedForeground}
               />}
         </Pressable> : null}
-        <Pressable onPress={() => router.push('/(auth)/forgot-password')} style={{ alignSelf: 'center', padding: 14 }}><Text style={{ color: colors.primary, fontWeight: '600' }}>Forgot password?</Text></Pressable>
+        <Pressable onPress={() => router.push('/forgot-password')} style={{ alignSelf: 'center', padding: 14 }}><Text style={{ color: colors.primary, fontWeight: '600' }}>Forgot password?</Text></Pressable>
       </Card>
       </MotionReveal>
       <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 5 }}>

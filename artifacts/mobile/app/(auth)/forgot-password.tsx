@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Keyboard, Platform, Pressable, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { LocalizedText as Text } from '@/components/LocalizedText';
@@ -35,9 +35,11 @@ export default function ForgotPassword() {
     try {
       if (step === 0) {
         await request.mutateAsync({ data: { email } });
+        Keyboard.dismiss();
         setStep(1);
       } else if (step === 1) {
         await verify.mutateAsync({ data: { email, code } });
+        Keyboard.dismiss();
         setStep(2);
       } else {
         if (password.length < 8) {
@@ -55,6 +57,7 @@ export default function ForgotPassword() {
             password_confirmation: confirmPassword,
           },
         });
+        Keyboard.dismiss();
         setStep(3);
       }
     } catch (err) {
@@ -114,14 +117,32 @@ export default function ForgotPassword() {
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{
           flexGrow: 1,
-          paddingTop: Platform.OS === 'ios' ? 0 : insets.top + 30,
-          paddingBottom: insets.bottom + 24,
+          paddingTop: 14,
+          paddingBottom: Platform.OS === 'web' ? 34 : insets.bottom + 20,
           paddingHorizontal: 20,
           justifyContent: 'center',
         }}
         bottomOffset={72}
         keyboardShouldPersistTaps="handled"
       >
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 10, fontWeight: '700', letterSpacing: 1.2 }}>
+            SECURE ACCOUNT RECOVERY
+          </Text>
+          <Pressable
+            testID="forgot-password-close"
+            accessibilityRole="button"
+            accessibilityLabel="Close password recovery"
+            hitSlop={10}
+            onPress={() => {
+              Keyboard.dismiss();
+              router.back();
+            }}
+            style={{ padding: 8, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Feather name="x" size={20} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
         <MotionReveal
           key={`recovery-content-${step}`}
           style={{ alignSelf: 'stretch' }}
@@ -132,7 +153,7 @@ export default function ForgotPassword() {
               flexDirection: 'row',
               alignItems: 'center',
               gap: 7,
-              marginBottom: 22,
+              marginBottom: 18,
             }}
           >
             {[0, 1, 2].map((index) => (
@@ -219,9 +240,9 @@ export default function ForgotPassword() {
             <Card
               style={{
                 padding: 20,
-                marginTop: 23,
+                marginTop: 18,
                 marginBottom: 0,
-                borderRadius: 21,
+                borderRadius: 22,
               }}
             >
               {step === 0 ? (
@@ -327,6 +348,7 @@ export default function ForgotPassword() {
                 onPress={() => void submit()}
                 disabled={isDisabled}
                 icon="arrow-right"
+                testID={step === 0 ? 'forgot-password-send-code' : step === 1 ? 'forgot-password-verify-code' : 'forgot-password-update-password'}
               />
               {step === 1 ? (
                 <Text
@@ -353,9 +375,9 @@ export default function ForgotPassword() {
             <Card
               style={{
                 padding: 20,
-                marginTop: 23,
+                marginTop: 18,
                 marginBottom: 0,
-                borderRadius: 21,
+                borderRadius: 22,
               }}
             >
               <Text
