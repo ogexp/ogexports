@@ -37,6 +37,7 @@
 - [Local Android SDK quota](local-android-sdk-quota.md) — account for quota limits, `/dev/shm` noexec, and tmpfs memory when staging the NDK.
 - [Mobile popup glass treatment](mobile-popup-glass.md) — use blur where supported and a translucent fallback on Android unless a valid modal blur target is available.
 - [Investor auto-invest rules](investor-auto-invest.md) — use the admin-managed mobile catalog, match any container size, and never backfill already-open opportunities.
+- [Investor bank profile details](investor-bank-profile-details.md) — save bank details to the investor profile without requiring a proof upload; keep identifiers masked.
 - [Hostinger API deployment](hostinger-api-deployment.md) — production Laravel API runs on Hostinger Business; Replit publishing does not deploy it.
 - [App preference validation](app-preferences-validation.md) — Laravel drops undeclared preference siblings once nested rules exist; verify language/theme survive update and reload.
 - [OG Exports app identity](og-exports-app-identity.md) — `com.ogexports.app` is a separate Play listing, not a replacement for `com.ogexports.investor`.

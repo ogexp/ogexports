@@ -55,9 +55,12 @@ it('returns migrated bank_accounts from legacy withdraw_bank on profile show', f
         ->getJson('/api/investor/profile')
         ->assertOk()
         ->assertJsonPath('data.bank_accounts.0.bank_name', 'HBL')
-        ->assertJsonPath('data.bank_accounts.0.account_number', '12345678')
+        ->assertJsonPath('data.bank_accounts.0.masked_account_identifier', '•••• 5678')
+        ->assertJsonMissingPath('data.bank_accounts.0.account_number')
         ->assertJsonPath('data.bank_accounts.0.is_default', true)
         ->assertJsonPath('data.default_bank_account.bank_name', 'HBL');
+
+    expect($this->investor->fresh()->profile->meta['withdraw_bank']['account_number'])->toBe('12345678');
 });
 
 it('keeps the stored USD wallet and balance when profile country changes', function () {
@@ -120,6 +123,47 @@ it('saves multiple bank_accounts and keeps a single default', function () {
     $meta = $this->investor->fresh()->profile->meta;
     expect($meta['bank_accounts'])->toHaveCount(2)
         ->and($meta['withdraw_bank']['account_number'])->toBe('222');
+});
+
+it('saves bank details to the investor profile without requiring a proof document', function () {
+    UserProfile::query()->create([
+        'user_id' => $this->investor->id,
+        'country' => 'Pakistan',
+        'meta' => [
+            'bank_accounts' => [[
+                'id' => 'existing-bank',
+                'bank_name' => 'HBL',
+                'account_holder' => 'Demo Investor',
+                'account_number' => '99887766',
+                'currency' => 'PKR',
+                'is_default' => true,
+            ]],
+        ],
+    ]);
+
+    $this->actingAs($this->investor)
+        ->putJson('/api/investor/profile', [
+            'withdraw_bank' => [
+                'bank_name' => 'Meezan Bank',
+                'account_holder' => 'Demo Investor',
+                'account_number' => '1234567890',
+                'iban' => 'PK00TEST123',
+                'currency' => 'PKR',
+            ],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.withdraw_bank.bank_name', 'Meezan Bank')
+        ->assertJsonPath('data.bank_accounts.1.bank_name', 'Meezan Bank')
+        ->assertJsonPath('data.bank_accounts.0.is_default', false)
+        ->assertJsonPath('data.bank_accounts.1.is_default', true)
+        ->assertJsonPath('data.bank_accounts.1.has_proof', false);
+
+    $meta = $this->investor->fresh()->profile->meta;
+    expect($meta['withdraw_bank']['account_number'])->toBe('1234567890')
+        ->and($meta['bank_accounts'])->toHaveCount(2)
+        ->and($meta['bank_accounts'][1]['iban'])->toBe('PK00TEST123')
+        ->and($meta['bank_accounts'][1]['is_default'])->toBeTrue()
+        ->and(InvestorBankAccountVerification::query()->where('investor_id', $this->investor->id)->exists())->toBeFalse();
 });
 
 it('accepts multipart bank proof uploads and stores the proof privately', function () {

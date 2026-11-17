@@ -171,10 +171,23 @@ class ProfileController extends Controller
             }
             if (array_key_exists('withdraw_bank', $data)) {
                 $meta['withdraw_bank'] = $data['withdraw_bank'];
-                $meta['bank_accounts'] = InvestorBankAccounts::upsertAccount(
+                $bankAccounts = InvestorBankAccounts::upsertAccount(
                     InvestorBankAccounts::normalizeFromMeta($meta),
                     is_array($data['withdraw_bank']) ? $data['withdraw_bank'] : []
                 );
+                $incomingBank = InvestorBankAccounts::normalizeAccount(
+                    is_array($data['withdraw_bank']) ? $data['withdraw_bank'] : []
+                );
+                foreach ($bankAccounts as $bankAccount) {
+                    if (InvestorBankAccounts::fingerprint($bankAccount) === InvestorBankAccounts::fingerprint($incomingBank)) {
+                        $bankAccounts = InvestorBankAccounts::setDefault(
+                            $bankAccounts,
+                            (string) ($bankAccount['id'] ?? '')
+                        );
+                        break;
+                    }
+                }
+                $meta['bank_accounts'] = $bankAccounts;
             }
             if (array_key_exists('bank_accounts', $data)) {
                 $meta['bank_accounts'] = InvestorBankAccounts::sanitizeForStorage(
