@@ -14,6 +14,8 @@ export const modules: ModuleMap = {
   "./components/mockups/ios-page-spacing/Compact.tsx": () => import("../components/mockups/ios-page-spacing/Compact.tsx"),
   "./components/mockups/ios-page-spacing/Current.tsx": () => import("../components/mockups/ios-page-spacing/Current.tsx"),
   "./components/mockups/mobile-glass/Current.tsx": () => import("../components/mockups/mobile-glass/Current.tsx"),
+  "./components/mockups/password-recovery/Current.tsx": () => import("../components/mockups/password-recovery/Current.tsx"),
+  "./components/mockups/password-recovery/Modern.tsx": () => import("../components/mockups/password-recovery/Modern.tsx"),
   "./components/mockups/transaction-success/Current.tsx": () => import("../components/mockups/transaction-success/Current.tsx"),
   "./components/mockups/transaction-success/Premium.tsx": () => import("../components/mockups/transaction-success/Premium.tsx")
 };

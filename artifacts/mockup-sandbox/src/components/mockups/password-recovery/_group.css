@@ -1,0 +1,21 @@
+.password-recovery-current {
+  --recovery-bg: #f8f7f3;
+  --recovery-ink: #283833;
+  --recovery-muted: #40534c;
+  --recovery-teal: #0a3335;
+  --recovery-border: #dfddd7;
+  --recovery-glass: rgba(253, 253, 251, 0.78);
+  min-height: 100vh;
+  color: var(--recovery-ink);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(ellipse at 24% 25%, rgba(94, 170, 163, 0.29), transparent 38%),
+    radial-gradient(ellipse at 82% 82%, rgba(214, 184, 124, 0.24), transparent 33%),
+    var(--recovery-bg);
+}
+
+.password-recovery-current *,
+.password-recovery-current *::before,
+.password-recovery-current *::after {
+  box-sizing: border-box;
+}
