@@ -1,5 +1,5 @@
 import { BalanceGlass } from '@/components/BalanceGlass';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { BrandMark } from '@/components/BrandMark';
@@ -38,6 +38,7 @@ import {
 } from '@/components/DashboardWidgets';
 import { MOTION, MotionProgress, MotionReveal, motionHaptic } from '@/lib/motion';
 import { dashboardHistoryParams, type DashboardHistoryScope } from '@/lib/dashboard-history';
+import { getLocalTimeGreeting } from '@/lib/time-greeting';
 import {
   estimateDistributionDateFromInvestment,
   formatContainerStatus,
@@ -157,9 +158,15 @@ export default function InvestorHome() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const [timeGreeting, setTimeGreeting] = useState(() => getLocalTimeGreeting());
   const [balanceHidden, setBalanceHidden] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  useEffect(() => {
+    const refreshGreeting = () => setTimeGreeting(getLocalTimeGreeting());
+    const interval = setInterval(refreshGreeting, 60_000);
+    return () => clearInterval(interval);
+  }, []);
   const dashboard = useGetInvestorDashboard({ query: { queryKey: ['investor-dashboard'], enabled: !!token, staleTime: 30_000 } });
   const investments = useGetInvestorInvestments({ per_page: 50 }, { query: { queryKey: ['investor-positions', 50], enabled: !!token, staleTime: 30_000 } });
   const projects = useGetInvestorProjects({ per_page: 3 }, { query: { queryKey: ['investor-projects', 3], enabled: !!token, staleTime: 60_000 } });
@@ -350,7 +357,7 @@ export default function InvestorHome() {
          </Pressable>
          <View style={{ flex: 1, minWidth: 0 }}>
            <Text numberOfLines={1} style={{ color: colors.balanceCardText, fontSize: 14, fontWeight: '700' }}>{greeting}, {firstName}</Text>
-           <Text style={{ color: colors.balanceCardText, opacity: 0.9, fontSize: 10, marginTop: 2 }}>Good morning</Text>
+           <Text style={{ color: colors.balanceCardText, opacity: 0.9, fontSize: 11, marginTop: 2 }}>{timeGreeting}</Text>
          </View>
          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Pressable testID="home-notifications" accessibilityRole="button"

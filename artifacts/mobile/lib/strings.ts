@@ -794,6 +794,8 @@ const phrases: ReadonlyArray<readonly [string, string, string]> = [
   ["Dashboard","ڈیش بورڈ","لوحة التحكم"],
   ["Deposit Funds","فنڈز جمع کریں","إيداع الأموال"],
   ["Good morning","صبح بخیر","صباح الخير"],
+  ["Good afternoon","دوپہر بخیر","مساء الخير"],
+  ["Good evening","شام بخیر","مساء الخير"],
   ["Investor account","سرمایہ کار اکاؤنٹ","حساب المستثمر"],
   ["Opportunities","مواقع","الفرص"],
   ["Portfolio","پورٹ فولیو","المحفظة"],
