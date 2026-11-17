@@ -298,7 +298,7 @@ const s = StyleSheet.create({
   passwordRequirementText: { fontSize: 11, lineHeight: 15 },
   errorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 14 },
   errorText: { flex: 1, fontSize: 12, lineHeight: 18 },
-  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 25 },
+  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 16 },
   footerText: { fontSize: 13 },
   footerLink: { fontSize: 13, fontWeight: '700' },
 });
