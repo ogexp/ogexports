@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  allocatedToTradesFromSources,
   availableBalanceFromDashboard,
   configureMoneyDisplay,
   convertAmountToCurrency,
@@ -11,6 +12,22 @@ import {
   walletCurrencyFromDashboard,
   walletCurrencyFromSources,
 } from './data.ts';
+
+test('allocated-to-trades uses the wallet allocation or active investment total from the dashboard', () => {
+  const dashboard = {
+    data: {
+      summary: {
+        active_investment: 500,
+        active_investment_usd: 500,
+      },
+    },
+  };
+
+  assert.equal(allocatedToTradesFromSources({ available_balance: 500 }, dashboard), 500);
+  assert.equal(allocatedToTradesFromSources({ allocated_to_trades: 0 }, dashboard), 0);
+  assert.equal(allocatedToTradesFromSources({ allocated_balance: 125 }, dashboard), 125);
+  assert.equal(allocatedToTradesFromSources({ available_balance: 500 }, { data: { summary: {} } }), null);
+});
 
 test('prefers dashboard summary available balance with wallet summary as fallback', () => {
   assert.equal(availableBalanceFromDashboard({

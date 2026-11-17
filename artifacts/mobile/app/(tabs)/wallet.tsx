@@ -7,7 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGetInvestorDashboard, useGetInvestorDeposits, useGetInvestorWallet, useGetInvestorWalletTransactions } from '@workspace/api-client-react';
 import { Action, Card, EmptyState, ErrorState, LoadingCard, Screen, Section, Status } from '@/components/InvestorUI';
-import { amount, availableBalanceFromDashboard, first, list, money, record, unwrap, walletCurrencyFromSources, type Json } from '@/lib/data';
+import { allocatedToTradesFromSources, amount, availableBalanceFromDashboard, first, list, money, record, unwrap, walletCurrencyFromSources, type Json } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { MotionReveal } from '@/lib/motion';
@@ -83,7 +83,7 @@ export default function Wallet() {
     && !first(walletData, ['currency', 'default_currency']);
   const usdWalletReady = currency === 'USD' && !walletCurrencyLoading;
   const available = availableBalanceFromDashboard(dashboard.data);
-  const allocated = amount(walletData, ['allocated_to_trades', 'allocated_balance']);
+  const allocated = allocatedToTradesFromSources(walletData, dashboard.data);
   const pendingDeposits = amount(record(unwrap(dashboard.data).summary), ['pending_deposits_amount', 'pending_deposits']);
   const withdrawable = available;
 
@@ -198,7 +198,8 @@ export default function Wallet() {
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
       {balanceMetrics.map(metric => {
         const isPendingDeposit = metric.label === 'Pending Deposits';
-        const isDashboardBalance = isPendingDeposit || metric.label === 'Available' || metric.label === 'Withdrawable Balance';
+        const isDashboardBalance = isPendingDeposit || metric.label === 'Available'
+          || metric.label === 'Allocated to Trades' || metric.label === 'Withdrawable Balance';
         const content = <Card style={{ minHeight: 91, padding: 13, marginBottom: 0 }}>
           <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{metric.label}</Text>
           <Text testID={isPendingDeposit ? 'wallet-pending-deposits-amount' : metric.label === 'Withdrawable Balance' ? 'wallet-withdrawable-balance' : undefined}

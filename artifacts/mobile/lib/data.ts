@@ -101,6 +101,13 @@ export function availableBalanceFromDashboard(value: unknown): number | null {
   return amount(summary, ['available_balance']) ?? amount(wallet, ['available_balance']);
 }
 
+export function allocatedToTradesFromSources(walletValue: unknown, dashboardValue: unknown): number | null {
+  const wallet = unwrap(walletValue);
+  const summary = record(unwrap(dashboardValue).summary);
+  return amount(wallet, ['allocated_to_trades', 'allocated_balance'])
+    ?? amount(summary, ['active_investment_usd', 'active_investment']);
+}
+
 export function walletCurrencyFromDashboard(value: unknown, fallback = 'USD'): string {
   const dashboard = unwrap(value);
   const wallet = record(dashboard.wallet);

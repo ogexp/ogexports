@@ -104,6 +104,12 @@ test('pending deposit total uses the full dashboard summary, never the preview s
   assert.match(walletSource, /Not included in your available balance/);
 });
 
+test('allocated-to-trades tile uses the server investment total and its loading/error state', () => {
+  assert.match(walletSource, /allocated = allocatedToTradesFromSources\(walletData, dashboard\.data\)/);
+  assert.match(walletSource, /metric\.label === 'Allocated to Trades'/);
+  assert.match(walletSource, /\{ label: 'Allocated to Trades', value: allocated \}/);
+});
+
 test('Quick Actions precede every transaction row and pending deposits have no extra request card', () => {
   const actions = walletSource.indexOf('<Section title="Quick Actions"');
   const breakdown = walletSource.indexOf('<Section title="Balance Breakdown"');
