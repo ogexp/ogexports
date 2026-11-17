@@ -6,7 +6,7 @@ import { getSavedToken } from '@/lib/api-config';
 import { saveHtmlAsPdf } from '@/lib/pdf-export';
 
 export async function shareInvestorFile(downloadUrl: string, name: string, origin: string, mimeType: string, extension: string, ensurePdf = false) {
-  if (!origin) throw new Error('Set the OG Exports investor server address in Settings before downloading.');
+  if (!origin) throw new Error('The investor service is not configured for this app. Contact OG Exports support.');
   const token = await getSavedToken();
   if (!token) throw new Error('Sign in again before downloading this file.');
 

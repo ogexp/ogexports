@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, Platform } from 'react-native';
-import { loadApiOrigin, loadSavedUser, getSavedToken, saveSession, clearSession, saveApiOrigin } from '@/lib/api-config';
+import { loadApiOrigin, loadSavedUser, getSavedToken, saveSession, clearSession } from '@/lib/api-config';
 import { first, record, type Json } from '@/lib/data';
 import { getAppPinOwner, hasAppPin, removeAppPin } from '@/lib/app-pin';
 
@@ -26,7 +26,6 @@ type AuthValue = {
   acceptSession: (token: string, user: Json) => Promise<void>;
   updateUser: (user: Json) => Promise<void>;
   signOut: () => Promise<void>;
-  updateOrigin: (value: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -140,7 +139,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAppUnlocked(true);
     setChallenge(null);
   };
-  const updateOrigin = async (value: string) => setApiOrigin(await saveApiOrigin(value));
   const completeOnboarding = async () => {
     await AsyncStorage.setItem(ONBOARDING_KEY, 'complete');
     setOnboardingComplete(true);
@@ -172,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ready, token, user, apiOrigin, challenge, setChallenge,
       onboardingComplete, completeOnboarding, biometricEnabled, appPinEnabled, appUnlocked,
       setBiometricEnabled, setAppPinEnabled, unlockApp, beginExternalFilePicker, endExternalFilePicker,
-       acceptSession, updateUser, signOut, updateOrigin,
+       acceptSession, updateUser, signOut,
     }}>
       {children}
     </AuthContext.Provider>

@@ -120,7 +120,7 @@ export default function Register() {
     if (!email.trim()) { setError('Enter your email address.'); return; }
     if (!isStrongPassword(password)) { setError(PASSWORD_POLICY_MESSAGE); return; }
     if (!apiOrigin) {
-      setError('The investor API server is not configured for this build. Set EXPO_PUBLIC_API_BASE_URL before creating an account.');
+      setError('The investor service is not configured for this app. Contact OG Exports support.');
       return;
     }
     try {

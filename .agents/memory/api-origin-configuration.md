@@ -3,11 +3,11 @@ name: API origin configuration
 description: The user's interface constraint for configuring the OG Exports investor API.
 ---
 
-Do not show an investor API server address input on the OG Exports mobile login screen. The user's reference to restoring the API option means the backend login/signup APIs, not a URL field.
+Do not display or let investors edit the API server address anywhere in the OG Exports mobile app. Keep the API base URL internal to app configuration.
 
-**Why:** the user clarified on October 4, 2026 that they meant backend APIs and do not want a server address field on login.
+**Why:** the user asked to hide the investor API server address from users.
 
-**How to apply:** keep login focused on credentials; configure API routing through the app environment or existing Settings control, and implement the requested auth endpoints on the server.
+**How to apply:** configure the API base URL through app build/environment settings. Keep login focused on credentials, remove user-facing server controls, and use plain support-oriented errors without exposing configuration details.
 
 Evaluate physical Expo Go authentication separately from browser-preview CORS failures.
 

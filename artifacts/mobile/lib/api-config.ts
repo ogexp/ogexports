@@ -40,12 +40,6 @@ export async function loadApiOrigin(): Promise<string> {
   }
 }
 
-export async function saveApiOrigin(input: string): Promise<string> {
-  const origin = configureApiOrigin(input);
-  await AsyncStorage.setItem(ORIGIN_KEY, origin);
-  return origin;
-}
-
 export async function getSavedToken(): Promise<string | null> {
   if (Platform.OS === 'web') return webSessionToken;
   return SecureStore.getItemAsync(TOKEN_KEY);

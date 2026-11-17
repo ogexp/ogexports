@@ -337,7 +337,7 @@ export default function OpportunityDetail() {
   async function viewProjectDocument(url: string) {
     setDocumentError('');
     try {
-      if (!/^https?:\/\//i.test(url) && !apiOrigin) throw new Error('The investor server is not configured.');
+      if (!/^https?:\/\//i.test(url) && !apiOrigin) throw new Error('The investor service is not configured for this app. Contact OG Exports support.');
       const resolved = /^https?:\/\//i.test(url) ? new URL(url) : new URL(url, apiOrigin);
       if (resolved.protocol !== 'https:' && resolved.protocol !== 'http:') throw new Error('This document link is not supported.');
       await Linking.openURL(resolved.href);
@@ -350,7 +350,7 @@ export default function OpportunityDetail() {
     setDocumentError('');
     setDocumentBusy(key);
     try {
-      if (!apiOrigin) throw new Error('Set the OG Exports investor server address in Settings before downloading.');
+      if (!apiOrigin) throw new Error('The investor service is not configured for this app. Contact OG Exports support.');
       const serverOrigin = new URL(apiOrigin).origin;
       const resolved = new URL(url, apiOrigin);
       if (resolved.origin !== serverOrigin) throw new Error('For your security, downloads must be hosted by the OG Exports investor server.');

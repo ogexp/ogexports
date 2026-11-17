@@ -50,7 +50,7 @@ export function TradeTimeline({
     try {
       const url = first(event, ['attachment_url']);
       if (!url) throw new Error('This update has no supporting file.');
-      if (!apiOrigin) throw new Error('Set the OG Exports investor server address in Settings before opening this file.');
+      if (!apiOrigin) throw new Error('The investor service is not configured for this app. Contact OG Exports support.');
 
       const resolved = new URL(url, apiOrigin);
       if (resolved.origin !== new URL(apiOrigin).origin) {

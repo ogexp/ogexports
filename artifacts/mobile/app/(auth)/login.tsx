@@ -54,7 +54,7 @@ export default function Login() {
   async function submit() {
     setError('');
     if (!apiOrigin) {
-      setError('The investor API server is not configured for this build. Set EXPO_PUBLIC_API_BASE_URL before signing in.');
+      setError('The investor service is not configured for this app. Contact OG Exports support.');
       return;
     }
     try {
@@ -167,7 +167,7 @@ export default function Login() {
       </View>
       <View style={{ alignItems: 'center', marginTop: 22 }}>
         <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-          {apiOrigin ? 'Protected by secure, token-based sign-in' : 'Sign-in is ready when the investor API is configured for this build.'}
+          {apiOrigin ? 'Protected by secure, token-based sign-in' : 'The app connection is not ready. Contact OG Exports support.'}
         </Text>
       </View>
     </KeyboardAwareScrollViewCompat></View>

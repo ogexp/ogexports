@@ -233,7 +233,7 @@ export default function PositionDetail() {
     setDocumentErrors(current => ({ ...current, [key]: '' }));
     setBusyDocument(key);
     try {
-      if (!apiOrigin) throw new Error('Set the OG Exports investor server address in Settings before downloading.');
+      if (!apiOrigin) throw new Error('The investor service is not configured for this app. Contact OG Exports support.');
       const configuredOrigin = new URL(apiOrigin).origin;
       const documentId = first(document, ['id', 'document_id']);
       const projectId = first(project, ['id', 'project_id'], first(trade, ['project_id']));
@@ -274,7 +274,7 @@ export default function PositionDetail() {
     setInvestmentDownloadError('');
     setBusyInvestmentDownload(kind);
     try {
-      if (!apiOrigin) throw new Error('Set the OG Exports investor server address in Settings before downloading.');
+      if (!apiOrigin) throw new Error('The investor service is not configured for this app. Contact OG Exports support.');
       const target = investmentDownloadSpec(first(row, ['id', 'investment_id']), kind);
       if (!target) throw new Error('The server did not provide a valid investment record ID.');
       await shareInvestorFile(target.path, target.name, apiOrigin, target.mimeType, target.extension, true);
