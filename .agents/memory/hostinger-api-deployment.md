@@ -18,3 +18,7 @@ In this workspace, HTTPS access to `GIT_URL` only provides repository access; th
 **Why:** The configured Hostinger SSH port and username may include human-readable labels, which OpenSSH cannot use as-is.
 
 **How to apply:** Normalize the port to digits and remove a leading `Username: ` before connecting. Validate the private key without printing it; keep temporary key files outside the workspace and delete them afterward.
+
+**Why:** Hostinger's browser-terminal instructions apply to its newer File Manager; older File Manager layouts may have no terminal control.
+
+**How to apply:** If the toolbar lacks both a Terminal control and the newer Deploy control, stop searching the file list and use SSH Access or another confirmed deployment method instead.
