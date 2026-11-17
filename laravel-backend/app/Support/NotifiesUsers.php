@@ -24,14 +24,14 @@ class NotifiesUsers
             : null;
 
         if ($user->hasRole('investor') && $type !== InvestorNotificationTypes::PAYOUT_PROGRESS) {
-            DB::afterCommit(static function () use ($user, $notification, $type, $data): void {
+            DB::afterCommit(static function () use ($user, $notification, $type, $title, $body, $data): void {
                 if ($notification) {
                     InvestorPushBridge::sendNotification($user, $notification);
 
                     return;
                 }
 
-                InvestorPushBridge::sendPushOnly($user, $type, $data);
+                InvestorPushBridge::sendPushOnly($user, $type, $title, $body, $data);
             });
         }
 

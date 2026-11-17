@@ -23,6 +23,8 @@ final class InvestorPushBridge
             (string) $notification->type,
             $notificationData,
             (string) $notification->id,
+            (string) $notification->title,
+            $notification->body,
         );
     }
 
@@ -32,13 +34,21 @@ final class InvestorPushBridge
      *
      * @param  array<string, mixed>|null  $data
      */
-    public static function sendPushOnly(User $investor, string $type, ?array $data = null): void
+    public static function sendPushOnly(
+        User $investor,
+        string $type,
+        string $title,
+        ?string $body = null,
+        ?array $data = null,
+    ): void
     {
         self::dispatchNotification(
             $investor,
             $type,
             $data ?? [],
             'push-'.Str::uuid(),
+            $title,
+            $body,
         );
     }
 
@@ -50,6 +60,8 @@ final class InvestorPushBridge
         string $type,
         array $notificationData,
         string $notificationId,
+        string $inAppTitle,
+        ?string $inAppBody,
     ): void {
         if (blank($investor->email) || ! $investor->hasRole('investor')) {
             return;
@@ -59,7 +71,7 @@ final class InvestorPushBridge
         if (! is_string($href) || ! str_starts_with($href, '/')) {
             $href = '/account/notifications';
         }
-        [$pushTitle, $pushBody] = self::lockScreenContent($type, $notificationData);
+        [$pushTitle, $pushBody] = self::lockScreenContent($type, $notificationData, $inAppTitle, $inAppBody);
         $pushData = [
             'type' => $type,
             'notification_id' => $notificationId,
@@ -254,47 +266,23 @@ final class InvestorPushBridge
     }
 
     /**
-     * Keep financial and account details inside the authenticated app.
+     * Mirror financial notification text while removing references and private notes.
+     * Keep KYC, support, and other sensitive categories behind app sign-in.
      *
+     * @param  array<string, mixed>  $data
      * @return array{0: string, 1: string}
      */
-    private static function lockScreenContent(string $type, array $data = []): array
-    {
+    private static function lockScreenContent(
+        string $type,
+        array $data = [],
+        ?string $inAppTitle = null,
+        ?string $inAppBody = null,
+    ): array {
+        if (self::isFinancialType($type)) {
+            return self::financialLockScreenContent($type, $data, $inAppTitle, $inAppBody);
+        }
+
         return match ($type) {
-            InvestorNotificationTypes::DEPOSIT => self::depositUpdateContent($data),
-            InvestorNotificationTypes::DEPOSIT_SUBMITTED => [
-                'Deposit request received',
-                'Your deposit is under review. We will share the next update in OG Exports.',
-            ],
-            InvestorNotificationTypes::DEPOSIT_APPROVED => [
-                'Deposit confirmed',
-                'Your deposit has been approved and added to your wallet.',
-            ],
-            InvestorNotificationTypes::DEPOSIT_REJECTED => [
-                'Deposit requires attention',
-                'Open OG Exports to review the decision and next steps.',
-            ],
-            InvestorNotificationTypes::DEPOSIT_CANCELLED => [
-                'Deposit request closed',
-                'This request was cancelled. View the update in OG Exports.',
-            ],
-            InvestorNotificationTypes::WITHDRAWAL => self::withdrawalUpdateContent($data),
-            InvestorNotificationTypes::WITHDRAWAL_SUBMITTED => [
-                'Withdrawal request received',
-                'Your request is under review. Follow its progress in OG Exports.',
-            ],
-            InvestorNotificationTypes::WITHDRAWAL_APPROVED => [
-                'Withdrawal approved',
-                'Your request has been approved. Check OG Exports for payout details.',
-            ],
-            InvestorNotificationTypes::WITHDRAWAL_REJECTED => [
-                'Withdrawal requires attention',
-                'Open OG Exports to review the decision and next steps.',
-            ],
-            InvestorNotificationTypes::WITHDRAWAL_CANCELLED => [
-                'Withdrawal request closed',
-                'Your request was cancelled. View the update in OG Exports.',
-            ],
             InvestorNotificationTypes::OPPORTUNITY_PUBLISHED => [
                 'New trade opportunity',
                 'A new opportunity is available. Explore its details in OG Exports.',
@@ -347,6 +335,116 @@ final class InvestorPushBridge
                 'A new account update is ready. Open OG Exports to review it.',
             ],
         };
+    }
+
+    private static function isFinancialType(string $type): bool
+    {
+        return in_array($type, [
+            InvestorNotificationTypes::DEPOSIT,
+            InvestorNotificationTypes::DEPOSIT_SUBMITTED,
+            InvestorNotificationTypes::DEPOSIT_APPROVED,
+            InvestorNotificationTypes::DEPOSIT_REJECTED,
+            InvestorNotificationTypes::DEPOSIT_CANCELLED,
+            InvestorNotificationTypes::WITHDRAWAL,
+            InvestorNotificationTypes::WITHDRAWAL_SUBMITTED,
+            InvestorNotificationTypes::WITHDRAWAL_APPROVED,
+            InvestorNotificationTypes::WITHDRAWAL_REJECTED,
+            InvestorNotificationTypes::WITHDRAWAL_CANCELLED,
+        ], true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{0: string, 1: string}
+     */
+    private static function financialLockScreenContent(
+        string $type,
+        array $data,
+        ?string $inAppTitle,
+        ?string $inAppBody,
+    ): array {
+        [$fallbackTitle, $fallbackBody] = self::financialFallbackContent($type, $data);
+        $reference = is_string($data['reference'] ?? null) ? $data['reference'] : null;
+        $title = self::sanitizeFinancialText($inAppTitle, $reference);
+        $body = self::sanitizeFinancialText($inAppBody, $reference);
+
+        return [
+            $title !== '' ? $title : $fallbackTitle,
+            $body !== '' ? $body : $fallbackBody,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{0: string, 1: string}
+     */
+    private static function financialFallbackContent(string $type, array $data): array
+    {
+        return match ($type) {
+            InvestorNotificationTypes::DEPOSIT => self::depositUpdateContent($data),
+            InvestorNotificationTypes::DEPOSIT_SUBMITTED => [
+                'Deposit request received',
+                'Your deposit is under review. We will share the next update in OG Exports.',
+            ],
+            InvestorNotificationTypes::DEPOSIT_APPROVED => [
+                'Deposit confirmed',
+                'Your deposit has been approved and added to your wallet.',
+            ],
+            InvestorNotificationTypes::DEPOSIT_REJECTED => [
+                'Deposit requires attention',
+                'Open OG Exports to review the decision and next steps.',
+            ],
+            InvestorNotificationTypes::DEPOSIT_CANCELLED => [
+                'Deposit request closed',
+                'This request was cancelled. View the update in OG Exports.',
+            ],
+            InvestorNotificationTypes::WITHDRAWAL => self::withdrawalUpdateContent($data),
+            InvestorNotificationTypes::WITHDRAWAL_SUBMITTED => [
+                'Withdrawal request received',
+                'Your request is under review. Follow its progress in OG Exports.',
+            ],
+            InvestorNotificationTypes::WITHDRAWAL_APPROVED => [
+                'Withdrawal approved',
+                'Your request has been approved. Check OG Exports for payout details.',
+            ],
+            InvestorNotificationTypes::WITHDRAWAL_REJECTED => [
+                'Withdrawal requires attention',
+                'Open OG Exports to review the decision and next steps.',
+            ],
+            InvestorNotificationTypes::WITHDRAWAL_CANCELLED => [
+                'Withdrawal request closed',
+                'Your request was cancelled. View the update in OG Exports.',
+            ],
+            default => [
+                'Financial status updated',
+                'A financial update is ready in OG Exports.',
+            ],
+        };
+    }
+
+    private static function sanitizeFinancialText(?string $text, ?string $reference): string
+    {
+        if (! is_string($text) || trim($text) === '') {
+            return '';
+        }
+
+        if ($reference !== null && $reference !== '') {
+            $text = str_replace($reference, '', $text);
+        }
+
+        $text = preg_replace(
+            '/\s*(?:private\s+)?(?:reference|ref)\s*[:#]\s*.*$/iu',
+            '',
+            $text,
+        ) ?? $text;
+        $text = preg_replace(
+            '/\s*(?:private\s+)?(?:reason|notes?|admin(?:istrative)? notes?|iban|bank details|account number)\s*[:#]\s*.*$/iu',
+            '',
+            $text,
+        ) ?? $text;
+        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+
+        return trim($text, " \t\n\r\0\x0B,;|—-");
     }
 
     /**

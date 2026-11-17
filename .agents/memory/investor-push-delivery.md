@@ -23,8 +23,8 @@ SecureStore keys for saved push tokens must use only alphanumeric characters, do
 
 **How to apply:** Use the shared scoped-key helper whenever saving, reading, or deleting a device push token.
 
-Status alerts must cover deposit, withdrawal, opportunity/trade, KYC, and support events. Keep lock-screen copy event-specific but free of amounts, references, identity details, rejection notes, and support-message text. Muting an in-app category must not silently disable device push.
+Status alerts must cover deposit, withdrawal, opportunity/trade, KYC, and support events. For deposits and withdrawals, mirror the in-app title/body and amount but strip transaction references and private notes. Keep KYC/support copy summary-only. Muting an in-app category must not silently disable device push.
 
-**Why:** The user asked for branded notifications across all of these investor status flows, while detailed records remain inside the authenticated app.
+**Why:** The user chose financial details on lock screens while keeping references, KYC information, and support conversations private.
 
-**How to apply:** Route status events through the shared Laravel push bridge, keep category preferences limited to the in-app feed, and verify provider ticket plus actual device display after rollout.
+**How to apply:** Pass financial notification text through the shared Laravel push bridge with reference/reason redaction; keep KYC/support copy generic, and verify provider tickets plus actual device display after rollout.
