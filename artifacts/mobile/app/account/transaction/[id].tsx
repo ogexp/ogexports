@@ -19,7 +19,7 @@ import { amount, displayCurrencyCode, first, list, messageOf, money, record, unw
 import { useAuth } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
-import { findFinancialDetailRecord } from '@/lib/financial-detail-record';
+import { findCachedTransactionDetail, findFinancialDetailRecord } from '@/lib/financial-detail-record';
 import { getRememberedFinancialDetail, loadFinancialDetail, saveFinancialDetail } from '@/lib/financial-detail-cache';
 import { resolveTransactionPaymentMethod } from '@/lib/transaction-payment-method';
 import { preferRecordedPositiveAmount, savedUsdEquivalentForRecordedAmount } from '@/lib/withdrawal-history';
@@ -78,6 +78,8 @@ export default function TransactionDetails() {
     loaded: boolean;
     record: Record<string, unknown>;
   }>({ key: '', loaded: false, record: {} });
+  const [detailLoadingTimedOut, setDetailLoadingTimedOut] = useState(false);
+  const [detailRetryAttempt, setDetailRetryAttempt] = useState(0);
   const savedTransaction = savedCacheState.key === savedCacheKey ? savedCacheState.record : {};
   const savedTransactionLoaded = savedCacheState.key === savedCacheKey && savedCacheState.loaded;
 
@@ -172,23 +174,46 @@ export default function TransactionDetails() {
   const walletTransaction = kind === 'wallet'
     ? record(unwrap(walletTransactionQuery.data))
     : undefined;
+  const cachedWalletTransaction = kind === 'wallet'
+    ? findCachedTransactionDetail('wallet', id, {
+      walletTransactions: queryClient.getQueriesData({ queryKey: ['investor-wallet-transactions'] })
+        .flatMap(([, data]) => list(data)),
+    })
+    : undefined;
+  const cachedInvestment = kind === 'investment'
+    ? findCachedTransactionDetail('investment', id, {
+      investments: queryClient.getQueriesData({ queryKey: ['investor-positions'] })
+        .flatMap(([, data]) => list(data)),
+    })
+    : undefined;
   const transaction = kind === 'wallet'
-    ? walletTransaction ?? {}
+    ? walletTransaction && Object.keys(walletTransaction).length
+      ? walletTransaction
+      : cachedWalletTransaction ?? {}
     : kind === 'investment'
-      ? directTransaction
+      ? Object.keys(directTransaction).length ? directTransaction : cachedInvestment ?? {}
       : Object.keys(directTransaction).length
         ? directTransaction
           : historyRecord ?? cachedHistoryRecord ?? getRememberedFinancialDetail(userId, kind, id) ?? savedTransaction;
   const hasRecord = Object.keys(transaction).length > 0;
-  const detailIsLoading = !hasRecord && (
+  const detailSourceIsLoading = (
     query.isLoading
     || Boolean(historyQuery?.isLoading)
     || (Platform.OS !== 'web' && !savedTransactionLoaded)
   );
+  useEffect(() => {
+    setDetailLoadingTimedOut(false);
+    if (!token || !id || hasRecord || !detailSourceIsLoading) return;
+    const timeout = setTimeout(() => setDetailLoadingTimedOut(true), 12_000);
+    return () => clearTimeout(timeout);
+  }, [detailRetryAttempt, detailSourceIsLoading, hasRecord, id, token]);
+  const detailIsLoading = !hasRecord && detailSourceIsLoading && !detailLoadingTimedOut;
   const detailIsError = !hasRecord
-    && query.isError
-    && (historyQuery?.isError ?? true)
-    && (Platform.OS === 'web' || savedTransactionLoaded);
+    && (detailLoadingTimedOut || (
+      query.isError
+      && (historyQuery?.isError ?? true)
+      && (Platform.OS === 'web' || savedTransactionLoaded)
+    ));
   const meta = record(transaction.meta);
   const bankDetails = record(transaction.bank_details);
   const walletType = first(transaction, ['type', 'transaction_type']).toLowerCase();
@@ -415,9 +440,13 @@ export default function TransactionDetails() {
       <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 10 }}>Loading transaction details…</Text>
     </Card> : null}
     {detailIsError ? <ErrorState
-      message="Transaction details are temporarily unavailable."
+      message={detailLoadingTimedOut
+        ? 'This transaction is taking longer than expected. Check your connection and try again.'
+        : 'Transaction details are temporarily unavailable.'}
       error={query.error}
       onRetry={() => {
+        setDetailLoadingTimedOut(false);
+        setDetailRetryAttempt(current => current + 1);
         void query.refetch();
         if (historyQuery) void historyQuery.refetch();
       }}

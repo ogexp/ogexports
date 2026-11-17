@@ -11,3 +11,16 @@ export function findFinancialDetailRecord(
       && String(value).trim() === expectedId;
   }));
 }
+
+export function findCachedTransactionDetail(
+  kind: 'investment' | 'wallet',
+  id: string,
+  sources: {
+    investments?: readonly Record<string, unknown>[];
+    walletTransactions?: readonly Record<string, unknown>[];
+  },
+): Record<string, unknown> | undefined {
+  return kind === 'investment'
+    ? findFinancialDetailRecord(sources.investments ?? [], id, ['id', 'investment_id'])
+    : findFinancialDetailRecord(sources.walletTransactions ?? [], id, ['id', 'transaction_id', 'wallet_transaction_id']);
+}
