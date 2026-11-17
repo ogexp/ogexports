@@ -301,7 +301,7 @@ class BuyerTradeNotifier
                 PortalNotificationTypes::SUPPORT_TICKET,
                 "Reply on ticket {$ticketNumber}",
                 $preview,
-                ['ticket_id' => $ticketId, 'ticket_number' => $ticketNumber, 'href' => $href],
+                ['ticket_id' => $ticketId, 'ticket_number' => $ticketNumber, 'support_event' => 'reply', 'href' => $href],
                 'support_ticket_update',
                 [
                     'ticket_number' => $ticketNumber,
@@ -319,7 +319,7 @@ class BuyerTradeNotifier
             PortalNotificationTypes::SUPPORT_TICKET,
             "Reply on ticket {$ticketNumber}",
             $preview,
-            ['ticket_id' => $ticketId, 'ticket_number' => $ticketNumber, 'href' => $href]
+            ['ticket_id' => $ticketId, 'ticket_number' => $ticketNumber, 'support_event' => 'reply', 'href' => $href]
         );
     }
 
@@ -339,7 +339,7 @@ class BuyerTradeNotifier
                 PortalNotificationTypes::SUPPORT_TICKET,
                 $title,
                 $body,
-                ['ticket_id' => $ticketId, 'ticket_number' => $ticketNumber, 'status' => $status, 'href' => $href],
+                ['ticket_id' => $ticketId, 'ticket_number' => $ticketNumber, 'status' => $status, 'support_event' => 'status_changed', 'href' => $href],
                 'support_ticket_update',
                 [
                     'ticket_number' => $ticketNumber,
@@ -357,7 +357,7 @@ class BuyerTradeNotifier
             PortalNotificationTypes::SUPPORT_TICKET,
             $title,
             $body,
-            ['ticket_id' => $ticketId, 'ticket_number' => $ticketNumber, 'status' => $status, 'href' => $href]
+            ['ticket_id' => $ticketId, 'ticket_number' => $ticketNumber, 'status' => $status, 'support_event' => 'status_changed', 'href' => $href]
         );
     }
 

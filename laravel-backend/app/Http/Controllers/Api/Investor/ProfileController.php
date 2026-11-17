@@ -253,6 +253,7 @@ class ProfileController extends Controller
             ->latest('created_at')
             ->orderByDesc('id')
             ->first();
+        $previousStatus = $kyc?->status;
 
         if ($kyc && $kyc->status === 'approved') {
             KycDocument::query()
@@ -310,6 +311,20 @@ class ProfileController extends Controller
             'Investor uploaded '.($data['doc_type']).' for review.',
             ['href' => '/admin/compliance', 'user_id' => $user->id, 'kyc_id' => $kyc->id]
         );
+
+        if ($previousStatus !== 'pending') {
+            \App\Support\NotifiesUsers::notify(
+                $user,
+                \App\Support\InvestorNotificationTypes::KYC_SUBMITTED,
+                'Verification started',
+                'Your verification documents have been received. Check OG Exports for any remaining steps.',
+                [
+                    'kyc_id' => $kyc->id,
+                    'kyc_status' => 'pending',
+                    'href' => '/invest/kyc',
+                ],
+            );
+        }
 
         return response()->json([
             'message' => 'Document uploaded for review.',

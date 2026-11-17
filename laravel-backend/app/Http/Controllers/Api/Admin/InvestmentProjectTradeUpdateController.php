@@ -83,6 +83,7 @@ class InvestmentProjectTradeUpdateController extends Controller
                         [
                             'project_id' => $project->id,
                             'trade_update_id' => $update->id,
+                            'status' => $update->status,
                             'deep_link' => '/project/'.$project->id,
                         ],
                     );

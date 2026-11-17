@@ -58,7 +58,16 @@ final class InvestorExpoPush
 
                     if (($ticket['details']['error'] ?? null) === 'DeviceNotRegistered') {
                         $token->forceFill(['revoked_at' => now()])->save();
+                        continue;
                     }
+
+                    Log::warning('Expo rejected an investor push ticket.', [
+                        'platform' => $token->platform,
+                        'ticket_status' => is_string($ticket['status'] ?? null) ? $ticket['status'] : 'unknown',
+                        'error_code' => is_string($ticket['details']['error'] ?? null)
+                            ? $ticket['details']['error']
+                            : 'unknown',
+                    ]);
                 }
             } catch (Throwable $exception) {
                 Log::warning('Investor push delivery could not reach Expo.', [

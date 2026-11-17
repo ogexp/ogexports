@@ -22,3 +22,9 @@ SecureStore keys for saved push tokens must use only alphanumeric characters, do
 **Why:** Android SecureStore rejected the push-token key when it contained a colon.
 
 **How to apply:** Use the shared scoped-key helper whenever saving, reading, or deleting a device push token.
+
+Status alerts must cover deposit, withdrawal, opportunity/trade, KYC, and support events. Keep lock-screen copy event-specific but free of amounts, references, identity details, rejection notes, and support-message text. Muting an in-app category must not silently disable device push.
+
+**Why:** The user asked for branded notifications across all of these investor status flows, while detailed records remain inside the authenticated app.
+
+**How to apply:** Route status events through the shared Laravel push bridge, keep category preferences limited to the in-app feed, and verify provider ticket plus actual device display after rollout.

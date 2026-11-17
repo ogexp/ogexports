@@ -8,6 +8,8 @@ final class InvestorNotificationTypes
 
     public const KYC_REJECTED = 'kyc_rejected';
 
+    public const KYC_SUBMITTED = 'kyc_submitted';
+
     public const DEPOSIT = 'deposit';
 
     public const DEPOSIT_SUBMITTED = 'deposit_submitted';
@@ -26,6 +28,8 @@ final class InvestorNotificationTypes
 
     public const WITHDRAWAL_REJECTED = 'withdrawal_rejected';
 
+    public const WITHDRAWAL_CANCELLED = 'withdrawal_cancelled';
+
     public const SHIPMENT_UPDATE = 'shipment_update';
 
     public const UPDATE = 'update';
@@ -43,4 +47,8 @@ final class InvestorNotificationTypes
     public const ANNOUNCEMENT = 'announcement';
 
     public const OPPORTUNITY_PUBLISHED = 'opportunity_published';
+
+    public const SUPPORT_TICKET = 'support_ticket';
+
+    public const NEW_MESSAGE = 'new_message';
 }

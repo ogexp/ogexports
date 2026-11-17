@@ -220,10 +220,14 @@ class InvestmentController extends Controller
             $ref = $result->reference ?: 'INV-'.$result->id;
             NotifiesUsers::notifyAndEmail(
                 $investor,
-                InvestorNotificationTypes::INVESTMENT,
+                InvestorNotificationTypes::INVESTMENT_APPROVED,
                 'Investment approved — '.$ref,
                 'Your investment in '.($project?->title ?? 'the project').' has been approved.',
-                ['investment_id' => $result->id, 'href' => '/invest/containers'],
+                [
+                    'investment_id' => $result->id,
+                    'transaction_status' => 'approved',
+                    'href' => '/invest/containers',
+                ],
                 'investment_approved',
                 [
                     'reference' => $ref,
@@ -262,10 +266,14 @@ class InvestmentController extends Controller
             $ref = $result->reference ?: 'INV-'.$result->id;
             NotifiesUsers::notifyAndEmail(
                 $investor,
-                InvestorNotificationTypes::INVESTMENT,
+                InvestorNotificationTypes::INVESTMENT_REJECTED,
                 'Investment not approved — '.$ref,
                 'Your investment in '.($project?->title ?? 'the project').' was not approved. Funds returned to wallet.',
-                ['investment_id' => $result->id, 'href' => '/invest/containers'],
+                [
+                    'investment_id' => $result->id,
+                    'transaction_status' => 'rejected',
+                    'href' => '/invest/containers',
+                ],
                 'investment_rejected',
                 [
                     'reference' => $ref,
@@ -525,6 +533,8 @@ class InvestmentController extends Controller
             $body,
             [
                 'project_id' => $project->id,
+                'status' => $changes['status'] ?? null,
+                'stage' => $changes['current_project_stage'] ?? null,
                 'href' => $portalPath,
             ],
             $emailSlug,
