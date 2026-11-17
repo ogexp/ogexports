@@ -121,6 +121,8 @@ test('screen and PDF branding share the transparent approved splash mark', () =>
   const pdf = readFileSync(new URL('./pdf-export.ts', import.meta.url), 'utf8');
   assert.ok(component.includes("require('../assets/images/og-official-mark.png')"));
   assert.ok(pdf.includes("require('../assets/images/og-official-mark.png')"));
+  assert.ok(pdf.includes('absolutePdfAssetUri(asset.localUri, asset.uri)'));
+  assert.equal(pdf.includes('.base64()'), false, 'PDF branding does not read the asset through a potentially relative native file URI');
   for (const route of ['(auth)/login', '(auth)/register', 'lock', 'onboarding', '(tabs)/index']) {
     const source = readFileSync(new URL(`../app/${route}.tsx`, import.meta.url), 'utf8');
     assert.match(source, /<(?:BrandMark|AuthBrandHeader)\b/, `${route} uses shared approved branding`);

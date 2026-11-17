@@ -4,12 +4,13 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { brandedPdfHtml } from './pdf-html';
+import { absolutePdfAssetUri } from './pdf-asset-uri';
 
 const officialLogo = require('../assets/images/og-official-mark.png');
 let cachedLogoDataUri: string | null = null;
 export { brandedPdfHtml } from './pdf-html';
 
-async function logoDataUri(): Promise<string> {
+async function logoSourceUri(): Promise<string> {
   if (cachedLogoDataUri) return cachedLogoDataUri;
   const asset = Asset.fromModule(officialLogo);
   await asset.downloadAsync();
@@ -17,13 +18,14 @@ async function logoDataUri(): Promise<string> {
     cachedLogoDataUri = asset.uri;
     return asset.uri;
   }
-  if (!asset.localUri) throw new Error('The official OG Exports logo could not be loaded.');
-  cachedLogoDataUri = `data:image/png;base64,${await new File(asset.localUri).base64()}`;
+  const uri = absolutePdfAssetUri(asset.localUri, asset.uri);
+  if (!uri) throw new Error('The official OG Exports logo could not be loaded.');
+  cachedLogoDataUri = uri;
   return cachedLogoDataUri;
 }
 
 export async function saveHtmlAsPdf(sourceHtml: string, filename: string, title: string): Promise<void> {
-  const html = brandedPdfHtml(sourceHtml, title, await logoDataUri());
+  const html = brandedPdfHtml(sourceHtml, title, await logoSourceUri());
   if (Platform.OS === 'web') {
     await Print.printAsync({ html });
     return;

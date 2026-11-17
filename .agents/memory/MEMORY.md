@@ -29,6 +29,7 @@
 - [Admin dashboard source](admin-dashboard-source.md) — use the dashboard from the user's original frontend ZIP; do not create a replacement.
 - [Backend source archive](backend-source-archive.md) — check the supplied Laravel ZIP before asking for a backend repository; never expose its `.env`.
 - [Android file picker uploads](android-file-picker-uploads.md) — keep the Expo FileSystem `File` object for native uploads; Android cache-copy URIs can fail readability checks.
+- [Android PDF asset URIs](android-pdf-asset-uris.md) — Expo Android bundled assets may not expose an absolute `localUri`; avoid reading them through `File.base64()`.
 - [Laravel test storage isolation](laravel-testing-storage-isolation.md) — avoid `Storage::fake('local')` when its shared framework test-disk directory contains tracked fixtures.
 - [OG Exports mobile motion performance](og-mobile-motion-performance.md) — allow slow branded background motion, keep card effects bounded and preserve accessibility, responsiveness and splash timing.
 - [OpenAPI date query serialization](openapi-date-query-serialization.md) — date-only query params must remain strings with a YYYY-MM-DD pattern under the current Orval client generator.
