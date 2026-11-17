@@ -29,6 +29,12 @@ Keep the mobile splash visible for seven seconds before navigating onward, inclu
 
 **How to apply:** Enforce the duration independently of animation preferences while still waiting for session initialization before choosing a safe destination.
 
+Keep the native Android launch window on the branded teal background without a second small logo; the seven-second in-app OG Exports splash is the single logo-led splash. Fit the full “OG EXPORTS” wordmark on narrow screens.
+
+**Why:** the user reported two splash screens after install and that the wordmark was clipped on some phones.
+
+**How to apply:** retain a valid transparent PNG for the native splash resource, and make the in-app splash wordmark responsive. Removing the native logo requires a new installed build; do not claim an already-installed binary changed through a JavaScript preview update.
+
 Use spacious typography, rounded cards with subtle borders and shadows, and light secondary actions with brand-teal borders on mobile. Avoid crypto, gambling, or speculative-return visual cues. Decorative portfolio illustrations must not imply actual performance or introduce financial amounts, forecasts, or other unreported data.
 
 On Home, preserve the supplied screenshot's layout: a full-width brand gradient hero and a floating glass action dock with Deposit Funds, Invest Now, Withdraw Funds, and View Portfolio. Keep the balance API-driven, preserve the privacy toggle, and keep the decorative circles subtle. The main content begins with Account Overview, followed by verification and investment summaries; move Portfolio Performance and Recent Transactions lower.

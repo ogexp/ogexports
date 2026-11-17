@@ -19,6 +19,10 @@ export default function Entry() {
   const footerBottom = Math.max(28, Math.min(64, height * 0.07)) + insets.bottom;
   const { reduceMotion, motionSettingsReady } = useMotion();
   const useNativeDriver = Platform.OS !== 'web';
+  const textBlockWidth = Math.min(Math.max(width - 48, 0), 400);
+  const wordmarkFontSize = Math.min(26, Math.max(17, Math.round(textBlockWidth / 14)));
+  const wordmarkLetterSpacing = Math.min(7, Math.max(2, textBlockWidth / 58));
+  const taglineLetterSpacing = Math.min(4, Math.max(1.5, textBlockWidth / 100));
   const markReveal = useRef(new Animated.Value(0)).current;
   const textReveal = useRef(new Animated.Value(0)).current;
   const progress = useRef(new Animated.Value(0)).current;
@@ -99,12 +103,24 @@ export default function Entry() {
             style={{ width: markWidth, height: markWidth * MARK_ASPECT }}
           />
         </Animated.View>
-        <Animated.View style={[styles.textBlock, { opacity: textOpacity, transform: [{ translateY: animate ? textLift : 0 }] }]}>
-          <Animated.Text allowFontScaling={false} numberOfLines={1} style={[styles.wordmark, { color: colors.splashText }]}>
+        <Animated.View style={[styles.textBlock, { width: textBlockWidth, opacity: textOpacity, transform: [{ translateY: animate ? textLift : 0 }] }]}>
+          <Animated.Text
+            allowFontScaling={false}
+            adjustsFontSizeToFit
+            minimumFontScale={0.72}
+            numberOfLines={1}
+            style={[styles.wordmark, { color: colors.splashText, fontSize: wordmarkFontSize, letterSpacing: wordmarkLetterSpacing }]}
+          >
             OG EXPORTS
           </Animated.Text>
           <View style={[styles.rule, { backgroundColor: colors.accent }]} />
-          <Animated.Text allowFontScaling={false} style={[styles.tagline, { color: colors.splashMuted }]}>
+          <Animated.Text
+            allowFontScaling={false}
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}
+            numberOfLines={1}
+            style={[styles.tagline, { color: colors.splashMuted, letterSpacing: taglineLetterSpacing }]}
+          >
             IMPORT · EXPORT
           </Animated.Text>
         </Animated.View>
@@ -117,7 +133,14 @@ export default function Entry() {
         >
           <Animated.View style={[styles.fill, { width: barWidth, backgroundColor: colors.accent, transform: [{ translateX: -barWidth / 2 }, { scaleX: barScale }, { translateX: barWidth / 2 }] }]} />
         </View>
-        <Animated.Text style={[styles.welcome, { color: colors.splashMuted }]}>Welcome to OG Exports</Animated.Text>
+        <Animated.Text
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+          numberOfLines={1}
+          style={[styles.welcome, { color: colors.splashMuted }]}
+        >
+          Welcome to OG Exports
+        </Animated.Text>
       </Animated.View>
     </View>
   );
@@ -125,11 +148,11 @@ export default function Entry() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-  center: { alignItems: 'center', marginTop: -24 },
+  center: { alignItems: 'center', width: '100%', marginTop: -24 },
   textBlock: { alignItems: 'center', marginTop: 4 },
-  wordmark: { fontFamily: 'Inter_500Medium', fontSize: 26, letterSpacing: 7, textAlign: 'center' },
+  wordmark: { width: '100%', flexShrink: 1, fontFamily: 'Inter_500Medium', fontSize: 26, letterSpacing: 7, textAlign: 'center' },
   rule: { width: 150, height: StyleSheet.hairlineWidth * 2, marginTop: 22, opacity: 0.7 },
-  tagline: { fontFamily: 'Inter_500Medium', fontSize: 13, letterSpacing: 4, marginTop: 20 },
+  tagline: { width: '100%', fontFamily: 'Inter_500Medium', fontSize: 13, letterSpacing: 4, marginTop: 20, textAlign: 'center' },
   footer: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   track: { height: 2, borderRadius: 1, overflow: 'hidden' },
   fill: { height: 2 },

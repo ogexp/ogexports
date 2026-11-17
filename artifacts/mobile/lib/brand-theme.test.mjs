@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { inflateSync } from 'node:zlib';
 import colors from '../constants/colors.ts';
 
 function luminance(hex) {
@@ -46,8 +47,51 @@ test('native splash uses a bundled PNG and the matching runtime splash backgroun
   const plugin = config.plugins.find(value => Array.isArray(value) && value[0] === 'expo-splash-screen');
   assert.ok(plugin, 'native splash plugin is configured');
   assert.equal(plugin[1].backgroundColor, colors.light.splashEnd);
+  assert.equal(plugin[1].image, './assets/images/splash-transparent.png');
   const image = readFileSync(new URL(`../${plugin[1].image.replace(/^\.\//, '')}`, import.meta.url));
   assert.deepEqual([...image.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+});
+
+test('native launch splash keeps its teal background without showing a second logo', () => {
+  const config = JSON.parse(readFileSync(new URL('../app.json', import.meta.url), 'utf8')).expo;
+  const plugin = config.plugins.find(value => Array.isArray(value) && value[0] === 'expo-splash-screen');
+  const image = readFileSync(new URL(`../${plugin[1].image.replace(/^\.\//, '')}`, import.meta.url));
+  const chunks = [];
+  let offset = 8;
+  let width = 0;
+  let height = 0;
+  let colorType = 0;
+  while (offset < image.length) {
+    const length = image.readUInt32BE(offset);
+    const type = image.toString('ascii', offset + 4, offset + 8);
+    const data = image.subarray(offset + 8, offset + 8 + length);
+    if (type === 'IHDR') {
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      colorType = data[9];
+    } else if (type === 'IDAT') {
+      chunks.push(data);
+    }
+    offset += length + 12;
+  }
+  const decoded = inflateSync(Buffer.concat(chunks));
+  const rowBytes = width * 4;
+  assert.equal(colorType, 6, 'the image uses RGBA transparency');
+  assert.equal(width, 288);
+  assert.equal(height, 288);
+  for (let y = 0; y < height; y += 1) {
+    const row = decoded.subarray(y * (rowBytes + 1), (y + 1) * (rowBytes + 1));
+    assert.equal(row[0], 0, 'each image row uses the None filter');
+    assert.ok(row.subarray(1).every(channel => channel === 0), 'all native splash pixels are transparent');
+  }
+});
+
+test('the branded splash wordmark fits the available width on narrow devices', () => {
+  const screen = readFileSync(new URL('../app/index.tsx', import.meta.url), 'utf8');
+  assert.match(screen, /const textBlockWidth = Math\.min\(Math\.max\(width - 48, 0\), 400\)/);
+  assert.match(screen, /const wordmarkFontSize = Math\.min\(26, Math\.max\(17, Math\.round\(textBlockWidth \/ 14\)\)\)/);
+  assert.match(screen, /adjustsFontSizeToFit/);
+  assert.match(screen, /minimumFontScale=\{0\.72\}/);
 });
 
 function pngDimensions(relativePath) {
