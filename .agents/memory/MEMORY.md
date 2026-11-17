@@ -8,7 +8,7 @@
 - [Generated API declaration freshness](generated-api-declaration-freshness.md) — rebuild API-client project declarations when mobile cannot see a hook present in generated source.
 - [API origin configuration](api-origin-configuration.md) — keep the API address off the login screen; use app environment or existing Settings configuration.
 - [Investor email auth & profile](investor-auth-rollout.md) — email codes cover signup verification, recovery, and optional 2FA; mobile/country stay profile-only.
-- [Investor push delivery](investor-push-delivery.md) — signed Laravel events map by normalized email to active opted-in devices; live delivery still needs a real Expo project ID.
+- [Investor push delivery](investor-push-delivery.md) — token registration, FCM V1 credentials, and actual device delivery are separate checks; verify ticket, receipt, and lock-screen result.
 - [Notification preference migration](investor-notification-preference-migration.md) — category preferences override matching legacy settings without dropping old keys or changing email/push controls.
 - [Expo DevTools runtime](expo-devtools-runtime.md) — a missing libglib can break the optional debugger without blocking Metro or the app preview.
 - [Expo workflow log freshness](expo-workflow-log-freshness.md) — when Metro errors conflict with exports, restart the managed Expo workflow and inspect fresh logs before changing code.
