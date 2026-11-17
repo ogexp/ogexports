@@ -24,7 +24,7 @@ function inside(node, ancestor) {
   return false;
 }
 const files = [
-  ['../app/(tabs)/index.tsx', 'home-fixed-balance-card'],
+  ['../app/(tabs)/index.tsx', 'home-balance-card'],
   ['../app/(tabs)/wallet.tsx', 'wallet-balance-card'],
 ];
 

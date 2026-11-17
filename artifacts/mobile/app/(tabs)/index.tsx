@@ -1,6 +1,5 @@
 import { BalanceGlass } from '@/components/BalanceGlass';
-import React, { useCallback, useEffect, useState } from 'react';
-import type { LayoutChangeEvent } from 'react-native';
+import React, { useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { BrandMark } from '@/components/BrandMark';
 import { LocalizedText as Text } from '@/components/LocalizedText';
@@ -133,10 +132,6 @@ function activityLabel(item: Record<string, unknown>) {
 const investmentDateFields = ['invested_at', 'invest_date', 'investment_date', 'created_at', 'createdAt', 'date'];
 const activityDateFields = ['created_at', 'createdAt', 'occurred_at', 'transacted_at', 'transaction_date', 'date', 'timestamp'];
 const quickActionsOverlap = 31;
-const quickActionsGap = 20;
-const quickActionsMinimumHeight = 67 + 9 * 2 + 2;
-// Stable first-frame reservation for the hero body below its top padding (rows, pill, balance, bottom padding).
-const heroBodyEstimate = 40 + 19 + 36 + 20 + 25 + 45 + 45;
 
 function activityDate(item: Record<string, unknown>) {
   return first(item, activityDateFields);
@@ -315,25 +310,43 @@ export default function InvestorHome() {
     return 'arrow-down-left';
   };
   const heroTopPadding = Platform.OS === 'web' ? 79 : insets.top + (Platform.OS === 'ios' ? 10 : 16);
-  const estimatedFixedHeight = heroTopPadding + heroBodyEstimate + quickActionsMinimumHeight - quickActionsOverlap;
-  const [measuredFixedHeight, setMeasuredFixedHeight] = useState<number | null>(null);
-  const fixedInset = measuredFixedHeight ?? estimatedFixedHeight;
-  const onFixedLayout = useCallback((event: LayoutChangeEvent) => {
-    const next = Math.round(event.nativeEvent.layout.height);
-    setMeasuredFixedHeight(current => (current != null && Math.abs(current - next) < 1 ? current : next));
-  }, []);
   const dockShadow = Platform.OS === 'web'
     ? { boxShadow: `0 8px 20px ${colors.shadow}` }
     : { shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 7 };
 
   return <GlassEffectsProvider reflections={false}><View style={{ flex: 1, backgroundColor: colors.background }}
     onTouchStart={tabBarBehavior.onTouchStart} onTouchEnd={tabBarBehavior.onTouchEnd} onTouchCancel={tabBarBehavior.onTouchCancel}>
-  <View testID="home-fixed-overlay" pointerEvents="box-none" onLayout={onFixedLayout}
-    style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 3, backgroundColor: 'transparent' }}>
-  <View testID="home-fixed-header" pointerEvents="box-none" style={{ backgroundColor: 'transparent' }}>
+  <ScrollView
+    testID="home-scroll-content"
+    onScrollBeginDrag={tabBarBehavior.onScrollBeginDrag}
+    contentInsetAdjustmentBehavior="never"
+    onScroll={tabBarBehavior.onScroll}
+    onScrollEndDrag={tabBarBehavior.onScrollSettled}
+    onMomentumScrollEnd={tabBarBehavior.onScrollSettled}
+    scrollEventThrottle={32}
+    refreshControl={<RefreshControl
+      testID="home-pull-to-refresh"
+      refreshing={refreshing}
+      onRefresh={() => void refreshDashboard()}
+      tintColor={colors.primary}
+      colors={[colors.primary]}
+      progressBackgroundColor={colors.card}
+    />}
+    style={{ flex: 1, minHeight: 0, backgroundColor: 'transparent' }}
+    contentContainerStyle={{
+      paddingTop: 0,
+      paddingBottom: Platform.OS === 'web' ? 110 : insets.bottom + 112,
+      paddingHorizontal: 20,
+    }}
+    showsVerticalScrollIndicator={false}
+  >
+    <View testID="home-scrolling-background" pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <RouteBrandBackdrop />
+    </View>
+  <View testID="home-scrolling-hero" style={{ marginHorizontal: -20, backgroundColor: 'transparent' }}>
     <MotionReveal pointerEvents="box-none">
     <LinearGradient
-      testID="home-fixed-balance-card"
+      testID="home-balance-card"
       pointerEvents="box-none"
        colors={[colors.balanceCardEnd, colors.balanceCardStart]}
       start={{ x: 0, y: 0 }}
@@ -412,9 +425,9 @@ export default function InvestorHome() {
     </MotionReveal>
   </View>
 
-    <View testID="home-fixed-dock-layer" pointerEvents="box-none" style={{ marginTop: -quickActionsOverlap, paddingHorizontal: 20, backgroundColor: 'transparent' }}>
+    <View testID="home-quick-actions-layer" style={{ marginTop: -quickActionsOverlap, paddingHorizontal: 20, backgroundColor: 'transparent' }}>
     <MotionReveal pointerEvents="box-none" delay={MOTION.revealStagger}>
-    <View testID="home-fixed-quick-actions"
+    <View testID="home-quick-actions"
       style={[{ flexDirection: 'row', alignItems: 'center', gap: 2, borderRadius: 23, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassFill, overflow: 'hidden', paddingVertical: 9, paddingHorizontal: 8, zIndex: 2 }, dockShadow]}>
       <GlassLayers />
       {quickActions.map((action, index) => {
@@ -455,36 +468,6 @@ export default function InvestorHome() {
       })}
     </View>
     </MotionReveal>
-    </View>
-  </View>
-
-  <ScrollView
-    testID="home-scroll-content"
-    onScrollBeginDrag={tabBarBehavior.onScrollBeginDrag}
-    contentInsetAdjustmentBehavior="never"
-    onScroll={tabBarBehavior.onScroll}
-    onScrollEndDrag={tabBarBehavior.onScrollSettled}
-    onMomentumScrollEnd={tabBarBehavior.onScrollSettled}
-    scrollEventThrottle={32}
-    refreshControl={<RefreshControl
-      testID="home-pull-to-refresh"
-      refreshing={refreshing}
-      onRefresh={() => void refreshDashboard()}
-      progressViewOffset={fixedInset}
-      tintColor={colors.primary}
-      colors={[colors.primary]}
-      progressBackgroundColor={colors.card}
-    />}
-    style={{ flex: 1, minHeight: 0, zIndex: 1, backgroundColor: 'transparent' }}
-    contentContainerStyle={{
-      paddingTop: fixedInset + quickActionsGap,
-      paddingBottom: Platform.OS === 'web' ? 110 : insets.bottom + 112,
-      paddingHorizontal: 20,
-    }}
-    showsVerticalScrollIndicator={false}
-  >
-    <View testID="home-scrolling-background" pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <RouteBrandBackdrop />
     </View>
     {dashboard.isError ? <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 4, paddingVertical: 5 }}>
       <Text style={{ flex: 1, color: colors.mutedForeground, fontSize: 11 }}>Portfolio data is unavailable.</Text>
