@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   useGetInvestorDeposit,
   useGetInvestorDeposits,
+  useGetInvestorInvestment,
   useGetInvestorWalletTransaction,
   useGetInvestorWalletTransactions,
   useGetInvestorWithdrawal,
@@ -66,7 +67,9 @@ export default function TransactionDetails() {
     ? Math.max(1, Number(params.page))
     : 1;
   const requestedKind = typeof params.kind === 'string' ? params.kind : 'wallet';
-  const kind = requestedKind === 'deposit' || requestedKind === 'withdrawal' ? requestedKind : 'wallet';
+  const kind = requestedKind === 'deposit' || requestedKind === 'withdrawal' || requestedKind === 'investment'
+    ? requestedKind
+    : 'wallet';
   const savedCacheKey = userId && id && (kind === 'deposit' || kind === 'withdrawal')
     ? `${userId}:${kind}:${id}`
     : 'not-applicable';
@@ -114,6 +117,13 @@ export default function TransactionDetails() {
   });
   const depositQuery = useGetInvestorDeposit(Number(id), queryOptions('deposit', kind === 'deposit'));
   const withdrawalQuery = useGetInvestorWithdrawal(Number(id), queryOptions('withdrawal', kind === 'withdrawal'));
+  const investmentQuery = useGetInvestorInvestment(id, {
+    query: {
+      queryKey: ['investor-transaction-investment', id],
+      enabled: Boolean(token && id && kind === 'investment'),
+      staleTime: 20_000,
+    },
+  });
   const depositHistoryQuery = useGetInvestorDeposits({ page: sourcePage, per_page: 100 }, {
     query: {
       queryKey: ['investor-deposits', sourcePage, 100, 'transaction-detail'],
@@ -132,7 +142,9 @@ export default function TransactionDetails() {
     ? depositQuery
     : kind === 'withdrawal'
       ? withdrawalQuery
-      : walletTransactionQuery;
+      : kind === 'investment'
+        ? investmentQuery
+        : walletTransactionQuery;
   const historyQuery = kind === 'deposit'
     ? depositHistoryQuery
     : kind === 'withdrawal'
@@ -203,8 +215,8 @@ export default function TransactionDetails() {
       ['payment_method', 'method'],
       first(bankDetails, ['payment_method', 'method'], first(meta, ['payment_method', 'method'], unavailable)),
     );
-  const relatedInvestmentId = validRelatedId(transaction.investment_id, meta.investment_id);
-  const relatedTradeId = validRelatedId(transaction.trade_id, meta.trade_id);
+  const relatedInvestmentId = kind === 'investment' ? '' : validRelatedId(transaction.investment_id, meta.investment_id);
+  const relatedTradeId = validRelatedId(transaction.trade_id, transaction.project_id, meta.trade_id, meta.project_id);
   const primaryWithdrawalBreakdown = isWithdrawalTransaction
     ? {
       ...withdrawalLedgerMeta,
@@ -292,7 +304,7 @@ export default function TransactionDetails() {
   const transactionCopyTarget = resolveFinancialCopyTarget(
     transaction,
     ['id', 'transaction_id'],
-    ['transaction_id', 'reference', 'transaction_reference', 'deposit_reference', 'withdraw_id'],
+    ['investment_reference', 'transaction_id', 'reference', 'transaction_reference', 'deposit_reference', 'withdraw_id'],
   );
   const transactionId = resolveCanonicalFinancialId(transaction, ['id', 'transaction_id']) || unavailable;
   useEffect(() => {
@@ -305,14 +317,17 @@ export default function TransactionDetails() {
     ) return;
     void saveFinancialDetail(userId, kind, id, transaction).catch(() => undefined);
   }, [userId, id, kind, hasRecord, transaction]);
+  const investmentProject = record(transaction.project ?? transaction.trade ?? transaction.trade_details);
   const title = kind === 'deposit'
     ? 'Deposit'
     : kind === 'withdrawal'
       ? 'Withdrawal'
+      : kind === 'investment'
+        ? first(investmentProject, ['title', 'name'], first(transaction, ['project_title', 'description', 'title'], 'Investment'))
       : first(transaction, ['description', 'title'], first(transaction, ['type', 'transaction_type'], 'Transaction'));
   const currency = first(
     transaction,
-    ['currency', 'amount_currency'],
+    ['currency', 'amount_currency', 'wallet_currency'],
     first(meta, ['currency', 'wallet_currency'], first(withdrawalLedgerMeta, ['currency', 'wallet_currency'])),
   );
   const breakdownCurrency = first(
@@ -320,7 +335,7 @@ export default function TransactionDetails() {
     ['currency', 'wallet_currency', 'fee_currency', 'total_debit_currency'],
     first(bankDetails, ['currency'], currency),
   );
-  const reportedAmount = amount(transaction, ['amount'])
+  const reportedAmount = amount(transaction, kind === 'investment' ? ['amount', 'investment_amount', 'principal'] : ['amount'])
     ?? (kind === 'withdrawal' ? amount(withdrawalBreakdown, ['payout_amount']) : null);
   const amountLabel = reportedAmount === null
     ? 'Not recorded'
@@ -417,13 +432,14 @@ export default function TransactionDetails() {
         <DetailLine label="Type" value={kind === 'wallet' ? first(transaction, ['type', 'transaction_type'], unavailable) : title} />
         <DetailLine label="Status" value={status} />
         <DetailLine label="Amount" value={amountLabel} />
-        <DetailLine label="Date / time" value={formatDateTime(first(transaction, ['created_at', 'occurred_at', 'date']))} />
+        <DetailLine label="Date / time" value={formatDateTime(first(transaction, kind === 'investment' ? ['invested_at', 'created_at', 'date'] : ['created_at', 'occurred_at', 'date']))} />
         <DetailLine
           label="Reference"
           value={transactionCopyTarget?.kind === 'reference'
             ? transactionCopyTarget.value
-            : first(transaction, ['reference', 'transaction_reference', 'deposit_reference', 'withdraw_id'], unavailable)}
+            : first(transaction, ['investment_reference', 'reference', 'transaction_reference', 'deposit_reference', 'withdraw_id'], unavailable)}
         />
+        {kind === 'investment' ? <DetailLine label="Trade" value={first(investmentProject, ['reference', 'trade_id', 'title', 'name'], first(transaction, ['trade_id', 'project_id']))} /> : null}
         <DetailLine label="Payment method" value={paymentMethod} />
         {first(meta, ['investment_id']) ? <DetailLine label="Investment ID" value={first(meta, ['investment_id'])} /> : null}
         {first(meta, ['trade_id', 'trade_reference']) ? <DetailLine label="Trade ID" value={first(meta, ['trade_id', 'trade_reference'])} /> : null}

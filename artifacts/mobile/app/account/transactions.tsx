@@ -24,6 +24,7 @@ import {
 } from '@/lib/withdrawal-history';
 import { resolveTransactionDisplayId } from '@/lib/transaction-id';
 import { createTransactionReceipt, saveTransactionReceipt, type TransactionReceipt } from '@/lib/transaction-receipt';
+import { investmentTransactionTarget } from '@/lib/transaction-detail-route';
 import { rememberFinancialDetail } from '@/lib/financial-detail-cache';
 import { resolveTransactionPaymentMethod } from '@/lib/transaction-payment-method';
 
@@ -955,13 +956,16 @@ export default function Transactions() {
       <Pressable accessibilityRole="button" accessibilityLabel={`Open details for ${row.title}`} accessibilityState={{ selected: active }} onPress={() => {
         motionHaptic('micro');
         setReceiptError('');
-        if (row.detailKind === 'investment' && /^\d+$/.test(row.transactionId)) {
-          router.push({ pathname: '/account/transaction/[id]', params: { id: row.transactionId, kind: 'wallet', page: String(page) } });
-          return;
-        }
-        if (row.detailKind === 'investment' && row.detailId) {
-          router.push({ pathname: '/position/[id]', params: { id: row.detailId } });
-          return;
+        if (row.detailKind === 'investment') {
+          const target = investmentTransactionTarget(row.detailId, row.transactionId);
+          if (target) {
+            router.push({ pathname: '/account/transaction/[id]', params: { ...target, page: String(page) } });
+            return;
+          }
+          if (row.detailId) {
+            router.push({ pathname: '/position/[id]', params: { id: row.detailId } });
+            return;
+          }
         }
         if ((row.detailKind === 'deposit' || row.detailKind === 'withdrawal') && /^\d+$/.test(row.detailId)) {
           rememberFinancialDetail(investorId, row.detailKind, row.detailId, row.sourceRecord ?? {});

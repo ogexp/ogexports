@@ -1,31 +1,13 @@
-import { Asset } from 'expo-asset';
 import { File, Paths } from 'expo-file-system';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { brandedPdfHtml } from './pdf-html';
-import { absolutePdfAssetUri } from './pdf-asset-uri';
-
-const officialLogo = require('../assets/images/og-official-mark.png');
-let cachedLogoDataUri: string | null = null;
+import { officialPdfLogoDataUri } from './pdf-logo';
 export { brandedPdfHtml } from './pdf-html';
 
-async function logoSourceUri(): Promise<string> {
-  if (cachedLogoDataUri) return cachedLogoDataUri;
-  const asset = Asset.fromModule(officialLogo);
-  await asset.downloadAsync();
-  if (Platform.OS === 'web') {
-    cachedLogoDataUri = asset.uri;
-    return asset.uri;
-  }
-  const uri = absolutePdfAssetUri(asset.localUri, asset.uri);
-  if (!uri) throw new Error('The official OG Exports logo could not be loaded.');
-  cachedLogoDataUri = uri;
-  return cachedLogoDataUri;
-}
-
 export async function saveHtmlAsPdf(sourceHtml: string, filename: string, title: string): Promise<void> {
-  const html = brandedPdfHtml(sourceHtml, title, await logoSourceUri());
+  const html = brandedPdfHtml(sourceHtml, title, officialPdfLogoDataUri);
   if (Platform.OS === 'web') {
     await Print.printAsync({ html });
     return;
