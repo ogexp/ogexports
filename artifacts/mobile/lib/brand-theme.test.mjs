@@ -115,6 +115,13 @@ test('official mobile launcher assets use properly sized approved-logo PNGs', ()
   assert.deepEqual(pngDimensions(config.web.favicon), [128, 128]);
 });
 
+test('approved OG vector draws the G layers after its background', () => {
+  const source = readFileSync(new URL('../assets/images/og-official-mark.svg', import.meta.url), 'utf8');
+  assert.match(source, /<g id="G">/);
+  assert.match(source, /<g id="Gout"/);
+  assert.match(source, /<rect width="1024" height="1024" fill="url\(#bg\)"\/>\s*<use href="#Gout"\/>\s*<use href="#G"\/>/);
+});
+
 test('screen and PDF branding share the transparent approved splash mark', () => {
   assert.deepEqual(pngDimensions('assets/images/og-official-mark.png'), [389, 270]);
   const component = readFileSync(new URL('../components/BrandMark.tsx', import.meta.url), 'utf8');
