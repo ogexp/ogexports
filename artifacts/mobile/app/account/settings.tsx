@@ -25,6 +25,7 @@ import { countryForApi, profileUserCountry } from '@/lib/countries';
 import { useColors } from '@/hooks/useColors';
 import { useAppPreferences, type AppearancePreference, type DisplayCurrency } from '@/context/AppPreferencesContext';
 import { localizedAlert as Alert, translateUi } from '@/lib/strings';
+import { pushTokenSecureStoreKey } from '@/lib/push-token-key';
 import {
   NOTIFICATION_CATEGORIES,
   isNotificationPreferenceEnabled,
@@ -33,7 +34,6 @@ import {
 import { useMotion } from '@/lib/motion';
 
 const pushEnabledKey = (userId: string) => `og-investor-push-enabled:${userId}`;
-const pushTokenKey = (userId: string) => `og-investor-push-token:${userId}`;
 
 export default function Settings() {
   const { token, user, updateUser, signOut } = useAuth();
@@ -155,7 +155,7 @@ export default function Settings() {
       const devicePushToken = (await notifications.getExpoPushTokenAsync({
         projectId: expoProjectId,
       })).data;
-      const secureKey = pushTokenKey(userId);
+      const secureKey = pushTokenSecureStoreKey(userId);
       await SecureStore.setItemAsync(secureKey, devicePushToken);
       try {
         await registerPushToken.mutateAsync({
@@ -191,7 +191,7 @@ export default function Settings() {
     }
     setPushBusy(true);
     try {
-      const secureKey = pushTokenKey(userId);
+      const secureKey = pushTokenSecureStoreKey(userId);
       const devicePushToken = await SecureStore.getItemAsync(secureKey);
       if (!devicePushToken) {
         throw new Error('This device has no saved push token to revoke. Sign out and back in, then enable notifications again.');
@@ -269,8 +269,9 @@ export default function Settings() {
 
   async function signOutNow() {
     if (userId) {
+      const secureKey = pushTokenSecureStoreKey(userId);
       try {
-        const devicePushToken = await SecureStore.getItemAsync(pushTokenKey(userId));
+        const devicePushToken = await SecureStore.getItemAsync(secureKey);
         if (devicePushToken) {
           await revokePushToken.mutateAsync({ data: { expo_push_token: devicePushToken } });
         }
@@ -278,7 +279,7 @@ export default function Settings() {
         // Session revocation still prevents the server from selecting this device for future pushes.
       }
       await Promise.all([
-        SecureStore.deleteItemAsync(pushTokenKey(userId)),
+        SecureStore.deleteItemAsync(secureKey),
         AsyncStorage.removeItem(pushEnabledKey(userId)),
       ]).catch(() => undefined);
     }

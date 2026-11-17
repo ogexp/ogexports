@@ -7,6 +7,12 @@ Use Expo Push for investor push delivery. Ask for notification permission only a
 
 Android Expo Go no longer supports remote push delivery; remote-push testing must use an installed native development build.
 
+SecureStore keys for saved push tokens must use only alphanumeric characters, dots, hyphens, or underscores. Keep the account-scoped key generation shared by settings, profile, and sign-out.
+
 **Why:** Push registration lives in the API Server's account/session store while payout progress is saved in Laravel. The signed bridge preserves the systems' separate identities and prevents unauthenticated requests from triggering investor pushes; an Expo project ID is still required to register new devices.
 
 **How to apply:** Keep token registration scoped to authenticated investor sessions. Reuse the signed event pattern for Laravel-triggered pushes, keep the shared secret purpose-derived, and verify an actual delivery and tap route after the real Expo project ID is configured.
+
+**Why:** Android SecureStore rejected the push-token key when it contained a colon.
+
+**How to apply:** Use the shared scoped-key helper whenever saving, reading, or deleting a device push token.
