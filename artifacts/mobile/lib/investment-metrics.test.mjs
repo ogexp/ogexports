@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   calculateExpectedProfitFromRoi,
   calculatePortfolioValueWithEstimates,
@@ -10,8 +11,10 @@ import {
   formatEstimatedDistributionDate,
   formatDistributionStatus,
   formatReportedPayoutDate,
+  formatTargetReturnPercentage,
   parseRoiPercentageLabel,
   pendingDistributionWithEstimates,
+  targetReturnPercentage,
 } from './investment-metrics.ts';
 
 test('calculates expected profit from the invested amount and ROI percentage', () => {
@@ -52,6 +55,22 @@ test('extracts a single percentage from the API ROI label, not an ambiguous rang
   assert.equal(parseRoiPercentageLabel('4.00%'), 4);
   assert.equal(parseRoiPercentageLabel('Target return: 4,5%'), 4.5);
   assert.equal(parseRoiPercentageLabel('4%–8%'), null);
+});
+
+test('admin-saved expected return takes priority over stale investment ROI labels', () => {
+  const project = { expected_return_pct: 18, roi_label: '4%' };
+  const staleInvestment = { expected_return_pct: 4, roi: 4 };
+  const returnPct = targetReturnPercentage([project, staleInvestment]);
+
+  assert.equal(returnPct, 18);
+  assert.equal(formatTargetReturnPercentage(returnPct), '18%');
+  assert.equal(calculateExpectedProfitFromRoi(500, returnPct), 90);
+});
+
+test('agreement terms show the opportunity return instead of a fixed percentage', () => {
+  const source = readFileSync(new URL('../app/project/[id].tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /stated return of 4%/);
+  assert.match(source, /The stated return of \$\{projectedReturn\}/);
 });
 
 test('formats ISO payout dates without shifting date-only values', () => {

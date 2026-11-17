@@ -7,6 +7,7 @@ import { amount, first, money, record } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
 import { opportunityStatusGroup } from '@/lib/opportunities';
 import { MOTION, MotionProgress, useMotion } from '@/lib/motion';
+import { formatTargetReturnPercentage, targetReturnPercentage } from '@/lib/investment-metrics';
 
 type OpportunityCardProps = {
   item: Record<string, unknown>;
@@ -159,8 +160,7 @@ export function OpportunityCard({ item, featured, progress, apiOrigin, onPress }
   const direction = opportunityValue(item, ['trade_direction', 'tradeDirection', 'direction']);
   const directionLabel = direction.toLowerCase() === 'import' ? 'Import'
     : direction.toLowerCase() === 'export' ? 'Export' : '';
-  const returnRate = opportunityValue(item, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi'])
-    || (opportunityAmount(item, ['expected_return_pct']) != null ? `${opportunityAmount(item, ['expected_return_pct'])}%` : '—');
+  const returnRate = formatTargetReturnPercentage(targetReturnPercentage([item])) ?? '—';
   const currencyLabel = currency || 'USD';
   const formatMoney = (value: number | null) => money(value, currencyLabel);
   const fundingProgress = progress == null

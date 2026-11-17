@@ -64,6 +64,66 @@ export function parseRoiPercentageLabel(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+const targetReturnNumberFields = [
+  'expected_return_pct',
+  'projected_return_pct',
+  'projected_return_percentage',
+  'expected_return_percentage',
+  'estimated_return_percentage',
+  'target_return_percentage',
+  'roi',
+] as const;
+
+const targetReturnLabelFields = [
+  'roi_label',
+  'target_return',
+  'projected_return',
+  'expected_return',
+  'return_rate',
+] as const;
+
+function parseTargetReturnValue(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string') return null;
+
+  const normalized = value.trim();
+  if (!normalized) return null;
+  if (/^-?\d+(?:[.,]\d+)?\s*%?$/.test(normalized)) {
+    const parsed = Number(normalized.replace('%', '').replace(',', '.').trim());
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return parseRoiPercentageLabel(normalized);
+}
+
+export function targetReturnPercentage(sources: unknown[]): number | null {
+  const records = sources.filter(
+    (source): source is Record<string, unknown> => source !== null && typeof source === 'object' && !Array.isArray(source),
+  );
+
+  // The admin-managed numeric field is authoritative. Check it across sources
+  // before considering legacy display labels that may be stale.
+  for (const key of targetReturnNumberFields) {
+    for (const source of records) {
+      const value = parseTargetReturnValue(source[key]);
+      if (value != null) return value;
+    }
+  }
+
+  for (const key of targetReturnLabelFields) {
+    for (const source of records) {
+      const value = parseTargetReturnValue(source[key]);
+      if (value != null) return value;
+    }
+  }
+
+  return null;
+}
+
+export function formatTargetReturnPercentage(value: number | null): string | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  return `${Number(value.toFixed(2))}%`;
+}
+
 export function formatContainerStatus(value: string): string {
   const normalized = value.trim().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ');
   if (!normalized || normalized === '—') return 'Not reported';

@@ -6,6 +6,7 @@ import { Action, Card, ErrorState, Section, Status } from '@/components/Investor
 import { TradeProgressCard } from '@/components/TradeProgressCard';
 import { amount, first, list, money, record } from '@/lib/data';
 import { useColors } from '@/hooks/useColors';
+import { formatTargetReturnPercentage, targetReturnPercentage } from '@/lib/investment-metrics';
 
 type OpportunityDetailOverviewProps = {
   project: Record<string, unknown>;
@@ -131,8 +132,7 @@ export function OpportunityDetailOverview({
   const minimum = amount(project, ['minimum_investment', 'min_investment', 'minimum_amount']);
   const progressValue = amount(project, ['funding_percentage', 'funding_progress_percent', 'funding_progress_pct', 'progress_percentage']);
   const progress = progressValue == null ? null : Math.max(0, Math.min(100, Math.round(progressValue)));
-  const expectedReturn = first(project, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi'])
-    || (amount(project, ['expected_return_pct']) == null ? '—' : `${amount(project, ['expected_return_pct'])}%`);
+  const expectedReturn = formatTargetReturnPercentage(targetReturnPercentage([project])) ?? '—';
   const days = amount(project, ['investment_period_days', 'duration_days', 'trade_duration_days']);
   const term = first(project, ['investment_term', 'estimated_trade_cycle', 'trade_cycle', 'duration', 'term'], days == null ? '—' : `${days} days`);
   const formatMoney = (value: number | null) => money(value, currency);

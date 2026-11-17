@@ -25,7 +25,8 @@ import {
   formatContainerStatus,
   formatDistributionStatus,
   formatReportedPayoutDate,
-  parseRoiPercentageLabel,
+  formatTargetReturnPercentage,
+  targetReturnPercentage,
 } from '@/lib/investment-metrics';
 
 const notProvided = '—';
@@ -123,9 +124,8 @@ export default function PositionDetail() {
   const projectedAmount = amount(row, ['projected_return_amount', 'estimated_return_amount', 'target_return_amount', 'projected_distribution', 'estimated_distribution'])
     ?? amount(project, ['projected_return_amount', 'estimated_return_amount', 'target_return_amount', 'projected_distribution', 'estimated_distribution'])
     ?? amount(trade, ['projected_return_amount', 'estimated_return_amount', 'target_return_amount', 'projected_distribution', 'estimated_distribution']);
-  const projectedPercent = amount(row, ['projected_return_percentage', 'projected_return_pct', 'expected_return_pct', 'estimated_return_percentage', 'target_return_percentage'])
-    ?? amount(project, ['projected_return_pct', 'expected_return_pct', 'projected_return_percentage', 'expected_return_percentage', 'estimated_return_percentage', 'target_return_percentage'])
-    ?? amount(trade, ['projected_return_pct', 'expected_return_pct', 'projected_return_percentage', 'expected_return_percentage', 'estimated_return_percentage', 'target_return_percentage']);
+  const targetReturn = targetReturnPercentage([project, trade, row]);
+  const projectedPercent = targetReturn;
   const actualReturn = amount(row, ['actual_return_amount', 'actual_distribution_amount', 'returned_amount', 'amount_returned', 'distributed_amount'])
     ?? amount(project, ['actual_return_amount', 'actual_distribution_amount', 'returned_amount', 'amount_returned', 'distributed_amount'])
     ?? amount(trade, ['actual_return_amount', 'actual_distribution_amount', 'returned_amount', 'amount_returned', 'distributed_amount']);
@@ -166,11 +166,7 @@ export default function PositionDetail() {
   const payoutDateLabel = plannedPayoutDate
     ? 'Planned payout date'
     : payoutDateIsEstimated ? 'Next payout date · estimated' : 'Next payout date';
-  const reportedRoi = amount(row, ['roi', 'expected_return_pct', 'projected_return_pct', 'projected_return_percentage', 'estimated_return_percentage', 'target_return_percentage'])
-    ?? amount(project, ['roi', 'expected_return_pct', 'projected_return_pct', 'projected_return_percentage', 'expected_return_percentage', 'estimated_return_percentage', 'target_return_percentage'])
-    ?? amount(trade, ['roi', 'expected_return_pct', 'projected_return_pct', 'projected_return_percentage', 'expected_return_percentage', 'estimated_return_percentage', 'target_return_percentage']);
-  const roiLabel = firstAvailable([row, project, trade], ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi']);
-  const roiForCalculation = reportedRoi ?? parseRoiPercentageLabel(roiLabel);
+  const roiForCalculation = targetReturn;
   const reportedExpectedProfit = amount(row, ['expected_profit'])
     ?? amount(project, ['expected_profit'])
     ?? amount(trade, ['expected_profit']);
@@ -201,7 +197,7 @@ export default function PositionDetail() {
     ['Investment Date', formatReportedPayoutDate(investmentDate) ?? investmentDate],
     ['Amount Invested', investedAmountText],
     ['Expected profit', expectedProfitText],
-    ['ROI', roiForCalculation != null ? `${roiForCalculation.toFixed(2)}%` : roiLabel || notProvided],
+    ['ROI', formatTargetReturnPercentage(roiForCalculation) ?? notProvided],
     [payoutDateLabel, payoutDateText],
     ['Current Status', status],
     ['Trade Cycle', tradeCycle || (tradeCycleDays ? `${tradeCycleDays} days` : notProvided)],

@@ -31,7 +31,11 @@ import { verifyAppPin } from '@/lib/app-pin';
 import { motionHaptic } from '@/lib/motion';
 import { createTransactionReceipt, saveTransactionReceipt } from '@/lib/transaction-receipt';
 import { goBackOrReplace } from '@/lib/safe-navigation';
-import { formatEstimatedDistributionDate } from '@/lib/investment-metrics';
+import {
+  formatEstimatedDistributionDate,
+  formatTargetReturnPercentage,
+  targetReturnPercentage,
+} from '@/lib/investment-metrics';
 import { GlassLayers } from '@/components/GlassSurface';
 
 function parseCycleDays(value: string): number | null {
@@ -120,9 +124,8 @@ export default function OpportunityDetail() {
     && walletCurrency
     && currency.toUpperCase() !== walletCurrency.toUpperCase(),
   );
-  const reportedReturn = first(project, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate', 'roi']);
-  const returnRate = amount(project, ['expected_return_pct']);
-  const projectedReturn = reportedReturn || (returnRate != null ? `${returnRate}%` : '');
+  const returnRate = targetReturnPercentage([project]);
+  const projectedReturn = formatTargetReturnPercentage(returnRate) ?? '';
   const cycleDaysFromApi = [
     amount(project, ['investment_period_days', 'trade_cycle_days', 'duration_days', 'trade_duration_days', 'cycle_days']),
     amount(projectMeta, ['investment_period_days', 'trade_cycle_days', 'duration_days', 'trade_duration_days', 'cycle_days']),
@@ -549,7 +552,10 @@ export default function OpportunityDetail() {
               1. <Text style={{ color: colors.foreground, fontWeight: '700' }}>Capital at Risk:</Text> All investments involve risk. Capital is not guaranteed.
             </Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 14, lineHeight: 21, marginBottom: 16 }}>
-              2. <Text style={{ color: colors.foreground, fontWeight: '700' }}>Returns:</Text> The stated return of 4% is an expected target.
+              2. <Text style={{ color: colors.foreground, fontWeight: '700' }}>Returns:</Text>{' '}
+              {projectedReturn
+                ? `The stated return of ${projectedReturn} is an expected target, not a guarantee.`
+                : 'OG Exports has not provided a target return.'}
             </Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 14, lineHeight: 21 }}>
               3. <Text style={{ color: colors.foreground, fontWeight: '700' }}>Completion:</Text> When the project completes, principal plus profit will be credited back to your wallet.

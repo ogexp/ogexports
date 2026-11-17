@@ -18,9 +18,10 @@ import {
   calculateExpectedProfitFromRoi,
   calculatePortfolioValueWithEstimates,
   estimateDistributionDateFromInvestment,
+  formatTargetReturnPercentage,
   formatContainerStatus,
-  parseRoiPercentageLabel,
   pendingDistributionWithEstimates,
+  targetReturnPercentage,
 } from '@/lib/investment-metrics';
 
 type PortfolioTab = 'Active' | 'Pending' | 'Completed';
@@ -130,33 +131,16 @@ export default function Portfolio() {
     ).toUpperCase();
     const investedAmount = amount(item, ['amount', 'investment_amount', 'principal'])
       ?? amount(dashboardInvestment, ['amount', 'investment_amount', 'principal']);
-    const roi = amount(dashboardInvestment, [
-      'roi',
-      'expected_return_pct',
-      'projected_return_pct',
-      'estimated_return_percentage',
-      'target_return_percentage',
-    ])
-      ?? amount(item, [
-        'roi',
-        'expected_return_pct',
-        'projected_return_pct',
-        'estimated_return_percentage',
-        'target_return_percentage',
-      ])
-      ?? amount(trade, [
-        'roi',
-        'expected_return_pct',
-        'projected_return_pct',
-        'estimated_return_percentage',
-        'target_return_percentage',
-      ]);
-    const roiLabel = first(item, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate'])
-      || first(dashboardInvestment, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate'])
-      || first(trade, ['roi_label', 'target_return', 'projected_return', 'expected_return', 'return_rate']);
-    const roiPercentage = roi ?? parseRoiPercentageLabel(roiLabel);
+    const roi = targetReturnPercentage([
+      record(item.project),
+      record(record(trade).project),
+      record(dashboardInvestment.project),
+      trade,
+      item,
+      dashboardInvestment,
+    ]);
     const reportedExpectedProfit = amount(item, ['expected_profit']) ?? amount(dashboardInvestment, ['expected_profit']);
-    const estimatedProfit = calculateExpectedProfitFromRoi(investedAmount, roiPercentage) ?? reportedExpectedProfit;
+    const estimatedProfit = calculateExpectedProfitFromRoi(investedAmount, roi) ?? reportedExpectedProfit;
     return {
       item,
       trade,
@@ -166,6 +150,7 @@ export default function Portfolio() {
       category: categorizeInvestmentStatus(investmentStatus),
       investmentCurrency,
       investedAmount,
+      roi,
       estimatedProfit,
       key: first(item, ['investment_id', 'id'], `investment-${index}`),
     };
@@ -244,12 +229,8 @@ export default function Portfolio() {
       : investedPkr != null
         ? money(investedPkr, 'PKR')
         : money(null, investmentCurrency || 'USD');
-    const expectedProfit = amount(item, ['expected_profit']) ?? amount(dashboardInvestment, ['expected_profit']);
-    const roi = amount(dashboardInvestment, ['roi'])
-      ?? amount(item, ['roi', 'expected_return_pct'])
-      ?? amount(trade, ['expected_return_pct']);
-    const roiLabel = first(trade, ['roi_label'], first(item, ['roi_label']));
-    const roiText = roi != null ? `${roi.toFixed(2)}%` : supplied(roiLabel, 'Not reported');
+    const expectedProfit = entry.estimatedProfit;
+    const roiText = formatTargetReturnPercentage(entry.roi) ?? 'Not reported';
     const distribution = record(item.profit_distribution ?? item.distribution);
     const payoutCandidates = [
       first(distribution, ['planned_distribution_date'], ''),
