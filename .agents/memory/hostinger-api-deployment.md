@@ -22,3 +22,7 @@ In this workspace, HTTPS access to `GIT_URL` only provides repository access; th
 **Why:** Hostinger's browser-terminal instructions apply to its newer File Manager; older File Manager layouts may have no terminal control.
 
 **How to apply:** If the toolbar lacks both a Terminal control and the newer Deploy control, stop searching the file list and use SSH Access or another confirmed deployment method instead.
+
+**Why:** Copying a multiline private key through the secret form did not preserve a usable key; a verified one-line Base64 value did.
+
+**How to apply:** Store the encoded key only as the `HOSTINGER_SSH_PRIVATE_KEY_B64` Replit Secret, decode it to a mode-600 temporary file for SSH, and never print or commit either representation.
