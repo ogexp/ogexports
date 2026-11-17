@@ -57,6 +57,20 @@ export function pendingDistributionWithEstimates(
   return safeAmount(pendingCredits) + safeAmount(activeTradeProfit);
 }
 
+export function resolveDistributedReturns(
+  totalProfitEarned: number | null,
+  totalProfitEarnedUsd: number | null,
+  distributedReturns: number | null,
+  distributedReturnsUsd: number | null,
+  fallbackCurrency: string,
+): { value: number | null; currency: string } {
+  if (totalProfitEarned != null) return { value: totalProfitEarned, currency: fallbackCurrency };
+  if (totalProfitEarnedUsd != null) return { value: totalProfitEarnedUsd, currency: 'USD' };
+  if (distributedReturns != null) return { value: distributedReturns, currency: fallbackCurrency };
+  if (distributedReturnsUsd != null) return { value: distributedReturnsUsd, currency: 'USD' };
+  return { value: null, currency: fallbackCurrency };
+}
+
 export function parseRoiPercentageLabel(value: string): number | null {
   const matches = value.match(/-?\d+(?:[.,]\d+)?\s*%/g);
   if (!matches || matches.length !== 1) return null;

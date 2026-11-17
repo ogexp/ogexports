@@ -21,6 +21,7 @@ import {
   formatTargetReturnPercentage,
   formatContainerStatus,
   pendingDistributionWithEstimates,
+  resolveDistributedReturns,
   targetReturnPercentage,
 } from '@/lib/investment-metrics';
 
@@ -58,6 +59,56 @@ function InvestmentMetric({ label, value, color }: { label: string; value: strin
   return <View style={{ width: '50%', paddingTop: 13, paddingRight: 10 }}>
     <Text style={{ color, fontSize: 10, lineHeight: 15 }}>{label}</Text>
     <Text style={{ color, fontSize: 13, lineHeight: 19, fontWeight: '700', marginTop: 3 }}>{value}</Text>
+  </View>;
+}
+
+function SummaryMetric({
+  label,
+  value,
+  icon,
+  accent,
+  colors,
+}: {
+  label: string;
+  value: string;
+  icon: keyof typeof Feather.glyphMap;
+  accent: string;
+  colors: ReturnType<typeof useColors>;
+}) {
+  return <View style={{ width: '50%', paddingTop: 10, paddingHorizontal: 4 }}>
+    <View style={{
+      minHeight: 82,
+      padding: 11,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: colors.glassEdge,
+      backgroundColor: colors.glassFill,
+      justifyContent: 'space-between',
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{
+          width: 27,
+          height: 27,
+          borderRadius: 9,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.secondary,
+        }}>
+          <Feather name={icon} size={14} color={accent} />
+        </View>
+        <Text style={{ flex: 1, color: colors.mutedForeground, fontSize: 10, lineHeight: 14 }} numberOfLines={2}>
+          {label}
+        </Text>
+      </View>
+      <Text
+        style={{ color: colors.foreground, fontSize: 15, lineHeight: 20, fontWeight: '700', marginTop: 9 }}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.82}
+      >
+        {value}
+      </Text>
+    </View>
   </View>;
 }
 
@@ -104,12 +155,19 @@ export default function Portfolio() {
   const totalInvestmentUsd = amount(summary, ['total_investment_usd']);
   const invested = totalInvestment ?? totalInvestmentUsd ?? amount(summary, ['invested_capital']);
   const investedCurrency = totalInvestment == null && totalInvestmentUsd != null ? 'USD' : currency || 'USD';
-  const distributedReturns = amount(summary, ['distributed_returns']);
-  const distributedReturnsUsd = amount(summary, ['distributed_returns_usd']);
-  const distributed = distributedReturns ?? distributedReturnsUsd;
-  const distributedCurrency = distributedReturns == null && distributedReturnsUsd != null ? 'USD' : currency || 'USD';
-  const reportedPendingDistribution = amount(summary, ['pending_distribution']);
-  const pendingDistributionUsd = amount(summary, ['pending_distribution_usd']);
+  const profitEarned = amount(summary, ['total_profit_earned']) ?? amount(dashboard, ['total_profit_earned']);
+  const profitEarnedUsd = amount(summary, ['total_profit_earned_usd']) ?? amount(dashboard, ['total_profit_earned_usd']);
+  const distributedReturns = amount(summary, ['distributed_returns']) ?? amount(dashboard, ['distributed_returns']);
+  const distributedReturnsUsd = amount(summary, ['distributed_returns_usd']) ?? amount(dashboard, ['distributed_returns_usd']);
+  const { value: distributed, currency: distributedCurrency } = resolveDistributedReturns(
+    profitEarned,
+    profitEarnedUsd,
+    distributedReturns,
+    distributedReturnsUsd,
+    currency || 'USD',
+  );
+  const reportedPendingDistribution = amount(summary, ['pending_distribution']) ?? amount(dashboard, ['pending_distribution']);
+  const pendingDistributionUsd = amount(summary, ['pending_distribution_usd']) ?? amount(dashboard, ['pending_distribution_usd']);
   const pendingCredits = reportedPendingDistribution ?? pendingDistributionUsd;
   const pendingDistributionCurrency = reportedPendingDistribution == null && pendingDistributionUsd != null ? 'USD' : currency || 'USD';
   const dashboardInvestments = list(dashboard.my_investments);
@@ -155,13 +213,36 @@ export default function Portfolio() {
       key: first(item, ['investment_id', 'id'], `investment-${index}`),
     };
   });
-  const openRows = assignedRows.filter(row => row.category === 'Active' || row.category === 'Pending');
+  const valuationRows = dashboardInvestments.length
+    ? dashboardInvestments.map((investment, index) => {
+      const trade = record(investment.trade ?? investment.project ?? investment.trade_details);
+      const investmentStatus = first(investment, ['investment_status', 'status', 'state']);
+      const investmentCurrency = first(
+        investment,
+        ['amount_currency', 'currency'],
+        first(trade, ['currency', 'investment_currency'], currency || walletCurrency || 'USD'),
+      ).toUpperCase();
+      const investedAmount = amount(investment, ['amount', 'investment_amount', 'principal']);
+      const roi = targetReturnPercentage([record(investment.project), trade, investment]);
+      const estimatedProfit = calculateExpectedProfitFromRoi(investedAmount, roi)
+        ?? amount(investment, ['expected_profit']);
+      return {
+        investmentStatus,
+        category: categorizeInvestmentStatus(investmentStatus),
+        investmentCurrency,
+        investedAmount,
+        estimatedProfit,
+        key: first(investment, ['investment_id', 'id'], `dashboard-investment-${index}`),
+      };
+    })
+    : assignedRows;
+  const openRows = valuationRows.filter(row => row.category === 'Active' || row.category === 'Pending');
   const valuationCurrency = totalValueCurrency.toUpperCase();
   const valuationCurrencyMatches = valuationCurrency === availableBalanceCurrency.toUpperCase()
     && openRows.every(row => row.investedAmount != null && row.investmentCurrency === valuationCurrency)
     && (pendingCredits == null || pendingDistributionCurrency.toUpperCase() === valuationCurrency);
   const openInvestmentValue = openRows.reduce((total, row) => total + (row.investedAmount ?? 0), 0);
-  const activeTradeProfit = assignedRows
+  const activeTradeProfit = valuationRows
     .filter(row => row.category === 'Active' && row.investmentCurrency === valuationCurrency)
     .reduce((total, row) => total + (row.estimatedProfit ?? 0), 0);
   const pendingDistribution = pendingDistributionWithEstimates(
@@ -389,20 +470,22 @@ export default function Portfolio() {
           {summaryValue(totalValue, totalValueCurrency)}
         </Text>
       </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 2 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4, marginTop: 2 }}>
         {([
-          ['Total Invested', invested, investedCurrency],
-          ['Distributed Returns', distributed, distributedCurrency],
-          ['Pending Distribution', pendingDistribution, pendingDistributionCurrency],
-          ['Available Balance', availableBalance, walletCurrency || 'USD'],
-        ] as [string, number | null, string][]).map(([label, value, sourceCurrency], index) => <View key={label} style={{
-          width: '50%', paddingTop: 14, paddingRight: index % 2 === 0 ? 10 : 0, paddingLeft: index % 2 === 1 ? 10 : 0,
-        }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 11, lineHeight: 16 }}>{label}</Text>
-          <Text style={{ color: colors.foreground, fontSize: 14, lineHeight: 20, fontWeight: '700', marginTop: 4 }}>
-            {summaryValue(value, sourceCurrency)}
-          </Text>
-        </View>)}
+          ['Total Invested', invested, investedCurrency, 'briefcase', colors.primary],
+          ['Distributed Returns', distributed, distributedCurrency, 'trending-up', colors.stageSettled],
+          ['Pending Distribution', pendingDistribution, pendingDistributionCurrency, 'clock', colors.stageFunding],
+          ['Available Balance', availableBalance, walletCurrency || 'USD', 'credit-card', colors.allocationBalance],
+        ] as [string, number | null, string, keyof typeof Feather.glyphMap, string][]).map(([label, value, sourceCurrency, icon, accent]) =>
+          <SummaryMetric
+            key={label}
+            label={label}
+            value={summaryValue(value, sourceCurrency)}
+            icon={icon}
+            accent={accent}
+            colors={colors}
+          />,
+        )}
       </View>
       <Text style={{ color: colors.mutedForeground, fontSize: 10, lineHeight: 15, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
         Distributed returns are confirmed payouts; pending distribution includes pending credits and estimated, non-guaranteed profit from each active investment's reported target return.

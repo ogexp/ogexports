@@ -14,6 +14,7 @@ import {
   formatTargetReturnPercentage,
   parseRoiPercentageLabel,
   pendingDistributionWithEstimates,
+  resolveDistributedReturns,
   targetReturnPercentage,
 } from './investment-metrics.ts';
 
@@ -49,6 +50,14 @@ test('counts reported pending credits once and avoids estimates across currencie
   assert.equal(pendingDistributionWithEstimates(50, 125, true), 175);
   assert.equal(calculatePortfolioValueWithEstimates(2_500, 2_500, 2_500, 0, 125, false), 2_500);
   assert.equal(pendingDistributionWithEstimates(0, 125, false), 0);
+});
+
+test('portfolio distributed returns match the server profit balance, including reported zero', () => {
+  assert.deepEqual(resolveDistributedReturns(90, null, 0, null, 'USD'), { value: 90, currency: 'USD' });
+  assert.deepEqual(resolveDistributedReturns(0, 0, 25, 25, 'USD'), { value: 0, currency: 'USD' });
+  assert.deepEqual(resolveDistributedReturns(null, 90, null, 0, 'PKR'), { value: 90, currency: 'USD' });
+  assert.deepEqual(resolveDistributedReturns(null, null, 25, null, 'USD'), { value: 25, currency: 'USD' });
+  assert.deepEqual(resolveDistributedReturns(null, null, null, 0, 'USD'), { value: 0, currency: 'USD' });
 });
 
 test('extracts a single percentage from the API ROI label, not an ambiguous range', () => {
