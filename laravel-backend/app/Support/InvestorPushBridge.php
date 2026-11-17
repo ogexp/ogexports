@@ -21,6 +21,22 @@ final class InvestorPushBridge
             return;
         }
 
+        $notificationData = is_array($notification->data) ? $notification->data : [];
+        $href = $notificationData['href'] ?? '/account/notifications';
+        if (! is_string($href) || ! str_starts_with($href, '/')) {
+            $href = '/account/notifications';
+        }
+        InvestorExpoPush::send(
+            $investor,
+            (string) $notification->title,
+            filled($notification->body) ? (string) $notification->body : 'You have a new update in OG Exports.',
+            [
+                'type' => (string) $notification->type,
+                'notification_id' => (string) $notification->id,
+                'href' => $href,
+            ],
+        );
+
         $url = self::notificationEndpointUrl();
         $secret = (string) config('services.investor_push.session_secret');
         if (! $url || $secret === '') {
@@ -32,11 +48,6 @@ final class InvestorPushBridge
             return;
         }
 
-        $notificationData = is_array($notification->data) ? $notification->data : [];
-        $href = $notificationData['href'] ?? '/account/notifications';
-        if (! is_string($href) || ! str_starts_with($href, '/')) {
-            $href = '/account/notifications';
-        }
         $timestamp = (string) now()->timestamp;
         $payload = [
             'event_id' => (string) Str::uuid(),
@@ -84,6 +95,21 @@ final class InvestorPushBridge
         if (! $investor || ! $progress || blank($investor->email)) {
             return;
         }
+
+        InvestorExpoPush::send(
+            $investor,
+            'Investment progress updated',
+            sprintf(
+                '%s status is now %s.',
+                $investment->project?->title ?: 'Your investment',
+                str_replace('_', ' ', (string) $progress->status),
+            ),
+            [
+                'type' => 'investment.payout.progress',
+                'investment_id' => (string) $investment->id,
+                'href' => '/account/notifications',
+            ],
+        );
 
         $url = self::endpointUrl();
         $secret = (string) config('services.investor_push.session_secret');

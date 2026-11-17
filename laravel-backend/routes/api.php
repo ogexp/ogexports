@@ -56,6 +56,7 @@ use App\Http\Controllers\Api\Investor\DepositOptionController as InvestorDeposit
 use App\Http\Controllers\Api\Investor\FacilityContentController as InvestorFacilityContentController;
 use App\Http\Controllers\Api\Investor\KycController as InvestorKycController;
 use App\Http\Controllers\Api\Investor\NotificationController as InvestorNotificationController;
+use App\Http\Controllers\Api\Investor\PushTokenController as InvestorPushTokenController;
 use App\Http\Controllers\Api\Investor\ProfileController as InvestorProfileController;
 use App\Http\Controllers\Api\Investor\ProjectController as InvestorProjectController;
 use App\Http\Controllers\Api\Investor\ReportController as InvestorReportController;
@@ -327,6 +328,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/notifications/unread-count', [InvestorNotificationController::class, 'unreadCount']);
         Route::post('/notifications/read-all', [InvestorNotificationController::class, 'markAllRead']);
         Route::post('/notifications/{id}/read', [InvestorNotificationController::class, 'markRead']);
+        Route::post('/push-tokens/register', [InvestorPushTokenController::class, 'register'])->middleware('throttle:20,1');
+        Route::post('/push-tokens/revoke', [InvestorPushTokenController::class, 'revoke'])->middleware('throttle:20,1');
     });
 
     // Admin
