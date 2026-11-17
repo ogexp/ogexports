@@ -8,6 +8,7 @@ final class InvestorNotificationPrefMap
     private const TYPE_TO_CATEGORY = [
         InvestorNotificationTypes::SHIPMENT_UPDATE => 'trade',
         InvestorNotificationTypes::UPDATE => 'trade',
+        InvestorNotificationTypes::OPPORTUNITY_PUBLISHED => 'trade',
         InvestorNotificationTypes::INVESTMENT => 'investment',
         InvestorNotificationTypes::INVESTMENT_APPROVED => 'investment',
         InvestorNotificationTypes::INVESTMENT_REJECTED => 'investment',
@@ -55,6 +56,7 @@ final class InvestorNotificationPrefMap
         InvestorNotificationTypes::INVESTMENT_COMPLETED => 'marketUpdates',
         InvestorNotificationTypes::PAYOUT_PROGRESS => 'marketUpdates',
         InvestorNotificationTypes::SHIPMENT_UPDATE => 'marketUpdates',
+        InvestorNotificationTypes::OPPORTUNITY_PUBLISHED => 'marketUpdates',
         'profit' => 'profitCredit',
         'profit_credit' => 'profitCredit',
         'document_required' => 'documentRequired',

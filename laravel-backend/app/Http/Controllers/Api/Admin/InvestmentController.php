@@ -10,12 +10,14 @@ use App\Models\Deposit;
 use App\Models\Investment;
 use App\Models\InvestmentProfitDistribution;
 use App\Models\InvestmentProject;
+use App\Models\User;
 use App\Models\Withdrawal;
 use App\Support\AuditsActions;
 use App\Support\ProjectReferenceGenerator;
 use App\Support\InvestmentCapacity;
 use App\Support\FinancialTransactionIdResolver;
 use App\Support\InvestmentReviewService;
+use App\Support\ContainerProjectStatus;
 use App\Support\InvestorNotificationTypes;
 use App\Support\InvestorAutoInvestService;
 use App\Support\MediaStorage;
@@ -150,6 +152,10 @@ class InvestmentController extends Controller
         AuditsActions::log('investment_project.created', 'investments', $request->user(), [
             'project_id' => $project->id,
         ]);
+
+        if (ContainerProjectStatus::isInvestable($project->status)) {
+            $this->notifyInvestorsOfNewOpportunity($project);
+        }
 
         return response()->json([
             'message' => 'Project created.',
@@ -351,6 +357,10 @@ class InvestmentController extends Controller
             && strtolower((string) $project->status) === 'funding') {
             app(InvestorAutoInvestService::class)->processNewFundingProject($project->id);
         }
+        if (! ContainerProjectStatus::isInvestable($previous['status'] ?? null)
+            && ContainerProjectStatus::isInvestable($project->status)) {
+            $this->notifyInvestorsOfNewOpportunity($project);
+        }
 
         $settlement = null;
         $previousStatus = (string) ($previous['status'] ?? '');
@@ -409,6 +419,34 @@ class InvestmentController extends Controller
     private function completeProjectInvestments(InvestmentProject $project): void
     {
         $this->reviewService->completeAllActiveForProject($project);
+    }
+
+    private function notifyInvestorsOfNewOpportunity(InvestmentProject $project): void
+    {
+        $alreadyInvestedIds = Investment::query()
+            ->where('project_id', $project->id)
+            ->pluck('investor_id');
+
+        $investors = User::role('investor')
+            ->where('account_status', 'active')
+            ->when($alreadyInvestedIds->isNotEmpty(), fn ($query) => $query->whereNotIn('id', $alreadyInvestedIds))
+            ->get();
+
+        if ($investors->isEmpty()) {
+            return;
+        }
+
+        NotifiesUsers::notifyMany(
+            $investors,
+            InvestorNotificationTypes::OPPORTUNITY_PUBLISHED,
+            'New opportunity: '.$project->title,
+            'A new funding opportunity is available. Open OG Exports to review the project details.',
+            [
+                'project_id' => $project->id,
+                'resource_type' => 'opportunity',
+                'href' => '/project/'.$project->id,
+            ],
+        );
     }
 
     /**

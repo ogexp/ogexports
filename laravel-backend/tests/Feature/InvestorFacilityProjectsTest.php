@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\InvestmentProject;
+use App\Models\AppNotification;
 use App\Models\PlatformSetting;
+use App\Support\InvestorNotificationTypes;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -136,6 +138,49 @@ it('surfaces admin-created ricemill projects on investor list and removes them a
     )->pluck('title');
 
     expect($titles)->not->toContain('Admin Rice Opportunity');
+});
+
+it('notifies active investors when an admin publishes a funding opportunity', function () {
+    $response = $this->actingAs($this->admin)
+        ->postJson('/api/admin/investment-projects', [
+            'title' => 'New Rice Trade',
+            'type' => 'container',
+            'status' => 'funding',
+            'target_amount' => 25000,
+            'raised_amount' => 0,
+            'min_investment' => 100,
+        ])
+        ->assertCreated();
+
+    $projectId = $response->json('data.id');
+    $notification = AppNotification::query()
+        ->where('user_id', $this->investor->id)
+        ->where('type', InvestorNotificationTypes::OPPORTUNITY_PUBLISHED)
+        ->first();
+
+    expect($notification)->not->toBeNull()
+        ->and($notification->data['project_id'])->toBe($projectId)
+        ->and($notification->data['href'])->toBe("/project/{$projectId}");
+});
+
+it('notifies investors when an admin makes a previously hidden project investable', function () {
+    $project = InvestmentProject::query()->create([
+        'title' => 'Coming Soon Trade',
+        'type' => 'container',
+        'status' => 'coming_soon',
+        'target_amount' => 25000,
+        'raised_amount' => 0,
+        'min_investment' => 100,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->putJson("/api/admin/investment-projects/{$project->id}", ['status' => 'funding'])
+        ->assertOk();
+
+    expect(AppNotification::query()
+        ->where('user_id', $this->investor->id)
+        ->where('type', InvestorNotificationTypes::OPPORTUNITY_PUBLISHED)
+        ->count())->toBe(1);
 });
 
 it('includes project type on dashboard opportunities', function () {

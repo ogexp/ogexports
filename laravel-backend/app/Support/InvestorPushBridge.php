@@ -26,15 +26,24 @@ final class InvestorPushBridge
         if (! is_string($href) || ! str_starts_with($href, '/')) {
             $href = '/account/notifications';
         }
+        [$pushTitle, $pushBody] = self::lockScreenContent((string) $notification->type);
+        $pushData = [
+            'type' => (string) $notification->type,
+            'notification_id' => (string) $notification->id,
+            'href' => $href,
+        ];
+        foreach (['deposit_id', 'withdrawal_id', 'investment_id', 'project_id', 'transaction_id'] as $key) {
+            $value = $notificationData[$key] ?? null;
+            if (is_int($value) || (is_string($value) && preg_match('/^\d+$/', $value) === 1)) {
+                $pushData[$key] = (string) $value;
+            }
+        }
+
         InvestorExpoPush::send(
             $investor,
-            (string) $notification->title,
-            filled($notification->body) ? (string) $notification->body : 'You have a new update in OG Exports.',
-            [
-                'type' => (string) $notification->type,
-                'notification_id' => (string) $notification->id,
-                'href' => $href,
-            ],
+            $pushTitle,
+            $pushBody,
+            $pushData,
         );
 
         $url = self::notificationEndpointUrl();
@@ -54,8 +63,8 @@ final class InvestorPushBridge
             'investor_email' => mb_strtolower(trim($investor->email)),
             'notification_id' => (string) $notification->id,
             'type' => (string) $notification->type,
-            'title' => (string) $notification->title,
-            'body' => filled($notification->body) ? (string) $notification->body : 'You have a new update in OG Exports.',
+            'title' => $pushTitle,
+            'body' => $pushBody,
             'href' => $href,
         ];
 
@@ -98,12 +107,8 @@ final class InvestorPushBridge
 
         InvestorExpoPush::send(
             $investor,
-            'Investment progress updated',
-            sprintf(
-                '%s status is now %s.',
-                $investment->project?->title ?: 'Your investment',
-                str_replace('_', ' ', (string) $progress->status),
-            ),
+            'Investment update',
+            'Your investment has a status update. Open OG Exports to review the details.',
             [
                 'type' => 'investment.payout.progress',
                 'investment_id' => (string) $investment->id,
@@ -213,5 +218,52 @@ final class InvestorPushBridge
 
         $port = isset($parts['port']) ? ':'.$parts['port'] : '';
         return 'https://'.$host.$port.'/api/internal/investor-notification';
+    }
+
+    /**
+     * Keep financial and account details inside the authenticated app.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private static function lockScreenContent(string $type): array
+    {
+        return match ($type) {
+            InvestorNotificationTypes::DEPOSIT,
+            InvestorNotificationTypes::DEPOSIT_SUBMITTED,
+            InvestorNotificationTypes::DEPOSIT_APPROVED,
+            InvestorNotificationTypes::DEPOSIT_REJECTED,
+            InvestorNotificationTypes::DEPOSIT_CANCELLED => [
+                'Deposit update',
+                'Your deposit status changed. Open OG Exports to review the details.',
+            ],
+            InvestorNotificationTypes::WITHDRAWAL,
+            InvestorNotificationTypes::WITHDRAWAL_SUBMITTED,
+            InvestorNotificationTypes::WITHDRAWAL_APPROVED,
+            InvestorNotificationTypes::WITHDRAWAL_REJECTED => [
+                'Withdrawal update',
+                'Your withdrawal status changed. Open OG Exports to review the details.',
+            ],
+            InvestorNotificationTypes::OPPORTUNITY_PUBLISHED => [
+                'New opportunity',
+                'A new trade opportunity is available. Open OG Exports to review it.',
+            ],
+            InvestorNotificationTypes::SHIPMENT_UPDATE,
+            InvestorNotificationTypes::UPDATE => [
+                'Trade update',
+                'A trade update is available. Open OG Exports to view the details.',
+            ],
+            InvestorNotificationTypes::INVESTMENT,
+            InvestorNotificationTypes::INVESTMENT_APPROVED,
+            InvestorNotificationTypes::INVESTMENT_REJECTED,
+            InvestorNotificationTypes::INVESTMENT_COMPLETED,
+            InvestorNotificationTypes::PAYOUT_PROGRESS => [
+                'Investment update',
+                'Your investment has an update. Open OG Exports to review the details.',
+            ],
+            default => [
+                'OG Exports update',
+                'You have a new account update. Open OG Exports to review the details.',
+            ],
+        };
     }
 }

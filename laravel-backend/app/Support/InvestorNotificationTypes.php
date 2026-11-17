@@ -41,4 +41,6 @@ final class InvestorNotificationTypes
     public const PAYOUT_PROGRESS = 'payout_progress';
 
     public const ANNOUNCEMENT = 'announcement';
+
+    public const OPPORTUNITY_PUBLISHED = 'opportunity_published';
 }
