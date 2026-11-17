@@ -14,3 +14,7 @@ In this workspace, HTTPS access to `GIT_URL` only provides repository access; th
 **Why:** Auto-invest deployment attempts confirmed that source control access and Hostinger runtime access are separate, and the feature requires running its Laravel migration as well as uploading code.
 
 **How to apply:** If SSH is unavailable, confirm an actual Hostinger deployment mechanism and command path before changing production. Do not upload only the Laravel files while leaving their migration unapplied.
+
+**Why:** The configured Hostinger SSH port and username may include human-readable labels, which OpenSSH cannot use as-is.
+
+**How to apply:** Normalize the port to digits and remove a leading `Username: ` before connecting. Validate the private key without printing it; keep temporary key files outside the workspace and delete them afterward.
