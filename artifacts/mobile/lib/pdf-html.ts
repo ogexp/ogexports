@@ -24,7 +24,9 @@ export function brandedPdfHtml(sourceHtml: string, title: string, logoUri: strin
     @page{size:A4;margin:16mm 14mm}
     *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     body{margin:0;color:#153328;background:#fff;font:12px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
-    .og-pdf{max-width:800px;margin:0 auto}
+    .og-pdf{position:relative;z-index:1;max-width:800px;margin:0 auto}
+    .og-pdf-watermark{position:fixed;inset:0;z-index:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+    .og-pdf-watermark img{display:block;width:68vw;max-width:420px;height:auto;object-fit:contain;opacity:.065}
     .og-pdf-brand{display:flex;align-items:center;gap:14px;padding:0 0 16px;border-bottom:2px solid #0A3637;margin-bottom:22px}
     .og-pdf-brand img{width:94px;height:66px;object-fit:contain;flex-shrink:0}
     .og-pdf-kicker{color:#0A3637;font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase}
@@ -37,7 +39,7 @@ export function brandedPdfHtml(sourceHtml: string, title: string, logoUri: strin
     td{color:#173b2c}
     .og-pdf-footer{border-top:1px solid #dce7e0;margin-top:24px;padding-top:10px;color:#6e7d75;font-size:9px}
     tr,.receipt-card,.section{break-inside:avoid;page-break-inside:avoid}
-    </style></head><body><main class="og-pdf">
+    </style></head><body><div class="og-pdf-watermark" aria-hidden="true"><img src="${escapeHtml(logoUri)}" alt=""></div><main class="og-pdf">
     <header class="og-pdf-brand"><img src="${escapeHtml(logoUri)}" alt="OG Exports logo"><div>
       <div class="og-pdf-kicker">Official investor document</div><h1>${escapeHtml(title)}</h1>
       <p>OG Exports · Global Trade. Digital Investment.</p>
