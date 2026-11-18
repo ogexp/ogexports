@@ -10,8 +10,8 @@
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "com.ogexports.app",
-      "version": "1.0.1",
-      "buildNumber": "1",
+      "version": "1.0.2",
+      "buildNumber": "2",
       "supportsTablet": false,
       "icon": "./assets/images/og-app-icon.png"
     },
@@ -51,17 +51,25 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#0A3335",
-            "image": "./assets/images/splash-transparent.png",
+          "image": "./assets/images/splash-transparent.png",
           "imageWidth": 220,
           "resizeMode": "contain"
         }
       ],
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {
-      "projectId": "1178e32b-a81d-4a9e-a36e-df5090f3c8ba"
+        "projectId": "1178e32b-a81d-4a9e-a36e-df5090f3c8ba"
       }
     },
     "experiments": {
