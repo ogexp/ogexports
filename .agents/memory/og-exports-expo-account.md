@@ -40,3 +40,9 @@ The user selected `@ogpagsjs/og-exports-50` as the intended OG Exports build pro
 **Why:** The user requested SDK 57 builds on OG Exports 50 after the app had been configured for a different Expo project.
 
 **How to apply:** Use the confirmed OG Exports 50 project for future builds, and verify its original Android upload signing identity before creating a store AAB.
+
+OG Landmark and OG Exports share the same Apple Developer Team ID, so a valid Apple Distribution certificate can be reused across both apps when its private key is available.
+
+**Why:** The user confirmed both apps belong to the same Apple Developer team while setting up the iOS distribution credentials.
+
+**How to apply:** Prefer an existing valid team certificate instead of creating or revoking another; make sure the provisioning profile is specific to `com.ogexports.app`.
