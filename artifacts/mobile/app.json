@@ -9,6 +9,9 @@
     "scheme": "mobile",
     "userInterfaceStyle": "light",
     "ios": {
+      "bundleIdentifier": "com.ogexports.app",
+      "version": "1.0.1",
+      "buildNumber": "1",
       "supportsTablet": false,
       "icon": "./assets/images/og-app-icon.png"
     },
