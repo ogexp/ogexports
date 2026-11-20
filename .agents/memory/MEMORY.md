@@ -42,3 +42,4 @@
 - [App preference validation](app-preferences-validation.md) — Laravel drops undeclared preference siblings once nested rules exist; verify language/theme survive update and reload.
 - [OG Exports app identity](og-exports-app-identity.md) — `com.ogexports.app` is a separate Play listing, not a replacement for `com.ogexports.investor`.
 - [Expo pnpm injected peers](expo-pnpm-injected-peers.md) — after an SDK bumps React, refresh pnpm injected workspaces before changing shared catalog versions or overrides.
+- [Expo store versioning](expo-store-versioning.md) — EAS reads the user-facing release version from shared `expo.version`; changing it affects both platforms.
