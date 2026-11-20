@@ -8,7 +8,7 @@ import { useColors } from '@/hooks/useColors';
 import { MOTION, useMotion } from '@/lib/motion';
 import * as SplashScreen from 'expo-splash-screen';
 
-const INTRO_MIN_DURATION = 7000;
+const INTRO_MIN_DURATION = 5000;
 const MARK_ASPECT = 490 / 560;
 
 export default function Entry() {
@@ -52,7 +52,7 @@ export default function Entry() {
 
   useEffect(() => {
     if (!motionSettingsReady) return;
-    // Reduced motion disables animation, not the required seven-second splash.
+    // Reduced motion disables animation, not the required five-second splash.
     const remainingDuration = Math.max(0, INTRO_MIN_DURATION - (Date.now() - introStartedAt.current));
     if (remainingDuration === 0) {
       setIntroDurationElapsed(true);
