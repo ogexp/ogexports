@@ -3,14 +3,14 @@
     "name": "OG Exports",
     "slug": "og-exports-50",
     "owner": "ogexp55",
-    "version": "2.1.5",
+    "version": "2.1.6",
     "orientation": "portrait",
     "icon": "./assets/images/og-app-icon.png",
     "scheme": "mobile",
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "com.ogexports.app",
-      "version": "2.1.5",
+      "version": "2.1.6",
       "buildNumber": "4",
       "supportsTablet": false,
       "icon": "./assets/images/og-app-icon.png"
@@ -18,7 +18,7 @@
     "android": {
       "package": "com.ogexports.app",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 5,
+      "versionCode": 6,
       "icon": "./assets/images/og-app-icon.png",
       "predictiveBackGestureEnabled": false,
       "adaptiveIcon": {
